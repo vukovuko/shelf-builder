@@ -1,0 +1,27 @@
+[
+    {
+      "id": 1,
+      "ime": "Šperploča bukva",
+      "cena": 2500,
+      "slika": "/img/slika1.jpg",
+      "debljina": 18,
+      "lager": 30
+    },
+    {
+      "id": 2,
+      "ime": "MDF bela ploča",
+      "cena": 3100,
+      "slika": "/img/slika2.jpg",
+      "debljina": 18,
+      "lager": 50
+    },
+    {
+      "id": 3,
+      "ime": "Lesonit natur",
+      "cena": 900,
+      "slika": "/img/slika3.jpg",
+      "debljina": 5,
+      "lager": 100
+    }
+  ]
+  

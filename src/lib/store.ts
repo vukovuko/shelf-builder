@@ -9,13 +9,17 @@ interface ShelfState {
   depth: number;
   panelThickness: number;
   numberOfColumns: number;
-  cameraMode: CameraMode; // New
+  columnWidths: number[]; // New: array of column widths
+  cameraMode: CameraMode;
+  rowCounts: number[]; // New: number of shelves per column
   setWidth: (width: number) => void;
   setHeight: (height: number) => void;
   setDepth: (depth: number) => void;
   setPanelThickness: (thickness: number) => void;
   setNumberOfColumns: (columns: number) => void;
-  setCameraMode: (mode: CameraMode) => void; // New
+  setColumnWidth: (index: number, width: number) => void; // New
+  setCameraMode: (mode: CameraMode) => void;
+  setRowCount: (index: number, count: number) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -24,11 +28,43 @@ export const useShelfStore = create<ShelfState>(set => ({
   depth: 60,
   panelThickness: 2,
   numberOfColumns: 2,
-  cameraMode: "2D", // Default to locked 2D view
+  columnWidths: [1, 1], // Default to 1 for each column
+  cameraMode: "2D",
+  rowCounts: [0, 0], // Default 0 shelf per column
   setWidth: width => set({ width }),
   setHeight: height => set({ height }),
   setDepth: depth => set({ depth }),
   setPanelThickness: panelThickness => set({ panelThickness }),
-  setNumberOfColumns: numberOfColumns => set({ numberOfColumns }),
+  setNumberOfColumns: numberOfColumns =>
+    set(state => {
+      let columnWidths = [...state.columnWidths];
+      let rowCounts = [...state.rowCounts];
+      if (numberOfColumns > columnWidths.length) {
+        columnWidths = [
+          ...columnWidths,
+          ...Array(numberOfColumns - columnWidths.length).fill(1),
+        ];
+        rowCounts = [
+          ...rowCounts,
+          ...Array(numberOfColumns - rowCounts.length).fill(0), // Default to 0
+        ];
+      } else if (numberOfColumns < columnWidths.length) {
+        columnWidths = columnWidths.slice(0, numberOfColumns);
+        rowCounts = rowCounts.slice(0, numberOfColumns);
+      }
+      return { numberOfColumns, columnWidths, rowCounts };
+    }),
+  setColumnWidth: (index, width) =>
+    set(state => {
+      const columnWidths = [...state.columnWidths];
+      columnWidths[index] = width;
+      return { columnWidths };
+    }),
   setCameraMode: cameraMode => set({ cameraMode }),
+  setRowCount: (index, count) =>
+    set(state => {
+      const rowCounts = [...state.rowCounts];
+      rowCounts[index] = count;
+      return { rowCounts };
+    }),
 }));

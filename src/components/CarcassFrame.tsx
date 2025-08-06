@@ -4,7 +4,7 @@ import { useShelfStore } from "@/lib/store";
 import { Panel } from "./Panel";
 
 export function CarcassFrame() {
-  const { width, height, depth, panelThickness, numberOfColumns } =
+  const { width, height, depth, panelThickness, numberOfColumns, columnWidths, rowCounts } =
     useShelfStore();
 
   const w = width / 100;
@@ -15,14 +15,43 @@ export function CarcassFrame() {
   const innerWidth = w - 2 * t;
   const columnWidth = innerWidth / numberOfColumns;
   const numberOfDividers = numberOfColumns - 1;
+  const totalColumnUnits = columnWidths.reduce((a, b) => a + b, 0);
 
-  const dividers = Array.from({ length: numberOfDividers }, (_, i) => {
-    const xPos = -innerWidth / 2 + columnWidth * (i + 1);
-    return {
-      id: `divider-${i}`,
-      position: [xPos, h / 2, 0] as [number, number, number],
-      size: [t, h - 2 * t, d] as [number, number, number],
-    };
+  let dividerPositions: number[] = [];
+  let acc = -innerWidth / 2;
+  for (let i = 0; i < numberOfColumns - 1; i++) {
+    acc += (columnWidths[i] / totalColumnUnits) * innerWidth;
+    dividerPositions.push(acc);
+  }
+
+  const dividers = dividerPositions.map((xPos, i) => ({
+    id: `divider-${i}`,
+    position: [xPos, h / 2, 0] as [number, number, number],
+    size: [t, h - 2 * t, d] as [number, number, number],
+  }));
+
+  // Calculate x positions for each compartment
+  let x = -innerWidth / 2;
+  const compartments = [];
+  for (let i = 0; i < numberOfColumns; i++) {
+    const colWidth = columnWidths[i] * (innerWidth / columnWidths.reduce((a, b) => a + b, 0));
+    compartments.push({ xStart: x, xEnd: x + colWidth, width: colWidth });
+    x += colWidth;
+  }
+
+  // Generate shelves for each compartment
+  const shelves = compartments.flatMap((comp, i) => {
+    const shelfCount = rowCounts?.[i] ?? 0; // Use 0 as default, not 1
+    const shelfSpacing = (h - 2 * t) / (shelfCount + 1);
+    return Array.from({ length: shelfCount }, (_, j) => ({
+      key: `shelf-${i}-${j}`,
+      position: [
+        (comp.xStart + comp.xEnd) / 2,
+        t + shelfSpacing * (j + 1),
+        0,
+      ] as [number, number, number],
+      size: [comp.width, t, d] as [number, number, number],
+    }));
   });
 
   return (
@@ -42,6 +71,14 @@ export function CarcassFrame() {
           key={divider.id}
           position={divider.position}
           size={divider.size}
+        />
+      ))}
+      {/* Dynamic Horizontal Shelves */}
+      {shelves.map(shelf => (
+        <Panel
+          key={shelf.key}
+          position={shelf.position}
+          size={shelf.size}
         />
       ))}
     </group>

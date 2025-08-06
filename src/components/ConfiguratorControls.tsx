@@ -9,6 +9,9 @@ import {
 import { useShelfStore } from "@/lib/store";
 import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
+import materials from "@/data/materials.json";
+import { Slider } from "@/components/ui/slider";
+
 
 export function ConfiguratorControls() {
   const {
@@ -66,29 +69,142 @@ export function ConfiguratorControls() {
           2. Columns & Compartments
         </AccordionTrigger>
         <AccordionContent className="space-y-4 pt-4">
-          <p className="text-sm text-muted-foreground">
-            Select the number of vertical compartments.
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {[2, 3, 4].map(cols => (
-              <Button
-                key={cols}
-                variant={numberOfColumns === cols ? "secondary" : "outline"}
-                onClick={() => setNumberOfColumns(cols)}
-                className="group"
-              >
-                <span className="group-hover:text-primary">{cols}</span>
-              </Button>
-            ))}
-          </div>
-        </AccordionContent>
+  <p className="text-sm text-muted-foreground">
+    Izaberi broj vertikalnih prostora.
+  </p>
+
+  <div className="flex items-center space-x-4">
+    {/* Minus button */}
+    <Button
+      variant="outline"
+      onClick={() => setNumberOfColumns(numberOfColumns - 1)}
+      disabled={numberOfColumns <= 0}
+    >
+      –
+    </Button>
+
+    {/* Slider */}
+    <Slider
+      min={1}
+      max={8}
+      step={1}
+      value={[numberOfColumns]}
+      onValueChange={([val]) => setNumberOfColumns(val)}
+      className="w-full"
+    />
+
+    {/* Plus button */}
+    <Button
+      variant="outline"
+      onClick={() => setNumberOfColumns(numberOfColumns + 1)}
+      disabled={numberOfColumns >= 8}
+    >
+      +
+    </Button>
+  </div>
+
+  <p className="text-sm text-muted-foreground text-center">
+    Selected: {numberOfColumns} columns
+  </p>
+
+  {/* Sliders for each column width */}
+  // Remove this from store.ts!
+<div className="space-y-2">
+  {useShelfStore(state => state.rowCounts).map((count, idx) => (
+    <div key={idx} className="flex items-center space-x-2">
+      <span className="text-xs text-muted-foreground">Shelves in Col {idx + 1}</span>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => useShelfStore.getState().setRowCount(idx, Math.max(count - 1, 0))}
+        disabled={count <= 0}
+        className="px-2"
+      >
+        –
+      </Button>
+      <Slider
+        min={0}
+        max={10}
+        step={1}
+        value={[count]}
+        onValueChange={([val]) => useShelfStore.getState().setRowCount(idx, val)}
+        className="flex-1"
+      />
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => useShelfStore.getState().setRowCount(idx, Math.min(count + 1, 10))}
+        disabled={count >= 10}
+        className="px-2"
+      >
+        +
+      </Button>
+      <span className="text-xs w-8 text-right">{count} shelves</span>
+    </div>
+  ))}
+</div>
+</AccordionContent>
+
       </AccordionItem>
 
       <AccordionItem value="item-3" className="border-border">
         <AccordionTrigger className="text-base font-bold hover:no-underline">
           3. Choose material
         </AccordionTrigger>
-        <AccordionContent>Placeholder for material options.</AccordionContent>
+        <AccordionContent className="space-y-6 pt-4">
+
+{/* Materijal Korpusa */}
+<div>
+  <h4 className="text-sm font-semibold mb-2">Materijal Korpusa (18mm)</h4>
+  <div className="grid grid-cols-3 gap-4">
+    {materials
+      .filter((m) => m.debljina === 18)
+      .map((material) => (
+        <div key={material.id} className="flex flex-col items-center">
+          <button
+            className="rounded-lg border-2 border-transparent hover:border-primary h-24 w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${material.slika})` }}
+            onClick={() => {
+              console.log("Odabrani materijal:", material);
+            }}
+            title={material.ime}
+          >
+            <span className="sr-only">{material.ime}</span>
+          </button>
+          <span className="text-sm mt-1 text-center">{material.ime}</span>
+        </div>
+      ))}
+  </div>
+</div>
+
+{/* Materijal Leđa */}
+<div>
+  <h4 className="text-sm font-semibold mb-2">Materijal Leđa (5mm)</h4>
+  <div className="grid grid-cols-3 gap-4">
+    {materials
+      .filter((m) => m.debljina === 5)
+      .map((material) => (
+        <div key={material.id} className="flex flex-col items-center">
+          <button
+            className="rounded-lg border-2 border-transparent hover:border-primary h-24 w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${material.slika})` }}
+            onClick={() => {
+              console.log("Odabrani materijal:", material);
+            }}
+            title={material.ime}
+          >
+            <span className="sr-only">{material.ime}</span>
+          </button>
+          <span className="text-sm mt-1 text-center">{material.ime}</span>
+        </div>
+      ))}
+  </div>
+</div>
+
+</AccordionContent>
+
+
+
       </AccordionItem>
     </Accordion>
   );
