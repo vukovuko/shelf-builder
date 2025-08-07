@@ -25,50 +25,58 @@ export function ConfiguratorControls() {
     setNumberOfColumns, // Get the new state and action
   } = useShelfStore();
 
-  return (
-    <Accordion
-      type="single"
-      collapsible
-      defaultValue="item-1"
-      className="w-full"
-    >
-      <AccordionItem value="item-1" className="border-border">
-        <AccordionTrigger className="text-base font-bold hover:no-underline">
-          1. Define exterior dimensions
-        </AccordionTrigger>
-        <AccordionContent className="space-y-6 pt-4">
-          <DimensionControl
-            label="Width"
-            value={width}
-            setValue={setWidth}
-            min={50}
-            max={400}
-            step={1}
-          />
-          <DimensionControl
-            label="Height"
-            value={height}
-            setValue={setHeight}
-            min={50}
-            max={280}
-            step={1}
-          />
-          <DimensionControl
-            label="Depth"
-            value={depth}
-            setValue={setDepth}
-            min={20}
-            max={100}
-            step={1}
-          />
-        </AccordionContent>
-      </AccordionItem>
+  // Add these if not already in your store:
+  const selectedMaterialId = useShelfStore(state => state.selectedMaterialId);
+  const setSelectedMaterialId = useShelfStore(state => state.setSelectedMaterialId);
 
-      <AccordionItem value="item-2" className="border-border">
-        <AccordionTrigger className="text-base font-bold hover:no-underline">
-          2. Columns & Compartments
-        </AccordionTrigger>
-        <AccordionContent className="space-y-4 pt-4">
+  const showDimensions = useShelfStore(state => state.showDimensions);
+  const setShowDimensions = useShelfStore(state => state.setShowDimensions);
+
+  return (
+    <>
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="item-1"
+        className="w-full"
+      >
+        <AccordionItem value="item-1" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            1. Define exterior dimensions
+          </AccordionTrigger>
+          <AccordionContent className="space-y-6 pt-4">
+            <DimensionControl
+              label="Width"
+              value={width}
+              setValue={setWidth}
+              min={50}
+              max={400}
+              step={1}
+            />
+            <DimensionControl
+              label="Height"
+              value={height}
+              setValue={setHeight}
+              min={50}
+              max={280}
+              step={1}
+            />
+            <DimensionControl
+              label="Depth"
+              value={depth}
+              setValue={setDepth}
+              min={20}
+              max={100}
+              step={1}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="item-2" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            2. Columns & Compartments
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
   <p className="text-sm text-muted-foreground">
     Izaberi broj vertikalnih prostora.
   </p>
@@ -145,33 +153,31 @@ export function ConfiguratorControls() {
 </div>
 </AccordionContent>
 
-      </AccordionItem>
+        </AccordionItem>
 
-      <AccordionItem value="item-3" className="border-border">
-        <AccordionTrigger className="text-base font-bold hover:no-underline">
-          3. Choose material
-        </AccordionTrigger>
-        <AccordionContent className="space-y-6 pt-4">
+        <AccordionItem value="item-3" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            3. Choose material
+          </AccordionTrigger>
+          <AccordionContent className="space-y-6 pt-4">
 
 {/* Materijal Korpusa */}
 <div>
   <h4 className="text-sm font-semibold mb-2">Materijal Korpusa (18mm)</h4>
   <div className="grid grid-cols-3 gap-4">
     {materials
-      .filter((m) => m.debljina === 18)
+      .filter((m) => m.thickness === 18000) // for 18mm
       .map((material) => (
         <div key={material.id} className="flex flex-col items-center">
           <button
-            className="rounded-lg border-2 border-transparent hover:border-primary h-24 w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${material.slika})` }}
-            onClick={() => {
-              console.log("Odabrani materijal:", material);
-            }}
-            title={material.ime}
+            className={`rounded-lg border-2 ${selectedMaterialId === material.id ? "border-primary" : "border-transparent"} hover:border-primary h-24 w-full bg-cover bg-center`}
+            style={{ backgroundImage: `url(${material.img})` }}
+            onClick={() => setSelectedMaterialId(material.id)}
+            title={material.name}
           >
-            <span className="sr-only">{material.ime}</span>
+            <span className="sr-only">{material.name}</span>
           </button>
-          <span className="text-sm mt-1 text-center">{material.ime}</span>
+          <span className="text-sm mt-1 text-center">{material.name}</span>
         </div>
       ))}
   </div>
@@ -182,30 +188,65 @@ export function ConfiguratorControls() {
   <h4 className="text-sm font-semibold mb-2">Materijal Leđa (5mm)</h4>
   <div className="grid grid-cols-3 gap-4">
     {materials
-      .filter((m) => m.debljina === 5)
+      .filter((m) => m.thickness === 5000) // for 5mm
       .map((material) => (
         <div key={material.id} className="flex flex-col items-center">
           <button
             className="rounded-lg border-2 border-transparent hover:border-primary h-24 w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${material.slika})` }}
-            onClick={() => {
-              console.log("Odabrani materijal:", material);
-            }}
-            title={material.ime}
+            style={{ backgroundImage: `url(${material.img})` }}
+            // You can add a separate setter for back material if needed
+            onClick={() => console.log("Odabrani materijal leđa:", material)}
+            title={material.name}
           >
-            <span className="sr-only">{material.ime}</span>
+            <span className="sr-only">{material.name}</span>
           </button>
-          <span className="text-sm mt-1 text-center">{material.ime}</span>
+          <span className="text-sm mt-1 text-center">{material.name}</span>
         </div>
       ))}
   </div>
 </div>
 
-</AccordionContent>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </>
+  );
+}
 
+// Example: Top-right controls (e.g. in Scene.tsx or AppBar.tsx)
+export function TopRightControls() {
+  const cameraMode = useShelfStore(state => state.cameraMode);
+  const setCameraMode = useShelfStore(state => state.setCameraMode);
+  const showDimensions = useShelfStore(state => state.showDimensions);
+  const setShowDimensions = useShelfStore(state => state.setShowDimensions);
 
-
-      </AccordionItem>
-    </Accordion>
+  return (
+    <div style={{
+      position: "absolute",
+      top: 16,
+      right: 16,
+      display: "flex",
+      gap: 8,
+      zIndex: 10,
+    }}>
+      <button
+        className={`px-3 py-1 rounded ${cameraMode === "2D" ? "bg-primary text-white" : "bg-white border"}`}
+        onClick={() => setCameraMode("2D")}
+      >
+        2D
+      </button>
+      <button
+        className={`px-3 py-1 rounded ${cameraMode === "3D" ? "bg-primary text-white" : "bg-white border"}`}
+        onClick={() => setCameraMode("3D")}
+      >
+        3D
+      </button>
+      <button
+        className={`px-3 py-1 rounded ${showDimensions ? "bg-primary text-white" : "bg-white border"}`}
+        onClick={() => setShowDimensions(!showDimensions)}
+      >
+        {showDimensions ? "Hide Dimensions" : "Show Dimensions"}
+      </button>
+    </div>
   );
 }

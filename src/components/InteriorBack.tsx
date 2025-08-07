@@ -1,6 +1,7 @@
 "use client";
 
 import { useShelfStore } from "@/lib/store";
+import { Edges } from "@react-three/drei";
 
 export function InteriorBack() {
   const { width, height, depth, panelThickness } = useShelfStore();
@@ -12,9 +13,10 @@ export function InteriorBack() {
 
   // This back panel has a slightly darker color to create depth
   return (
-    <mesh position={[0, h / 2, -d / 2 + t / 2]}>
+    <mesh position={[0, h / 2, -d / 2 + t / 2]} receiveShadow>
       <boxGeometry args={[w - 2 * t, h - 2 * t, t]} />
       <meshStandardMaterial color="#e5e5e5" />
+      <Edges scale={1.01} threshold={15} color="black" />
     </mesh>
   );
 }

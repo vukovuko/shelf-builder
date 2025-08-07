@@ -12,6 +12,9 @@ interface ShelfState {
   columnWidths: number[]; // New: array of column widths
   cameraMode: CameraMode;
   rowCounts: number[]; // New: number of shelves per column
+  selectedMaterial: string;
+  selectedMaterialId: number;
+  showDimensions: boolean;
   setWidth: (width: number) => void;
   setHeight: (height: number) => void;
   setDepth: (depth: number) => void;
@@ -20,6 +23,9 @@ interface ShelfState {
   setColumnWidth: (index: number, width: number) => void; // New
   setCameraMode: (mode: CameraMode) => void;
   setRowCount: (index: number, count: number) => void;
+  setSelectedMaterial: (material: string) => void;
+  setSelectedMaterialId: (id: number) => void;
+  setShowDimensions: (show: boolean) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -31,6 +37,9 @@ export const useShelfStore = create<ShelfState>(set => ({
   columnWidths: [1, 1], // Default to 1 for each column
   cameraMode: "2D",
   rowCounts: [0, 0], // Default 0 shelf per column
+  selectedMaterial: "default", // or your default material key
+  selectedMaterialId: 1, // default to first material
+  showDimensions: false,
   setWidth: width => set({ width }),
   setHeight: height => set({ height }),
   setDepth: depth => set({ depth }),
@@ -67,4 +76,7 @@ export const useShelfStore = create<ShelfState>(set => ({
       rowCounts[index] = count;
       return { rowCounts };
     }),
+  setSelectedMaterial: material => set({ selectedMaterial: material }),
+  setSelectedMaterialId: id => set({ selectedMaterialId: id }),
+  setShowDimensions: show => set({ showDimensions: show }),
 }));
