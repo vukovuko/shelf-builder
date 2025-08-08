@@ -22,5 +22,13 @@
       "img": "/img/slika3.jpg",
       "thickness": 5,
       "stock": 100
+    },
+    {
+      "id": 4,
+      "name": "Univer B/B ploča",
+      "price": 1300,
+      "img": "/img/slika4.jpg",
+      "thickness": 15,
+      "stock": 100
     }
   ]

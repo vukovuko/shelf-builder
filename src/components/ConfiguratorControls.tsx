@@ -64,7 +64,6 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     setHeight,
     setDepth,
     numberOfColumns,
-    setNumberOfColumns, // Get the new state and action
   } = useShelfStore();
 
   // Add these if not already in your store:
@@ -140,176 +139,138 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
             2. Columns & Compartments
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
-  <p className="text-sm text-muted-foreground">
-    Izaberi broj vertikalnih prostora.
-  </p>
+{/* Per-element selection and controls */}
+{(() => {
+  // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
+  const w = useShelfStore.getState().width / 100;
+  const h = useShelfStore.getState().height / 100;
+  const maxSegX = 100 / 100;
+  const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+  const letters: string[] = [];
+  const toLetters = (num: number) => {
+    let n = num + 1;
+    let s = "";
+    while (n > 0) {
+      const rem = (n - 1) % 26;
+      s = String.fromCharCode(65 + rem) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  };
+  const minTopH = 10 / 100;
+  const targetBottomH = 200 / 100;
+  const hasSplitY = h > 200 / 100; // split when > 200cm
+  const topH = hasSplitY ? (h - targetBottomH < minTopH ? minTopH : (h - targetBottomH)) : 0;
+  const nModulesY = hasSplitY ? 2 : 1;
+  const totalElements = nBlocksX * nModulesY;
+  for (let i = 0; i < totalElements; i++) letters.push(toLetters(i));
 
-  <div className="flex items-center space-x-4">
-    {/* Minus button */}
-    <Button
-      variant="outline"
-      onClick={() => setNumberOfColumns(numberOfColumns - 1)}
-      disabled={numberOfColumns <= 0}
-    >
-      –
-    </Button>
+  const selectedElementKey = useShelfStore(state => state.selectedElementKey);
+  const setSelectedElementKey = useShelfStore(state => state.setSelectedElementKey);
+  const elementConfigs = useShelfStore(state => state.elementConfigs);
+  const setElementColumns = useShelfStore(state => state.setElementColumns);
+  const setElementRowCount = useShelfStore(state => state.setElementRowCount);
 
-    {/* Slider */}
-    <Slider
-      min={1}
-      max={8}
-      step={1}
-      value={[numberOfColumns]}
-      onValueChange={([val]) => setNumberOfColumns(val)}
-      className="w-full"
-    />
-
-    {/* Plus button */}
-    <Button
-      variant="outline"
-      onClick={() => setNumberOfColumns(numberOfColumns + 1)}
-      disabled={numberOfColumns >= 8}
-    >
-      +
-    </Button>
-  </div>
-
-  <p className="text-sm text-muted-foreground text-center">
-    Selected: {numberOfColumns} columns
-  </p>
-
-  {/* Per-element selection and controls */}
-  {(() => {
-    // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
-    const w = useShelfStore.getState().width / 100;
-    const h = useShelfStore.getState().height / 100;
-    const maxSegX = 100 / 100;
-    const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-    const letters: string[] = [];
-    const toLetters = (num: number) => {
-      let n = num + 1;
-      let s = "";
-      while (n > 0) {
-        const rem = (n - 1) % 26;
-        s = String.fromCharCode(65 + rem) + s;
-        n = Math.floor((n - 1) / 26);
-      }
-      return s;
-    };
-    const minTopH = 10 / 100;
-    const targetBottomH = 200 / 100;
-    const hasSplitY = h > 200 / 100; // split when > 200cm
-    const topH = hasSplitY ? (h - targetBottomH < minTopH ? minTopH : (h - targetBottomH)) : 0;
-    const nModulesY = hasSplitY ? 2 : 1;
-    const totalElements = nBlocksX * nModulesY;
-    for (let i = 0; i < totalElements; i++) letters.push(toLetters(i));
-
-    const selectedElementKey = useShelfStore(state => state.selectedElementKey);
-    const setSelectedElementKey = useShelfStore(state => state.setSelectedElementKey);
-    const elementConfigs = useShelfStore(state => state.elementConfigs);
-    const setElementColumns = useShelfStore(state => state.setElementColumns);
-    const setElementRowCount = useShelfStore(state => state.setElementRowCount);
-
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-muted-foreground">Element:</span>
-          {letters.map((ltr, idx) => (
-            <Button
-              key={ltr}
-              variant={selectedElementKey === ltr ? "default" : "outline"}
-              onClick={() => setSelectedElementKey(ltr)}
-              className="px-2 py-1 h-8"
-            >
-              {ltr}
-            </Button>
-          ))}
-        </div>
-
-        {selectedElementKey && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Compartments (vertical)</span>
-              <span className="text-xs text-muted-foreground">
-                {(elementConfigs[selectedElementKey]?.columns ?? 1)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  const curr = elementConfigs[selectedElementKey]?.columns ?? 1;
-                  setElementColumns(selectedElementKey, Math.max(curr - 1, 1));
-                }}
-                className="px-2"
-              >
-                –
-              </Button>
-              <Slider
-                min={1}
-                max={8}
-                step={1}
-                value={[elementConfigs[selectedElementKey]?.columns ?? 1]}
-                onValueChange={([val]) => setElementColumns(selectedElementKey, val)}
-                className="flex-1"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  const curr = elementConfigs[selectedElementKey]?.columns ?? 1;
-                  setElementColumns(selectedElementKey, Math.min(curr + 1, 8));
-                }}
-                className="px-2"
-              >
-                +
-              </Button>
-            </div>
-
-            {/* Shelf sliders per compartment */}
-            <div className="space-y-2">
-              {Array.from({ length: elementConfigs[selectedElementKey]?.columns ?? 1 }).map((_, idx) => {
-                const count = elementConfigs[selectedElementKey]?.rowCounts?.[idx] ?? 0;
-                return (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <span className="text-xs text-muted-foreground">Shelves in Comp {idx + 1}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setElementRowCount(selectedElementKey, idx, Math.max(count - 1, 0))}
-                      disabled={count <= 0}
-                      className="px-2"
-                    >
-                      –
-                    </Button>
-                    <Slider
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={[count]}
-                      onValueChange={([val]) => setElementRowCount(selectedElementKey, idx, val)}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setElementRowCount(selectedElementKey, idx, Math.min(count + 1, 10))}
-                      disabled={count >= 10}
-                      className="px-2"
-                    >
-                      +
-                    </Button>
-                    <span className="text-xs w-10 text-right">{count} shelves</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-sm text-muted-foreground">Element:</span>
+        {letters.map((ltr, idx) => (
+          <Button
+            key={ltr}
+            variant={selectedElementKey === ltr ? "default" : "outline"}
+            onClick={() => setSelectedElementKey(ltr)}
+            className="px-2 py-1 h-8"
+          >
+            {ltr}
+          </Button>
+        ))}
       </div>
-    );
-  })()}
+
+      {selectedElementKey && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Compartments (vertical)</span>
+            <span className="text-xs text-muted-foreground">
+              {(elementConfigs[selectedElementKey]?.columns ?? 1)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                const curr = elementConfigs[selectedElementKey]?.columns ?? 1;
+                setElementColumns(selectedElementKey, Math.max(curr - 1, 1));
+              }}
+              className="px-2"
+            >
+              –
+            </Button>
+            <Slider
+              min={1}
+              max={8}
+              step={1}
+              value={[elementConfigs[selectedElementKey]?.columns ?? 1]}
+              onValueChange={([val]) => setElementColumns(selectedElementKey, val)}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                const curr = elementConfigs[selectedElementKey]?.columns ?? 1;
+                setElementColumns(selectedElementKey, Math.min(curr + 1, 8));
+              }}
+              className="px-2"
+            >
+              +
+            </Button>
+          </div>
+
+          {/* Shelf sliders per compartment */}
+          <div className="space-y-2">
+            {Array.from({ length: elementConfigs[selectedElementKey]?.columns ?? 1 }).map((_, idx) => {
+              const count = elementConfigs[selectedElementKey]?.rowCounts?.[idx] ?? 0;
+              return (
+                <div key={idx} className="flex items-center space-x-2">
+                  <span className="text-xs text-muted-foreground">Shelves in Comp {idx + 1}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setElementRowCount(selectedElementKey, idx, Math.max(count - 1, 0))}
+                    disabled={count <= 0}
+                    className="px-2"
+                  >
+                    –
+                  </Button>
+                  <Slider
+                    min={0}
+                    max={10}
+                    step={1}
+                    value={[count]}
+                    onValueChange={([val]) => setElementRowCount(selectedElementKey, idx, val)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setElementRowCount(selectedElementKey, idx, Math.min(count + 1, 10))}
+                    disabled={count >= 10}
+                    className="px-2"
+                  >
+                    +
+                  </Button>
+                  <span className="text-xs w-10 text-right">{count} shelves</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})()}
 </AccordionContent>
 
         </AccordionItem>
@@ -322,10 +283,10 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
 
 {/* Materijal Korpusa */}
 <div>
-  <h4 className="text-sm font-semibold mb-2">Materijal Korpusa (18mm)</h4>
+  <h4 className="text-sm font-semibold mb-2">Materijal Korpusa (10–25mm)</h4>
   <div className="grid grid-cols-3 gap-4">
     {materials
-      .filter((m) => m.thickness === 18000) // for 18mm
+      .filter((m) => m.thickness >= 10 && m.thickness <= 25)
       .map((material) => (
         <div key={material.id} className="flex flex-col items-center">
           <button
@@ -347,7 +308,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
   <h4 className="text-sm font-semibold mb-2">Materijal Leđa (5mm)</h4>
   <div className="grid grid-cols-3 gap-4">
     {materials
-      .filter((m) => m.thickness === 5000) // for 5mm
+      .filter((m) => m.thickness === 5) // for 5mm
       .map((material) => (
         <div key={material.id} className="flex flex-col items-center">
           <button
