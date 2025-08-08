@@ -1,24 +1,33 @@
-"use client";
 
-import materials from "@/data/materials.json";
-import { useShelfStore } from "@/lib/store";
+
+"use client";
+import React from "react";
+import { useShelfStore } from "../lib/store";
 import { Panel } from "./Panel";
 import { Html } from "@react-three/drei";
-import React, { useState } from "react";
 
-export function CarcassFrame() {
-  // All useState hooks FIRST!
-  const [showShelfLabels, setShowShelfLabels] = useState<{ [key: string]: boolean }>({});
-  const [showPanelLabels, setShowPanelLabels] = useState<{ [key: string]: boolean }>({});
-  const [showDividerLabels, setShowDividerLabels] = useState<{ [key: string]: boolean }>({});
-  const [draggedShelfKey, setDraggedShelfKey] = useState<string | null>(null);
-  const [draggedDividerKey, setDraggedDividerKey] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState<number>(0);
-  const [initialShelfY, setInitialShelfY] = useState<number>(0);
-  const [initialDividerX, setInitialDividerX] = useState<number>(0);
-  const [customShelfPositions, setCustomShelfPositions] = useState<{ [key: string]: number }>({});
-  const [customDividerPositions, setCustomDividerPositions] = useState<{ [key: string]: number }>({});
+type Material = {
+  id: string;
+  color?: string;
+  thickness?: number;
+};
 
+interface CarcassFrameProps {
+  materials: Material[];
+}
+
+export default function CarcassFrame({ materials }: CarcassFrameProps) {
+  // State for drag and info overlays
+  const [customDividerPositions, setCustomDividerPositions] = React.useState<Record<string, number>>({});
+  const [customShelfPositions, setCustomShelfPositions] = React.useState<Record<string, number>>({});
+  const [draggedShelfKey, setDraggedShelfKey] = React.useState<string | null>(null);
+  const [draggedDividerKey, setDraggedDividerKey] = React.useState<string | null>(null);
+  const [dragOffset, setDragOffset] = React.useState<number>(0);
+  const [initialShelfY, setInitialShelfY] = React.useState<number>(0);
+  const [initialDividerX, setInitialDividerX] = React.useState<number>(0);
+  const [showPanelLabels, setShowPanelLabels] = React.useState<Record<string, boolean>>({});
+  const [showDividerLabels, setShowDividerLabels] = React.useState<Record<string, boolean>>({});
+  const [showShelfLabels, setShowShelfLabels] = React.useState<Record<string, boolean>>({});
   const {
     width,
     height,
@@ -32,7 +41,7 @@ export function CarcassFrame() {
 
   const cameraMode = useShelfStore(state => state.cameraMode);
 
-  const material = materials.find(m => m.id === selectedMaterialId) || materials[0];
+  const material = materials.find((m: Material) => String(m.id) === String(selectedMaterialId)) || materials[0];
   const t = (material.thickness ?? 18000) / 1000; // <-- updated here
 
   const w = width / 100;
@@ -147,7 +156,33 @@ export function CarcassFrame() {
     function onMouseMove(e: MouseEvent) {
       if (draggedShelfKey) {
         const pixelToWorld = 0.01; // Adjust for your scene
-        const newY = initialShelfY + (e.clientY - dragOffset) * -pixelToWorld;
+        let newY = initialShelfY + (e.clientY - dragOffset) * -pixelToWorld;
+
+        // Find the compartment and shelf index for the dragged shelf
+        const shelfMatch = draggedShelfKey.match(/^shelf-(\d+)-(\d+)$/);
+        if (shelfMatch) {
+          const compIdx = parseInt(shelfMatch[1], 10);
+          const shelfIdx = parseInt(shelfMatch[2], 10);
+          // Get all shelves in this compartment
+          const shelvesInComp = shelves.filter(s => s.key.startsWith(`shelf-${compIdx}-`));
+          // Sort by Y position
+          const sortedShelves = shelvesInComp
+            .map(s => ({
+              ...s,
+              y: customShelfPositions[s.key] ?? s.position[1],
+            }))
+            .sort((a, b) => a.y - b.y);
+          // Find this shelf's index in sortedShelves
+          const idx = sortedShelves.findIndex(s => s.key === draggedShelfKey);
+          // Get Y of shelf above and below
+          const minGap = 10 / 100; // 10 units in world coordinates
+          const yAbove = idx > 0 ? sortedShelves[idx - 1].y : t; // t = top panel thickness
+          const yBelow = idx < sortedShelves.length - 1 ? sortedShelves[idx + 1].y : h - t;
+          const minY = yAbove + minGap;
+          const maxY = yBelow - minGap;
+          newY = Math.max(minY, Math.min(newY, maxY));
+        }
+
         setCustomShelfPositions(pos => ({
           ...pos,
           [draggedShelfKey]: newY,
@@ -155,7 +190,19 @@ export function CarcassFrame() {
       }
       if (draggedDividerKey) {
         const pixelToWorld = 0.01; // Adjust for your scene
-        const newX = initialDividerX + (e.clientX - dragOffset) * pixelToWorld;
+        let newX = initialDividerX + (e.clientX - dragOffset) * pixelToWorld;
+
+        // Find index of the dragged divider
+        const dividerIndex = dividers.findIndex(div => div.id === draggedDividerKey);
+        // Get x positions of neighbors
+        const prevX = dividerIndex === 0 ? -innerWidth / 2 : (customDividerPositions[`divider-${dividerIndex-1}`] ?? dividers[dividerIndex-1].position[0]);
+        const nextX = dividerIndex === dividers.length - 1 ? innerWidth / 2 : (customDividerPositions[`divider-${dividerIndex+1}`] ?? dividers[dividerIndex+1].position[0]);
+        // Clamp so at least 10 units between dividers
+        const minGap = 10 / 100; // 10 units in world coordinates (assuming 1 unit = 1cm, adjust if needed)
+        const minX = prevX + minGap;
+        const maxX = nextX - minGap;
+        newX = Math.max(minX, Math.min(newX, maxX));
+
         setCustomDividerPositions(pos => ({
           ...pos,
           [draggedDividerKey]: newX,
@@ -185,7 +232,7 @@ export function CarcassFrame() {
       {/* Side, Top, and Bottom Panels with labels */}
       {panels.map((panel, i) => (
         <group key={panel.label}>
-          <Panel position={panel.position} size={panel.size} />
+          <Panel position={panel.position as [number, number, number]} size={panel.size as [number, number, number]} />
           <Html
             position={[
               panel.position[0],
@@ -336,7 +383,7 @@ size: [${divider.size.map(n => n.toFixed(3)).join(", ")}]`}
         return showDimensions && (
           <Html
             key={`comp-label-${i}`}
-            position={position}
+            position={position as [number, number, number]}
             center
             distanceFactor={8}
             style={{
@@ -379,7 +426,7 @@ size: [${size.map(n => n.toFixed(2)).join(", ")}]`}
             style={{ pointerEvents: "auto" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {/* Show Info Button
+              {/* Show Info Button */}
               <button
                 style={{
                   fontSize: "4px",
@@ -444,7 +491,8 @@ size: [${size.map(n => n.toFixed(2)).join(", ")}]`}
               >
                 {`Shelf
 pos: [${shelf.position.map(n => n.toFixed(3)).join(", ")}]
-size: [${shelf.size.map(n => n.toFixed(3)).join(", ")}]`}
+size: [${shelf.size.map(n => n.toFixed(3)).join(", ")}]
+`}
               </div>
             )}
           </Html>
