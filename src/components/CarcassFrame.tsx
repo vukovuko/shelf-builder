@@ -7,6 +7,18 @@ import { Html } from "@react-three/drei";
 import React, { useState } from "react";
 
 export function CarcassFrame() {
+  // All useState hooks FIRST!
+  const [showShelfLabels, setShowShelfLabels] = useState<{ [key: string]: boolean }>({});
+  const [showPanelLabels, setShowPanelLabels] = useState<{ [key: string]: boolean }>({});
+  const [showDividerLabels, setShowDividerLabels] = useState<{ [key: string]: boolean }>({});
+  const [draggedShelfKey, setDraggedShelfKey] = useState<string | null>(null);
+  const [draggedDividerKey, setDraggedDividerKey] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [initialShelfY, setInitialShelfY] = useState<number>(0);
+  const [initialDividerX, setInitialDividerX] = useState<number>(0);
+  const [customShelfPositions, setCustomShelfPositions] = useState<{ [key: string]: number }>({});
+  const [customDividerPositions, setCustomDividerPositions] = useState<{ [key: string]: number }>({});
+
   const {
     width,
     height,
@@ -41,19 +53,26 @@ export function CarcassFrame() {
     dividerPositions.push(acc);
   }
 
-  const dividers = dividerPositions.map((xPos, i) => ({
-    id: `divider-${i}`,
-    position: [xPos, h / 2, 0] as [number, number, number],
-    size: [t, h - 2 * t, d] as [number, number, number],
-  }));
+  // Update divider positions to use customDividerPositions
+  const dividers = dividerPositions.map((xPos, i) => {
+    const customX = customDividerPositions[`divider-${i}`] ?? xPos;
+    return {
+      id: `divider-${i}`,
+      position: [customX, h / 2, 0] as [number, number, number],
+      size: [t, h - 2 * t, d] as [number, number, number],
+    };
+  });
 
   // Calculate x positions for each compartment
-  let x = -innerWidth / 2;
+  const dividerXPositions = dividers.map(div => div.position[0]);
+  const xPositions = [-innerWidth / 2, ...dividerXPositions, innerWidth / 2];
+
   const compartments = [];
   for (let i = 0; i < numberOfColumns; i++) {
-    const colWidth = columnWidths[i] * (innerWidth / columnWidths.reduce((a, b) => a + b, 0));
-    compartments.push({ xStart: x, xEnd: x + colWidth, width: colWidth });
-    x += colWidth;
+    const xStart = xPositions[i];
+    const xEnd = xPositions[i + 1];
+    const width = xEnd - xStart;
+    compartments.push({ xStart, xEnd, width });
   }
 
   // Generate shelves for each compartment
@@ -124,9 +143,39 @@ export function CarcassFrame() {
     },
   ];
 
-  const [showShelfLabels, setShowShelfLabels] = useState<{ [key: string]: boolean }>({});
-  const [showPanelLabels, setShowPanelLabels] = useState<{ [key: string]: boolean }>({});
-  const [showDividerLabels, setShowDividerLabels] = useState<{ [key: string]: boolean }>({});
+  React.useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (draggedShelfKey) {
+        const pixelToWorld = 0.01; // Adjust for your scene
+        const newY = initialShelfY + (e.clientY - dragOffset) * -pixelToWorld;
+        setCustomShelfPositions(pos => ({
+          ...pos,
+          [draggedShelfKey]: newY,
+        }));
+      }
+      if (draggedDividerKey) {
+        const pixelToWorld = 0.01; // Adjust for your scene
+        const newX = initialDividerX + (e.clientX - dragOffset) * pixelToWorld;
+        setCustomDividerPositions(pos => ({
+          ...pos,
+          [draggedDividerKey]: newX,
+        }));
+      }
+    }
+    function onMouseUp() {
+      setDraggedShelfKey(null);
+      setDraggedDividerKey(null);
+      document.body.style.userSelect = "";
+    }
+    if (draggedShelfKey || draggedDividerKey) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [draggedShelfKey, draggedDividerKey, dragOffset, initialShelfY, initialDividerX]);
 
   return (
     <group>
@@ -195,34 +244,65 @@ size: [${panel.size.map(n => n.toFixed(3)).join(", ")}]`}
           <Panel position={divider.position} size={divider.size} />
           <Html
             position={[
-              divider.position[0] + 0.03,
+              (customDividerPositions[divider.id] ?? divider.position[0]),
               divider.position[1],
-              divider.position[2],
+              divider.position[2] + divider.size[2] / 2,
             ]}
             center
             distanceFactor={8}
             style={{ pointerEvents: "auto" }}
           >
-            <button
-              style={{
-                fontSize: "4px",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                border: "1px solid #888",
-                background: "#fff",
-                cursor: "pointer",
-                marginBottom: "4px",
-              }}
-              onClick={e => {
-                e.stopPropagation();
-                setShowDividerLabels(prev => ({
-                  ...prev,
-                  [divider.id]: !prev[divider.id]
-                }));
-              }}
-            >
-              {showDividerLabels[divider.id] ? "Hide Info" : "Show Info"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {/* Show Info Button */}
+              <button
+                style={{
+                  fontSize: "4px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #888",
+                  background: "#fff",
+                  cursor: "pointer",
+                  marginBottom: "4px",
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowDividerLabels(prev => ({
+                    ...prev,
+                    [divider.id]: !prev[divider.id]
+                  }));
+                }}
+              >
+                {showDividerLabels[divider.id] ? "Hide Info" : "Show Info"}
+              </button>
+              {/* Drag Button */}
+              <button
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "1px solid #888",
+                  background: draggedDividerKey === divider.id ? "#eee" : "#fff",
+                  cursor: draggedDividerKey === divider.id ? "grabbing" : "grab",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "4px",
+                }}
+                onMouseDown={e => {
+                  e.stopPropagation();
+                  setDraggedDividerKey(divider.id);
+                  setDragOffset(e.clientX);
+                  setInitialDividerX(customDividerPositions[divider.id] ?? divider.position[0]);
+                  document.body.style.userSelect = "none";
+                }}
+              >
+                <img
+                  src="/up-down-arrow-icon.png"
+                  alt="Drag Divider"
+                  style={{ width: 14, height: 14, pointerEvents: "none" }}
+                />
+              </button>
+            </div>
             {showDividerLabels[divider.id] && (
               <div
                 style={{
@@ -280,37 +360,75 @@ size: [${size.map(n => n.toFixed(2)).join(", ")}]`}
       {/* Dynamic Horizontal Shelves with button */}
       {shelves.map((shelf, i) => (
         <group key={shelf.key}>
-          <Panel position={shelf.position} size={shelf.size} />
+          <Panel
+            position={[
+              shelf.position[0],
+              customShelfPositions[shelf.key] ?? shelf.position[1],
+              shelf.position[2]
+            ]}
+            size={shelf.size}
+          />
           <Html
             position={[
               shelf.position[0],
-              shelf.position[1] + 0.03,
-              shelf.position[2],
+              (customShelfPositions[shelf.key] ?? shelf.position[1]) + 0.03,
+              shelf.position[2] + shelf.size[2] / 2,
             ]}
             center
             distanceFactor={8}
             style={{ pointerEvents: "auto" }}
           >
-            <button
-              style={{
-                fontSize: "4px",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                border: "1px solid #888",
-                background: "#fff",
-                cursor: "pointer",
-                marginBottom: "4px",
-              }}
-              onClick={e => {
-                e.stopPropagation();
-                setShowShelfLabels(prev => ({
-                  ...prev,
-                  [shelf.key]: !prev[shelf.key]
-                }));
-              }}
-            >
-              {showShelfLabels[shelf.key] ? "Hide Info" : "Show Info"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              {/* Show Info Button
+              <button
+                style={{
+                  fontSize: "4px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  border: "1px solid #888",
+                  background: "#fff",
+                  cursor: "pointer",
+                  marginBottom: "4px",
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowShelfLabels(prev => ({
+                    ...prev,
+                    [shelf.key]: !prev[shelf.key]
+                  }));
+                }}
+              >
+                {showShelfLabels[shelf.key] ? "Hide Info" : "Show Info"}
+              </button>
+              {/* Drag Button */}
+              <button
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "1px solid #888",
+                  background: draggedShelfKey === shelf.key ? "#eee" : "#fff",
+                  cursor: draggedShelfKey === shelf.key ? "grabbing" : "grab",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "4px",
+                }}
+                onMouseDown={e => {
+                  e.stopPropagation();
+                  setDraggedShelfKey(shelf.key);
+                  setDragOffset(e.clientY);
+                  setInitialShelfY(customShelfPositions[shelf.key] ?? shelf.position[1]);
+                  document.body.style.userSelect = "none";
+                }}
+              >
+                <img
+                  src="/up-down-arrow-icon.png"
+                  alt="Drag Shelf"
+                  style={{ width: 14, height: 14, pointerEvents: "none" }}
+                />
+              </button>
+            </div>
             {showShelfLabels[shelf.key] && (
               <div
                 style={{
