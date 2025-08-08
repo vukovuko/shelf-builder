@@ -122,44 +122,65 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       }));
     });
 
-    // Panel positions and sizes: split into blocks of max 100cm external width
+    // Panel positions and sizes: split horizontally (X) into equal blocks and vertically (Y) into modules
     const panels = React.useMemo(() => {
       type PanelDef = { label: string; position: [number, number, number]; size: [number, number, number] };
       const list: PanelDef[] = [];
 
-      const maxSeg = 100 / 100; // 1.0 world units (100cm)
-      // Equalize: number of blocks, each with equal external width segW
-      const nBlocks = Math.max(1, Math.ceil(w / maxSeg));
-      const segW = w / nBlocks;
+      // X blocks: equalize external width, max 100cm per block
+      const maxSegX = 100 / 100; // 1.0 world units
+      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+      const segWX = w / nBlocksX;
+      const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+        const start = -w / 2 + i * segWX;
+        const end = start + segWX;
+        return { start, end, width: segWX };
+      });
+      const boundariesX = Array.from({ length: nBlocksX + 1 }, (_, i) => -w / 2 + i * segWX);
 
-      // Build blocks
-      const blocks: { start: number; end: number; width: number }[] = Array.from({ length: nBlocks }, (_, i) => {
-        const start = -w / 2 + i * segW;
-        const end = start + segW;
-        return { start, end, width: segW };
+      // Y modules: split if height > 200cm. Bottom is 200cm only if total > 210cm; otherwise shrink bottom so top is at least 10cm
+      const targetBottomH = 200 / 100; // 2.0 world units
+      const minTopH = 10 / 100; // 0.1 world units
+      const modulesY: { yStart: number; yEnd: number; height: number; label: string }[] = [];
+      if (h > 200 / 100) {
+        const yStartBottom = -h / 2;
+        // Ensure top >= 10cm: if remaining height < 10cm, shrink bottom accordingly
+        const bottomH = (h - targetBottomH) < minTopH ? (h - minTopH) : targetBottomH;
+        const yEndBottom = yStartBottom + bottomH;
+        const yStartTop = yEndBottom;
+        const yEndTop = h / 2;
+        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom, height: bottomH, label: "BottomModule" });
+        modulesY.push({ yStart: yStartTop, yEnd: yEndTop, height: yEndTop - yStartTop, label: "TopModule" });
+      } else {
+        modulesY.push({ yStart: -h / 2, yEnd: h / 2, height: h, label: "SingleModule" });
+      }
+
+      // Side panels at each X boundary, per Y module
+      boundariesX.forEach((x, idx) => {
+        modulesY.forEach((m) => {
+          const cy = (m.yStart + m.yEnd) / 2;
+          if (idx === 0) {
+            list.push({ label: `Side L (${m.label})`, position: [x + t / 2, cy, 0], size: [t, m.height, d] });
+          } else if (idx === boundariesX.length - 1) {
+            list.push({ label: `Side R (${m.label})`, position: [x - t / 2, cy, 0], size: [t, m.height, d] });
+          } else {
+            // Internal seam: two touching panels
+            list.push({ label: `Side seam ${idx}A (${m.label})`, position: [x - t / 2, cy, 0], size: [t, m.height, d] });
+            list.push({ label: `Side seam ${idx}B (${m.label})`, position: [x + t / 2, cy, 0], size: [t, m.height, d] });
+          }
+        });
       });
 
-      // Boundaries at edges and seams
-      const boundaries: number[] = Array.from({ length: nBlocks + 1 }, (_, i) => -w / 2 + i * segW);
-
-      // Side panels at boundaries (two at internal seams)
-      boundaries.forEach((x, idx) => {
-        if (idx === 0) {
-          list.push({ label: `Side L`, position: [x + t / 2, h / 2, 0], size: [t, h, d] });
-        } else if (idx === boundaries.length - 1) {
-          list.push({ label: `Side R`, position: [x - t / 2, h / 2, 0], size: [t, h, d] });
-        } else {
-          list.push({ label: `Side seam ${idx}A`, position: [x - t / 2, h / 2, 0], size: [t, h, d] });
-          list.push({ label: `Side seam ${idx}B`, position: [x + t / 2, h / 2, 0], size: [t, h, d] });
-        }
-      });
-
-      // Top and Bottom per block (internal width excludes two side panels of that block)
-      blocks.forEach((b, i) => {
-        const innerLen = Math.max(segW - 2 * t, 0.001);
-        const cx = (b.start + b.end) / 2;
-        list.push({ label: `Bottom ${i + 1}`, position: [cx, t / 2, 0], size: [innerLen, t, d] });
-        list.push({ label: `Top ${i + 1}`, position: [cx, h - t / 2, 0], size: [innerLen, t, d] });
+      // Top and Bottom panels per X block and Y module
+      blocksX.forEach((bx, i) => {
+        modulesY.forEach((m) => {
+          const innerLenX = Math.max(segWX - 2 * t, 0.001);
+          const cx = (bx.start + bx.end) / 2;
+          const yBottom = m.yStart + t / 2;
+          const yTop = m.yEnd - t / 2;
+          list.push({ label: `Bottom ${i + 1} (${m.label})`, position: [cx, yBottom, 0], size: [innerLenX, t, d] });
+          list.push({ label: `Top ${i + 1} (${m.label})`, position: [cx, yTop, 0], size: [innerLenX, t, d] });
+        });
       });
 
       return list;
