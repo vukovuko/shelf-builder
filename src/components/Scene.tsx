@@ -3,11 +3,12 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
+import React from "react";
 import { useShelfStore } from "@/lib/store";
 import { useRef, useEffect } from "react";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
-export function Scene() {
+export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   // Connect to the store to get the current camera mode
   const { cameraMode } = useShelfStore();
 
@@ -21,8 +22,7 @@ export function Scene() {
   useEffect(() => {
     // If we have our remote control AND the mode switches to "2D"...
     if (controlsRef.current && cameraMode === "2D") {
-      // ...then tell the camera controls to reset.
-      controlsRef.current.reset();
+      // controlsRef.current.reset(); // Disabled to prevent wardrobe from moving/disappearing
     }
   }, [cameraMode]); // This effect re-runs only when cameraMode changes.
 
@@ -40,8 +40,8 @@ export function Scene() {
         shadow-bias={-0.0001}
       />
 
-      <group position-y={-1}>
-        <Wardrobe />
+      <group position={[0, -0.5, 0]}>
+        <Wardrobe ref={wardrobeRef} />
       </group>
 
       <mesh
@@ -60,6 +60,7 @@ export function Scene() {
         minPolarAngle={areControlsEnabled ? 0 : Math.PI / 2}
         maxPolarAngle={areControlsEnabled ? Math.PI : Math.PI / 2}
       />
-    </Canvas>
+      </Canvas>
+    
   );
 }

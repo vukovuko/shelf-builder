@@ -1,14 +1,19 @@
-"use client";
 
-import CarcassFrame from "./CarcassFrame";
+"use client";
+import React from "react";
+
+import CarcassFrame, { CarcassFrameHandle } from "./CarcassFrame";
 import materials from "../data/materials.json";
 import { InteriorBack } from "./InteriorBack";
 
-export function Wardrobe() {
+const Wardrobe = React.forwardRef<CarcassFrameHandle, {}>(function Wardrobe(_, ref) {
   return (
     <group>
-      <CarcassFrame materials={materials.map(m => ({ ...m, id: String(m.id) }))} />
+      <CarcassFrame ref={ref} materials={materials.map(m => ({ ...m, id: String(m.id) }))} />
       <InteriorBack />
     </group>
   );
-}
+});
+
+export { Wardrobe };
+ 

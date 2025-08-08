@@ -7,13 +7,55 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useShelfStore } from "@/lib/store";
+import React from "react";
 import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
 import materials from "@/data/materials.json";
 import { Slider } from "@/components/ui/slider";
 
 
-export function ConfiguratorControls() {
+export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
+  // Download 2D front view as JPG
+  const setCameraMode = useShelfStore(state => state.setCameraMode);
+  const cameraMode = useShelfStore(state => state.cameraMode);
+  const setShowEdgesOnly = useShelfStore(state => state.setShowEdgesOnly);
+  const showEdgesOnly = useShelfStore(state => state.showEdgesOnly);
+
+  // Download front edges only as JPG
+  const handleDownloadFrontEdges = React.useCallback(async () => {
+    setShowEdgesOnly(true);
+    if (cameraMode !== "2D") {
+      setCameraMode("2D");
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    await new Promise(requestAnimationFrame);
+    const canvas = document.querySelector("canvas");
+    if (!canvas) {
+      setShowEdgesOnly(false);
+      return;
+    }
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "wardrobe-front-edges.jpg";
+    link.click();
+    setShowEdgesOnly(false);
+  }, [cameraMode, setCameraMode, setShowEdgesOnly]);
+
+  const handleDownloadFrontView = React.useCallback(async () => {
+    if (cameraMode !== "2D") {
+      setCameraMode("2D");
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    const canvas = document.querySelector("canvas");
+    if (!canvas) return;
+    await new Promise(requestAnimationFrame);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "wardrobe-front-view.jpg";
+    link.click();
+  }, [cameraMode, setCameraMode]);
   const {
     width,
     height,
@@ -31,6 +73,27 @@ export function ConfiguratorControls() {
 
   const showDimensions = useShelfStore(state => state.showDimensions);
   const setShowDimensions = useShelfStore(state => state.setShowDimensions);
+
+  // State for global info toggle
+  const [allInfoShown, setAllInfoShown] = React.useState(false);
+
+  // Reset info button state if wardrobe structure changes
+  const rowCounts = useShelfStore(state => state.rowCounts);
+  React.useEffect(() => {
+    setAllInfoShown(false);
+    // Always reset overlays to hidden on structure change
+    if (wardrobeRef?.current?.toggleAllInfo) {
+      wardrobeRef.current.toggleAllInfo(false);
+    }
+  }, [numberOfColumns, JSON.stringify(rowCounts)]);
+
+
+  const handleToggleAllInfo = () => {
+    if (wardrobeRef?.current?.toggleAllInfo) {
+      wardrobeRef.current.toggleAllInfo(!allInfoShown);
+      setAllInfoShown((prev) => !prev);
+    }
+  };
 
   return (
     <>
@@ -208,6 +271,18 @@ export function ConfiguratorControls() {
 
           </AccordionContent>
         </AccordionItem>
+        {/* Global Show/Hide Info Button */}
+        <div className="flex flex-col items-center gap-3 mt-6">
+          <Button variant="outline" onClick={handleToggleAllInfo}>
+            {allInfoShown ? "Hide All Info" : "Show All Info"}
+          </Button>
+          <Button variant="outline" onClick={handleDownloadFrontView}>
+            Download Front View (JPG)
+          </Button>
+          <Button variant="outline" onClick={handleDownloadFrontEdges}>
+            Download Front Edges (JPG)
+          </Button>
+        </div>
       </Accordion>
     </>
   );

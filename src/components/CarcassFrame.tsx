@@ -16,7 +16,12 @@ interface CarcassFrameProps {
   materials: Material[];
 }
 
-export default function CarcassFrame({ materials }: CarcassFrameProps) {
+export type CarcassFrameHandle = {
+  toggleAllInfo: (show: boolean) => void;
+};
+
+const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
+  function CarcassFrame({ materials }, ref) {
   // State for drag and info overlays
   const [customDividerPositions, setCustomDividerPositions] = React.useState<Record<string, number>>({});
   const [customShelfPositions, setCustomShelfPositions] = React.useState<Record<string, number>>({});
@@ -129,7 +134,7 @@ export default function CarcassFrame({ materials }: CarcassFrameProps) {
   });
 
   // Panel positions and sizes
-  const panels = [
+  const panels = React.useMemo(() => [
     {
       label: "Left Side",
       position: [-w / 2 + t/2, h / 2, 0],
@@ -150,7 +155,7 @@ export default function CarcassFrame({ materials }: CarcassFrameProps) {
       position: [0, h - t / 2, 0],
       size: [w - 2 * t, t, d],
     },
-  ];
+  ], [w, h, t, d]);
 
   React.useEffect(() => {
     function onMouseMove(e: MouseEvent) {
@@ -224,8 +229,25 @@ export default function CarcassFrame({ materials }: CarcassFrameProps) {
     };
   }, [draggedShelfKey, draggedDividerKey, dragOffset, initialShelfY, initialDividerX]);
 
-  return (
-    <group>
+
+    // Handler to show/hide all shelf and divider info overlays (to be called from parent)
+    const toggleAllInfo = (show: boolean) => {
+      setShowShelfLabels(shelves.reduce((acc, shelf) => {
+        acc[shelf.key] = show;
+        return acc;
+      }, {} as Record<string, boolean>));
+      setShowDividerLabels(dividers.reduce((acc, divider) => {
+        acc[divider.id] = show;
+        return acc;
+      }, {} as Record<string, boolean>));
+      // Do NOT touch panel overlays
+    };
+
+    // Expose the handler for parent via ref
+    React.useImperativeHandle(ref, () => ({ toggleAllInfo }), [shelves, dividers]);
+
+    return (
+      <group>
       {/* This material applies ONLY to the frame parts */}
       <meshStandardMaterial color={color} />
 
@@ -498,6 +520,9 @@ size: [${shelf.size.map(n => n.toFixed(3)).join(", ")}]
           </Html>
         </group>
       ))}
-    </group>
-  );
-}
+      </group>
+    );
+  }
+);
+
+export default CarcassFrame;

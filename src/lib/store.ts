@@ -26,6 +26,8 @@ interface ShelfState {
   setSelectedMaterial: (material: string) => void;
   setSelectedMaterialId: (id: number) => void;
   setShowDimensions: (show: boolean) => void;
+  showEdgesOnly: boolean;
+  setShowEdgesOnly: (show: boolean) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -79,4 +81,6 @@ export const useShelfStore = create<ShelfState>(set => ({
   setSelectedMaterial: material => set({ selectedMaterial: material }),
   setSelectedMaterialId: id => set({ selectedMaterialId: id }),
   setShowDimensions: show => set({ showDimensions: show }),
+  showEdgesOnly: false,
+  setShowEdgesOnly: show => set({ showEdgesOnly: show }),
 }));
