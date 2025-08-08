@@ -3,6 +3,11 @@ import { create } from "zustand";
 // Define the new type for our camera modes
 export type CameraMode = "2D" | "3D";
 
+interface ElementConfig {
+  columns: number; // number of compartments in this element (dividers + 1)
+  rowCounts: number[]; // shelves per compartment
+}
+
 interface ShelfState {
   width: number;
   height: number;
@@ -28,6 +33,12 @@ interface ShelfState {
   setShowDimensions: (show: boolean) => void;
   showEdgesOnly: boolean;
   setShowEdgesOnly: (show: boolean) => void;
+  // Per-element configuration
+  selectedElementKey: string | null;
+  setSelectedElementKey: (key: string | null) => void;
+  elementConfigs: Record<string, ElementConfig>;
+  setElementColumns: (key: string, columns: number) => void;
+  setElementRowCount: (key: string, index: number, count: number) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -83,4 +94,42 @@ export const useShelfStore = create<ShelfState>(set => ({
   setShowDimensions: show => set({ showDimensions: show }),
   showEdgesOnly: false,
   setShowEdgesOnly: show => set({ showEdgesOnly: show }),
+  // Per-element configuration defaults
+  selectedElementKey: null,
+  setSelectedElementKey: key => set({ selectedElementKey: key }),
+  elementConfigs: {},
+  setElementColumns: (key, columns) =>
+    set(state => {
+      const current = state.elementConfigs[key] ?? { columns: 1, rowCounts: [0] };
+      // Adjust rowCounts length to match new columns
+      let rowCounts = [...current.rowCounts];
+      if (columns > rowCounts.length) {
+        rowCounts = [...rowCounts, ...Array(columns - rowCounts.length).fill(0)];
+      } else if (columns < rowCounts.length) {
+        rowCounts = rowCounts.slice(0, columns);
+      }
+      return {
+        elementConfigs: {
+          ...state.elementConfigs,
+          [key]: { columns, rowCounts },
+        },
+      };
+    }),
+  setElementRowCount: (key, index, count) =>
+    set(state => {
+      const current = state.elementConfigs[key] ?? { columns: 1, rowCounts: [0] };
+      const rowCounts = [...current.rowCounts];
+      // Ensure index exists
+      if (index >= rowCounts.length) {
+        rowCounts.length = index + 1;
+        for (let i = 0; i < rowCounts.length; i++) if (rowCounts[i] == null) rowCounts[i] = 0;
+      }
+      rowCounts[index] = count;
+      return {
+        elementConfigs: {
+          ...state.elementConfigs,
+          [key]: { columns: current.columns, rowCounts },
+        },
+      };
+    }),
 }));
