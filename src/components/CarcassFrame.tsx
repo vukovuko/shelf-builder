@@ -45,6 +45,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     const cameraMode = useShelfStore((state) => state.cameraMode);
     const elementConfigs = useShelfStore((state) => state.elementConfigs);
+    const hasBase = useShelfStore((state) => state.hasBase);
+    const baseHeightCm = useShelfStore((state) => state.baseHeight);
+    const baseH = (hasBase ? baseHeightCm : 0) / 100;
 
     const material =
       materials.find((m: Material) => String(m.id) === String(selectedMaterialId)) ||
@@ -177,7 +180,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         modulesY.forEach((m) => {
           const innerLenX = Math.max(segWX - 2 * t, 0.001);
           const cx = (bx.start + bx.end) / 2;
-          const yBottom = m.yStart + t / 2;
+          const raise = hasBase && (m.label === "BottomModule" || m.label === "SingleModule") ? baseH : 0;
+          const yBottom = m.yStart + raise + t / 2;
           const yTop = m.yEnd - t / 2;
           list.push({ label: `Bottom ${i + 1} (${m.label})`, position: [cx, yBottom, 0], size: [innerLenX, t, d] });
           list.push({ label: `Top ${i + 1} (${m.label})`, position: [cx, yTop, 0], size: [innerLenX, t, d] });
@@ -185,7 +189,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       });
 
       return list;
-    }, [w, h, t, d, width]);
+    }, [w, h, t, d, width, hasBase, baseH]);
 
     // Element letter labels (A, B, C, ...) at each element's center on the back side
     const elementLabels = React.useMemo(() => {

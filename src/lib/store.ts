@@ -39,6 +39,11 @@ interface ShelfState {
   elementConfigs: Record<string, ElementConfig>;
   setElementColumns: (key: string, columns: number) => void;
   setElementRowCount: (key: string, index: number, count: number) => void;
+  // Base (plinth)
+  hasBase: boolean;
+  baseHeight: number; // in cm
+  setHasBase: (val: boolean) => void;
+  setBaseHeight: (val: number) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -132,4 +137,9 @@ export const useShelfStore = create<ShelfState>(set => ({
         },
       };
     }),
+  // Base defaults
+  hasBase: false,
+  baseHeight: 0,
+  setHasBase: (val) => set({ hasBase: val }),
+  setBaseHeight: (val) => set({ baseHeight: Math.max(0, val) }),
 }));

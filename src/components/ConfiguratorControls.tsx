@@ -72,6 +72,11 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
 
   const showDimensions = useShelfStore(state => state.showDimensions);
   const setShowDimensions = useShelfStore(state => state.setShowDimensions);
+  // Base (baza) state
+  const hasBase = useShelfStore(state => state.hasBase);
+  const baseHeight = useShelfStore(state => state.baseHeight);
+  const setHasBase = useShelfStore(state => state.setHasBase);
+  const setBaseHeight = useShelfStore(state => state.setBaseHeight);
 
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
@@ -273,6 +278,63 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
 })()}
 </AccordionContent>
 
+        </AccordionItem>
+
+        {/* 4. Base (Baza) */}
+        <AccordionItem value="item-4" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            4. Base (Baza)
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            <div className="flex items-center gap-2">
+              <input
+                id="chk-base"
+                type="checkbox"
+                className="h-4 w-4"
+                checked={hasBase}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHasBase(e.target.checked)}
+              />
+              <label htmlFor="chk-base" className="text-sm select-none">
+                Uključi bazu (donja pregrada)
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Visina baze</span>
+                <span className="text-xs text-muted-foreground">{baseHeight} cm</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setBaseHeight(Math.max(baseHeight - 1, 0))}
+                  disabled={!hasBase}
+                  className="px-2"
+                >
+                  –
+                </Button>
+                <Slider
+                  min={0}
+                  max={15}
+                  step={1}
+                  value={[baseHeight]}
+                  onValueChange={([val]) => setBaseHeight(val)}
+                  disabled={!hasBase}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setBaseHeight(Math.min(baseHeight + 1, 20))}
+                  disabled={!hasBase}
+                  className="px-2"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="item-3" className="border-border">
