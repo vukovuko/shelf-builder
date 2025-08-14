@@ -24,6 +24,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
     setShowEdgesOnly(true);
+    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -43,6 +44,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
   }, [cameraMode, setCameraMode, setShowEdgesOnly]);
 
   const handleDownloadFrontView = React.useCallback(async () => {
+    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -60,6 +62,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
   // Download 2D technical drawing (only edges, white fill, no shadows)
   const handleDownloadTechnical2D = React.useCallback(async () => {
     setShowEdgesOnly(true);
+    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
       await new Promise(resolve => setTimeout(resolve, 300));

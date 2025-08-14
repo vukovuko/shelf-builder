@@ -41,6 +41,9 @@ interface ShelfState {
   setShowDimensions: (show: boolean) => void;
   showEdgesOnly: boolean;
   setShowEdgesOnly: (show: boolean) => void;
+  // One-shot camera fit trigger
+  fitRequestId: number;
+  triggerFitToView: () => void;
   // Per-element configuration
   selectedElementKey: string | null;
   setSelectedElementKey: (key: string | null) => void;
@@ -118,6 +121,9 @@ export const useShelfStore = create<ShelfState>(set => ({
   setShowDimensions: show => set({ showDimensions: show }),
   showEdgesOnly: false,
   setShowEdgesOnly: show => set({ showEdgesOnly: show }),
+  // Fit trigger
+  fitRequestId: 0,
+  triggerFitToView: () => set(state => ({ fitRequestId: state.fitRequestId + 1 })),
   // Per-element configuration defaults
   selectedElementKey: null,
   setSelectedElementKey: key => set({ selectedElementKey: key }),

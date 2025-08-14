@@ -7,25 +7,71 @@ import React from "react";
 import { useShelfStore } from "@/lib/store";
 import { useRef, useEffect } from "react";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import * as THREE from "three";
 
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   // Connect to the store to get the current camera mode
   const { cameraMode } = useShelfStore();
   const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
+  const fitRequestId = useShelfStore((state) => state.fitRequestId);
 
   // Determine if the controls should be enabled based on the mode
   const areControlsEnabled = cameraMode === "3D";
 
   // Step 1: Create a reference object. This will hold our "remote control".
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const sceneGroupRef = useRef<THREE.Group>(null);
+
+  const performFit = React.useCallback(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    // target group is the wardrobe container group below
+    const group = sceneGroupRef.current;
+    const camera = controls.object as THREE.PerspectiveCamera;
+    const dom = (controls as any).domElement as HTMLElement | undefined;
+    if (!group || !camera || !dom) return;
+
+    // compute world-space bounding box
+    const box = new THREE.Box3().setFromObject(group);
+    if (!box.isEmpty()) {
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      // Pad a bit
+      const padding = 0.05; // 5%
+      size.multiplyScalar(1 + padding);
+
+      // Fit for perspective camera
+      const maxSize = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      const fitHeightDistance = maxSize / (2 * Math.tan(fov / 2));
+      const fitWidthDistance = fitHeightDistance; // square canvas assumption is fine here
+      const distance = Math.max(fitHeightDistance, fitWidthDistance) + 0.5;
+
+      const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+      const newPos = new THREE.Vector3().addVectors(center, dir.multiplyScalar(distance));
+
+      controls.target.copy(center);
+      camera.position.copy(newPos);
+      camera.updateProjectionMatrix();
+      controls.update();
+    }
+  }, []);
+
+  // When request id changes, fit
+  useEffect(() => {
+    performFit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitRequestId]);
 
   // Step 2: Use a useEffect hook to watch for changes to cameraMode.
   useEffect(() => {
-    // If we have our remote control AND the mode switches to "2D"...
     if (controlsRef.current && cameraMode === "2D") {
-      // controlsRef.current.reset(); // Disabled to prevent wardrobe from moving/disappearing
+      // keep angle but allow fitting separately
     }
-  }, [cameraMode]); // This effect re-runs only when cameraMode changes.
+  }, [cameraMode]);
 
   return (
     <Canvas shadows camera={{ position: [0, 0, 5], fov: 40 }}>
@@ -47,7 +93,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
         </>
       )}
 
-      <group position={[0, -0.5, 0]}>
+      <group position={[0, -0.5, 0]} ref={sceneGroupRef}>
         <Wardrobe ref={wardrobeRef} />
       </group>
 
