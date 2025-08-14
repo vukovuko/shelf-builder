@@ -780,7 +780,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           const nodes: React.ReactNode[] = [];
           let idx = 0;
-          modulesY.forEach((m) => {
+          modulesY.forEach((m, mIdx) => {
             blocksX.forEach((bx) => {
               const letter = toLetters(idx);
               const extras = compartmentExtras[letter];
@@ -802,16 +802,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   );
                 }
 
-                // Drawers stack
+                // Drawers stack (respect base height in bottom or single module)
                 if (extras.drawers) {
                   const drawerH = 10 / 100; // 10cm
                   const gap = 1 / 100; // 1cm
                   const per = drawerH + gap;
-                  const maxAuto = Math.max(0, Math.floor((innerH + gap) / per));
+                  const raiseByBase = hasBase && ((modulesY.length === 1) || mIdx === 0) ? baseH : 0;
+                  const drawersYStart = yStartInner + raiseByBase;
+                  const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+                  const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
                   const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
                   const count = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
                   for (let didx = 0; didx < count; didx++) {
-                    const y = yStartInner + drawerH / 2 + didx * per;
+                    const y = drawersYStart + drawerH / 2 + didx * per;
                     nodes.push(
                       <Panel key={`${letter}-drawer-${didx}`} position={[cx, y, 0]} size={[innerW, drawerH, d]} />
                     );

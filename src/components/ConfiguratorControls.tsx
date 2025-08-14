@@ -555,15 +555,17 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
                                 return { start, end };
                               });
                               let idx = 0;
-                              let innerH = 0;
+                              let innerHForDrawers = 0;
                               let found = false;
-                              modulesY.forEach((m) => {
+                              modulesY.forEach((m, mIdx) => {
                                 blocksX.forEach((bx) => {
                                   const letter = toLetters(idx);
                                   if (!found && letter === selectedCompartmentKey) {
                                     const yStartInner = m.yStart + t;
                                     const yEndInner = m.yEnd - t;
-                                    innerH = Math.max(yEndInner - yStartInner, 0);
+                                    const raiseByBase = (hasBase && ((modulesY.length === 1) || mIdx === 0)) ? (baseHeight / 100) : 0;
+                                    const drawersYStart = yStartInner + raiseByBase;
+                                    innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
                                     found = true;
                                   }
                                   idx += 1;
@@ -571,7 +573,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
                               });
                               const drawerH = 10 / 100; // 10cm
                               const gap = 1 / 100; // 1cm
-                              const maxCount = Math.max(0, Math.floor((innerH + gap) / (drawerH + gap)));
+                              const maxCount = Math.max(0, Math.floor((innerHForDrawers + gap) / (drawerH + gap)));
                               const current = extras.drawersCount ?? 0;
                               const options = [] as number[];
                               for (let i = 0; i <= maxCount; i++) options.push(i);
