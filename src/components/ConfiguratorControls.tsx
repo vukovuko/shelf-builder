@@ -23,6 +23,8 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
 
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
+    const prevDims = useShelfStore.getState().showDimensions;
+    useShelfStore.getState().setShowDimensions(true);
     setShowEdgesOnly(true);
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
@@ -33,6 +35,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       setShowEdgesOnly(false);
+      useShelfStore.getState().setShowDimensions(prevDims);
       return;
     }
     const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
@@ -41,26 +44,35 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     link.download = "wardrobe-front-edges.jpg";
     link.click();
     setShowEdgesOnly(false);
+    useShelfStore.getState().setShowDimensions(prevDims);
   }, [cameraMode, setCameraMode, setShowEdgesOnly]);
 
   const handleDownloadFrontView = React.useCallback(async () => {
+    const prevDims = useShelfStore.getState().showDimensions;
+    useShelfStore.getState().setShowDimensions(true);
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
       await new Promise(resolve => setTimeout(resolve, 300));
     }
     const canvas = document.querySelector("canvas");
-    if (!canvas) return;
+    if (!canvas) {
+      useShelfStore.getState().setShowDimensions(prevDims);
+      return;
+    }
     await new Promise(requestAnimationFrame);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = "wardrobe-front-view.jpg";
     link.click();
+    useShelfStore.getState().setShowDimensions(prevDims);
   }, [cameraMode, setCameraMode]);
 
   // Download 2D technical drawing (only edges, white fill, no shadows)
   const handleDownloadTechnical2D = React.useCallback(async () => {
+    const prevDims = useShelfStore.getState().showDimensions;
+    useShelfStore.getState().setShowDimensions(true);
     setShowEdgesOnly(true);
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
@@ -71,6 +83,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       setShowEdgesOnly(false);
+      useShelfStore.getState().setShowDimensions(prevDims);
       return;
     }
     const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
@@ -79,6 +92,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     link.download = "wardrobe-technical-2d.jpg";
     link.click();
     setShowEdgesOnly(false);
+    useShelfStore.getState().setShowDimensions(prevDims);
   }, [cameraMode, setCameraMode, setShowEdgesOnly]);
 
   const {
@@ -611,6 +625,9 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
         <div className="flex flex-col items-center gap-3 mt-6">
           <Button variant="outline" onClick={handleToggleAllInfo}>
             {allInfoShown ? "Hide All Info" : "Show All Info"}
+          </Button>
+          <Button variant="outline" onClick={() => setShowDimensions(!showDimensions)}>
+            {showDimensions ? "Hide Dimensions" : "Show Dimensions"}
           </Button>
           <Button variant="outline" onClick={handleDownloadFrontView}>
             Download Front View (JPG)

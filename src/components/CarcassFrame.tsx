@@ -2,7 +2,7 @@
 import React from "react";
 import { useShelfStore } from "../lib/store";
 import { Panel } from "./Panel";
-import { Html } from "@react-three/drei";
+import { Html, Text } from "@react-three/drei";
 import * as THREE from "three";
 
 type Material = {
@@ -926,6 +926,154 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             )
           );
         })}
+
+        {showDimensions && (
+          <group key="dim-lines">
+            {(() => {
+              const xMin = -w / 2;
+              const xMax = w / 2;
+              const yMin = -h / 2;
+              const yMax = h / 2;
+
+              const theta = (30 / 180) * Math.PI; // 30° arrow wings
+              const ah = 0.03; // 3cm arrow wing length
+              const lineThk = 0.002; // 2mm line thickness
+
+              const nodes: React.ReactNode[] = [];
+
+              // Helper: add a wing (small line) at apex with direction vector v (normalized), length ah and rotation by angle
+              const addWing = (key: string, apex: [number, number], angle: number) => {
+                const dir = new THREE.Vector2(Math.cos(angle), Math.sin(angle));
+                const center = new THREE.Vector2(apex[0], apex[1]).addScaledVector(dir, ah / 2);
+                nodes.push(
+                  <mesh key={key} position={[center.x, center.y, 0]} rotation={[0, 0, angle]}>
+                    <boxGeometry args={[ah, lineThk, lineThk]} />
+                    <meshBasicMaterial color="#000" />
+                  </mesh>
+                );
+              };
+
+              // Bottom chain dimensions per element-width (blocks of max 100cm)
+              const offsetY = yMin - 0.06; // 6cm below
+              const maxSegX = 100 / 100;
+              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+              const segWX = w / nBlocksX;
+              const margin = ah * Math.cos(theta);
+
+              for (let i = 0; i < nBlocksX; i++) {
+                const start = xMin + i * segWX;
+                const end = start + segWX;
+                const mid = (start + end) / 2;
+                const widthCm = Math.round((end - start) * 100);
+
+                // dimension line between arrowheads
+                const len = Math.max(0, (end - margin) - (start + margin));
+                if (len > 0) {
+                  const cx = (start + margin + end - margin) / 2;
+                  nodes.push(
+                    <mesh key={`dim-bot-line-${i}`} position={[cx, offsetY, 0]}>
+                      <boxGeometry args={[len, lineThk, lineThk]} />
+                      <meshBasicMaterial color="#000" />
+                    </mesh>
+                  );
+                }
+
+                // arrowheads (wings) pointing inward
+                const leftApex: [number, number] = [start, offsetY];
+                addWing(`dim-bot-left-w1-${i}`, leftApex, +theta);
+                addWing(`dim-bot-left-w2-${i}`, leftApex, -theta);
+
+                const rightApex: [number, number] = [end, offsetY];
+                addWing(`dim-bot-right-w1-${i}`, rightApex, Math.PI - theta);
+                addWing(`dim-bot-right-w2-${i}`, rightApex, Math.PI + theta);
+
+                // centered label (Text renders into WebGL, so it appears in exports)
+                nodes.push(
+                  <Text
+                    key={`dim-bot-lbl-${i}`}
+                    position={[mid, offsetY - 0.03, 0]}
+                    fontSize={0.04}
+                    color="#111"
+                    anchorX="center"
+                    anchorY="middle"
+                  >
+                    {`${widthCm} cm`}
+                  </Text>
+                );
+              }
+
+              // Segmented vertical dimensions per Y-module (like horizontal chain)
+              const xOff = 0.08; // 8cm offset from sides
+              const leftX = xMin - xOff;
+              const rightX = xMax + xOff;
+
+              // Build Y-modules (same logic used elsewhere)
+              const targetBottomH = 200 / 100;
+              const minTopH = 10 / 100;
+              const modulesY: { yStart: number; yEnd: number }[] = [];
+              if (h > 200 / 100) {
+                const yStartBottom = -h / 2;
+                const bottomH = (h - targetBottomH) < minTopH ? (h - minTopH) : targetBottomH;
+                const yEndBottom = yStartBottom + bottomH;
+                const yStartTop = yEndBottom;
+                const yEndTop = h / 2;
+                modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+                modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+              } else {
+                modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+              }
+
+              const vMargin = ah * Math.cos(theta);
+
+              const addVerticalSegment = (side: "left" | "right", x: number, y0: number, y1: number, idx: number) => {
+                const yStart = Math.min(y0, y1);
+                const yEnd = Math.max(y0, y1);
+                const vLen = Math.max(0, (yEnd - vMargin) - (yStart + vMargin));
+                if (vLen > 0) {
+                  const cy = (yStart + vMargin + yEnd - vMargin) / 2;
+                  nodes.push(
+                    <mesh key={`dim-${side}-seg-line-${idx}`} position={[x, cy, 0]}>
+                      <boxGeometry args={[lineThk, vLen, lineThk]} />
+                      <meshBasicMaterial color="#000" />
+                    </mesh>
+                  );
+                }
+
+                // arrow wings at top (pointing downward)
+                const topApex: [number, number] = [x, yEnd];
+                addWing(`dim-${side}-seg-top-w1-${idx}`, topApex, -(Math.PI / 2 - theta));
+                addWing(`dim-${side}-seg-top-w2-${idx}`, topApex, -(Math.PI / 2 + theta));
+                // arrow wings at bottom (pointing upward)
+                const botApex: [number, number] = [x, yStart];
+                addWing(`dim-${side}-seg-bot-w1-${idx}`, botApex, +(Math.PI / 2 - theta));
+                addWing(`dim-${side}-seg-bot-w2-${idx}`, botApex, +(Math.PI / 2 + theta));
+
+                // label centered on the segment
+                const segMidY = (yStart + yEnd) / 2;
+                const segCm = Math.round((yEnd - yStart) * 100);
+                nodes.push(
+                  <Text
+                    key={`dim-${side}-seg-lbl-${idx}`}
+                    position={[x + (side === "left" ? -0.05 : 0.05), segMidY, 0]}
+                    fontSize={0.04}
+                    color="#111"
+                    anchorX={side === "left" ? "right" : "left"}
+                    anchorY="middle"
+                  >
+                    {`${segCm} cm`}
+                  </Text>
+                );
+              };
+
+              modulesY.forEach((m, i) => {
+                addVerticalSegment("left", leftX, m.yStart, m.yEnd, i);
+                addVerticalSegment("right", rightX, m.yStart, m.yEnd, i);
+              });
+
+              return <>{nodes}</>;
+            })()}
+          </group>
+        )}
       </group>
     );
   }
