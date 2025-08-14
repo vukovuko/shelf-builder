@@ -347,18 +347,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const cfg = elementConfigs[letter] ?? { columns: 1, rowCounts: [0] };
           const cols = Math.max(1, cfg.columns | 0);
 
-          // Dividers
-          for (let c = 1; c <= cols - 1; c++) {
-            const x = xStartInner + (innerW * c) / cols;
-            divs.push({ key: `elem-${mIdx}-${bIdx}-div-${c}`, position: [x, cy, 0], size: [t, innerH, d] });
-          }
-
-          // Shelves constrained above drawers (if any)
-          const xs: number[] = [xStartInner];
-          for (let c = 1; c <= cols - 1; c++) xs.push(xStartInner + (innerW * c) / cols);
-          xs.push(xEndInner);
-
-          // Compute drawers region for this element (letter)
+          // Compute drawers region for this element (letter) to constrain both shelves and vertical dividers
           const extras = compartmentExtras[letter];
           let yShelvesMin = yStartInner; // default: whole height
           if (extras?.drawers) {
@@ -376,6 +365,22 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               yShelvesMin = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
             }
           }
+
+          // Dividers (shortened above drawers)
+          for (let c = 1; c <= cols - 1; c++) {
+            const x = xStartInner + (innerW * c) / cols;
+            const yDivFrom = yShelvesMin;
+            const hDiv = Math.max(yEndInner - yDivFrom, 0);
+            if (hDiv > 0) {
+              const yDivCy = (yDivFrom + yEndInner) / 2;
+              divs.push({ key: `elem-${mIdx}-${bIdx}-div-${c}`, position: [x, yDivCy, 0], size: [t, hDiv, d] });
+            }
+          }
+
+          // Shelves constrained above drawers (if any)
+          const xs: number[] = [xStartInner];
+          for (let c = 1; c <= cols - 1; c++) xs.push(xStartInner + (innerW * c) / cols);
+          xs.push(xEndInner);
 
           for (let comp = 0; comp < cols; comp++) {
             const x0 = xs[comp];
@@ -818,25 +823,33 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const cx = (xStartInner + xEndInner) / 2;
                 const cy = (yStartInner + yEndInner) / 2;
 
-                // Vertical divider at center
-                if (extras.verticalDivider) {
+                // Compute drawers region for this element to constrain vertical divider height
+                const drawerH = 10 / 100; // 10cm
+                const gap = 1 / 100; // 1cm
+                const per = drawerH + gap;
+                const raiseByBase = hasBase && ((modulesY.length === 1) || mIdx === 0) ? baseH : 0;
+                const drawersYStart = yStartInner + raiseByBase;
+                const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+                const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
+                const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
+                const usedDrawerCount = extras.drawers ? (countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto) : 0;
+
+                // Vertical divider at center, shortened to end at top of drawers
+                let yDivFrom = yStartInner;
+                if (usedDrawerCount > 0) {
+                  const drawersTopY = drawersYStart + drawerH + (usedDrawerCount - 1) * per; // top face of last drawer
+                  yDivFrom = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
+                }
+                const divH = Math.max(yEndInner - yDivFrom, 0);
+                if (extras.verticalDivider && divH > 0) {
                   nodes.push(
-                    <Panel key={`${letter}-vdiv`} position={[cx, cy, 0]} size={[t, innerH, d]} />
+                    <Panel key={`${letter}-vdiv`} position={[cx, (yDivFrom + yEndInner) / 2, 0]} size={[t, divH, d]} />
                   );
                 }
 
                 // Drawers stack (respect base height in bottom or single module)
                 if (extras.drawers) {
-                  const drawerH = 10 / 100; // 10cm
-                  const gap = 1 / 100; // 1cm
-                  const per = drawerH + gap;
-                  const raiseByBase = hasBase && ((modulesY.length === 1) || mIdx === 0) ? baseH : 0;
-                  const drawersYStart = yStartInner + raiseByBase;
-                  const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-                  const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
-                  const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
-                  const count = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
-                  for (let didx = 0; didx < count; didx++) {
+                  for (let didx = 0; didx < usedDrawerCount; didx++) {
                     const y = drawersYStart + drawerH / 2 + didx * per;
                     nodes.push(
                       <Panel key={`${letter}-drawer-${didx}`} position={[cx, y, 0]} size={[innerW, drawerH, d]} />
