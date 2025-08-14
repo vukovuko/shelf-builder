@@ -11,6 +11,7 @@ interface ElementConfig {
 interface CompartmentExtras {
   verticalDivider?: boolean;
   drawers?: boolean;
+  drawersCount?: number; // number of drawers for this element (when drawers is enabled)
   rod?: boolean;
   led?: boolean;
 }
@@ -61,6 +62,7 @@ interface ShelfState {
   toggleCompDrawers: (key: string) => void;
   toggleCompRod: (key: string) => void;
   toggleCompLed: (key: string) => void;
+  setCompDrawersCount: (key: string, count: number) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -172,6 +174,10 @@ export const useShelfStore = create<ShelfState>(set => ({
   toggleCompDrawers: (key) => set(state => {
     const prev = state.compartmentExtras[key] ?? {};
     return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, drawers: !prev.drawers } } };
+  }),
+  setCompDrawersCount: (key, count) => set(state => {
+    const prev = state.compartmentExtras[key] ?? {};
+    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, drawersCount: Math.max(0, Math.floor(count)) } } };
   }),
   toggleCompRod: (key) => set(state => {
     const prev = state.compartmentExtras[key] ?? {};

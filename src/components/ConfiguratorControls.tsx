@@ -493,15 +493,95 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
                         <Button
                           variant={extras.verticalDivider ? "default" : "outline"}
                           onClick={() => toggleCompVerticalDivider(selectedCompartmentKey)}
-                        >
+                       >
                           {extras.verticalDivider ? "✔ " : ""}+ Vertikalni divider
                         </Button>
-                        <Button
-                          variant={extras.drawers ? "default" : "outline"}
-                          onClick={() => toggleCompDrawers(selectedCompartmentKey)}
-                        >
-                          {extras.drawers ? "✔ " : ""}+ Fioke
-                        </Button>
+                        {/* Drawers button + count selector together */}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant={extras.drawers ? "default" : "outline"}
+                            onClick={() => toggleCompDrawers(selectedCompartmentKey)}
+                          >
+                            {extras.drawers ? "✔ " : ""}+ Fioke
+                          </Button>
+                          <select
+                            className="h-9 px-2 border rounded"
+                            disabled={!selectedCompartmentKey || !extras.drawers}
+                            value={extras.drawersCount ?? 0}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10) || 0;
+                              useShelfStore.getState().setCompDrawersCount(selectedCompartmentKey!, val);
+                            }}
+                          >
+                            {(() => {
+                              const width = useShelfStore.getState().width;
+                              const height = useShelfStore.getState().height;
+                              const selectedMaterialId = useShelfStore.getState().selectedMaterialId as number;
+                              const mat = (materials as any[]).find(m => String(m.id) === String(selectedMaterialId));
+                              const thicknessMm = mat?.thickness ?? 18; // mm
+                              const t = (thicknessMm / 1000); // world units (m)
+                              const w = width / 100;
+                              const h = height / 100;
+                              const maxSegX = 100 / 100;
+                              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+                              const segWX = w / nBlocksX;
+                              const targetBottomH = 200 / 100;
+                              const minTopH = 10 / 100;
+                              const modulesY: { yStart: number; yEnd: number }[] = [];
+                              if (h > 200 / 100) {
+                                const yStartBottom = -h / 2;
+                                const bottomH = (h - targetBottomH) < minTopH ? (h - minTopH) : targetBottomH;
+                                const yEndBottom = yStartBottom + bottomH;
+                                const yStartTop = yEndBottom;
+                                const yEndTop = h / 2;
+                                modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+                                modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+                              } else {
+                                modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+                              }
+                              const toLetters = (num: number) => {
+                                let n = num + 1;
+                                let s = "";
+                                while (n > 0) {
+                                  const rem = (n - 1) % 26;
+                                  s = String.fromCharCode(65 + rem) + s;
+                                  n = Math.floor((n - 1) / 26);
+                                }
+                                return s;
+                              };
+                              const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+                                const start = -w / 2 + i * segWX;
+                                const end = start + segWX;
+                                return { start, end };
+                              });
+                              let idx = 0;
+                              let innerH = 0;
+                              let found = false;
+                              modulesY.forEach((m) => {
+                                blocksX.forEach((bx) => {
+                                  const letter = toLetters(idx);
+                                  if (!found && letter === selectedCompartmentKey) {
+                                    const yStartInner = m.yStart + t;
+                                    const yEndInner = m.yEnd - t;
+                                    innerH = Math.max(yEndInner - yStartInner, 0);
+                                    found = true;
+                                  }
+                                  idx += 1;
+                                });
+                              });
+                              const drawerH = 10 / 100; // 10cm
+                              const gap = 1 / 100; // 1cm
+                              const maxCount = Math.max(0, Math.floor((innerH + gap) / (drawerH + gap)));
+                              const current = extras.drawersCount ?? 0;
+                              const options = [] as number[];
+                              for (let i = 0; i <= maxCount; i++) options.push(i);
+                              if (current > maxCount) options.push(current);
+                              return options.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                              ));
+                            })()}
+                          </select>
+                        </div>
                         <Button
                           variant={extras.rod ? "default" : "outline"}
                           onClick={() => toggleCompRod(selectedCompartmentKey)}

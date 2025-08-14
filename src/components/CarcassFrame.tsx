@@ -807,7 +807,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   const drawerH = 10 / 100; // 10cm
                   const gap = 1 / 100; // 1cm
                   const per = drawerH + gap;
-                  const count = Math.max(0, Math.floor((innerH + gap) / per));
+                  const maxAuto = Math.max(0, Math.floor((innerH + gap) / per));
+                  const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
+                  const count = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
                   for (let didx = 0; didx < count; didx++) {
                     const y = yStartInner + drawerH / 2 + didx * per;
                     nodes.push(
