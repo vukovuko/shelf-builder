@@ -346,15 +346,37 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const letter = toLetters(idx);
           const cfg = elementConfigs[letter] ?? { columns: 1, rowCounts: [0] };
           const cols = Math.max(1, cfg.columns | 0);
+
           // Dividers
           for (let c = 1; c <= cols - 1; c++) {
             const x = xStartInner + (innerW * c) / cols;
             divs.push({ key: `elem-${mIdx}-${bIdx}-div-${c}`, position: [x, cy, 0], size: [t, innerH, d] });
           }
-          // Shelves
+
+          // Shelves constrained above drawers (if any)
           const xs: number[] = [xStartInner];
           for (let c = 1; c <= cols - 1; c++) xs.push(xStartInner + (innerW * c) / cols);
           xs.push(xEndInner);
+
+          // Compute drawers region for this element (letter)
+          const extras = compartmentExtras[letter];
+          let yShelvesMin = yStartInner; // default: whole height
+          if (extras?.drawers) {
+            const drawerH = 10 / 100;
+            const gap = 1 / 100;
+            const per = drawerH + gap;
+            const raiseByBase = hasBase && ((modulesY.length === 1) || mIdx === 0) ? baseH : 0;
+            const drawersYStart = yStartInner + raiseByBase;
+            const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+            const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
+            const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
+            const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+            if (used > 0) {
+              const drawersTopY = drawersYStart + drawerH + (used - 1) * per; // top face of last drawer
+              yShelvesMin = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
+            }
+          }
+
           for (let comp = 0; comp < cols; comp++) {
             const x0 = xs[comp];
             const x1 = xs[comp + 1];
@@ -364,10 +386,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const compW = Math.max(right - left, 0);
             const shelfCount = cfg.rowCounts?.[comp] ?? 0;
             if (shelfCount <= 0) continue;
-            const spacing = innerH / (shelfCount + 1);
+            const usableH = Math.max(yEndInner - yShelvesMin, 0);
+            if (usableH <= 0) continue;
+            const spacing = usableH / (shelfCount + 1);
             for (let s = 0; s < shelfCount; s++) {
-              const y = yStartInner + spacing * (s + 1);
-              // Make shelves exactly touch inner faces (and divider faces)
+              const y = yShelvesMin + spacing * (s + 1);
               shs.push({ key: `elem-${mIdx}-${bIdx}-comp-${comp}-shelf-${s}`, position: [(left + right) / 2, y, 0], size: [compW, t, d] });
             }
           }
@@ -375,7 +398,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         });
       });
       return { dividers: divs, shelves: shs };
-    }, [w, h, t, d, elementConfigs]);
+    }, [w, h, t, d, elementConfigs, compartmentExtras, hasBase, baseH]);
 
     React.useEffect(() => {
       function onMouseMove(e: MouseEvent) {
