@@ -8,6 +8,13 @@ interface ElementConfig {
   rowCounts: number[]; // shelves per compartment
 }
 
+interface CompartmentExtras {
+  verticalDivider?: boolean;
+  drawers?: boolean;
+  rod?: boolean;
+  led?: boolean;
+}
+
 interface ShelfState {
   width: number;
   height: number;
@@ -44,6 +51,16 @@ interface ShelfState {
   baseHeight: number; // in cm
   setHasBase: (val: boolean) => void;
   setBaseHeight: (val: number) => void;
+  // Extras mode and selections
+  extrasMode: boolean;
+  setExtrasMode: (val: boolean) => void;
+  selectedCompartmentKey: string | null;
+  setSelectedCompartmentKey: (key: string | null) => void;
+  compartmentExtras: Record<string, CompartmentExtras>;
+  toggleCompVerticalDivider: (key: string) => void;
+  toggleCompDrawers: (key: string) => void;
+  toggleCompRod: (key: string) => void;
+  toggleCompLed: (key: string) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -142,4 +159,26 @@ export const useShelfStore = create<ShelfState>(set => ({
   baseHeight: 0,
   setHasBase: (val) => set({ hasBase: val }),
   setBaseHeight: (val) => set({ baseHeight: Math.max(0, val) }),
+  // Extras defaults
+  extrasMode: false,
+  setExtrasMode: (val) => set({ extrasMode: val }),
+  selectedCompartmentKey: null,
+  setSelectedCompartmentKey: (key) => set({ selectedCompartmentKey: key }),
+  compartmentExtras: {},
+  toggleCompVerticalDivider: (key) => set(state => {
+    const prev = state.compartmentExtras[key] ?? {};
+    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, verticalDivider: !prev.verticalDivider } } };
+  }),
+  toggleCompDrawers: (key) => set(state => {
+    const prev = state.compartmentExtras[key] ?? {};
+    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, drawers: !prev.drawers } } };
+  }),
+  toggleCompRod: (key) => set(state => {
+    const prev = state.compartmentExtras[key] ?? {};
+    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, rod: !prev.rod } } };
+  }),
+  toggleCompLed: (key) => set(state => {
+    const prev = state.compartmentExtras[key] ?? {};
+    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, led: !prev.led } } };
+  }),
 }));

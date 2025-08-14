@@ -3,6 +3,7 @@ import React from "react";
 import { useShelfStore } from "../lib/store";
 import { Panel } from "./Panel";
 import { Html } from "@react-three/drei";
+import * as THREE from "three";
 
 type Material = {
   id: string;
@@ -45,9 +46,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     const cameraMode = useShelfStore((state) => state.cameraMode);
     const elementConfigs = useShelfStore((state) => state.elementConfigs);
+    const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
     const hasBase = useShelfStore((state) => state.hasBase);
     const baseHeightCm = useShelfStore((state) => state.baseHeight);
     const baseH = (hasBase ? baseHeightCm : 0) / 100;
+    const extrasMode = useShelfStore((s) => s.extrasMode);
+    const selectedCompartmentKey = useShelfStore((s) => s.selectedCompartmentKey);
+    const setSelectedCompartmentKey = useShelfStore((s) => s.setSelectedCompartmentKey);
+    const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
 
     const material =
       materials.find((m: Material) => String(m.id) === String(selectedMaterialId)) ||
@@ -92,12 +98,49 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const dividerXPositions = dividers.map((div) => div.position[0]);
     const xPositions = [-innerWidth / 2, ...dividerXPositions, innerWidth / 2];
 
-    const compartments: { xStart: number; xEnd: number; width: number }[] = [];
-    for (let i = 0; i < numberOfColumns; i++) {
-      const xStart = xPositions[i];
-      const xEnd = xPositions[i + 1];
-      const width = xEnd - xStart;
-      compartments.push({ xStart, xEnd, width });
+    // Map compartments to element keys (A, B, C...)
+    const compartments: { xStart: number; xEnd: number; yStart: number; yEnd: number; width: number; elementKey: string }[] = [];
+    // Support both single and split modules (bottom-to-top, left-to-right)
+    {
+      const maxSegX = 100 / 100;
+      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+      // Y modules: split if height > 200cm
+      const modulesY: { yStart: number; yEnd: number }[] = [];
+      if (h > 200 / 100) {
+        const yStartBottom = -h / 2;
+        const targetBottomH = 200 / 100;
+        const minTopH = 10 / 100;
+        const bottomH = (h - targetBottomH) < minTopH ? (h - minTopH) : targetBottomH;
+        const yEndBottom = yStartBottom + bottomH;
+        const yStartTop = yEndBottom;
+        const yEndTop = h / 2;
+        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+        modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+      } else {
+        modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+      }
+      // Helper to map index -> A, B, ..., Z, AA, AB, ...
+      const toLetters = (num: number) => {
+        let n = num + 1;
+        let s = "";
+        while (n > 0) {
+          const rem = (n - 1) % 26;
+          s = String.fromCharCode(65 + rem) + s;
+          n = Math.floor((n - 1) / 26);
+        }
+        return s;
+      };
+      let idx = 0;
+      modulesY.forEach((mod) => {
+        for (let i = 0; i < numberOfColumns; i++) {
+          const xStart = xPositions[i];
+          const xEnd = xPositions[i + 1];
+          const width = xEnd - xStart;
+          const elementKey = toLetters(idx);
+          compartments.push({ xStart, xEnd, yStart: mod.yStart, yEnd: mod.yEnd, width, elementKey });
+          idx++;
+        }
+      });
     }
 
     // Generate shelves for each compartment
@@ -426,8 +469,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     return (
       <group>
-        {/* This material applies ONLY to the frame parts */}
-        <meshStandardMaterial color={color} />
+        {/* Technical 2D: white fill (unlit). Otherwise use selected material color. */}
+        {showEdgesOnly ? (
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        ) : (
+          <meshStandardMaterial color={color} />
+        )}
 
         {/* Side, Top, and Bottom Panels with labels */}
         {panels.map((panel) => (
@@ -687,6 +734,117 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             ))}
           </>
         )}
+
+        {/* Extras element selection buttons moved to left menu (ConfiguratorControls) */}
+
+        {/* Render extras only for the selected element */}
+        {(() => {
+          if (!extrasMode || !selectedCompartmentKey) return null;
+
+          // Compute element regions exactly like elementLabels (blocks of <=100cm across X, modules across Y)
+          const toLetters = (num: number) => {
+            let n = num + 1;
+            let s = "";
+            while (n > 0) {
+              const rem = (n - 1) % 26;
+              s = String.fromCharCode(65 + rem) + s;
+              n = Math.floor((n - 1) / 26);
+            }
+            return s;
+          };
+
+          // X blocks
+          const maxSegX = 100 / 100; // 1.0
+          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+          const segWX = w / nBlocksX;
+          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+            const start = -w / 2 + i * segWX;
+            const end = start + segWX;
+            return { start, end };
+          });
+
+          // Y modules
+          const targetBottomH = 200 / 100;
+          const minTopH = 10 / 100;
+          const modulesY: { yStart: number; yEnd: number; label: string }[] = [];
+          if (h > 200 / 100) {
+            const yStartBottom = -h / 2;
+            const bottomH = (h - targetBottomH) < minTopH ? (h - minTopH) : targetBottomH;
+            const yEndBottom = yStartBottom + bottomH;
+            const yStartTop = yEndBottom;
+            const yEndTop = h / 2;
+            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom, label: "BottomModule" });
+            modulesY.push({ yStart: yStartTop, yEnd: yEndTop, label: "TopModule" });
+          } else {
+            modulesY.push({ yStart: -h / 2, yEnd: h / 2, label: "SingleModule" });
+          }
+
+          // Build element list with letters (order: bottom-to-top, left-to-right)
+          type Elem = { letter: string; xStart: number; xEnd: number; yStart: number; yEnd: number };
+          const elems: Elem[] = [];
+          let idx = 0;
+          modulesY.forEach((m) => {
+            blocksX.forEach((bx) => {
+              elems.push({ letter: toLetters(idx), xStart: bx.start, xEnd: bx.end, yStart: m.yStart, yEnd: m.yEnd });
+              idx += 1;
+            });
+          });
+
+          // Find the selected element region
+          const el = elems.find(e => e.letter === selectedCompartmentKey);
+          if (!el) return null;
+
+          const key = el.letter;
+          const extras = compartmentExtras[key];
+          if (!extras) return null;
+
+          // Inner bounds (subtract thickness on each face)
+          const xStartInner = el.xStart + t;
+          const xEndInner = el.xEnd - t;
+          const yStartInner = el.yStart + t;
+          const yEndInner = el.yEnd - t;
+          const innerW = Math.max(xEndInner - xStartInner, 0);
+          const innerH = Math.max(yEndInner - yStartInner, 0);
+          const cx = (xStartInner + xEndInner) / 2;
+          const cy = (yStartInner + yEndInner) / 2;
+
+          const nodes: React.ReactNode[] = [];
+
+          // 1) Vertical divider at the center of the selected element
+          if (extras.verticalDivider) {
+            nodes.push(
+              <Panel key={`${key}-vdiv`} position={[cx, cy, 0]} size={[t, innerH, d]} />
+            );
+          }
+
+          // 2) Drawers: stack within this element only
+          if (extras.drawers) {
+            const drawerH = 10 / 100; // 10cm
+            const gap = 1 / 100; // 1cm
+            const per = drawerH + gap;
+            const count = Math.max(0, Math.floor((innerH + gap) / per));
+            for (let didx = 0; didx < count; didx++) {
+              const y = yStartInner + drawerH / 2 + didx * per;
+              nodes.push(
+                <Panel key={`${key}-drawer-${didx}`} position={[cx, y, 0]} size={[innerW, drawerH, d]} />
+              );
+            }
+          }
+
+          // 3) Rod across the selected element only
+          if (extras.rod) {
+            const rodY = yEndInner - 10 / 100; // 10cm below top
+            const radius = (3 / 100) / 2; // 3cm diameter
+            nodes.push(
+              <mesh key={`${key}-rod`} position={[cx, rodY, 0]} rotation={[0, Math.PI / 2, 0]}>
+                <cylinderGeometry args={[radius, radius, innerW, 16]} />
+                <meshStandardMaterial color="#888" />
+              </mesh>
+            );
+          }
+
+          return <group key={`extras-${key}`}>{nodes}</group>;
+        })()}
 
         {/* Compartment labels */}
         {compartments.map((comp, i) => {

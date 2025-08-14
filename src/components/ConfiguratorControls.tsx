@@ -56,6 +56,28 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     link.download = "wardrobe-front-view.jpg";
     link.click();
   }, [cameraMode, setCameraMode]);
+
+  // Download 2D technical drawing (only edges, white fill, no shadows)
+  const handleDownloadTechnical2D = React.useCallback(async () => {
+    setShowEdgesOnly(true);
+    if (cameraMode !== "2D") {
+      setCameraMode("2D");
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    await new Promise(requestAnimationFrame);
+    const canvas = document.querySelector("canvas");
+    if (!canvas) {
+      setShowEdgesOnly(false);
+      return;
+    }
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "wardrobe-technical-2d.jpg";
+    link.click();
+    setShowEdgesOnly(false);
+  }, [cameraMode, setCameraMode, setShowEdgesOnly]);
+
   const {
     width,
     height,
@@ -276,7 +298,7 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
     </div>
   );
 })()}
-</AccordionContent>
+          </AccordionContent>
 
         </AccordionItem>
 
@@ -390,6 +412,116 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
 
           </AccordionContent>
         </AccordionItem>
+        {/* 5. Extras */}
+        <AccordionItem value="item-5" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            5. Extras
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {(() => {
+              // Prava reaktivna veza na Zustand store
+              const extrasMode = useShelfStore(state => state.extrasMode);
+              const setExtrasMode = useShelfStore(state => state.setExtrasMode);
+              const selectedCompartmentKey = useShelfStore(state => state.selectedCompartmentKey);
+              const setSelectedCompartmentKey = useShelfStore(state => state.setSelectedCompartmentKey);
+              const compartmentExtras = useShelfStore(state => state.compartmentExtras);
+              const toggleCompVerticalDivider = useShelfStore(state => state.toggleCompVerticalDivider);
+              const toggleCompDrawers = useShelfStore(state => state.toggleCompDrawers);
+              const toggleCompRod = useShelfStore(state => state.toggleCompRod);
+              const toggleCompLed = useShelfStore(state => state.toggleCompLed);
+
+              // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
+              // Identicno kao u CarcassFrame elementLabels: blokovi po 100cm (X) i moduli po visini (Y)
+              const width = useShelfStore(state => state.width);
+              const height = useShelfStore(state => state.height);
+              const w = width / 100;
+              const h = height / 100;
+              const maxSegX = 100 / 100;
+              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+              const hasSplitY = h > 200 / 100;
+              const nModulesY = hasSplitY ? 2 : 1;
+              const toLetters = (num: number) => {
+                let n = num + 1;
+                let s = "";
+                while (n > 0) {
+                  const rem = (n - 1) % 26;
+                  s = String.fromCharCode(65 + rem) + s;
+                  n = Math.floor((n - 1) / 26);
+                }
+                return s;
+              };
+              const allKeys = Array.from({ length: nBlocksX * nModulesY }, (_, i) => toLetters(i));
+
+              // Prikaz stanja za selektovani element
+              const extras = selectedCompartmentKey ? compartmentExtras[selectedCompartmentKey] || {} : {};
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Selection mode</span>
+                    <Button
+                      variant={extrasMode ? "default" : "outline"}
+                      onClick={() => setExtrasMode(!extrasMode)}
+                      className="h-8 px-3"
+                    >
+                      {extrasMode ? "On" : "Off"}
+                    </Button>
+                  </div>
+
+                  {/* Element selection row for extras */}
+                  <div className="flex flex-wrap gap-2 items-center mb-2">
+                    <span className="text-sm text-muted-foreground">Element:</span>
+                    {allKeys.map((ltr) => (
+                      <Button
+                        key={ltr}
+                        variant={selectedCompartmentKey === ltr ? "default" : "outline"}
+                        onClick={() => setSelectedCompartmentKey(ltr)}
+                        className="px-2 py-1 h-8"
+                      >
+                        {ltr}
+                      </Button>
+                    ))}
+                  </div>
+                  {!selectedCompartmentKey ? (
+                    <div className="text-sm text-muted-foreground">
+                      Izaberi element klikom na slovo iznad, pa dodaj dodatke.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="text-sm">Odabrani: {selectedCompartmentKey}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={extras.verticalDivider ? "default" : "outline"}
+                          onClick={() => toggleCompVerticalDivider(selectedCompartmentKey)}
+                        >
+                          {extras.verticalDivider ? "✔ " : ""}+ Vertikalni divider
+                        </Button>
+                        <Button
+                          variant={extras.drawers ? "default" : "outline"}
+                          onClick={() => toggleCompDrawers(selectedCompartmentKey)}
+                        >
+                          {extras.drawers ? "✔ " : ""}+ Fioke
+                        </Button>
+                        <Button
+                          variant={extras.rod ? "default" : "outline"}
+                          onClick={() => toggleCompRod(selectedCompartmentKey)}
+                        >
+                          {extras.rod ? "✔ " : ""}+ Šipka za ofingere
+                        </Button>
+                        <Button
+                          variant={extras.led ? "default" : "outline"}
+                          onClick={() => toggleCompLed(selectedCompartmentKey)}
+                        >
+                          {extras.led ? "✔ " : ""}LED rasveta
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </AccordionContent>
+        </AccordionItem>
         {/* Global Show/Hide Info Button */}
         <div className="flex flex-col items-center gap-3 mt-6">
           <Button variant="outline" onClick={handleToggleAllInfo}>
@@ -400,6 +532,9 @@ export function ConfiguratorControls({ wardrobeRef }: { wardrobeRef: React.RefOb
           </Button>
           <Button variant="outline" onClick={handleDownloadFrontEdges}>
             Download Front Edges (JPG)
+          </Button>
+          <Button variant="outline" onClick={handleDownloadTechnical2D}>
+            Download 2D Technical (JPG)
           </Button>
         </div>
       </Accordion>

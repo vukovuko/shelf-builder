@@ -11,6 +11,7 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   // Connect to the store to get the current camera mode
   const { cameraMode } = useShelfStore();
+  const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
 
   // Determine if the controls should be enabled based on the mode
   const areControlsEnabled = cameraMode === "3D";
@@ -28,30 +29,38 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
   return (
     <Canvas shadows camera={{ position: [0, 0, 5], fov: 40 }}>
+      {/* White background for technical 2D export */}
+      {showEdgesOnly && <color attach="background" args={["#ffffff"]} />}
       {/* Clean, shadowless lighting */}
-      <Environment preset="city" />
-      <ambientLight intensity={0.5} />
-      <directionalLight
-        castShadow
-        position={[5, 10, 7.5]}
-        intensity={1}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0001}
-      />
+      {!showEdgesOnly && (
+        <>
+          <Environment preset="city" />
+          <ambientLight intensity={0.5} />
+          <directionalLight
+            castShadow
+            position={[5, 10, 7.5]}
+            intensity={1}
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-bias={-0.0001}
+          />
+        </>
+      )}
 
       <group position={[0, -0.5, 0]}>
         <Wardrobe ref={wardrobeRef} />
       </group>
 
-      <mesh
-        receiveShadow
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.01, 0]}
-      >
-        <planeGeometry args={[20, 20]} />
-        <shadowMaterial opacity={0.25} />
-      </mesh>
+      {!showEdgesOnly && (
+        <mesh
+          receiveShadow
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, -0.01, 0]}
+        >
+          <planeGeometry args={[20, 20]} />
+          <shadowMaterial opacity={0.25} />
+        </mesh>
+      )}
 
       <OrbitControls
         ref={controlsRef}
@@ -60,7 +69,6 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
         minPolarAngle={areControlsEnabled ? 0 : Math.PI / 2}
         maxPolarAngle={areControlsEnabled ? Math.PI : Math.PI / 2}
       />
-      </Canvas>
-    
+    </Canvas>
   );
 }
