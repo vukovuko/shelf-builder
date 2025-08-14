@@ -349,7 +349,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           // Compute drawers region for this element (letter) to constrain both shelves and vertical dividers
           const extras = compartmentExtras[letter];
-          let yShelvesMin = yStartInner; // default: whole height
+          let yShelvesMin = yStartInner; // baseline for shelves (bottom bound reference)
+          let yDivFromLocal = yStartInner; // bottom for internal vertical dividers
+          let autoShelfExists = false;
           if (extras?.drawers) {
             const drawerH = 10 / 100;
             const gap = 1 / 100;
@@ -362,17 +364,21 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
             if (used > 0) {
               const drawersTopY = drawersYStart + drawerH + (used - 1) * per; // top face of last drawer
-              yShelvesMin = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
+              const baseMin = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
+              autoShelfExists = used < maxAuto && (yEndInner - baseMin) >= t;
+              // Shelves baseline remains at top of drawers + gap
+              yShelvesMin = baseMin;
+              // Dividers stop at top of auto shelf if present, otherwise at drawers top + gap
+              yDivFromLocal = Math.min(Math.max(baseMin + (autoShelfExists ? t : 0), yStartInner), yEndInner);
             }
           }
 
-          // Dividers (shortened above drawers)
+          // Dividers (shortened above drawers/auto-shelf)
           for (let c = 1; c <= cols - 1; c++) {
             const x = xStartInner + (innerW * c) / cols;
-            const yDivFrom = yShelvesMin;
-            const hDiv = Math.max(yEndInner - yDivFrom, 0);
+            const hDiv = Math.max(yEndInner - yDivFromLocal, 0);
             if (hDiv > 0) {
-              const yDivCy = (yDivFrom + yEndInner) / 2;
+              const yDivCy = (yDivFromLocal + yEndInner) / 2;
               divs.push({ key: `elem-${mIdx}-${bIdx}-div-${c}`, position: [x, yDivCy, 0], size: [t, hDiv, d] });
             }
           }
@@ -391,11 +397,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const compW = Math.max(right - left, 0);
             const shelfCount = cfg.rowCounts?.[comp] ?? 0;
             if (shelfCount <= 0) continue;
-            const usableH = Math.max(yEndInner - yShelvesMin, 0);
+            const yStartForShelves = autoShelfExists ? (yShelvesMin + t) : yShelvesMin;
+            const usableH = Math.max(yEndInner - yStartForShelves, 0);
             if (usableH <= 0) continue;
             const spacing = usableH / (shelfCount + 1);
             for (let s = 0; s < shelfCount; s++) {
-              const y = yShelvesMin + spacing * (s + 1);
+              const y = yStartForShelves + spacing * (s + 1);
               shs.push({ key: `elem-${mIdx}-${bIdx}-comp-${comp}-shelf-${s}`, position: [(left + right) / 2, y, 0], size: [compW, t, d] });
             }
           }
@@ -833,12 +840,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
                 const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
                 const usedDrawerCount = extras.drawers ? (countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto) : 0;
+                const drawersTopY = usedDrawerCount > 0 ? (drawersYStart + drawerH + (usedDrawerCount - 1) * per) : 0;
+                const autoShelfExists = usedDrawerCount > 0 && usedDrawerCount < maxAuto && (yEndInner - (drawersTopY + gap)) >= t;
 
-                // Vertical divider at center, shortened to end at top of drawers
+                // Vertical divider at center, shortened to end at top of drawers (and above auto shelf if present)
                 let yDivFrom = yStartInner;
                 if (usedDrawerCount > 0) {
-                  const drawersTopY = drawersYStart + drawerH + (usedDrawerCount - 1) * per; // top face of last drawer
-                  yDivFrom = Math.min(Math.max(drawersTopY + gap, yStartInner), yEndInner);
+                  const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
+                  yDivFrom = Math.min(Math.max(baseFrom, yStartInner), yEndInner);
                 }
                 const divH = Math.max(yEndInner - yDivFrom, 0);
                 if (extras.verticalDivider && divH > 0) {
@@ -854,6 +863,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     nodes.push(
                       <Panel key={`${letter}-drawer-${didx}`} position={[cx, y, 0]} size={[innerW, drawerH, d]} />
                     );
+                  }
+
+                  // Auto-shelf directly above drawers if they don't fill the full available height
+                  if (usedDrawerCount > 0 && usedDrawerCount < maxAuto) {
+                    const drawersTopY = drawersYStart + drawerH + (usedDrawerCount - 1) * per;
+                    const shelfPlaneY = drawersTopY + gap; // bottom plane of the shelf
+                    const remaining = yEndInner - shelfPlaneY;
+                    if (remaining >= t) {
+                      const yShelfCenter = shelfPlaneY + t / 2;
+                      nodes.push(
+                        <Panel key={`${letter}-shelf-over-drawers`} position={[cx, yShelfCenter, 0]} size={[innerW, t, d]} />
+                      );
+                    }
                   }
                 }
 
