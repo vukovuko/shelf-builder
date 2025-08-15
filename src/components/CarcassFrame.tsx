@@ -72,6 +72,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       s => s.setSelectedCompartmentKey
     );
     const compartmentExtras = useShelfStore(s => s.compartmentExtras);
+  const doorSelections = useShelfStore(s => s.doorSelections);
 
     const material =
       materials.find(
@@ -1157,6 +1158,103 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           if (nodes.length === 0) return null;
           return <group key="extras-all">{nodes}</group>;
+        })()}
+
+        {/* Doors rendering per element selection */}
+        {(() => {
+          if (!doorSelections || Object.keys(doorSelections).length === 0)
+            return null;
+          // Rebuild element grid (same mapping as labels and menus)
+          const maxSegX = 100 / 100;
+          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+          const segWX = w / nBlocksX;
+          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+            const start = -w / 2 + i * segWX;
+            const end = start + segWX;
+            return { start, end };
+          });
+
+          const targetBottomH = 200 / 100;
+          const minTopH = 10 / 100;
+          const modulesY: { yStart: number; yEnd: number }[] = [];
+          if (h > 200 / 100) {
+            const yStartBottom = -h / 2;
+            const bottomH =
+              h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+            const yEndBottom = yStartBottom + bottomH;
+            const yStartTop = yEndBottom;
+            const yEndTop = h / 2;
+            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+            modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+          } else {
+            modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+          }
+
+          const toLetters = (num: number) => {
+            let n = num + 1;
+            let s = "";
+            while (n > 0) {
+              const rem = (n - 1) % 26;
+              s = String.fromCharCode(65 + rem) + s;
+              n = Math.floor((n - 1) / 26);
+            }
+            return s;
+          };
+
+          const nodes: React.ReactNode[] = [];
+          const doorT = 18 / 1000; // 1.8 cm
+          const clearance = 1 / 1000; // 1 mm overall clearance (width & height)
+          const doubleGap = 3 / 1000; // 3 mm gap between double doors
+          // Place doors slightly in front of the carcass front face to avoid z-fighting
+          const zFront = d / 2 + doorT / 2 + 0.0005;
+          let idx = 0;
+          modulesY.forEach(m => {
+            const elemH = m.yEnd - m.yStart;
+            const doorH = Math.max(elemH - clearance, 0.001);
+            const cy = (m.yStart + m.yEnd) / 2;
+            blocksX.forEach(bx => {
+              const letter = toLetters(idx);
+              const sel = doorSelections[letter];
+              if (sel && sel !== "none") {
+                const elemW = bx.end - bx.start;
+                const cx = (bx.start + bx.end) / 2;
+                const totalAvailW = Math.max(elemW - clearance, 0.001);
+                if (sel === "double" || sel === "doubleMirror") {
+                  const leafW = Math.max((totalAvailW - doubleGap) / 2, 0.001);
+                  const offset = (leafW + doubleGap) / 2;
+                  // Left leaf
+                  nodes.push(
+                    <Panel
+                      key={`door-${letter}-L`}
+                      position={[cx - offset, cy, zFront]}
+                      size={[leafW, doorH, doorT]}
+                    />
+                  );
+                  // Right leaf
+                  nodes.push(
+                    <Panel
+                      key={`door-${letter}-R`}
+                      position={[cx + offset, cy, zFront]}
+                      size={[leafW, doorH, doorT]}
+                    />
+                  );
+                } else {
+                  // Single leaf (left/right/mirror/drawerStyle) with 1mm overall width & height clearance
+                  const leafW = totalAvailW;
+                  nodes.push(
+                    <Panel
+                      key={`door-${letter}`}
+                      position={[cx, cy, zFront]}
+                      size={[leafW, doorH, doorT]}
+                    />
+                  );
+                }
+              }
+              idx += 1;
+            });
+          });
+          if (nodes.length === 0) return null;
+          return <group key="doors-all">{nodes}</group>;
         })()}
 
         {/* Compartment labels */}
