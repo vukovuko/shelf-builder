@@ -3,6 +3,7 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
+import { BlueprintView } from "./BlueprintView";
 import React from "react";
 import { useShelfStore } from "@/lib/store";
 import { useRef, useEffect } from "react";
@@ -10,13 +11,16 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
-  // Connect to the store to get the current camera mode
-  const { cameraMode } = useShelfStore();
-  const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
-  const fitRequestId = useShelfStore((state) => state.fitRequestId);
+  // Connect to the store to get the current view mode
+  const { viewMode } = useShelfStore();
+  const showEdgesOnly = useShelfStore(state => state.showEdgesOnly);
+  const fitRequestId = useShelfStore(state => state.fitRequestId);
 
   // Determine if the controls should be enabled based on the mode
-  const areControlsEnabled = cameraMode === "3D";
+  const areControlsEnabled = viewMode === "3D";
+
+  // For backward compatibility with existing camera mode logic
+  const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
 
   // Step 1: Create a reference object. This will hold our "remote control".
   const controlsRef = useRef<OrbitControlsImpl>(null);
@@ -50,8 +54,13 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
       const fitWidthDistance = fitHeightDistance; // square canvas assumption is fine here
       const distance = Math.max(fitHeightDistance, fitWidthDistance) + 0.5;
 
-      const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
-      const newPos = new THREE.Vector3().addVectors(center, dir.multiplyScalar(distance));
+      const dir = new THREE.Vector3()
+        .subVectors(camera.position, controls.target)
+        .normalize();
+      const newPos = new THREE.Vector3().addVectors(
+        center,
+        dir.multiplyScalar(distance)
+      );
 
       controls.target.copy(center);
       camera.position.copy(newPos);
@@ -66,12 +75,17 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitRequestId]);
 
-  // Step 2: Use a useEffect hook to watch for changes to cameraMode.
+  // Step 2: Use a useEffect hook to watch for changes to viewMode.
   useEffect(() => {
-    if (controlsRef.current && cameraMode === "2D") {
+    if (controlsRef.current && (viewMode === "2D" || viewMode === "Sizing")) {
       // keep angle but allow fitting separately
     }
-  }, [cameraMode]);
+  }, [viewMode]);
+
+  // Render different views based on the selected view mode
+  if (viewMode === "Sizing") {
+    return <BlueprintView />;
+  }
 
   return (
     <Canvas shadows camera={{ position: [0, 0, 5], fov: 40 }}>

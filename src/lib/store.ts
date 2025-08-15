@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
-// Define the new type for our camera modes
-export type CameraMode = "2D" | "3D";
+// Define the view modes for the application
+export type ViewMode = "3D" | "2D" | "Sizing";
 
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
@@ -23,7 +23,7 @@ interface ShelfState {
   panelThickness: number;
   numberOfColumns: number;
   columnWidths: number[]; // New: array of column widths
-  cameraMode: CameraMode;
+  viewMode: ViewMode;
   rowCounts: number[]; // New: number of shelves per column
   selectedMaterial: string;
   selectedMaterialId: number;
@@ -34,7 +34,7 @@ interface ShelfState {
   setPanelThickness: (thickness: number) => void;
   setNumberOfColumns: (columns: number) => void;
   setColumnWidth: (index: number, width: number) => void; // New
-  setCameraMode: (mode: CameraMode) => void;
+  setViewMode: (mode: ViewMode) => void;
   setRowCount: (index: number, count: number) => void;
   setSelectedMaterial: (material: string) => void;
   setSelectedMaterialId: (id: number) => void;
@@ -75,7 +75,7 @@ export const useShelfStore = create<ShelfState>(set => ({
   panelThickness: 2,
   numberOfColumns: 2,
   columnWidths: [1, 1], // Default to 1 for each column
-  cameraMode: "2D",
+  viewMode: "3D",
   rowCounts: [0, 0], // Default 0 shelf per column
   selectedMaterial: "default", // or your default material key
   selectedMaterialId: 1, // default to first material
@@ -109,7 +109,7 @@ export const useShelfStore = create<ShelfState>(set => ({
       columnWidths[index] = width;
       return { columnWidths };
     }),
-  setCameraMode: cameraMode => set({ cameraMode }),
+  setViewMode: viewMode => set({ viewMode }),
   setRowCount: (index, count) =>
     set(state => {
       const rowCounts = [...state.rowCounts];
@@ -123,18 +123,25 @@ export const useShelfStore = create<ShelfState>(set => ({
   setShowEdgesOnly: show => set({ showEdgesOnly: show }),
   // Fit trigger
   fitRequestId: 0,
-  triggerFitToView: () => set(state => ({ fitRequestId: state.fitRequestId + 1 })),
+  triggerFitToView: () =>
+    set(state => ({ fitRequestId: state.fitRequestId + 1 })),
   // Per-element configuration defaults
   selectedElementKey: null,
   setSelectedElementKey: key => set({ selectedElementKey: key }),
   elementConfigs: {},
   setElementColumns: (key, columns) =>
     set(state => {
-      const current = state.elementConfigs[key] ?? { columns: 1, rowCounts: [0] };
+      const current = state.elementConfigs[key] ?? {
+        columns: 1,
+        rowCounts: [0],
+      };
       // Adjust rowCounts length to match new columns
       let rowCounts = [...current.rowCounts];
       if (columns > rowCounts.length) {
-        rowCounts = [...rowCounts, ...Array(columns - rowCounts.length).fill(0)];
+        rowCounts = [
+          ...rowCounts,
+          ...Array(columns - rowCounts.length).fill(0),
+        ];
       } else if (columns < rowCounts.length) {
         rowCounts = rowCounts.slice(0, columns);
       }
@@ -147,12 +154,16 @@ export const useShelfStore = create<ShelfState>(set => ({
     }),
   setElementRowCount: (key, index, count) =>
     set(state => {
-      const current = state.elementConfigs[key] ?? { columns: 1, rowCounts: [0] };
+      const current = state.elementConfigs[key] ?? {
+        columns: 1,
+        rowCounts: [0],
+      };
       const rowCounts = [...current.rowCounts];
       // Ensure index exists
       if (index >= rowCounts.length) {
         rowCounts.length = index + 1;
-        for (let i = 0; i < rowCounts.length; i++) if (rowCounts[i] == null) rowCounts[i] = 0;
+        for (let i = 0; i < rowCounts.length; i++)
+          if (rowCounts[i] == null) rowCounts[i] = 0;
       }
       rowCounts[index] = count;
       return {
@@ -165,32 +176,62 @@ export const useShelfStore = create<ShelfState>(set => ({
   // Base defaults
   hasBase: false,
   baseHeight: 0,
-  setHasBase: (val) => set({ hasBase: val }),
-  setBaseHeight: (val) => set({ baseHeight: Math.max(0, val) }),
+  setHasBase: val => set({ hasBase: val }),
+  setBaseHeight: val => set({ baseHeight: Math.max(0, val) }),
   // Extras defaults
   extrasMode: false,
-  setExtrasMode: (val) => set({ extrasMode: val }),
+  setExtrasMode: val => set({ extrasMode: val }),
   selectedCompartmentKey: null,
-  setSelectedCompartmentKey: (key) => set({ selectedCompartmentKey: key }),
+  setSelectedCompartmentKey: key => set({ selectedCompartmentKey: key }),
   compartmentExtras: {},
-  toggleCompVerticalDivider: (key) => set(state => {
-    const prev = state.compartmentExtras[key] ?? {};
-    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, verticalDivider: !prev.verticalDivider } } };
-  }),
-  toggleCompDrawers: (key) => set(state => {
-    const prev = state.compartmentExtras[key] ?? {};
-    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, drawers: !prev.drawers } } };
-  }),
-  setCompDrawersCount: (key, count) => set(state => {
-    const prev = state.compartmentExtras[key] ?? {};
-    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, drawersCount: Math.max(0, Math.floor(count)) } } };
-  }),
-  toggleCompRod: (key) => set(state => {
-    const prev = state.compartmentExtras[key] ?? {};
-    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, rod: !prev.rod } } };
-  }),
-  toggleCompLed: (key) => set(state => {
-    const prev = state.compartmentExtras[key] ?? {};
-    return { compartmentExtras: { ...state.compartmentExtras, [key]: { ...prev, led: !prev.led } } };
-  }),
+  toggleCompVerticalDivider: key =>
+    set(state => {
+      const prev = state.compartmentExtras[key] ?? {};
+      return {
+        compartmentExtras: {
+          ...state.compartmentExtras,
+          [key]: { ...prev, verticalDivider: !prev.verticalDivider },
+        },
+      };
+    }),
+  toggleCompDrawers: key =>
+    set(state => {
+      const prev = state.compartmentExtras[key] ?? {};
+      return {
+        compartmentExtras: {
+          ...state.compartmentExtras,
+          [key]: { ...prev, drawers: !prev.drawers },
+        },
+      };
+    }),
+  setCompDrawersCount: (key, count) =>
+    set(state => {
+      const prev = state.compartmentExtras[key] ?? {};
+      return {
+        compartmentExtras: {
+          ...state.compartmentExtras,
+          [key]: { ...prev, drawersCount: Math.max(0, Math.floor(count)) },
+        },
+      };
+    }),
+  toggleCompRod: key =>
+    set(state => {
+      const prev = state.compartmentExtras[key] ?? {};
+      return {
+        compartmentExtras: {
+          ...state.compartmentExtras,
+          [key]: { ...prev, rod: !prev.rod },
+        },
+      };
+    }),
+  toggleCompLed: key =>
+    set(state => {
+      const prev = state.compartmentExtras[key] ?? {};
+      return {
+        compartmentExtras: {
+          ...state.compartmentExtras,
+          [key]: { ...prev, led: !prev.led },
+        },
+      };
+    }),
 }));
