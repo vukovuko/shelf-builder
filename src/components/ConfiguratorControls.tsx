@@ -791,6 +791,116 @@ export function ConfiguratorControls({
             })()}
           </AccordionContent>
         </AccordionItem>
+        {/* 6. Doors */}
+        <AccordionItem value="item-6" className="border-border">
+          <AccordionTrigger className="text-base font-bold hover:no-underline">
+            6. Doors
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-4">
+            {(() => {
+              const width = useShelfStore(state => state.width);
+              const height = useShelfStore(state => state.height);
+              const w = width / 100;
+              const h = height / 100;
+              const maxSegX = 100 / 100;
+              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+              const hasSplitY = h > 200 / 100;
+              const nModulesY = hasSplitY ? 2 : 1;
+              const toLetters = (num: number) => {
+                let n = num + 1;
+                let s = "";
+                while (n > 0) {
+                  const rem = (n - 1) % 26;
+                  s = String.fromCharCode(65 + rem) + s;
+                  n = Math.floor((n - 1) / 26);
+                }
+                return s;
+              };
+              const allKeys = Array.from(
+                { length: nBlocksX * nModulesY },
+                (_, i) => toLetters(i)
+              );
+
+              const selectedDoorElementKey = useShelfStore(
+                state => state.selectedDoorElementKey
+              );
+              const setSelectedDoorElementKey = useShelfStore(
+                state => state.setSelectedDoorElementKey
+              );
+              const doorSelections = useShelfStore(
+                state => state.doorSelections
+              );
+              const setDoorOption = useShelfStore(state => state.setDoorOption);
+
+              const options: { key: string; label: string }[] = [
+                { key: "none", label: "Bez vrata" },
+                { key: "left", label: "Leva vrata" },
+                { key: "right", label: "Desna vrata" },
+                { key: "double", label: "Dupla vrata" },
+                { key: "leftMirror", label: "Leva vrata sa ogledalom" },
+                { key: "rightMirror", label: "Desna vrata sa ogledalom" },
+                { key: "doubleMirror", label: "Dupla vrata sa ogledalom" },
+                { key: "drawerStyle", label: "Vrata kao fioka" },
+              ];
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2 items-center mb-1">
+                    <span className="text-sm text-muted-foreground">
+                      Element:
+                    </span>
+                    {allKeys.map(ltr => (
+                      <Button
+                        key={ltr}
+                        variant={
+                          selectedDoorElementKey === ltr ? "default" : "outline"
+                        }
+                        onClick={() => setSelectedDoorElementKey(ltr)}
+                        className="px-2 py-1 h-8 transition-colors"
+                      >
+                        {ltr}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {!selectedDoorElementKey ? (
+                    <div className="text-sm text-muted-foreground">
+                      Izaberi element klikom na slovo iznad, pa izaberi tip vrata.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        Odabrani: {selectedDoorElementKey}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {options.map(opt => {
+                          const curr = doorSelections[selectedDoorElementKey];
+                          const isSel = curr === (opt.key as any);
+                          return (
+                            <Button
+                              key={opt.key}
+                              variant={isSel ? "default" : "outline"}
+                              onClick={() =>
+                                setDoorOption(selectedDoorElementKey, opt.key as any)
+                              }
+                              className="text-sm"
+                            >
+                              {isSel ? "✔ " : ""}
+                              {opt.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        (Posle ćemo definisati ponašanje svake opcije.)
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </AccordionContent>
+        </AccordionItem>
         {/* Global Show/Hide Info Button */}
         <div className="flex flex-col items-center gap-3 mt-6">
           <Button variant="outline" onClick={handleToggleAllInfo}>

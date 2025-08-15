@@ -3,6 +3,17 @@ import { create } from "zustand";
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
 
+// Door configuration options per element (UI only for now)
+export type DoorOption =
+  | "none"
+  | "left"
+  | "right"
+  | "double"
+  | "leftMirror"
+  | "rightMirror"
+  | "doubleMirror"
+  | "drawerStyle";
+
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
@@ -66,6 +77,11 @@ interface ShelfState {
   toggleCompRod: (key: string) => void;
   toggleCompLed: (key: string) => void;
   setCompDrawersCount: (key: string, count: number) => void;
+  // Doors menu UI state
+  selectedDoorElementKey: string | null;
+  setSelectedDoorElementKey: (key: string | null) => void;
+  doorSelections: Record<string, DoorOption>;
+  setDoorOption: (key: string, option: DoorOption) => void;
 }
 
 export const useShelfStore = create<ShelfState>(set => ({
@@ -234,4 +250,12 @@ export const useShelfStore = create<ShelfState>(set => ({
         },
       };
     }),
+  // Doors defaults
+  selectedDoorElementKey: null,
+  setSelectedDoorElementKey: key => set({ selectedDoorElementKey: key }),
+  doorSelections: {},
+  setDoorOption: (key, option) =>
+    set(state => ({
+      doorSelections: { ...state.doorSelections, [key]: option },
+    })),
 }));
