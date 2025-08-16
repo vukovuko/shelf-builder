@@ -1301,6 +1301,16 @@ export function ConfiguratorControls({
         </div>
       </Accordion>
 
+      {/* Bottom summary bar */}
+      <div className="mt-4 w-full bg-green-600 text-white h-[50px] flex items-center justify-between px-3 rounded">
+        <span className="text-sm font-medium">
+          Ukupna kvadratura: {fmt2(cutList.totalArea)} m²
+        </span>
+        <span className="text-sm font-semibold">
+          Ukupna cena: {fmt2(cutList.totalCost)}
+        </span>
+      </div>
+
       {/* Cut List Modal */}
       {showCutList && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
