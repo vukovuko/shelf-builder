@@ -457,6 +457,26 @@ export function ConfiguratorControls({
                 element: letter,
               });
             }
+
+            // Auto-shelf directly above drawers if they don't fill full available height
+            if (used > 0 && used < maxAuto) {
+              const drawersTopY = drawersYStart + drawerH + (used - 1) * per;
+              const shelfPlaneY = drawersTopY + gap; // bottom plane of the shelf
+              const remaining = yEndInner - shelfPlaneY;
+              if (remaining >= t) {
+                const area = innerW * d;
+                items.push({
+                  code: `A${letter}P.A${suffix}`,
+                  desc: `Polica iznad fioka ${letter}${suffix}`,
+                  widthCm: innerW * 100,
+                  heightCm: d * 100,
+                  thicknessMm: t * 1000,
+                  areaM2: area,
+                  cost: area * pricePerM2,
+                  element: letter,
+                });
+              }
+            }
           }
 
           idx += 1;
