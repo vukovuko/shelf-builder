@@ -127,6 +127,380 @@ export function ConfiguratorControls({
 
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
+  const [showCutList, setShowCutList] = React.useState(false);
+
+  // Additional store reads needed for cut list (top-level to respect Rules of Hooks)
+  const elementConfigs = useShelfStore(state => state.elementConfigs);
+  const compartmentExtras = useShelfStore(state => state.compartmentExtras);
+  const doorSelections = useShelfStore(state => state.doorSelections);
+
+  // Precompute cut list using top-level values to avoid hooks inside conditional modal
+  const cutList = React.useMemo(() => {
+    try {
+      const mat = (materials as any[]).find(
+        m => String(m.id) === String(selectedMaterialId as number)
+      );
+      const pricePerM2 = Number(mat?.price ?? 0);
+      const t = (Number(mat?.thickness ?? 18) / 1000) as number; // m
+      const doorT = 18 / 1000; // m
+      const clearance = 1 / 1000; // 1mm
+      const doubleGap = 3 / 1000; // 3mm between double leaves
+
+      const w = width / 100;
+      const h = height / 100;
+      const d = depth / 100;
+
+      const maxSegX = 100 / 100;
+      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+      const segWX = w / nBlocksX;
+      const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+        const start = -w / 2 + i * segWX;
+        const end = start + segWX;
+        return { start, end };
+      });
+      const targetBottomH = 200 / 100;
+      const minTopH = 10 / 100;
+      const modulesY: { yStart: number; yEnd: number }[] = [];
+      if (h > 200 / 100) {
+        const yStartBottom = -h / 2;
+        const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+        const yEndBottom = yStartBottom + bottomH;
+        const yStartTop = yEndBottom;
+        const yEndTop = h / 2;
+        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+        modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+      } else {
+        modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+      }
+      const toLetters = (num: number) => {
+        let n = num + 1;
+        let s = "";
+        while (n > 0) {
+          const rem = (n - 1) % 26;
+          s = String.fromCharCode(65 + rem) + s;
+          n = Math.floor((n - 1) / 26);
+        }
+        return s;
+      };
+
+      type Item = {
+        code: string;
+        desc: string;
+        widthCm: number;
+        heightCm: number;
+        thicknessMm: number;
+        areaM2: number;
+        cost: number;
+        element: string;
+      };
+
+      const items: Item[] = [];
+
+    let idx = 0;
+      modulesY.forEach((m, mIdx) => {
+        const moduleH = m.yEnd - m.yStart;
+        const doorH = Math.max(moduleH - clearance, 0);
+        blocksX.forEach(bx => {
+          const letter = toLetters(idx);
+          const elemW = bx.end - bx.start;
+          const innerStartX = bx.start + t;
+          const innerEndX = bx.end - t;
+          const innerW = Math.max(innerEndX - innerStartX, 0);
+          const suffix = `.${mIdx + 1}`;
+      const yStartInner = m.yStart + t;
+      const yEndInner = m.yEnd - t;
+      const innerH = Math.max(yEndInner - yStartInner, 0);
+
+          // Sides
+          const sideW = d;
+          const sideH = moduleH;
+          const sideArea = sideW * sideH;
+          items.push({
+            code: `A${letter}L${suffix}`,
+            desc: `Leva stranica elementa ${letter}${suffix}`,
+            widthCm: sideW * 100,
+            heightCm: sideH * 100,
+            thicknessMm: t * 1000,
+            areaM2: sideArea,
+            cost: sideArea * pricePerM2,
+            element: letter,
+          });
+          items.push({
+            code: `A${letter}D${suffix}`,
+            desc: `Desna stranica elementa ${letter}${suffix}`,
+            widthCm: sideW * 100,
+            heightCm: sideH * 100,
+            thicknessMm: t * 1000,
+            areaM2: sideArea,
+            cost: sideArea * pricePerM2,
+            element: letter,
+          });
+
+          // Shelves per compartment
+          const cfg = elementConfigs[letter] ?? { columns: 1, rowCounts: [0] };
+          const cols = Math.max(1, (cfg.columns as number) | 0);
+          const xs: number[] = [innerStartX];
+          for (let c = 1; c <= cols - 1; c++) xs.push(innerStartX + (innerW * c) / cols);
+          xs.push(innerEndX);
+          const compWidths = xs.slice(0, -1).map((x0, cIdx) => {
+            const x1 = xs[cIdx + 1];
+            const left = x0 + (cIdx === 0 ? 0 : t / 2);
+            const right = x1 - (cIdx === cols - 1 ? 0 : t / 2);
+            return Math.max(right - left, 0);
+          });
+          let shelfSerial = 0;
+          compWidths.forEach((compW, cIdx) => {
+            const count = Math.max(0, Math.floor((cfg.rowCounts as number[] | undefined)?.[cIdx] ?? 0));
+            for (let s = 0; s < count; s++) {
+              shelfSerial += 1;
+              const area = compW * d;
+              items.push({
+                code: `A${letter}P.${shelfSerial}`,
+                desc: `Polica ${letter} (komora ${cIdx + 1})`,
+                widthCm: compW * 100,
+                heightCm: d * 100,
+                thicknessMm: t * 1000,
+                areaM2: area,
+                cost: area * pricePerM2,
+                element: letter,
+              });
+            }
+          });
+
+          // Top and Bottom panels per element (like CarcassFrame)
+          const innerLenX = Math.max(elemW - 2 * t, 0);
+          if (innerLenX > 0) {
+            const areaBot = innerLenX * d;
+            items.push({
+              code: `A${letter}B${suffix}`,
+              desc: `Donja ploča ${letter}${suffix}`,
+              widthCm: innerLenX * 100,
+              heightCm: d * 100,
+              thicknessMm: t * 1000,
+              areaM2: areaBot,
+              cost: areaBot * pricePerM2,
+              element: letter,
+            });
+            const areaTop = innerLenX * d;
+            items.push({
+              code: `A${letter}G${suffix}`,
+              desc: `Gornja ploča ${letter}${suffix}`,
+              widthCm: innerLenX * 100,
+              heightCm: d * 100,
+              thicknessMm: t * 1000,
+              areaM2: areaTop,
+              cost: areaTop * pricePerM2,
+              element: letter,
+            });
+          }
+
+          // Internal vertical dividers from elementConfigs (between compartments)
+          if (cols > 1) {
+            // Compute drawers region to shorten divider height (same approach as CarcassFrame)
+            const extrasForEl = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+            const drawerH = 10 / 100; // 10cm
+            const gap = 1 / 100; // 1cm
+            const per = drawerH + gap;
+            const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+            const drawersYStart = yStartInner + raiseByBase;
+            const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+            const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
+            const countFromState = Math.max(0, Math.floor(extrasForEl?.drawersCount ?? 0));
+            const usedDrawerCount = extrasForEl?.drawers
+              ? countFromState > 0
+                ? Math.min(countFromState, maxAuto)
+                : maxAuto
+              : 0;
+            const drawersTopY =
+              usedDrawerCount > 0
+                ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
+                : 0;
+            const autoShelfExists =
+              usedDrawerCount > 0 && usedDrawerCount < maxAuto && yEndInner - (drawersTopY + gap) >= t;
+            let yDivFrom = yStartInner;
+            if (usedDrawerCount > 0) {
+              const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
+              yDivFrom = Math.min(Math.max(baseFrom, yStartInner), yEndInner);
+            }
+            const hDiv = Math.max(yEndInner - yDivFrom, 0);
+            if (hDiv > 0) {
+              for (let c = 1; c <= cols - 1; c++) {
+                const area = d * hDiv;
+                items.push({
+                  code: `A${letter}VD.${c}${suffix}`,
+                  desc: `Vertikalni divider ${letter} (između komora ${c}/${c + 1})`,
+                  widthCm: d * 100,
+                  heightCm: hDiv * 100,
+                  thicknessMm: t * 1000,
+                  areaM2: area,
+                  cost: area * pricePerM2,
+                  element: letter,
+                });
+              }
+            }
+          }
+
+          // Doors
+          const sel = doorSelections[letter as keyof typeof doorSelections] as any;
+          if (sel && sel !== "none") {
+            const totalAvailW = Math.max(elemW - clearance, 0);
+            if (sel === "double" || sel === "doubleMirror") {
+              const leafW = Math.max((totalAvailW - doubleGap) / 2, 0);
+              const area = leafW * doorH;
+              items.push({
+                code: `A${letter}V.L${suffix}`,
+                desc: `Vrata leva ${letter}${suffix}`,
+                widthCm: leafW * 100,
+                heightCm: doorH * 100,
+                thicknessMm: doorT * 1000,
+                areaM2: area,
+                cost: area * pricePerM2,
+                element: letter,
+              });
+              items.push({
+                code: `A${letter}V.D${suffix}`,
+                desc: `Vrata desna ${letter}${suffix}`,
+                widthCm: leafW * 100,
+                heightCm: doorH * 100,
+                thicknessMm: doorT * 1000,
+                areaM2: area,
+                cost: area * pricePerM2,
+                element: letter,
+              });
+            } else {
+              const leafW = totalAvailW;
+              const area = leafW * doorH;
+              const isLeft = sel === "left" || sel === "leftMirror";
+              const codeSuffix = isLeft ? "L" : sel === "right" || sel === "rightMirror" ? "D" : "";
+              items.push({
+                code: `A${letter}V.${codeSuffix}${suffix}`,
+                desc: `Vrata ${isLeft ? "leva" : codeSuffix === "D" ? "desna" : "jednokrilna"} ${letter}${suffix}`,
+                widthCm: leafW * 100,
+                heightCm: doorH * 100,
+                thicknessMm: doorT * 1000,
+                areaM2: area,
+                cost: area * pricePerM2,
+                element: letter,
+              });
+            }
+          }
+
+          // Extras center vertical divider (from Extras menu)
+          {
+            const extras = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+            if (extras?.verticalDivider) {
+              const drawerH = 10 / 100;
+              const gap = 1 / 100;
+              const per = drawerH + gap;
+              const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+              const drawersYStart = yStartInner + raiseByBase;
+              const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+              const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
+              const countFromState = Math.max(0, Math.floor(extras?.drawersCount ?? 0));
+              const usedDrawerCount = extras?.drawers
+                ? countFromState > 0
+                  ? Math.min(countFromState, maxAuto)
+                  : maxAuto
+                : 0;
+              const drawersTopY =
+                usedDrawerCount > 0
+                  ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
+                  : 0;
+              const autoShelfExists =
+                usedDrawerCount > 0 && usedDrawerCount < maxAuto && yEndInner - (drawersTopY + gap) >= t;
+              let yDivFrom = yStartInner;
+              if (usedDrawerCount > 0) {
+                const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
+                yDivFrom = Math.min(Math.max(baseFrom, yStartInner), yEndInner);
+              }
+              const hDiv = Math.max(yEndInner - yDivFrom, 0);
+              if (hDiv > 0) {
+                const area = d * hDiv;
+                items.push({
+                  code: `A${letter}VD.C${suffix}`,
+                  desc: `Vertikalni divider (srednji) ${letter}${suffix}`,
+                  widthCm: d * 100,
+                  heightCm: hDiv * 100,
+                  thicknessMm: t * 1000,
+                  areaM2: area,
+                  cost: area * pricePerM2,
+                  element: letter,
+                });
+              }
+            }
+          }
+
+          // Drawers
+          const extras = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+          if (extras?.drawers) {
+            const drawerH = 10 / 100;
+            const gap = 1 / 100;
+            const per = drawerH + gap;
+            const yStartInner = m.yStart + t;
+            const yEndInner = m.yEnd - t;
+            const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+            const drawersYStart = yStartInner + raiseByBase;
+            const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
+            const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
+            const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
+            const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+            for (let i = 0; i < used; i++) {
+              const area = innerW * drawerH;
+              items.push({
+                code: `A${letter}F.${i + 1}${suffix}`,
+                desc: `Fioka ${letter}${suffix}`,
+                widthCm: innerW * 100,
+                heightCm: drawerH * 100,
+                thicknessMm: t * 1000,
+                areaM2: area,
+                cost: area * pricePerM2,
+                element: letter,
+              });
+            }
+          }
+
+          idx += 1;
+        });
+      });
+
+      const totalArea = items.reduce((a, b) => a + b.areaM2, 0);
+      const totalCost = items.reduce((a, b) => a + b.cost, 0);
+      const grouped = items.reduce((acc: Record<string, Item[]>, it) => {
+        (acc[it.element] = acc[it.element] || []).push(it);
+        return acc;
+      }, {});
+
+      return { items, grouped, totalArea, totalCost, pricePerM2 };
+    } catch (e) {
+      return { items: [], grouped: {}, totalArea: 0, totalCost: 0, pricePerM2: 0 } as {
+        items: any[];
+        grouped: Record<string, any[]>;
+        totalArea: number;
+        totalCost: number;
+        pricePerM2: number;
+      };
+    }
+  }, [
+    width,
+    height,
+    depth,
+    selectedMaterialId,
+    elementConfigs,
+    compartmentExtras,
+    hasBase,
+    baseHeight,
+    doorSelections,
+  ]);
+
+  // Number formatter: 2 decimals consistently
+  const fmt2 = React.useCallback(
+    (n: number) =>
+      Number(n ?? 0).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
 
   // Reset info button state if wardrobe structure changes
   const rowCounts = useShelfStore(state => state.rowCounts);
@@ -921,8 +1295,71 @@ export function ConfiguratorControls({
           <Button variant="outline" onClick={handleDownloadTechnical2D}>
             Download 2D Technical (JPG)
           </Button>
+          <Button variant="default" onClick={() => setShowCutList(true)}>
+            Tabela ploča
+          </Button>
         </div>
       </Accordion>
+
+      {/* Cut List Modal */}
+      {showCutList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowCutList(false)}
+          />
+          <div className="relative bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] overflow-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Tabela ploča (Cut list)</h3>
+              <Button variant="outline" onClick={() => setShowCutList(false)}>
+                Zatvori
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Cena materijala (po m²): {fmt2(cutList.pricePerM2)}
+              </div>
+              {Object.keys(cutList.grouped).map(letter => (
+                <div key={letter} className="space-y-2">
+                  <div className="font-semibold">Element {letter}</div>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-1 pr-2">Oznaka</th>
+                          <th className="text-left py-1 pr-2">Opis</th>
+                          <th className="text-right py-1 pr-2">Širina (cm)</th>
+                          <th className="text-right py-1 pr-2">Visina (cm)</th>
+                          <th className="text-right py-1 pr-2">Debljina (mm)</th>
+                          <th className="text-right py-1 pr-2">Kvadratura (m²)</th>
+                          <th className="text-right py-1 pr-2">Cena</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+            {cutList.grouped[letter].map((it: any, i: number) => (
+                          <tr key={`${it.code}-${i}`} className="border-b last:border-0">
+                            <td className="py-1 pr-2 whitespace-nowrap">{it.code}</td>
+                            <td className="py-1 pr-2">{it.desc}</td>
+              <td className="py-1 pr-2 text-right">{fmt2(it.widthCm)}</td>
+              <td className="py-1 pr-2 text-right">{fmt2(it.heightCm)}</td>
+              <td className="py-1 pr-2 text-right">{fmt2(it.thicknessMm)}</td>
+              <td className="py-1 pr-2 text-right">{fmt2(it.areaM2)}</td>
+              <td className="py-1 pr-2 text-right">{fmt2(it.cost)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end gap-8 text-sm font-semibold">
+        <div>Ukupna kvadratura: {fmt2(cutList.totalArea)} m²</div>
+        <div>Ukupna cena: {fmt2(cutList.totalCost)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
