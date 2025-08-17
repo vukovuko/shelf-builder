@@ -74,7 +74,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const compartmentExtras = useShelfStore(s => s.compartmentExtras);
   const doorSelections = useShelfStore(s => s.doorSelections);
 
-    const material =
+  const material =
       materials.find(
         (m: Material) => String(m.id) === String(selectedMaterialId)
       ) || materials[0];
@@ -82,7 +82,21 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     const w = width / 100;
     const h = height / 100;
-    const d = depth / 100;
+    // Back material (5mm) lookup (optional, fallback to any material with thickness 5mm)
+    const selectedBackMaterialId = useShelfStore(
+      s => s.selectedBackMaterialId as any
+    );
+    const backMat =
+      materials.find(
+        (m: Material) =>
+          (selectedBackMaterialId &&
+            String(m.id) === String(selectedBackMaterialId)) ||
+          m.thickness === 5
+      ) || materials.find((m: Material) => m.thickness === 5);
+    const backT = ((backMat?.thickness ?? 5) as number) / 1000;
+
+    const D = depth / 100; // total depth selected by user (including back panel)
+    const d = Math.max(D - backT, 0); // carcass effective depth (excluding back)
 
     const color = material.color ?? "#ffffff";
 
@@ -1158,6 +1172,54 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           if (nodes.length === 0) return null;
           return <group key="extras-all">{nodes}</group>;
+        })()}
+
+        {/* Back panels per element (5mm), with 2mm clearance in width and height, centered */}
+        {(() => {
+          const clearance = 2 / 1000; // 2mm in world units
+          const maxSegX = 100 / 100; // element width segmentation
+          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+          const segWX = w / nBlocksX;
+          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
+            const start = -w / 2 + i * segWX;
+            const end = start + segWX;
+            return { start, end };
+          });
+          const targetBottomH = 200 / 100;
+          const minTopH = 10 / 100;
+          const modulesY: { yStart: number; yEnd: number }[] = [];
+          if (h > 200 / 100) {
+            const yStartBottom = -h / 2;
+            const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+            const yEndBottom = yStartBottom + bottomH;
+            const yStartTop = yEndBottom;
+            const yEndTop = h / 2;
+            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
+            modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
+          } else {
+            modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+          }
+          const nodes: React.ReactNode[] = [];
+          let idx = 0;
+          modulesY.forEach(m => {
+            const elemH = m.yEnd - m.yStart; // full element height
+            // Back panel height: use full element height, then reduce by 2mm total
+            const backH = Math.max(elemH - clearance, 0.001);
+            const cy = (m.yStart + m.yEnd) / 2;
+            blocksX.forEach(bx => {
+              const elemW = bx.end - bx.start; // full element width
+              // Back panel width: use full element width, then reduce by 2mm total
+              const backW = Math.max(elemW - clearance, 0.001);
+              const cx = (bx.start + bx.end) / 2;
+              const z = -d / 2 - backT / 2; // exact: carcass depth + back thickness = selected total depth
+              nodes.push(
+                <Panel key={`back-${idx}`} position={[cx, cy, z]} size={[backW, backH, backT]} />
+              );
+              idx += 1;
+            });
+          });
+          if (nodes.length === 0) return null;
+          return <group key="backs-all">{nodes}</group>;
         })()}
 
         {/* Doors rendering per element selection */}

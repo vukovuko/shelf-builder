@@ -116,6 +116,12 @@ export function ConfiguratorControls({
   const setSelectedMaterialId = useShelfStore(
     state => state.setSelectedMaterialId
   );
+  const selectedBackMaterialId = useShelfStore(
+    state => state.selectedBackMaterialId
+  );
+  const setSelectedBackMaterialId = useShelfStore(
+    state => state.setSelectedBackMaterialId
+  );
 
   const showDimensions = useShelfStore(state => state.showDimensions);
   const setShowDimensions = useShelfStore(state => state.setShowDimensions);
@@ -145,6 +151,14 @@ export function ConfiguratorControls({
       const doorT = 18 / 1000; // m
       const clearance = 1 / 1000; // 1mm
       const doubleGap = 3 / 1000; // 3mm between double leaves
+
+      // Back material price and thickness (5mm)
+      const backId = (useShelfStore.getState().selectedBackMaterialId ?? null) as any;
+      const backMat = (materials as any[]).find(m =>
+        backId ? String(m.id) === String(backId) : m.thickness === 5
+      );
+      const backPricePerM2 = Number(backMat?.price ?? 0);
+      const backT = (Number(backMat?.thickness ?? 5) / 1000) as number;
 
       const w = width / 100;
       const h = height / 100;
@@ -476,6 +490,26 @@ export function ConfiguratorControls({
                   element: letter,
                 });
               }
+            }
+          }
+
+          // Back panel per element: use FULL element size (elemW/moduleH), minus 2mm total clearance
+          {
+            const clearanceBack = 2 / 1000; // 2mm
+            const backW = Math.max(elemW - clearanceBack, 0);
+            const backH = Math.max(moduleH - clearanceBack, 0);
+            if (backW > 0 && backH > 0) {
+              const area = backW * backH;
+              items.push({
+                code: `A${letter}Z${suffix}`,
+                desc: `Zadnji panel ${letter}${suffix}`,
+                widthCm: backW * 100,
+                heightCm: backH * 100,
+                thicknessMm: backT * 1000,
+                areaM2: area,
+                cost: area * backPricePerM2,
+                element: letter,
+              });
             }
           }
 
@@ -880,7 +914,8 @@ export function ConfiguratorControls({
               </div>
             </div>
 
-            {/* Materijal Leđa */}
+            {/* Materijal Leđa */
+            }
             <div>
               <h4 className="text-sm font-semibold mb-2">
                 Materijal Leđa (5mm)
@@ -894,12 +929,13 @@ export function ConfiguratorControls({
                       className="flex flex-col items-center"
                     >
                       <button
-                        className="rounded-lg border-2 border-transparent hover:border-primary h-24 w-full bg-cover bg-center"
+                        className={`rounded-lg border-2 ${
+                          selectedBackMaterialId === material.id
+                            ? "border-primary"
+                            : "border-transparent"
+                        } hover:border-primary h-24 w-full bg-cover bg-center`}
                         style={{ backgroundImage: `url(${material.img})` }}
-                        // You can add a separate setter for back material if needed
-                        onClick={() =>
-                          console.log("Odabrani materijal leđa:", material)
-                        }
+                        onClick={() => setSelectedBackMaterialId(material.id)}
                         title={material.name}
                       >
                         <span className="sr-only">{material.name}</span>
