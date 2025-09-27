@@ -12,6 +12,8 @@ import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
 import materials from "@/data/materials.json";
 import { Slider } from "@/components/ui/slider";
+import { SaveLoadBar } from "./SaveLoadBar";
+import { AuthForms } from "./AuthForms";
 
 export function ConfiguratorControls({
   wardrobeRef,
@@ -1365,6 +1367,12 @@ export function ConfiguratorControls({
         <span className="text-sm font-semibold">
           Ukupna cena: {fmt2(cutList.totalCost)}
         </span>
+      </div>
+
+      {/* Auth + Save/Load */}
+      <div className="mt-4 space-y-4">
+        <AuthForms />
+        <SaveLoadBar />
       </div>
 
       {/* Cut List Modal */}
