@@ -26,47 +26,58 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const sceneGroupRef = useRef<THREE.Group>(null);
 
+  // Cache last fit box to avoid repetitive fitting when nothing changed materially
+  const lastFitRef = useRef<{ center: THREE.Vector3; size: THREE.Vector3 } | null>(null);
   const performFit = React.useCallback(() => {
     const controls = controlsRef.current;
     if (!controls) return;
-    // target group is the wardrobe container group below
     const group = sceneGroupRef.current;
     const camera = controls.object as THREE.PerspectiveCamera;
-    const dom = (controls as any).domElement as HTMLElement | undefined;
-    if (!group || !camera || !dom) return;
+    if (!group || !camera) return;
 
-    // compute world-space bounding box
     const box = new THREE.Box3().setFromObject(group);
-    if (!box.isEmpty()) {
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
+    if (box.isEmpty()) return;
 
-      // Pad a bit
-      const padding = 0.05; // 5%
-      size.multiplyScalar(1 + padding);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
 
-      // Fit for perspective camera
-      const maxSize = Math.max(size.x, size.y, size.z);
-      const fov = camera.fov * (Math.PI / 180);
-      const fitHeightDistance = maxSize / (2 * Math.tan(fov / 2));
-      const fitWidthDistance = fitHeightDistance; // square canvas assumption is fine here
-      const distance = Math.max(fitHeightDistance, fitWidthDistance) + 0.5;
-
-      const dir = new THREE.Vector3()
-        .subVectors(camera.position, controls.target)
-        .normalize();
-      const newPos = new THREE.Vector3().addVectors(
-        center,
-        dir.multiplyScalar(distance)
-      );
-
-      controls.target.copy(center);
-      camera.position.copy(newPos);
-      camera.updateProjectionMatrix();
-      controls.update();
+    // Compare with previous to prevent micro jitter re-fit (tolerance 1mm)
+    const tol = 0.001; // world units (m)
+    if (lastFitRef.current) {
+      const prev = lastFitRef.current;
+      if (
+        Math.abs(prev.center.x - center.x) < tol &&
+        Math.abs(prev.center.y - center.y) < tol &&
+        Math.abs(prev.center.z - center.z) < tol &&
+        Math.abs(prev.size.x - size.x) < tol &&
+        Math.abs(prev.size.y - size.y) < tol &&
+        Math.abs(prev.size.z - size.z) < tol
+      ) {
+        return; // No meaningful change
+      }
     }
+
+    lastFitRef.current = {
+      center: center.clone(),
+      size: size.clone(),
+    };
+
+    const padding = 0.05;
+    size.multiplyScalar(1 + padding);
+    const maxSize = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const fitHeightDistance = maxSize / (2 * Math.tan(fov / 2));
+    const distance = fitHeightDistance + 0.5;
+    const dir = new THREE.Vector3()
+      .subVectors(camera.position, controls.target)
+      .normalize();
+    const newPos = new THREE.Vector3().addVectors(center, dir.multiplyScalar(distance));
+    controls.target.copy(center);
+    camera.position.copy(newPos);
+    camera.updateProjectionMatrix();
+    controls.update();
   }, []);
 
   // When request id changes, fit
@@ -88,7 +99,13 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   }
 
   return (
-    <Canvas shadows camera={{ position: [0, 0, 5], fov: 40 }}>
+    <Canvas
+      className="w-full h-full"
+      shadows
+      dpr={[1, 1.75]}
+      frameloop="demand"
+      camera={{ position: [0, 0, 5], fov: 40 }}
+    >
       {/* White background for technical 2D export */}
       {showEdgesOnly && <color attach="background" args={["#ffffff"]} />}
       {/* Clean, shadowless lighting */}
