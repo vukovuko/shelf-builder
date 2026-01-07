@@ -828,13 +828,20 @@ export function ConfiguratorControls({
         }
   const rows = cutList.grouped[letter];
     // Table headers
-        const headers = ["Oznaka", "Opis", "Širina (cm)", "Visina (cm)", "Debljina (mm)", "Kvadratura (m²)", "Cena"];
-    const colX = [margin, 45, 95, 125, 155, 175, 195];
+  const headers = ["Oznaka", "Opis", "Širina (cm)", "Visina (cm)", "Debljina (mm)", "Kvadratura (m²)", "Cena"];
+  // Tighter column layout to reduce total table width
+  const colX = [margin, 40, 85, 115, 140, 165, 185];
+  const colW = [colX[1]-colX[0], colX[2]-colX[1], colX[3]-colX[2], colX[4]-colX[3], colX[5]-colX[4], colX[6]-colX[5], 210 - margin - colX[6]];
     let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
-        doc.setFont("helvetica", "bold");
-        headers.forEach((h, i) => doc.text(h, colX[i], y));
-        doc.setFont("helvetica", "normal");
-        y += 6;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          headers.forEach((h, i) => {
+            doc.text(h, colX[i] + 2, y);
+            doc.rect(colX[i], y - 5, colW[i], 7, 'S');
+          });
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          y += 8;
         rows.forEach((it: any) => {
           const line = [
             it.code ?? "",
@@ -846,20 +853,28 @@ export function ConfiguratorControls({
             fmt2(it.cost ?? 0),
           ];
           // Wrap description if too long
-          const descLines = doc.splitTextToSize(line[1], colX[2] - colX[1] - 2);
-          doc.text(line[0], colX[0], y);
-          doc.text(descLines, colX[1], y);
-          doc.text(line[2], colX[2], y);
-          doc.text(line[3], colX[3], y);
-          doc.text(line[4], colX[4], y);
-          doc.text(line[5], colX[5], y);
-          doc.text(line[6], colX[6], y);
-          y += Math.max(6, (descLines.length || 1) * 5);
-          // Page break if near bottom
-          if (y > pageH - margin - 10) {
-            doc.addPage();
-            y = margin + 10;
-          }
+          const descLines = doc.splitTextToSize(line[1], colW[1] - 4);
+          const rowH = Math.max(7, (descLines.length || 1) * 4 + 3);
+          doc.rect(colX[0], y - 5, colW[0], rowH, 'S');
+          doc.text(line[0], colX[0] + 2, y);
+          doc.rect(colX[1], y - 5, colW[1], rowH, 'S');
+          doc.text(descLines, colX[1] + 2, y);
+          doc.rect(colX[2], y - 5, colW[2], rowH, 'S');
+          doc.text(line[2], colX[2] + 2, y);
+          doc.rect(colX[3], y - 5, colW[3], rowH, 'S');
+          doc.text(line[3], colX[3] + 2, y);
+          doc.rect(colX[4], y - 5, colW[4], rowH, 'S');
+          doc.text(line[4], colX[4] + 2, y);
+          doc.rect(colX[5], y - 5, colW[5], rowH, 'S');
+          doc.text(line[5], colX[5] + 2, y);
+          doc.rect(colX[6], y - 5, colW[6], rowH, 'S');
+          doc.text(line[6], colX[6] + 2, y);
+          y += rowH + 2;
+            // Page break if near bottom
+            if (y > pageH - margin - 10) {
+              doc.addPage();
+              y = margin + 10;
+            }
         });
         // Footer totals for the element
         const elementArea = rows.reduce((a: number, b: any) => a + (b.areaM2 ?? 0), 0);
