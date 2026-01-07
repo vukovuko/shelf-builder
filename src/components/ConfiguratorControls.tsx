@@ -575,10 +575,9 @@ export function ConfiguratorControls({
       }
       const nModulesY = hasSplitY ? 2 : 1;
 
-      // Precompute block widths in cm
-      const blockWidthsCm: number[] = Array.from({ length: nBlocksX }, (_, i) =>
-        i < nBlocksX - 1 ? maxSegX : Math.max(1, widthCm - maxSegX * (nBlocksX - 1))
-      );
+      // Precompute block widths in cm (match BlueprintView: equal division across blocks)
+      const equalBlockW = widthCm / nBlocksX;
+      const blockWidthsCm: number[] = Array.from({ length: nBlocksX }, () => equalBlockW);
 
       // Letter index helpers (A..Z..AA..)
       const fromLetters = (s: string) => {
@@ -680,16 +679,22 @@ export function ConfiguratorControls({
         const compartmentExtras = useShelfStore.getState().compartmentExtras;
         const cfg = (elementConfigs as any)[letter] ?? { columns: 1, rowCounts: [0] };
         const cols = Math.max(1, Number(cfg.columns) || 1);
-        const { wCm: elementWcm, hCm: elementHcm, rowIdx } = getElementDimsCm(letter);
-        const cmPerMmX = elementWcm / boxW;
-        const cmPerMmY = elementHcm / boxH;
+  const { wCm: elementWcm, hCm: elementHcm, rowIdx } = getElementDimsCm(letter);
+  const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
+  const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
+  // Material thickness in cm from selected material
+  const selectedMaterialId = useShelfStore.getState().selectedMaterialId;
+  const mat = (materials as any[]).find(m => String(m.id) === String(selectedMaterialId));
+  const tCm = Number(mat?.thickness ?? 18) / 10; // cm
+  const tOffsetXmm = tCm / cmPerMmX;
+  const tOffsetYmm = tCm / cmPerMmY;
         // Base region inside element (applies to lower module or single)
-        const appliesBase = hasBase && ((heightCm <= 200) || rowIdx === 0);
-        const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
-        const innerTopMmY = boxY + 1;
-        const innerBottomMmY = boxY + boxH - 1 - baseMm;
-        const innerLeftMmX = boxX + 1;
-        const innerRightMmX = boxX + boxW - 1;
+  const appliesBase = hasBase && ((heightCm <= 200) || rowIdx === 0);
+  const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
+  const innerTopMmY = boxY + tOffsetYmm;
+  const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
+  const innerLeftMmX = boxX + tOffsetXmm;
+  const innerRightMmX = boxX + boxW - tOffsetXmm;
         // Draw base (hatched rectangle) if applicable
         if (appliesBase && baseMm > 0) {
           const by = boxY + boxH - baseMm;
@@ -701,9 +706,9 @@ export function ConfiguratorControls({
           doc.text(`${fmt2(baseHeight)} cm`, innerRightMmX - 6, by + baseMm / 2, { align: 'right', baseline: 'middle' as any });
           doc.setFontSize(baseFont);
         }
-        // Vertical dividers
+        // Vertical dividers (between inner left/right), equal division per app
         for (let c = 1; c < cols; c++) {
-          const x = boxX + (c * boxW) / cols;
+          const x = innerLeftMmX + (c * (innerRightMmX - innerLeftMmX)) / cols;
           doc.line(x, boxY + 1, x, boxY + boxH - 1);
         }
         // Shelves per compartment (distributed evenly)
@@ -725,23 +730,58 @@ export function ConfiguratorControls({
           const dimXLeft = boxX - 6;
           drawDimV(dimXLeft, innerTopMmY, innerTopMmY + gapMm, `${fmt2(gapCm)} cm × ${count + 1}`, { arrows: true, ext: 2.5, font: 8 });
         }
-        // Drawers region (occupies full width; count from extras)
+        // Drawers region (occupies full width; count from extras) – match BlueprintView logic
         const extras = (compartmentExtras as any)[letter] ?? {};
         if (extras.drawers) {
-          const count = Math.max(0, Math.floor(Number(extras.drawersCount ?? 0)));
-          const gap = 2; // mm visual gap
-          const availH = Math.max(innerBottomMmY - innerTopMmY - gap, 0);
-          const drawerH = Math.max(6, (availH - (count - 1) * gap) / Math.max(1, count));
-          for (let d = 0; d < count; d++) {
-            const yTop = innerBottomMmY - (d + 1) * drawerH - d * gap;
+          const drawerHcm = 10; // 10cm each
+          const gapCm = 1;      // 1cm gap between
+          const drawerHMm = drawerHcm / cmPerMmY;
+          const gapMm = gapCm / cmPerMmY;
+          const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
+          const maxAuto = Math.max(0, Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)));
+          const countFromState = Math.max(0, Math.floor(Number(extras.drawersCount ?? 0)));
+          const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+          let lastTopOffsetMm = 0;
+          for (let d = 0; d < used; d++) {
+            const bottomOffsetMm = d * (drawerHMm + gapMm);
+            const topOffsetMm = Math.min(bottomOffsetMm + drawerHMm, innerHMm - gapMm);
+            lastTopOffsetMm = topOffsetMm;
+            const yTop = innerBottomMmY - topOffsetMm;
+            const yBottom = innerBottomMmY - bottomOffsetMm;
+            const hMm = Math.max(0, yBottom - yTop);
+            // Ensure within inner bounds
             if (yTop < innerTopMmY) break;
-            doc.rect(boxX + 2, yTop, boxW - 4, drawerH, 'S');
-            // Drawer height label centered inside
-            const hCm = drawerH * cmPerMmY;
+            doc.rect(innerLeftMmX + 1, yTop, (innerRightMmX - innerLeftMmX) - 2, hMm, 'S');
+            // Drawer height label
+            const hCm = hMm * cmPerMmY;
             doc.setFontSize(8);
-            doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + drawerH / 2, { align: 'center', baseline: 'middle' as any });
+            doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + hMm / 2, { align: 'center', baseline: 'middle' as any });
             doc.setFontSize(baseFont);
           }
+          // Auto shelf directly above drawers if space remains
+          if (used > 0 && used < maxAuto) {
+            const shelfOffsetMm = lastTopOffsetMm + gapMm + (tCm / cmPerMmY);
+            if (shelfOffsetMm < innerHMm) {
+              const shelfY = innerBottomMmY - shelfOffsetMm;
+              doc.line(innerLeftMmX, shelfY, innerRightMmX, shelfY);
+            }
+          }
+        }
+        // Rod indicator
+        if (extras.rod) {
+          const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
+          const yRod = innerBottomMmY - innerHMm * 0.25;
+          const inset = 2; // mm from inner sides
+          doc.setLineWidth(0.4);
+          doc.line(innerLeftMmX + inset, yRod, innerRightMmX - inset, yRod);
+          doc.setLineWidth(0.2);
+        }
+        // LED label
+        if (extras.led) {
+          const yLabel = innerTopMmY + 3;
+          doc.setFontSize(7.5);
+          doc.text('LED', (innerLeftMmX + innerRightMmX) / 2, yLabel, { align: 'center', baseline: 'top' as any });
+          doc.setFontSize(baseFont);
         }
         // Optional central divider
         if (extras.verticalDivider) {
