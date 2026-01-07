@@ -2,10 +2,31 @@
 
 import React from "react";
 import { useShelfStore } from "@/lib/store";
+import materials from "@/data/materials.json";
 
 export function BlueprintView() {
-  const { width, height, depth, hasBase, baseHeight, elementConfigs } =
-    useShelfStore();
+  const {
+    width,
+    height,
+    depth,
+    hasBase,
+    baseHeight,
+    elementConfigs,
+    selectedMaterialId,
+    compartmentExtras,
+    doorSelections,
+  } = useShelfStore();
+
+  const fmt2 = (n: number) =>
+    Number(n ?? 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  // Material thickness (cm)
+  const mat = (materials as any[]).find(m => String(m.id) === String(selectedMaterialId));
+  const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
+  const backTCm = 0.5; // assume 5mm backs for hatch if needed
 
   // Calculate drawing dimensions and scale
   const padding = 60;
@@ -50,6 +71,9 @@ export function BlueprintView() {
   } else {
     modulesY.push({ start: 0, height: height, label: "Single" });
   }
+
+  // Map from a value measured from the bottom (in cm) to SVG Y (top-origin)
+  const mapYFront = (yFromBottomCm: number) => frontViewY + scaledHeight - yFromBottomCm * scale;
 
   // Helper function to create dimension line with arrows
   const createDimensionLine = (
@@ -188,6 +212,18 @@ export function BlueprintView() {
     }
   };
 
+  // Helpers
+  const toLetter = (i: number) => {
+    let n = i + 1;
+    let s = "";
+    while (n > 0) {
+      const rem = (n - 1) % 26;
+      s = String.fromCharCode(65 + rem) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  };
+
   return (
     <div className="w-full h-full bg-white flex items-center justify-center">
       <svg
@@ -266,8 +302,8 @@ export function BlueprintView() {
           {/* Horizontal dividers for modules */}
           {modulesY.length > 1 &&
             modulesY.slice(0, -1).map((module, i) => {
-              const dividerY =
-                frontViewY + (module.start + module.height) * scale;
+              // Horizontal divider at the top of the lower module
+              const dividerY = mapYFront(module.start + module.height);
               return (
                 <line
                   key={`h-divider-${i}`}
@@ -291,8 +327,7 @@ export function BlueprintView() {
                 const letter = String.fromCharCode(65 + elementIndex); // A, B, C...
                 const labelX =
                   frontViewX + (blockIdx * blockWidth + blockWidth / 2) * scale;
-                const labelY =
-                  frontViewY + (module.start + module.height / 2) * scale;
+                const labelY = mapYFront(module.start + module.height / 2);
 
                 labels.push(
                   <text
@@ -315,6 +350,218 @@ export function BlueprintView() {
             return labels;
           })()}
 
+          {/* Internal structure per element */}
+          {(() => {
+            const nodes: React.ReactNode[] = [];
+            let idx = 0;
+            for (let mIdx = 0; mIdx < modulesY.length; mIdx++) {
+              const m = modulesY[mIdx];
+              for (let bIdx = 0; bIdx < nBlocksX; bIdx++) {
+                const letter = toLetter(idx);
+                const ex = frontViewX + bIdx * blockWidth * scale;
+                const eyBottom = m.start * scale; // in cm*scale from bottom
+                const ew = blockWidth * scale;
+                const eh = m.height * scale;
+                // Inner bounds (subtract panel thickness)
+                const ix0 = ex + tCm * scale;
+                const ix1 = ex + ew - tCm * scale;
+                const iy0BaseFromBottom = eyBottom + tCm * scale; // distance from bottom
+                const iy1FromBottom = eyBottom + eh - tCm * scale;
+                const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight * scale : 0;
+                const iy0FromBottom = iy0BaseFromBottom + raiseByBase;
+
+                // Columns (compartments) from elementConfigs
+                const cfg = (elementConfigs as any)[letter] ?? { columns: 1, rowCounts: [0] };
+                const cols = Math.max(1, Number(cfg.columns) || 1);
+                const colBounds: number[] = [];
+                for (let c = 0; c <= cols; c++) {
+                  const x = ix0 + (c * (ix1 - ix0)) / cols;
+                  colBounds.push(x);
+                }
+                // Draw internal verticals between compartments
+                for (let c = 1; c < cols; c++) {
+                  const x = colBounds[c];
+                  nodes.push(
+                    <line
+                      key={`iv-${letter}-${mIdx}-${c}`}
+                      x1={x}
+                      y1={mapYFront(iy0FromBottom / scale)}
+                      x2={x}
+                      y2={mapYFront(iy1FromBottom / scale)}
+                      stroke="#000"
+                      strokeWidth={1}
+                    />
+                  );
+                }
+                // Optional central vertical divider (Extras)
+                const extras = (compartmentExtras as any)[letter] ?? {};
+                if (extras.verticalDivider) {
+                  const x = (ix0 + ix1) / 2;
+                  nodes.push(
+                    <line
+                      key={`ivc-${letter}-${mIdx}`}
+                      x1={x}
+                      y1={mapYFront(iy0FromBottom / scale)}
+                      x2={x}
+                      y2={mapYFront(iy1FromBottom / scale)}
+                      stroke="#000"
+                      strokeDasharray="3 2"
+                      strokeWidth={1}
+                    />
+                  );
+                }
+
+                // Drawers region (full inner width)
+                if (extras.drawers) {
+                  // Work in centimeters to prevent off-by-height errors
+                  const drawerHcm = 10; // 10cm each
+                  const gapCm = 1; // 1cm gap
+                  const iy0FromBottomCm = iy0FromBottom / scale;
+                  const iy1FromBottomCm = iy1FromBottom / scale;
+                  const innerHForDrawersCm = Math.max(iy1FromBottomCm - iy0FromBottomCm, 0);
+                  const maxAuto = Math.max(0, Math.floor((innerHForDrawersCm + gapCm) / (drawerHcm + gapCm)));
+                  const countFromState = Math.max(0, Math.floor(Number(extras.drawersCount ?? 0)));
+                  const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+                  for (let d = 0; d < used; d++) {
+                    // Bottom of drawer d measured from inner bottom
+                    const bottomCm = iy0FromBottomCm + d * (drawerHcm + gapCm);
+                    // Top of drawer is one drawer height above bottom, clamped to inner top minus gap
+                    const topCm = Math.min(bottomCm + drawerHcm, iy1FromBottomCm - gapCm);
+                    const topY = mapYFront(topCm);
+                    const bottomY = mapYFront(bottomCm);
+                    const heightPx = Math.max(0, bottomY - topY);
+                    nodes.push(
+                      <rect
+                        key={`drw-${letter}-${mIdx}-${d}`}
+                        x={ix0}
+                        y={topY}
+                        width={ix1 - ix0}
+                        height={heightPx}
+                        fill="none"
+                        stroke="#000"
+                        strokeWidth={1}
+                      />
+                    );
+                  }
+                  // Auto shelf directly above drawers if space remains
+                  if (used > 0 && used < maxAuto) {
+                    const lastBottomCm = iy0FromBottomCm + (used - 1) * (drawerHcm + gapCm);
+                    const lastTopCm = Math.min(lastBottomCm + drawerHcm, iy1FromBottomCm - gapCm);
+                    const shelfFromBottomCm = lastTopCm + gapCm + tCm;
+                    if (shelfFromBottomCm < iy1FromBottomCm) {
+                      nodes.push(
+                        <line
+                          key={`auto-shelf-${letter}-${mIdx}`}
+                          x1={ix0}
+                          y1={mapYFront(shelfFromBottomCm)}
+                          x2={ix1}
+                          y2={mapYFront(shelfFromBottomCm)}
+                          stroke="#000"
+                          strokeWidth={1}
+                        />
+                      );
+                    }
+                  }
+                }
+
+                // Shelves per compartment
+                for (let c = 0; c < cols; c++) {
+                  const count = Math.max(0, Math.floor(Number(cfg.rowCounts?.[c] ?? 0)));
+                  if (count <= 0) continue;
+                  const cx0 = colBounds[c];
+                  const cx1 = colBounds[c + 1];
+                  const availableH = Math.max(iy1FromBottom - iy0FromBottom, 0);
+                  for (let s = 1; s <= count; s++) {
+                    const yFromBottom = iy0FromBottom + (availableH * s) / (count + 1);
+                    nodes.push(
+                      <line
+                        key={`shelf-${letter}-${mIdx}-${c}-${s}`}
+                        x1={cx0}
+                        y1={mapYFront(yFromBottom / scale)}
+                        x2={cx1}
+                        y2={mapYFront(yFromBottom / scale)}
+                        stroke="#000"
+                        strokeWidth={1}
+                      />
+                    );
+                  }
+                }
+
+                // Rod indicator
+                if (extras.rod) {
+                  const ryFromBottom = iy0FromBottom + (iy1FromBottom - iy0FromBottom) * 0.25;
+                  nodes.push(
+                    <line
+                      key={`rod-${letter}-${mIdx}`}
+                      x1={ix0 + 6}
+                      y1={mapYFront(ryFromBottom / scale)}
+                      x2={ix1 - 6}
+                      y2={mapYFront(ryFromBottom / scale)}
+                      stroke="#000"
+                      strokeWidth={2}
+                    />
+                  );
+                }
+
+                // LED label
+                if (extras.led) {
+                  nodes.push(
+                    <text
+                      key={`led-${letter}-${mIdx}`}
+                      x={(ix0 + ix1) / 2}
+                      y={mapYFront(iy0FromBottom / scale) + 12}
+                      fontSize="10"
+                      textAnchor="middle"
+                      fill="#000"
+                    >
+                      LED
+                    </text>
+                  );
+                }
+
+                // Doors outline on front
+                const doorSel = (doorSelections as any)[letter];
+                if (doorSel && doorSel !== "none") {
+                  const clearance = 0.1 * scale; // 1mm each side ~0.1cm
+                  const doubleGap = 0.3 * scale; // 3mm
+                  const availW = Math.max(ew - 2 * tCm * scale - clearance, 0);
+                  const leafH = Math.max(eh - 2 * tCm * scale - clearance, 0);
+                  const ox = ex + tCm * scale + clearance / 2;
+                  const oy = mapYFront((eyBottom / scale) + (tCm + clearance / (2 * scale)));
+                  if (doorSel === "double" || doorSel === "doubleMirror") {
+                    const leafW = Math.max((availW - doubleGap) / 2, 0);
+                    nodes.push(
+                      <rect key={`doorL-${letter}-${mIdx}`} x={ox} y={oy} width={leafW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                    );
+                    nodes.push(
+                      <rect key={`doorR-${letter}-${mIdx}`} x={ox + leafW + doubleGap} y={oy} width={leafW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                    );
+                  } else {
+                    nodes.push(
+                      <rect key={`door-${letter}-${mIdx}`} x={ox} y={oy} width={availW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                    );
+                  }
+                }
+
+                // Per-element compartment width dimensions (above element)
+                if (cols > 1) {
+                  const yLabel = mapYFront((eyBottom + eh) / scale) - 10; // above element
+                  for (let c = 0; c < cols; c++) {
+                    const x1 = colBounds[c];
+                    const x2 = colBounds[c + 1];
+                    const lab = fmt2((x2 - x1) / scale);
+                    nodes.push(
+                      createDimensionLine(x1, yLabel, x2, yLabel, lab, -12) as any
+                    );
+                  }
+                }
+
+                idx += 1;
+              }
+            }
+            return nodes;
+          })()}
+
           {/* Front view dimensions */}
           {/* Overall width */}
           {createDimensionLine(
@@ -322,7 +569,7 @@ export function BlueprintView() {
             frontViewY + scaledHeight + 40,
             frontViewX + scaledWidth,
             frontViewY + scaledHeight + 40,
-            width.toString()
+            fmt2(width)
           )}
 
           {/* Block widths */}
@@ -334,29 +581,29 @@ export function BlueprintView() {
               frontViewY + scaledHeight + 65,
               x2,
               frontViewY + scaledHeight + 65,
-              Math.round(blockWidth).toString()
+              fmt2(blockWidth)
             );
           })}
 
           {/* Overall height */}
           {createDimensionLine(
             frontViewX - 40,
-            frontViewY,
+            mapYFront(height),
             frontViewX - 40,
-            frontViewY + scaledHeight,
-            height.toString()
+            mapYFront(0),
+            fmt2(height)
           )}
 
           {/* Module heights */}
           {modulesY.map((module, i) => {
-            const y1 = frontViewY + module.start * scale;
-            const y2 = frontViewY + (module.start + module.height) * scale;
+            const y1 = mapYFront(module.start + module.height);
+            const y2 = mapYFront(module.start);
             return createDimensionLine(
               frontViewX - 65,
               y1,
               frontViewX - 65,
               y2,
-              Math.round(module.height).toString()
+              fmt2(module.height)
             );
           })}
 
@@ -365,10 +612,10 @@ export function BlueprintView() {
             baseHeight > 0 &&
             createDimensionLine(
               frontViewX - 90,
-              frontViewY + scaledHeight - scaledBaseHeight,
+              mapYFront(baseHeight),
               frontViewX - 90,
-              frontViewY + scaledHeight,
-              baseHeight.toString()
+              mapYFront(0),
+              fmt2(baseHeight)
             )}
         </g>
 
