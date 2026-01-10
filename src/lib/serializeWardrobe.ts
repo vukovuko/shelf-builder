@@ -24,17 +24,21 @@ export function applyWardrobeSnapshot(data: any) {
   if (data.height) st.setHeight(data.height);
   if (data.depth) st.setDepth(data.depth);
   if (data.panelThickness) st.setPanelThickness(data.panelThickness);
-  if (data.selectedMaterialId) st.setSelectedMaterialId(data.selectedMaterialId);
+  if (data.selectedMaterialId)
+    st.setSelectedMaterialId(data.selectedMaterialId);
   if (data.selectedBackMaterialId)
     st.setSelectedBackMaterialId(data.selectedBackMaterialId);
   Object.entries(data.elementConfigs || {}).forEach(([key, cfg]: any) => {
     st.setElementColumns(key, cfg.columns || 1);
     (cfg.rowCounts || []).forEach((cnt: number, idx: number) =>
-      st.setElementRowCount(key, idx, cnt)
+      st.setElementRowCount(key, idx, cnt),
     );
   });
   (useShelfStore as any).setState((prev: any) => ({
-    compartmentExtras: { ...prev.compartmentExtras, ...(data.compartmentExtras || {}) },
+    compartmentExtras: {
+      ...prev.compartmentExtras,
+      ...(data.compartmentExtras || {}),
+    },
     doorSelections: { ...data.doorSelections },
     hasBase: data.hasBase,
     baseHeight: data.baseHeight,

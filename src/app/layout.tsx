@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   description: "Design your custom shelf.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className="dark">
       <head>

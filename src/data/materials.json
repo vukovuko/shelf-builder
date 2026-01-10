@@ -1,34 +1,34 @@
 [
-    {
-      "id": 1,
-      "name": "Šperploča bukva",
-      "price": 2500,
-      "img": "/img/slika1.jpg",
-      "thickness": 18,
-      "stock": 30
-    },
-    {
-      "id": 2,
-      "name": "MDF bela ploča",
-      "price": 3100,
-      "img": "/img/slika2.jpg",
-      "thickness": 18,
-      "stock": 50
-    },
-    {
-      "id": 3,
-      "name": "Lesonit natur",
-      "price": 900,
-      "img": "/img/slika3.jpg",
-      "thickness": 5,
-      "stock": 100
-    },
-    {
-      "id": 4,
-      "name": "Univer B/B ploča",
-      "price": 1300,
-      "img": "/img/slika4.jpg",
-      "thickness": 15,
-      "stock": 100
-    }
-  ]
+  {
+    "id": 1,
+    "name": "Šperploča bukva",
+    "price": 2500,
+    "img": "/img/slika1.jpg",
+    "thickness": 18,
+    "stock": 30
+  },
+  {
+    "id": 2,
+    "name": "MDF bela ploča",
+    "price": 3100,
+    "img": "/img/slika2.jpg",
+    "thickness": 18,
+    "stock": 50
+  },
+  {
+    "id": 3,
+    "name": "Lesonit natur",
+    "price": 900,
+    "img": "/img/slika3.jpg",
+    "thickness": 5,
+    "stock": 100
+  },
+  {
+    "id": 4,
+    "name": "Univer B/B ploča",
+    "price": 1300,
+    "img": "/img/slika4.jpg",
+    "thickness": 15,
+    "stock": 100
+  }
+]

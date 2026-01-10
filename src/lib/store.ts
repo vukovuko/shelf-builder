@@ -86,7 +86,7 @@ interface ShelfState {
   setDoorOption: (key: string, option: DoorOption) => void;
 }
 
-export const useShelfStore = create<ShelfState>(set => ({
+export const useShelfStore = create<ShelfState>((set) => ({
   width: 210,
   height: 201,
   depth: 60,
@@ -99,12 +99,12 @@ export const useShelfStore = create<ShelfState>(set => ({
   selectedMaterialId: 1, // default to first material
   selectedBackMaterialId: undefined,
   showDimensions: false,
-  setWidth: width => set({ width }),
-  setHeight: height => set({ height }),
-  setDepth: depth => set({ depth }),
-  setPanelThickness: panelThickness => set({ panelThickness }),
-  setNumberOfColumns: numberOfColumns =>
-    set(state => {
+  setWidth: (width) => set({ width }),
+  setHeight: (height) => set({ height }),
+  setDepth: (depth) => set({ depth }),
+  setPanelThickness: (panelThickness) => set({ panelThickness }),
+  setNumberOfColumns: (numberOfColumns) =>
+    set((state) => {
       let columnWidths = [...state.columnWidths];
       let rowCounts = [...state.rowCounts];
       if (numberOfColumns > columnWidths.length) {
@@ -123,34 +123,34 @@ export const useShelfStore = create<ShelfState>(set => ({
       return { numberOfColumns, columnWidths, rowCounts };
     }),
   setColumnWidth: (index, width) =>
-    set(state => {
+    set((state) => {
       const columnWidths = [...state.columnWidths];
       columnWidths[index] = width;
       return { columnWidths };
     }),
-  setViewMode: viewMode => set({ viewMode }),
+  setViewMode: (viewMode) => set({ viewMode }),
   setRowCount: (index, count) =>
-    set(state => {
+    set((state) => {
       const rowCounts = [...state.rowCounts];
       rowCounts[index] = count;
       return { rowCounts };
     }),
-  setSelectedMaterial: material => set({ selectedMaterial: material }),
-  setSelectedMaterialId: id => set({ selectedMaterialId: id }),
-  setSelectedBackMaterialId: id => set({ selectedBackMaterialId: id }),
-  setShowDimensions: show => set({ showDimensions: show }),
+  setSelectedMaterial: (material) => set({ selectedMaterial: material }),
+  setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
+  setSelectedBackMaterialId: (id) => set({ selectedBackMaterialId: id }),
+  setShowDimensions: (show) => set({ showDimensions: show }),
   showEdgesOnly: false,
-  setShowEdgesOnly: show => set({ showEdgesOnly: show }),
+  setShowEdgesOnly: (show) => set({ showEdgesOnly: show }),
   // Fit trigger
   fitRequestId: 0,
   triggerFitToView: () =>
-    set(state => ({ fitRequestId: state.fitRequestId + 1 })),
+    set((state) => ({ fitRequestId: state.fitRequestId + 1 })),
   // Per-element configuration defaults
   selectedElementKey: null,
-  setSelectedElementKey: key => set({ selectedElementKey: key }),
+  setSelectedElementKey: (key) => set({ selectedElementKey: key }),
   elementConfigs: {},
   setElementColumns: (key, columns) =>
-    set(state => {
+    set((state) => {
       const current = state.elementConfigs[key] ?? {
         columns: 1,
         rowCounts: [0],
@@ -173,7 +173,7 @@ export const useShelfStore = create<ShelfState>(set => ({
       };
     }),
   setElementRowCount: (key, index, count) =>
-    set(state => {
+    set((state) => {
       const current = state.elementConfigs[key] ?? {
         columns: 1,
         rowCounts: [0],
@@ -196,16 +196,16 @@ export const useShelfStore = create<ShelfState>(set => ({
   // Base defaults
   hasBase: false,
   baseHeight: 0,
-  setHasBase: val => set({ hasBase: val }),
-  setBaseHeight: val => set({ baseHeight: Math.max(0, val) }),
+  setHasBase: (val) => set({ hasBase: val }),
+  setBaseHeight: (val) => set({ baseHeight: Math.max(0, val) }),
   // Extras defaults
   extrasMode: false,
-  setExtrasMode: val => set({ extrasMode: val }),
+  setExtrasMode: (val) => set({ extrasMode: val }),
   selectedCompartmentKey: null,
-  setSelectedCompartmentKey: key => set({ selectedCompartmentKey: key }),
+  setSelectedCompartmentKey: (key) => set({ selectedCompartmentKey: key }),
   compartmentExtras: {},
-  toggleCompVerticalDivider: key =>
-    set(state => {
+  toggleCompVerticalDivider: (key) =>
+    set((state) => {
       const prev = state.compartmentExtras[key] ?? {};
       return {
         compartmentExtras: {
@@ -214,8 +214,8 @@ export const useShelfStore = create<ShelfState>(set => ({
         },
       };
     }),
-  toggleCompDrawers: key =>
-    set(state => {
+  toggleCompDrawers: (key) =>
+    set((state) => {
       const prev = state.compartmentExtras[key] ?? {};
       return {
         compartmentExtras: {
@@ -225,7 +225,7 @@ export const useShelfStore = create<ShelfState>(set => ({
       };
     }),
   setCompDrawersCount: (key, count) =>
-    set(state => {
+    set((state) => {
       const prev = state.compartmentExtras[key] ?? {};
       return {
         compartmentExtras: {
@@ -234,8 +234,8 @@ export const useShelfStore = create<ShelfState>(set => ({
         },
       };
     }),
-  toggleCompRod: key =>
-    set(state => {
+  toggleCompRod: (key) =>
+    set((state) => {
       const prev = state.compartmentExtras[key] ?? {};
       return {
         compartmentExtras: {
@@ -244,8 +244,8 @@ export const useShelfStore = create<ShelfState>(set => ({
         },
       };
     }),
-  toggleCompLed: key =>
-    set(state => {
+  toggleCompLed: (key) =>
+    set((state) => {
       const prev = state.compartmentExtras[key] ?? {};
       return {
         compartmentExtras: {
@@ -256,10 +256,10 @@ export const useShelfStore = create<ShelfState>(set => ({
     }),
   // Doors defaults
   selectedDoorElementKey: null,
-  setSelectedDoorElementKey: key => set({ selectedDoorElementKey: key }),
+  setSelectedDoorElementKey: (key) => set({ selectedDoorElementKey: key }),
   doorSelections: {},
   setDoorOption: (key, option) =>
-    set(state => ({
+    set((state) => ({
       doorSelections: { ...state.doorSelections, [key]: option },
     })),
 }));

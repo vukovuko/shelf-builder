@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { useShelfStore } from "@/lib/store";
+import type React from "react";
 import materials from "@/data/materials.json";
+import { useShelfStore } from "@/lib/store";
 
 export function BlueprintView() {
   const {
@@ -24,9 +24,11 @@ export function BlueprintView() {
     });
 
   // Material thickness (cm)
-  const mat = (materials as any[]).find(m => String(m.id) === String(selectedMaterialId));
+  const mat = (materials as any[]).find(
+    (m) => String(m.id) === String(selectedMaterialId),
+  );
   const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
-  const backTCm = 0.5; // assume 5mm backs for hatch if needed
+  const _backTCm = 0.5; // assume 5mm backs for hatch if needed
 
   // Calculate drawing dimensions and scale
   const padding = 60;
@@ -73,7 +75,8 @@ export function BlueprintView() {
   }
 
   // Map from a value measured from the bottom (in cm) to SVG Y (top-origin)
-  const mapYFront = (yFromBottomCm: number) => frontViewY + scaledHeight - yFromBottomCm * scale;
+  const mapYFront = (yFromBottomCm: number) =>
+    frontViewY + scaledHeight - yFromBottomCm * scale;
 
   // Helper function to create dimension line with arrows
   const createDimensionLine = (
@@ -82,7 +85,7 @@ export function BlueprintView() {
     x2: number,
     y2: number,
     label: string,
-    offset: number = 20
+    offset: number = 20,
   ) => {
     const isVertical = Math.abs(x2 - x1) < Math.abs(y2 - y1);
     const midX = (x1 + x2) / 2;
@@ -322,7 +325,7 @@ export function BlueprintView() {
             const labels: React.ReactNode[] = [];
             let elementIndex = 0;
 
-            modulesY.forEach((module, moduleIdx) => {
+            modulesY.forEach((module, _moduleIdx) => {
               for (let blockIdx = 0; blockIdx < nBlocksX; blockIdx++) {
                 const letter = String.fromCharCode(65 + elementIndex); // A, B, C...
                 const labelX =
@@ -341,7 +344,7 @@ export function BlueprintView() {
                     fill="#000"
                   >
                     {letter}
-                  </text>
+                  </text>,
                 );
                 elementIndex++;
               }
@@ -367,11 +370,17 @@ export function BlueprintView() {
                 const ix1 = ex + ew - tCm * scale;
                 const iy0BaseFromBottom = eyBottom + tCm * scale; // distance from bottom
                 const iy1FromBottom = eyBottom + eh - tCm * scale;
-                const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight * scale : 0;
+                const raiseByBase =
+                  hasBase && (modulesY.length === 1 || mIdx === 0)
+                    ? baseHeight * scale
+                    : 0;
                 const iy0FromBottom = iy0BaseFromBottom + raiseByBase;
 
                 // Columns (compartments) from elementConfigs
-                const cfg = (elementConfigs as any)[letter] ?? { columns: 1, rowCounts: [0] };
+                const cfg = (elementConfigs as any)[letter] ?? {
+                  columns: 1,
+                  rowCounts: [0],
+                };
                 const cols = Math.max(1, Number(cfg.columns) || 1);
                 const colBounds: number[] = [];
                 for (let c = 0; c <= cols; c++) {
@@ -390,7 +399,7 @@ export function BlueprintView() {
                       y2={mapYFront(iy1FromBottom / scale)}
                       stroke="#000"
                       strokeWidth={1}
-                    />
+                    />,
                   );
                 }
                 // Optional central vertical divider (Extras)
@@ -407,7 +416,7 @@ export function BlueprintView() {
                       stroke="#000"
                       strokeDasharray="3 2"
                       strokeWidth={1}
-                    />
+                    />,
                   );
                 }
 
@@ -418,15 +427,32 @@ export function BlueprintView() {
                   const gapCm = 1; // 1cm gap
                   const iy0FromBottomCm = iy0FromBottom / scale;
                   const iy1FromBottomCm = iy1FromBottom / scale;
-                  const innerHForDrawersCm = Math.max(iy1FromBottomCm - iy0FromBottomCm, 0);
-                  const maxAuto = Math.max(0, Math.floor((innerHForDrawersCm + gapCm) / (drawerHcm + gapCm)));
-                  const countFromState = Math.max(0, Math.floor(Number(extras.drawersCount ?? 0)));
-                  const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+                  const innerHForDrawersCm = Math.max(
+                    iy1FromBottomCm - iy0FromBottomCm,
+                    0,
+                  );
+                  const maxAuto = Math.max(
+                    0,
+                    Math.floor(
+                      (innerHForDrawersCm + gapCm) / (drawerHcm + gapCm),
+                    ),
+                  );
+                  const countFromState = Math.max(
+                    0,
+                    Math.floor(Number(extras.drawersCount ?? 0)),
+                  );
+                  const used =
+                    countFromState > 0
+                      ? Math.min(countFromState, maxAuto)
+                      : maxAuto;
                   for (let d = 0; d < used; d++) {
                     // Bottom of drawer d measured from inner bottom
                     const bottomCm = iy0FromBottomCm + d * (drawerHcm + gapCm);
                     // Top of drawer is one drawer height above bottom, clamped to inner top minus gap
-                    const topCm = Math.min(bottomCm + drawerHcm, iy1FromBottomCm - gapCm);
+                    const topCm = Math.min(
+                      bottomCm + drawerHcm,
+                      iy1FromBottomCm - gapCm,
+                    );
                     const topY = mapYFront(topCm);
                     const bottomY = mapYFront(bottomCm);
                     const heightPx = Math.max(0, bottomY - topY);
@@ -440,13 +466,17 @@ export function BlueprintView() {
                         fill="none"
                         stroke="#000"
                         strokeWidth={1}
-                      />
+                      />,
                     );
                   }
                   // Auto shelf directly above drawers if space remains
                   if (used > 0 && used < maxAuto) {
-                    const lastBottomCm = iy0FromBottomCm + (used - 1) * (drawerHcm + gapCm);
-                    const lastTopCm = Math.min(lastBottomCm + drawerHcm, iy1FromBottomCm - gapCm);
+                    const lastBottomCm =
+                      iy0FromBottomCm + (used - 1) * (drawerHcm + gapCm);
+                    const lastTopCm = Math.min(
+                      lastBottomCm + drawerHcm,
+                      iy1FromBottomCm - gapCm,
+                    );
                     const shelfFromBottomCm = lastTopCm + gapCm + tCm;
                     if (shelfFromBottomCm < iy1FromBottomCm) {
                       nodes.push(
@@ -458,7 +488,7 @@ export function BlueprintView() {
                           y2={mapYFront(shelfFromBottomCm)}
                           stroke="#000"
                           strokeWidth={1}
-                        />
+                        />,
                       );
                     }
                   }
@@ -466,13 +496,17 @@ export function BlueprintView() {
 
                 // Shelves per compartment
                 for (let c = 0; c < cols; c++) {
-                  const count = Math.max(0, Math.floor(Number(cfg.rowCounts?.[c] ?? 0)));
+                  const count = Math.max(
+                    0,
+                    Math.floor(Number(cfg.rowCounts?.[c] ?? 0)),
+                  );
                   if (count <= 0) continue;
                   const cx0 = colBounds[c];
                   const cx1 = colBounds[c + 1];
                   const availableH = Math.max(iy1FromBottom - iy0FromBottom, 0);
                   for (let s = 1; s <= count; s++) {
-                    const yFromBottom = iy0FromBottom + (availableH * s) / (count + 1);
+                    const yFromBottom =
+                      iy0FromBottom + (availableH * s) / (count + 1);
                     nodes.push(
                       <line
                         key={`shelf-${letter}-${mIdx}-${c}-${s}`}
@@ -482,14 +516,15 @@ export function BlueprintView() {
                         y2={mapYFront(yFromBottom / scale)}
                         stroke="#000"
                         strokeWidth={1}
-                      />
+                      />,
                     );
                   }
                 }
 
                 // Rod indicator
                 if (extras.rod) {
-                  const ryFromBottom = iy0FromBottom + (iy1FromBottom - iy0FromBottom) * 0.25;
+                  const ryFromBottom =
+                    iy0FromBottom + (iy1FromBottom - iy0FromBottom) * 0.25;
                   nodes.push(
                     <line
                       key={`rod-${letter}-${mIdx}`}
@@ -499,7 +534,7 @@ export function BlueprintView() {
                       y2={mapYFront(ryFromBottom / scale)}
                       stroke="#000"
                       strokeWidth={2}
-                    />
+                    />,
                   );
                 }
 
@@ -515,7 +550,7 @@ export function BlueprintView() {
                       fill="#000"
                     >
                       LED
-                    </text>
+                    </text>,
                   );
                 }
 
@@ -527,18 +562,47 @@ export function BlueprintView() {
                   const availW = Math.max(ew - 2 * tCm * scale - clearance, 0);
                   const leafH = Math.max(eh - 2 * tCm * scale - clearance, 0);
                   const ox = ex + tCm * scale + clearance / 2;
-                  const oy = mapYFront((eyBottom / scale) + (tCm + clearance / (2 * scale)));
+                  const oy = mapYFront(
+                    eyBottom / scale + (tCm + clearance / (2 * scale)),
+                  );
                   if (doorSel === "double" || doorSel === "doubleMirror") {
                     const leafW = Math.max((availW - doubleGap) / 2, 0);
                     nodes.push(
-                      <rect key={`doorL-${letter}-${mIdx}`} x={ox} y={oy} width={leafW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                      <rect
+                        key={`doorL-${letter}-${mIdx}`}
+                        x={ox}
+                        y={oy}
+                        width={leafW}
+                        height={leafH}
+                        fill="none"
+                        stroke="#000"
+                        strokeDasharray="4 2"
+                      />,
                     );
                     nodes.push(
-                      <rect key={`doorR-${letter}-${mIdx}`} x={ox + leafW + doubleGap} y={oy} width={leafW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                      <rect
+                        key={`doorR-${letter}-${mIdx}`}
+                        x={ox + leafW + doubleGap}
+                        y={oy}
+                        width={leafW}
+                        height={leafH}
+                        fill="none"
+                        stroke="#000"
+                        strokeDasharray="4 2"
+                      />,
                     );
                   } else {
                     nodes.push(
-                      <rect key={`door-${letter}-${mIdx}`} x={ox} y={oy} width={availW} height={leafH} fill="none" stroke="#000" strokeDasharray="4 2" />
+                      <rect
+                        key={`door-${letter}-${mIdx}`}
+                        x={ox}
+                        y={oy}
+                        width={availW}
+                        height={leafH}
+                        fill="none"
+                        stroke="#000"
+                        strokeDasharray="4 2"
+                      />,
                     );
                   }
                 }
@@ -551,7 +615,14 @@ export function BlueprintView() {
                     const x2 = colBounds[c + 1];
                     const lab = fmt2((x2 - x1) / scale);
                     nodes.push(
-                      createDimensionLine(x1, yLabel, x2, yLabel, lab, -12) as any
+                      createDimensionLine(
+                        x1,
+                        yLabel,
+                        x2,
+                        yLabel,
+                        lab,
+                        -12,
+                      ) as any,
                     );
                   }
                 }
@@ -569,7 +640,7 @@ export function BlueprintView() {
             frontViewY + scaledHeight + 40,
             frontViewX + scaledWidth,
             frontViewY + scaledHeight + 40,
-            fmt2(width)
+            fmt2(width),
           )}
 
           {/* Block widths */}
@@ -581,7 +652,7 @@ export function BlueprintView() {
               frontViewY + scaledHeight + 65,
               x2,
               frontViewY + scaledHeight + 65,
-              fmt2(blockWidth)
+              fmt2(blockWidth),
             );
           })}
 
@@ -591,11 +662,11 @@ export function BlueprintView() {
             mapYFront(height),
             frontViewX - 40,
             mapYFront(0),
-            fmt2(height)
+            fmt2(height),
           )}
 
           {/* Module heights */}
-          {modulesY.map((module, i) => {
+          {modulesY.map((module, _i) => {
             const y1 = mapYFront(module.start + module.height);
             const y2 = mapYFront(module.start);
             return createDimensionLine(
@@ -603,7 +674,7 @@ export function BlueprintView() {
               y1,
               frontViewX - 65,
               y2,
-              fmt2(module.height)
+              fmt2(module.height),
             );
           })}
 
@@ -615,7 +686,7 @@ export function BlueprintView() {
               mapYFront(baseHeight),
               frontViewX - 90,
               mapYFront(0),
-              fmt2(baseHeight)
+              fmt2(baseHeight),
             )}
         </g>
 
@@ -680,7 +751,7 @@ export function BlueprintView() {
             sideViewY + scaledHeight + 40,
             sideViewX + scaledDepth,
             sideViewY + scaledHeight + 40,
-            depth.toString()
+            depth.toString(),
           )}
 
           {/* Overall height */}
@@ -689,7 +760,7 @@ export function BlueprintView() {
             sideViewY,
             sideViewX - 40,
             sideViewY + scaledHeight,
-            height.toString()
+            height.toString(),
           )}
         </g>
 

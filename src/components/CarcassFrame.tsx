@@ -1,9 +1,9 @@
 "use client";
+import { Html, Text } from "@react-three/drei";
 import React from "react";
+import * as THREE from "three";
 import { useShelfStore } from "../lib/store";
 import { Panel } from "./Panel";
-import { Html, Text } from "@react-three/drei";
-import * as THREE from "three";
 
 type Material = {
   id: string;
@@ -29,7 +29,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       Record<string, number>
     >({});
     const [draggedShelfKey, setDraggedShelfKey] = React.useState<string | null>(
-      null
+      null,
     );
     const [draggedDividerKey, setDraggedDividerKey] = React.useState<
       string | null
@@ -58,25 +58,27 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       showDimensions,
     } = useShelfStore();
 
-    const viewMode = useShelfStore(state => state.viewMode);
+    const viewMode = useShelfStore((state) => state.viewMode);
     // For backward compatibility with existing 3D/2D logic
     const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
-    const elementConfigs = useShelfStore(state => state.elementConfigs);
-    const showEdgesOnly = useShelfStore(state => state.showEdgesOnly);
-    const hasBase = useShelfStore(state => state.hasBase);
-    const baseHeightCm = useShelfStore(state => state.baseHeight);
+    const elementConfigs = useShelfStore((state) => state.elementConfigs);
+    const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
+    const hasBase = useShelfStore((state) => state.hasBase);
+    const baseHeightCm = useShelfStore((state) => state.baseHeight);
     const baseH = (hasBase ? baseHeightCm : 0) / 100;
-    const extrasMode = useShelfStore(s => s.extrasMode);
-    const selectedCompartmentKey = useShelfStore(s => s.selectedCompartmentKey);
-    const setSelectedCompartmentKey = useShelfStore(
-      s => s.setSelectedCompartmentKey
+    const _extrasMode = useShelfStore((s) => s.extrasMode);
+    const _selectedCompartmentKey = useShelfStore(
+      (s) => s.selectedCompartmentKey,
     );
-    const compartmentExtras = useShelfStore(s => s.compartmentExtras);
-  const doorSelections = useShelfStore(s => s.doorSelections);
+    const _setSelectedCompartmentKey = useShelfStore(
+      (s) => s.setSelectedCompartmentKey,
+    );
+    const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
+    const doorSelections = useShelfStore((s) => s.doorSelections);
 
-  const material =
+    const material =
       materials.find(
-        (m: Material) => String(m.id) === String(selectedMaterialId)
+        (m: Material) => String(m.id) === String(selectedMaterialId),
       ) || materials[0];
     const t = (material.thickness ?? 18000) / 1000;
 
@@ -84,14 +86,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const h = height / 100;
     // Back material (5mm) lookup (optional, fallback to any material with thickness 5mm)
     const selectedBackMaterialId = useShelfStore(
-      s => s.selectedBackMaterialId as any
+      (s) => s.selectedBackMaterialId as any,
     );
     const backMat =
       materials.find(
         (m: Material) =>
           (selectedBackMaterialId &&
             String(m.id) === String(selectedBackMaterialId)) ||
-          m.thickness === 5
+          m.thickness === 5,
       ) || materials.find((m: Material) => m.thickness === 5);
     const backT = ((backMat?.thickness ?? 5) as number) / 1000;
 
@@ -101,12 +103,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const color = material.color ?? "#ffffff";
 
     const innerWidth = w - 2 * t;
-    const columnWidth = innerWidth / numberOfColumns;
-    const numberOfDividers = numberOfColumns - 1;
+    const _columnWidth = innerWidth / numberOfColumns;
+    const _numberOfDividers = numberOfColumns - 1;
     const totalColumnUnits = columnWidths.reduce((a, b) => a + b, 0);
 
     // Build divider positions (skip the center seam when width > 100)
-    let dividerPositions: number[] = [];
+    const dividerPositions: number[] = [];
     {
       let acc = -innerWidth / 2;
       for (let i = 0; i < numberOfColumns - 1; i++) {
@@ -133,7 +135,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     });
 
     // Calculate x positions for each compartment
-    const dividerXPositions = dividers.map(div => div.position[0]);
+    const dividerXPositions = dividers.map((div) => div.position[0]);
     const xPositions = [-innerWidth / 2, ...dividerXPositions, innerWidth / 2];
 
     // Map compartments to element keys (A, B, C...)
@@ -148,7 +150,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Support both single and split modules (bottom-to-top, left-to-right)
     {
       const maxSegX = 100 / 100;
-      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+      const _nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
       // Y modules: split if height > 200cm
       const modulesY: { yStart: number; yEnd: number }[] = [];
       if (h > 200 / 100) {
@@ -177,7 +179,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         return s;
       };
       let idx = 0;
-      modulesY.forEach(mod => {
+      modulesY.forEach((mod) => {
         for (let i = 0; i < numberOfColumns; i++) {
           const xStart = xPositions[i];
           const xEnd = xPositions[i + 1];
@@ -220,7 +222,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         position: [shelfX, t + shelfSpacing * (j + 1), 0] as [
           number,
           number,
-          number
+          number,
         ],
         size: [shelfWidth, t, d] as [number, number, number],
       }));
@@ -246,7 +248,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       });
       const boundariesX = Array.from(
         { length: nBlocksX + 1 },
-        (_, i) => -w / 2 + i * segWX
+        (_, i) => -w / 2 + i * segWX,
       );
 
       // Y modules: split if height > 200cm. Bottom is 200cm only if total > 210cm; otherwise shrink bottom so top is at least 10cm
@@ -289,7 +291,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       // Side panels at each X boundary, per Y module
       boundariesX.forEach((x, idx) => {
-        modulesY.forEach(m => {
+        modulesY.forEach((m) => {
           const cy = (m.yStart + m.yEnd) / 2;
           if (idx === 0) {
             list.push({
@@ -321,7 +323,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       // Top and Bottom panels per X block and Y module
       blocksX.forEach((bx, i) => {
-        modulesY.forEach(m => {
+        modulesY.forEach((m) => {
           const innerLenX = Math.max(segWX - 2 * t, 0.001);
           const cx = (bx.start + bx.end) / 2;
           const raise =
@@ -345,7 +347,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       });
 
       return list;
-    }, [w, h, t, d, width, hasBase, baseH]);
+    }, [w, h, t, d, hasBase, baseH]);
 
     // Element letter labels (A, B, C, ...) at each element's center on the back side
     const elementLabels = React.useMemo(() => {
@@ -463,8 +465,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       modulesY.forEach((m, mIdx) => {
         const yStartInner = m.yStart + t;
         const yEndInner = m.yEnd - t;
-        const innerH = Math.max(yEndInner - yStartInner, 0);
-        const cy = (yStartInner + yEndInner) / 2;
+        const _innerH = Math.max(yEndInner - yStartInner, 0);
+        const _cy = (yStartInner + yEndInner) / 2;
         blocksX.forEach((bx, bIdx) => {
           // Each element has its own side panels at its left and right boundary, so subtract thickness on both sides
           const xStartInner = bx.start + t;
@@ -489,11 +491,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
             const maxAuto = Math.max(
               0,
-              Math.floor((innerHForDrawers + gap) / per)
+              Math.floor((innerHForDrawers + gap) / per),
             );
             const countFromState = Math.max(
               0,
-              Math.floor(extras.drawersCount ?? 0)
+              Math.floor(extras.drawersCount ?? 0),
             );
             const used =
               countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
@@ -501,7 +503,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const drawersTopY = drawersYStart + drawerH + (used - 1) * per; // top face of last drawer
               const baseMin = Math.min(
                 Math.max(drawersTopY + gap, yStartInner),
-                yEndInner
+                yEndInner,
               );
               autoShelfExists = used < maxAuto && yEndInner - baseMin >= t;
               // Shelves baseline remains at top of drawers + gap
@@ -509,7 +511,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               // Dividers stop at top of auto shelf if present, otherwise at drawers top + gap
               yDivFromLocal = Math.min(
                 Math.max(baseMin + (autoShelfExists ? t : 0), yStartInner),
-                yEndInner
+                yEndInner,
               );
             }
           }
@@ -573,17 +575,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const shelfMatch = draggedShelfKey.match(/^shelf-(\d+)-(\d+)$/);
           if (shelfMatch) {
             const compIdx = parseInt(shelfMatch[1], 10);
-            const shelfIdx = parseInt(shelfMatch[2], 10);
-            const shelvesInComp = shelves.filter(s =>
-              s.key.startsWith(`shelf-${compIdx}-`)
+            const _shelfIdx = parseInt(shelfMatch[2], 10);
+            const shelvesInComp = shelves.filter((s) =>
+              s.key.startsWith(`shelf-${compIdx}-`),
             );
             const sortedShelves = shelvesInComp
-              .map(s => ({
+              .map((s) => ({
                 ...s,
                 y: customShelfPositions[s.key] ?? s.position[1],
               }))
               .sort((a, b) => a.y - b.y);
-            const idx = sortedShelves.findIndex(s => s.key === draggedShelfKey);
+            const idx = sortedShelves.findIndex(
+              (s) => s.key === draggedShelfKey,
+            );
             const minGap = 10 / 100;
             const yAbove = idx > 0 ? sortedShelves[idx - 1].y : t;
             const yBelow =
@@ -593,7 +597,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             newY = Math.max(minY, Math.min(newY, maxY));
           }
 
-          setCustomShelfPositions(pos => ({
+          setCustomShelfPositions((pos) => ({
             ...pos,
             [draggedShelfKey!]: newY,
           }));
@@ -603,24 +607,24 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           let newX = initialDividerX + (e.clientX - dragOffset) * pixelToWorld;
 
           const dividerIndex = dividers.findIndex(
-            div => div.id === draggedDividerKey
+            (div) => div.id === draggedDividerKey,
           );
           const prevX =
             dividerIndex === 0
               ? -innerWidth / 2
-              : customDividerPositions[`divider-${dividerIndex - 1}`] ??
-                dividers[dividerIndex - 1].position[0];
+              : (customDividerPositions[`divider-${dividerIndex - 1}`] ??
+                dividers[dividerIndex - 1].position[0]);
           const nextX =
             dividerIndex === dividers.length - 1
               ? innerWidth / 2
-              : customDividerPositions[`divider-${dividerIndex + 1}`] ??
-                dividers[dividerIndex + 1].position[0];
+              : (customDividerPositions[`divider-${dividerIndex + 1}`] ??
+                dividers[dividerIndex + 1].position[0]);
           const minGap = 10 / 100;
           const minX = prevX + minGap;
           const maxX = nextX - minGap;
           newX = Math.max(minX, Math.min(newX, maxX));
 
-          setCustomDividerPositions(pos => ({
+          setCustomDividerPositions((pos) => ({
             ...pos,
             [draggedDividerKey!]: newX,
           }));
@@ -651,31 +655,34 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       dividers,
       customDividerPositions,
       customShelfPositions,
-      setCustomDividerPositions,
+      shelves.filter,
     ]);
 
     // Handler to show/hide all shelf and divider info overlays (to be called from parent)
     const toggleAllInfo = (show: boolean) => {
       setShowShelfLabels(
-        shelves.reduce((acc, shelf) => {
-          acc[shelf.key] = show;
-          return acc;
-        }, {} as Record<string, boolean>)
+        shelves.reduce(
+          (acc, shelf) => {
+            acc[shelf.key] = show;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        ),
       );
       setShowDividerLabels(
-        dividers.reduce((acc, divider) => {
-          acc[divider.id] = show;
-          return acc;
-        }, {} as Record<string, boolean>)
+        dividers.reduce(
+          (acc, divider) => {
+            acc[divider.id] = show;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        ),
       );
       // Do NOT touch panel overlays
     };
 
     // Expose the handler for parent via ref
-    React.useImperativeHandle(ref, () => ({ toggleAllInfo }), [
-      shelves,
-      dividers,
-    ]);
+    React.useImperativeHandle(ref, () => ({ toggleAllInfo }), [toggleAllInfo]);
 
     return (
       <group>
@@ -687,60 +694,59 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         )}
 
         {/* Side, Top, and Bottom Panels with labels */}
-        {panels.map(panel => (
-          <group key={panel.label}>
-            <Panel position={panel.position} size={panel.size} />
-            <Html
-              position={[
-                panel.position[0],
-                panel.position[1] + 0.05,
-                panel.position[2],
-              ]}
-              center
-              distanceFactor={cameraMode === "3D" ? 4 : 8}
-              style={{ pointerEvents: "auto" }}
-              zIndexRange={[0, 0]}
-            >
-              <div style={{ position: "relative" }}>
-                <button
-                  style={{
-                    fontSize: "4px",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    border: "1px solid #888",
-                    background: "#fff",
-                    cursor: "pointer",
-                    minWidth: "28px",
-                  }}
-                  onClick={e => {
-                    e.stopPropagation();
-                    setShowPanelLabels(prev => ({
-                      ...prev,
-                      [panel.label]: !prev[panel.label],
-                    }));
-                  }}
-                >
-                  {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
-                </button>
-                {showPanelLabels[panel.label] && (
-                  <div
+        {panels.map((panel) => {
+          const [x, y, z] = panel.position as [number, number, number];
+          const yOffset = 0.05;
+
+          return (
+            <group key={panel.label}>
+              <Panel position={panel.position} size={panel.size} />
+              <Html
+                position={[x, y + yOffset, z]}
+                center
+                distanceFactor={cameraMode === "3D" ? 4 : 8}
+                style={{ pointerEvents: "auto" }}
+                zIndexRange={[0, 0]}
+              >
+                <div style={{ position: "relative" }}>
+                  <button
                     style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background: "rgba(255,255,255,0.85)",
+                      fontSize: "4px",
                       padding: "2px 6px",
                       borderRadius: "4px",
-                      fontSize: "4px",
-                      color: "#222",
-                      border: "1px solid #ccc",
-                      marginTop: "2px",
-                      whiteSpace: "pre",
-                      zIndex: 10,
+                      border: "1px solid #888",
+                      background: "#fff",
+                      cursor: "pointer",
+                      minWidth: "28px",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPanelLabels((prev) => ({
+                        ...prev,
+                        [panel.label]: !prev[panel.label],
+                      }));
                     }}
                   >
-                    <>
+                    {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
+                  </button>
+                  {showPanelLabels[panel.label] && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "rgba(255,255,255,0.85)",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontSize: "4px",
+                        color: "#222",
+                        border: "1px solid #ccc",
+                        marginTop: "2px",
+                        whiteSpace: "pre",
+                        zIndex: 10,
+                      }}
+                    >
                       {panel.label}
                       <br />
                       pos: [
@@ -754,17 +760,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         .map((n: number) => n.toFixed(3))
                         .join(", ")}
                       ]
-                    </>
-                  </div>
-                )}
-              </div>
-            </Html>
-          </group>
-        ))}
-
+                    </div>
+                  )}
+                </div>
+              </Html>
+            </group>
+          );
+        })}
 
         {/* Element letter markers on the back side */}
-        {elementLabels.map(el => (
+        {elementLabels.map((el) => (
           <Html
             key={el.key}
             position={el.position}
@@ -789,10 +794,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {/* Element-based structure if configured */}
         {Object.keys(elementConfigs).length > 0 ? (
           <>
-            {elementStructures.dividers.map(div => (
+            {elementStructures.dividers.map((div) => (
               <Panel key={div.key} position={div.position} size={div.size} />
             ))}
-            {elementStructures.shelves.map(sh => (
+            {elementStructures.shelves.map((sh) => (
               <Panel key={sh.key} position={sh.position} size={sh.size} />
             ))}
           </>
@@ -828,17 +833,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           cursor: "pointer",
                           minWidth: "28px",
                         }}
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          setShowDividerLabels(prev => ({
+                          setShowDividerLabels((prev) => ({
                             ...prev,
                             [divider.id]: !prev[divider.id],
                           }));
                         }}
                       >
-                        {showDividerLabels[divider.id]
-                          ? "Sakrij"
-                          : "Prikaži"}
+                        {showDividerLabels[divider.id] ? "Sakrij" : "Prikaži"}
                       </button>
                       {/* Drag Button */}
                       <button
@@ -857,13 +860,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           alignItems: "center",
                           justifyContent: "center",
                         }}
-                        onMouseDown={e => {
+                        onMouseDown={(e) => {
                           e.stopPropagation();
                           setDraggedDividerKey(divider.id);
                           setDragOffset(e.clientX);
                           setInitialDividerX(
                             customDividerPositions[divider.id] ??
-                              divider.position[0]
+                              divider.position[0],
                           );
                           document.body.style.userSelect = "none";
                         }}
@@ -871,7 +874,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         <img
                           src="/up-down-arrow-icon.png"
                           alt="Drag Divider"
-                          style={{ width: 14, height: 14, pointerEvents: "none" }}
+                          style={{
+                            width: 14,
+                            height: 14,
+                            pointerEvents: "none",
+                          }}
                         />
                       </button>
                     </div>
@@ -892,21 +899,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           zIndex: 10,
                         }}
                       >
-                        <>
-                          Divider {i + 1}
-                          <br />
-                          pos: [
-                          {(divider.position as number[])
-                            .map((n: number) => n.toFixed(3))
-                            .join(", ")}
-                          ]
-                          <br />
-                          size: [
-                          {(divider.size as number[])
-                            .map((n: number) => n.toFixed(3))
-                            .join(", ")}
-                          ]
-                        </>
+                        Divider {i + 1}
+                        <br />
+                        pos: [
+                        {(divider.position as number[])
+                          .map((n: number) => n.toFixed(3))
+                          .join(", ")}
+                        ]
+                        <br />
+                        size: [
+                        {(divider.size as number[])
+                          .map((n: number) => n.toFixed(3))
+                          .join(", ")}
+                        ]
                       </div>
                     )}
                   </div>
@@ -915,7 +920,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             ))}
 
             {/* Dynamic Horizontal Shelves with button */}
-            {shelves.map(shelf => (
+            {shelves.map((shelf) => (
               <group key={shelf.key}>
                 <Panel
                   position={[
@@ -952,9 +957,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           cursor: "pointer",
                           minWidth: "28px",
                         }}
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          setShowShelfLabels(prev => ({
+                          setShowShelfLabels((prev) => ({
                             ...prev,
                             [shelf.key]: !prev[shelf.key],
                           }));
@@ -977,12 +982,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           alignItems: "center",
                           justifyContent: "center",
                         }}
-                        onMouseDown={e => {
+                        onMouseDown={(e) => {
                           e.stopPropagation();
                           setDraggedShelfKey(shelf.key);
                           setDragOffset(e.clientY);
                           setInitialShelfY(
-                            customShelfPositions[shelf.key] ?? shelf.position[1]
+                            customShelfPositions[shelf.key] ??
+                              shelf.position[1],
                           );
                           document.body.style.userSelect = "none";
                         }}
@@ -990,7 +996,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         <img
                           src="/up-down-arrow-icon.png"
                           alt="Drag Shelf"
-                          style={{ width: 14, height: 14, pointerEvents: "none" }}
+                          style={{
+                            width: 14,
+                            height: 14,
+                            pointerEvents: "none",
+                          }}
                         />
                       </button>
                     </div>
@@ -1012,9 +1022,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         }}
                       >
                         {`Shelf\npos: [${shelf.position
-                          .map(n => n.toFixed(3))
+                          .map((n) => n.toFixed(3))
                           .join(", ")}]\nsize: [${shelf.size
-                          .map(n => n.toFixed(3))
+                          .map((n) => n.toFixed(3))
                           .join(", ")} ]`}
                       </div>
                     )}
@@ -1072,7 +1082,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const nodes: React.ReactNode[] = [];
           let idx = 0;
           modulesY.forEach((m, mIdx) => {
-            blocksX.forEach(bx => {
+            blocksX.forEach((bx) => {
               const letter = toLetters(idx);
               const extras = compartmentExtras[letter];
               if (
@@ -1085,9 +1095,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const yStartInner = m.yStart + t;
                 const yEndInner = m.yEnd - t;
                 const innerW = Math.max(xEndInner - xStartInner, 0);
-                const innerH = Math.max(yEndInner - yStartInner, 0);
+                const _innerH = Math.max(yEndInner - yStartInner, 0);
                 const cx = (xStartInner + xEndInner) / 2;
-                const cy = (yStartInner + yEndInner) / 2;
+                const _cy = (yStartInner + yEndInner) / 2;
 
                 // Compute drawers region for this element to constrain vertical divider height
                 const drawerH = 10 / 100; // 10cm
@@ -1099,11 +1109,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
                 const maxAuto = Math.max(
                   0,
-                  Math.floor((innerHForDrawers + gap) / per)
+                  Math.floor((innerHForDrawers + gap) / per),
                 );
                 const countFromState = Math.max(
                   0,
-                  Math.floor(extras.drawersCount ?? 0)
+                  Math.floor(extras.drawersCount ?? 0),
                 );
                 const usedDrawerCount = extras.drawers
                   ? countFromState > 0
@@ -1126,7 +1136,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     drawersTopY + gap + (autoShelfExists ? t : 0);
                   yDivFrom = Math.min(
                     Math.max(baseFrom, yStartInner),
-                    yEndInner
+                    yEndInner,
                   );
                 }
                 const divH = Math.max(yEndInner - yDivFrom, 0);
@@ -1136,7 +1146,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       key={`${letter}-vdiv`}
                       position={[cx, (yDivFrom + yEndInner) / 2, 0]}
                       size={[t, divH, d]}
-                    />
+                    />,
                   );
                 }
 
@@ -1149,7 +1159,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         key={`${letter}-drawer-${didx}`}
                         position={[cx, y, 0]}
                         size={[innerW, drawerH, d]}
-                      />
+                      />,
                     );
                   }
 
@@ -1166,7 +1176,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           key={`${letter}-shelf-over-drawers`}
                           position={[cx, yShelfCenter, 0]}
                           size={[innerW, t, d]}
-                        />
+                        />,
                       );
                     }
                   }
@@ -1184,7 +1194,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     >
                       <cylinderGeometry args={[radius, radius, innerW, 16]} />
                       <meshStandardMaterial color="#888" />
-                    </mesh>
+                    </mesh>,
                   );
                 }
               }
@@ -1212,7 +1222,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const modulesY: { yStart: number; yEnd: number }[] = [];
           if (h > 200 / 100) {
             const yStartBottom = -h / 2;
-            const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+            const bottomH =
+              h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
             const yEndBottom = yStartBottom + bottomH;
             const yStartTop = yEndBottom;
             const yEndTop = h / 2;
@@ -1223,19 +1234,23 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           }
           const nodes: React.ReactNode[] = [];
           let idx = 0;
-          modulesY.forEach(m => {
+          modulesY.forEach((m) => {
             const elemH = m.yEnd - m.yStart; // full element height
             // Back panel height: use full element height, then reduce by 2mm total
             const backH = Math.max(elemH - clearance, 0.001);
             const cy = (m.yStart + m.yEnd) / 2;
-            blocksX.forEach(bx => {
+            blocksX.forEach((bx) => {
               const elemW = bx.end - bx.start; // full element width
               // Back panel width: use full element width, then reduce by 2mm total
               const backW = Math.max(elemW - clearance, 0.001);
               const cx = (bx.start + bx.end) / 2;
               const z = -d / 2 - backT / 2; // exact: carcass depth + back thickness = selected total depth
               nodes.push(
-                <Panel key={`back-${idx}`} position={[cx, cy, z]} size={[backW, backH, backT]} />
+                <Panel
+                  key={`back-${idx}`}
+                  position={[cx, cy, z]}
+                  size={[backW, backH, backT]}
+                />,
               );
               idx += 1;
             });
@@ -1292,11 +1307,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Place doors slightly in front of the carcass front face to avoid z-fighting
           const zFront = d / 2 + doorT / 2 + 0.0005;
           let idx = 0;
-          modulesY.forEach(m => {
+          modulesY.forEach((m) => {
             const elemH = m.yEnd - m.yStart;
             const doorH = Math.max(elemH - clearance, 0.001);
             const cy = (m.yStart + m.yEnd) / 2;
-            blocksX.forEach(bx => {
+            blocksX.forEach((bx) => {
               const letter = toLetters(idx);
               const sel = doorSelections[letter];
               if (sel && sel !== "none") {
@@ -1312,7 +1327,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       key={`door-${letter}-L`}
                       position={[cx - offset, cy, zFront]}
                       size={[leafW, doorH, doorT]}
-                    />
+                    />,
                   );
                   // Right leaf
                   nodes.push(
@@ -1320,7 +1335,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       key={`door-${letter}-R`}
                       position={[cx + offset, cy, zFront]}
                       size={[leafW, doorH, doorT]}
-                    />
+                    />,
                   );
                 } else {
                   // Single leaf (left/right/mirror/drawerStyle) with 1mm overall width & height clearance
@@ -1330,7 +1345,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       key={`door-${letter}`}
                       position={[cx, cy, zFront]}
                       size={[leafW, doorH, doorT]}
-                    />
+                    />,
                   );
                 }
               }
@@ -1346,7 +1361,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const position = [(comp.xStart + comp.xEnd) / 2, h / 2, 0.05] as [
             number,
             number,
-            number
+            number,
           ];
           const size = [comp.width, h - 2 * t, d];
           return (
@@ -1368,9 +1383,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 }}
               >
                 {`Compartment ${i + 1}\npos: [${position
-                  .map(n => n.toFixed(2))
+                  .map((n) => n.toFixed(2))
                   .join(", ")}]\nsize: [${size
-                  .map(n => n.toFixed(2))
+                  .map((n) => n.toFixed(2))
                   .join(", ")}]`}
               </Html>
             )
@@ -1383,7 +1398,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const xMin = -w / 2;
               const xMax = w / 2;
               const yMin = -h / 2;
-              const yMax = h / 2;
+              const _yMax = h / 2;
 
               const theta = (30 / 180) * Math.PI; // 30° arrow wings
               const ah = 0.03; // 3cm arrow wing length
@@ -1395,12 +1410,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const addWing = (
                 key: string,
                 apex: [number, number],
-                angle: number
+                angle: number,
               ) => {
                 const dir = new THREE.Vector2(Math.cos(angle), Math.sin(angle));
                 const center = new THREE.Vector2(
                   apex[0],
-                  apex[1]
+                  apex[1],
                 ).addScaledVector(dir, ah / 2);
                 nodes.push(
                   <mesh
@@ -1410,7 +1425,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   >
                     <boxGeometry args={[ah, lineThk, lineThk]} />
                     <meshBasicMaterial color="white" />
-                  </mesh>
+                  </mesh>,
                 );
               };
 
@@ -1435,7 +1450,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     <mesh key={`dim-bot-line-${i}`} position={[cx, offsetY, 0]}>
                       <boxGeometry args={[len, lineThk, lineThk]} />
                       <meshBasicMaterial color="white" />
-                    </mesh>
+                    </mesh>,
                   );
                 }
 
@@ -1459,7 +1474,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     anchorY="middle"
                   >
                     {`${widthCm} cm`}
-                  </Text>
+                  </Text>,
                 );
               }
 
@@ -1492,7 +1507,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 x: number,
                 y0: number,
                 y1: number,
-                idx: number
+                idx: number,
               ) => {
                 const yStart = Math.min(y0, y1);
                 const yEnd = Math.max(y0, y1);
@@ -1506,7 +1521,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     >
                       <boxGeometry args={[lineThk, vLen, lineThk]} />
                       <meshBasicMaterial color="white" />
-                    </mesh>
+                    </mesh>,
                   );
                 }
 
@@ -1515,24 +1530,24 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 addWing(
                   `dim-${side}-seg-top-w1-${idx}`,
                   topApex,
-                  -(Math.PI / 2 - theta)
+                  -(Math.PI / 2 - theta),
                 );
                 addWing(
                   `dim-${side}-seg-top-w2-${idx}`,
                   topApex,
-                  -(Math.PI / 2 + theta)
+                  -(Math.PI / 2 + theta),
                 );
                 // arrow wings at bottom (pointing upward)
                 const botApex: [number, number] = [x, yStart];
                 addWing(
                   `dim-${side}-seg-bot-w1-${idx}`,
                   botApex,
-                  +(Math.PI / 2 - theta)
+                  +(Math.PI / 2 - theta),
                 );
                 addWing(
                   `dim-${side}-seg-bot-w2-${idx}`,
                   botApex,
-                  +(Math.PI / 2 + theta)
+                  +(Math.PI / 2 + theta),
                 );
 
                 // label centered on the segment
@@ -1552,7 +1567,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     anchorY="middle"
                   >
                     {`${segCm} cm`}
-                  </Text>
+                  </Text>,
                 );
               };
 
@@ -1567,7 +1582,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         )}
       </group>
     );
-  }
+  },
 );
 
 export default CarcassFrame;

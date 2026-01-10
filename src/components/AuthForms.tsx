@@ -1,22 +1,22 @@
 "use client";
-import { useState } from 'react';
-import { signIn, signUp } from '@/lib/auth-client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { validatePassword } from '@/lib/password-validation';
-import { z } from 'zod';
+import { useState } from "react";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { signIn, signUp } from "@/lib/auth-client";
+import { validatePassword } from "@/lib/password-validation";
 
 interface AuthFormsProps {
   onSuccess?: () => void;
 }
 
 export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -30,7 +30,9 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
     setEmailError(null);
 
     // Validate email
-    const emailValidation = z.email({ message: 'Neispravna email adresa' }).safeParse(email);
+    const emailValidation = z
+      .email({ message: "Neispravna email adresa" })
+      .safeParse(email);
     if (!emailValidation.success) {
       setEmailError(emailValidation.error.issues[0].message);
       setLoading(false);
@@ -38,7 +40,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
     }
 
     // Validate password complexity for registration only
-    if (mode === 'register') {
+    if (mode === "register") {
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.valid) {
         setPasswordError(passwordValidation.error!);
@@ -48,23 +50,23 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
     }
 
     try {
-      if (mode === 'register') {
+      if (mode === "register") {
         const result = await signUp.email({
           email,
           password,
-          name: name || email.split('@')[0],
+          name: name || email.split("@")[0],
         });
 
         if (result.error) {
-          const errorMsg = result.error.message || 'Registracija nije uspela';
+          const errorMsg = result.error.message || "Registracija nije uspela";
           setError(errorMsg);
           return;
         }
 
         // auto switch to login after successful registration
-        setMode('login');
-        setPassword('');
-        setError('Uspešno ste se registrovali! Sada se prijavite.');
+        setMode("login");
+        setPassword("");
+        setError("Uspešno ste se registrovali! Sada se prijavite.");
       } else {
         const result = await signIn.email({
           email,
@@ -73,7 +75,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
 
         if (result.error) {
           // Security-conscious error message - don't reveal if email exists or not
-          const errorMsg = 'Pogrešni kredencijali';
+          const errorMsg = "Pogrešni kredencijali";
           setError(errorMsg);
           return;
         }
@@ -82,9 +84,10 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         onSuccess?.();
       }
     } catch (err: any) {
-      console.error('Auth error:', err);
+      console.error("Auth error:", err);
       // Generic error message for security
-      const errorMsg = mode === 'login' ? 'Pogrešni kredencijali' : 'Registracija nije uspela';
+      const errorMsg =
+        mode === "login" ? "Pogrešni kredencijali" : "Registracija nije uspela";
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -104,7 +107,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       });
 
       if (result?.error) {
-        const errorMsg = 'Google prijava nije uspela';
+        const errorMsg = "Google prijava nije uspela";
         setError(errorMsg);
         return;
       }
@@ -112,8 +115,8 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       // Success will redirect, but just in case:
       onSuccess?.();
     } catch (err: any) {
-      console.error('Google auth error:', err);
-      const errorMsg = 'Google prijava nije uspela';
+      console.error("Google auth error:", err);
+      const errorMsg = "Google prijava nije uspela";
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -121,31 +124,36 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
   }
 
   return (
-    <Tabs defaultValue="login" value={mode} onValueChange={(v) => setMode(v as 'login' | 'register')} className="w-full">
+    <Tabs
+      defaultValue="login"
+      value={mode}
+      onValueChange={(v) => setMode(v as "login" | "register")}
+      className="w-full"
+    >
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="login">Prijava</TabsTrigger>
         <TabsTrigger value="register">Registracija</TabsTrigger>
       </TabsList>
 
       <TabsContent value="login" className="space-y-4 min-h-[520px]">
-        <form onSubmit={submit} className='space-y-6 pt-4'>
+        <form onSubmit={submit} className="space-y-6 pt-4">
           <div className="space-y-2">
             <Label htmlFor="email-login">Email</Label>
             <div className="relative">
               <Input
                 id="email-login"
                 value={email}
-                onChange={e => {
+                onChange={(e) => {
                   setEmail(e.target.value);
                   setEmailError(null);
                 }}
-                placeholder='vas@email.com'
-                type='email'
+                placeholder="vas@email.com"
+                type="email"
                 required
-                className={emailError ? 'border-destructive' : ''}
+                className={emailError ? "border-destructive" : ""}
               />
               {emailError && (
-                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {emailError}
                 </div>
               )}
@@ -157,35 +165,31 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               <Input
                 id="password-login"
                 value={password}
-                onChange={e => {
+                onChange={(e) => {
                   setPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                placeholder='••••••••'
-                type='password'
+                placeholder="••••••••"
+                type="password"
                 required
-                className={passwordError ? 'border-destructive' : ''}
+                className={passwordError ? "border-destructive" : ""}
               />
               {passwordError && (
-                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {passwordError}
                 </div>
               )}
             </div>
           </div>
-          <div className='min-h-[0.5rem]'>
+          <div className="min-h-[0.5rem]">
             {error && (
-              <div className='text-sm text-destructive px-1 py-2 bg-destructive/10 rounded'>
+              <div className="text-sm text-destructive px-1 py-2 bg-destructive/10 rounded">
                 {error}
               </div>
             )}
           </div>
-          <Button
-            type="submit"
-            disabled={loading}
-            className='w-full'
-          >
-            {loading ? 'Učitavanje...' : 'Prijavi se'}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Učitavanje..." : "Prijavi se"}
           </Button>
         </form>
 
@@ -194,7 +198,9 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">ili</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              ili
+            </span>
           </div>
         </div>
 
@@ -228,15 +234,15 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       </TabsContent>
 
       <TabsContent value="register" className="space-y-4 min-h-[520px]">
-        <form onSubmit={submit} className='space-y-6 pt-4'>
+        <form onSubmit={submit} className="space-y-6 pt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Ime</Label>
             <Input
               id="name"
               value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder='Unesite vaše ime'
-              type='text'
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Unesite vaše ime"
+              type="text"
             />
           </div>
           <div className="space-y-2">
@@ -245,17 +251,17 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               <Input
                 id="email-register"
                 value={email}
-                onChange={e => {
+                onChange={(e) => {
                   setEmail(e.target.value);
                   setEmailError(null);
                 }}
-                placeholder='vas@email.com'
-                type='email'
+                placeholder="vas@email.com"
+                type="email"
                 required
-                className={emailError ? 'border-destructive' : ''}
+                className={emailError ? "border-destructive" : ""}
               />
               {emailError && (
-                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {emailError}
                 </div>
               )}
@@ -267,35 +273,31 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               <Input
                 id="password-register"
                 value={password}
-                onChange={e => {
+                onChange={(e) => {
                   setPassword(e.target.value);
                   setPasswordError(null);
                 }}
-                placeholder='••••••••'
-                type='password'
+                placeholder="••••••••"
+                type="password"
                 required
-                className={passwordError ? 'border-destructive' : ''}
+                className={passwordError ? "border-destructive" : ""}
               />
               {passwordError && (
-                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {passwordError}
                 </div>
               )}
             </div>
           </div>
-          <div className='min-h-[0.5rem]'>
+          <div className="min-h-[0.5rem]">
             {error && (
-              <div className='text-sm text-destructive px-1 py-2 bg-destructive/10 rounded'>
+              <div className="text-sm text-destructive px-1 py-2 bg-destructive/10 rounded">
                 {error}
               </div>
             )}
           </div>
-          <Button
-            type="submit"
-            disabled={loading}
-            className='w-full'
-          >
-            {loading ? 'Učitavanje...' : 'Registruj se'}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Učitavanje..." : "Registruj se"}
           </Button>
         </form>
 
@@ -304,7 +306,9 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">ili</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              ili
+            </span>
           </div>
         </div>
 

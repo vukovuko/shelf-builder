@@ -11,10 +11,13 @@ interface PanelProps {
 export function Panel({ position, size }: PanelProps) {
   // Defensive: Clamp all sizes to minimum 0.001 and ensure no NaN
   const safeSize = size.map((v) => {
-    if (typeof v !== "number" || isNaN(v) || !isFinite(v)) return 0.001;
+    if (typeof v !== "number" || Number.isNaN(v) || !Number.isFinite(v))
+      return 0.001;
     return Math.max(Math.abs(v), 0.001);
   }) as [number, number, number];
-  const safePosition = position.map((v) => (typeof v === "number" && isFinite(v) ? v : 0)) as [number, number, number];
+  const safePosition = position.map((v) =>
+    typeof v === "number" && Number.isFinite(v) ? v : 0,
+  ) as [number, number, number];
   return (
     <mesh position={safePosition} castShadow receiveShadow>
       <boxGeometry args={safeSize} />

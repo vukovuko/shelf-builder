@@ -1,33 +1,35 @@
 "use client";
 
+import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
-import { BlueprintView } from "./BlueprintView";
-import React from "react";
-import { useShelfStore } from "@/lib/store";
-import { useRef, useEffect } from "react";
-import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { useShelfStore } from "@/lib/store";
+import { BlueprintView } from "./BlueprintView";
+import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
 
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   // Connect to the store to get the current view mode
   const { viewMode } = useShelfStore();
-  const showEdgesOnly = useShelfStore(state => state.showEdgesOnly);
-  const fitRequestId = useShelfStore(state => state.fitRequestId);
+  const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
+  const _fitRequestId = useShelfStore((state) => state.fitRequestId);
 
   // Determine if the controls should be enabled based on the mode
   const areControlsEnabled = viewMode === "3D";
 
   // For backward compatibility with existing camera mode logic
-  const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
+  const _cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
 
   // Step 1: Create a reference object. This will hold our "remote control".
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const sceneGroupRef = useRef<THREE.Group>(null);
 
   // Cache last fit box to avoid repetitive fitting when nothing changed materially
-  const lastFitRef = useRef<{ center: THREE.Vector3; size: THREE.Vector3 } | null>(null);
+  const lastFitRef = useRef<{
+    center: THREE.Vector3;
+    size: THREE.Vector3;
+  } | null>(null);
   const performFit = React.useCallback(() => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -73,7 +75,10 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
     const dir = new THREE.Vector3()
       .subVectors(camera.position, controls.target)
       .normalize();
-    const newPos = new THREE.Vector3().addVectors(center, dir.multiplyScalar(distance));
+    const newPos = new THREE.Vector3().addVectors(
+      center,
+      dir.multiplyScalar(distance),
+    );
     controls.target.copy(center);
     camera.position.copy(newPos);
     camera.updateProjectionMatrix();
@@ -84,7 +89,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   useEffect(() => {
     performFit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitRequestId]);
+  }, [performFit]);
 
   // Step 2: Use a useEffect hook to watch for changes to viewMode.
   useEffect(() => {
@@ -129,7 +134,11 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           />
           {/* Subtle fill light from front to illuminate interior depth */}
           <pointLight position={[0, 1, 3]} intensity={0.3} color="#ffffff" />
-          <pointLight position={[0, 0.5, 2.5]} intensity={0.2} color="#ffffff" />
+          <pointLight
+            position={[0, 0.5, 2.5]}
+            intensity={0.2}
+            color="#ffffff"
+          />
         </>
       )}
 

@@ -1,12 +1,10 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Minus, Plus } from "lucide-react";
-
-
 
 interface DimensionControlProps {
   label: string;
@@ -42,7 +40,7 @@ export function DimensionControl({
         </Button>
         <Slider
           value={[value]}
-          onValueChange={vals => setValue(vals[0])}
+          onValueChange={(vals) => setValue(vals[0])}
           min={min}
           max={max}
           step={step}
@@ -59,7 +57,7 @@ export function DimensionControl({
           <Input
             type="number"
             value={value}
-            onChange={e => setValue(Number(e.target.value))}
+            onChange={(e) => setValue(Number(e.target.value))}
             className="w-24 text-center pr-8 bg-input border-border"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useShelfStore, ViewMode } from "@/lib/store";
+import { ChevronDown, Rotate3d, Ruler, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Rotate3d, Square, Ruler } from "lucide-react";
+import { useShelfStore, type ViewMode } from "@/lib/store";
 
 export function ViewModeToggle() {
   const { viewMode, setViewMode } = useShelfStore();
@@ -16,15 +16,15 @@ export function ViewModeToggle() {
   const viewModeConfig = {
     "3D": {
       icon: Rotate3d,
-      label: "3D View",
+      label: "3D Prikaz",
     },
     "2D": {
       icon: Square,
-      label: "2D View",
+      label: "2D Prikaz",
     },
     Sizing: {
       icon: Ruler,
-      label: "Sizing",
+      label: "Kotiranje",
     },
   };
 

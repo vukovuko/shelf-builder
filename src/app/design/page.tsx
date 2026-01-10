@@ -1,16 +1,16 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { useSession } from "@/lib/auth-client";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { toast } from "sonner";
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
   const searchParams = useSearchParams();
-  const loadId = searchParams.get('load');
+  const loadId = searchParams.get("load");
   const [hasLoadedFromUrl, setHasLoadedFromUrl] = useState(false);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ function LoadFromUrl() {
       try {
         const res = await fetch(`/api/wardrobes/${loadId}`);
         if (!res.ok) {
-          toast.error('Failed to load wardrobe');
+          toast.error("Failed to load wardrobe");
           return;
         }
 
@@ -28,11 +28,11 @@ function LoadFromUrl() {
         applyWardrobeSnapshot(wardrobe.data);
         toast.success(`Loaded: ${wardrobe.name}`);
 
-        window.history.replaceState({}, '', '/design');
+        window.history.replaceState({}, "", "/design");
         setHasLoadedFromUrl(true);
       } catch (e) {
-        console.error('Failed to load wardrobe', e);
-        toast.error('Failed to load wardrobe');
+        console.error("Failed to load wardrobe", e);
+        toast.error("Failed to load wardrobe");
       }
     }
 
@@ -50,22 +50,22 @@ export default function DesignPage(props: any) {
   // State persistence: Restore pending work after login
   useEffect(() => {
     if (session && !hasRestoredState) {
-      const pendingState = localStorage.getItem('pendingWardrobeState');
+      const pendingState = localStorage.getItem("pendingWardrobeState");
       if (pendingState) {
         try {
           const state = JSON.parse(pendingState);
 
           // Validate parsed state
-          if (!state || typeof state !== 'object') {
-            throw new Error('Invalid state');
+          if (!state || typeof state !== "object") {
+            throw new Error("Invalid state");
           }
 
           applyWardrobeSnapshot(state);
-          localStorage.removeItem('pendingWardrobeState');
-          toast.success('Welcome back! Your work has been restored.');
-        } catch (e) {
+          localStorage.removeItem("pendingWardrobeState");
+          toast.success("Welcome back! Your work has been restored.");
+        } catch (_e) {
           // Just clear invalid data, don't crash
-          localStorage.removeItem('pendingWardrobeState');
+          localStorage.removeItem("pendingWardrobeState");
         }
       }
       setHasRestoredState(true);
@@ -88,7 +88,9 @@ export default function DesignPage(props: any) {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-base text-foreground font-medium">Učitavanje, molimo sačekajte...</p>
+            <p className="text-base text-foreground font-medium">
+              Učitavanje, molimo sačekajte...
+            </p>
           </div>
         </div>
       )}

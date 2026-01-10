@@ -1,7 +1,7 @@
 "use client";
 
-import { useShelfStore } from "@/lib/store";
 import { Edges } from "@react-three/drei";
+import { useShelfStore } from "@/lib/store";
 
 export function InteriorBack() {
   const { width, height, depth, panelThickness } = useShelfStore();

@@ -1,8 +1,8 @@
 "use client";
 
+import React from "react";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
-import React from "react";
 
 function useLockBodyScroll(locked: boolean) {
   React.useEffect(() => {
@@ -15,14 +15,17 @@ function useLockBodyScroll(locked: boolean) {
   }, [locked]);
 }
 
-
-export default function DesignLayout({ children }: { children: React.ReactNode }) {
+export default function DesignLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const wardrobeRef = React.useRef<any>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   useLockBodyScroll(drawerOpen);
 
   // Clone children and inject wardrobeRef as prop if possible
-  const childrenWithProps = React.Children.map(children, child => {
+  const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
       return React.cloneElement(child as any, { wardrobeRef });
     }

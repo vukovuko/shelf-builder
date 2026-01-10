@@ -1,31 +1,28 @@
 "use client";
 
+import jsPDF from "jspdf";
+import {
+  ChevronDown,
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  FolderOpen,
+  LogOut,
+  Save,
+  Settings,
+  Table,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import React from "react";
+import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useShelfStore } from "@/lib/store";
-import React from "react";
-import { DimensionControl } from "./DimensionControl";
-import { Button } from "./ui/button";
-import materials from "@/data/materials.json";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { AuthForms } from "./AuthForms";
-import jsPDF from "jspdf";
-import { useSession, signOut } from "@/lib/auth-client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,9 +33,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,18 +52,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
-import { User, ChevronDown, Save, Settings, LogOut, FolderOpen, Eye, EyeOff, Download, FileText, Table } from "lucide-react";
-import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import materials from "@/data/materials.json";
+import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
+import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { useShelfStore } from "@/lib/store";
+import { AuthForms } from "./AuthForms";
+import { DimensionControl } from "./DimensionControl";
+import { Button } from "./ui/button";
 
 // Helper function to get initials from name/email
 function getInitials(name: string): string {
   return name
-    .split(' ')
-    .map(part => part[0])
-    .join('')
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
     .toUpperCase()
     .slice(0, 2);
 }
@@ -73,12 +85,12 @@ export function ConfiguratorControls({
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
-  const [wardrobeName, setWardrobeName] = React.useState('Orman');
+  const [wardrobeName, setWardrobeName] = React.useState("Orman");
 
   // Handle login click - save state before opening auth
   const handleLoginClick = () => {
     const currentState = getWardrobeSnapshot();
-    localStorage.setItem('pendingWardrobeState', JSON.stringify(currentState));
+    localStorage.setItem("pendingWardrobeState", JSON.stringify(currentState));
     setAuthDialogOpen(true);
   };
 
@@ -91,71 +103,71 @@ export function ConfiguratorControls({
     }
 
     // Logged in - show save dialog
-    setWardrobeName('Orman');
+    setWardrobeName("Orman");
     setSaveDialogOpen(true);
   };
 
   // Perform actual save
   const performSave = async () => {
     if (!wardrobeName.trim()) {
-      toast.error('Molimo unesite naziv ormana');
+      toast.error("Molimo unesite naziv ormana");
       return;
     }
 
     try {
       const snapshot = getWardrobeSnapshot();
-      if (!snapshot || typeof snapshot !== 'object') {
-        console.error('[performSave] invalid snapshot', snapshot);
-        toast.error('Greška pri čuvanju ormana');
+      if (!snapshot || typeof snapshot !== "object") {
+        console.error("[performSave] invalid snapshot", snapshot);
+        toast.error("Greška pri čuvanju ormana");
         return;
       }
 
       // Capture thumbnail from canvas
       let thumbnail: string | null = null;
-      const canvas = document.querySelector('canvas');
+      const canvas = document.querySelector("canvas");
       if (canvas) {
         try {
           thumbnail = await captureThumbnail(canvas);
         } catch (e) {
-          console.error('[performSave] Failed to capture thumbnail', e);
+          console.error("[performSave] Failed to capture thumbnail", e);
           // Continue without thumbnail
         }
       }
 
-      const res = await fetch('/api/wardrobes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/wardrobes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: wardrobeName, data: snapshot, thumbnail }),
       });
 
       if (!res.ok) {
-        console.error('[performSave] save failed', res.status);
-        toast.error('Greška pri čuvanju ormana');
+        console.error("[performSave] save failed", res.status);
+        toast.error("Greška pri čuvanju ormana");
         return;
       }
 
       toast.success(`Orman "${wardrobeName}" je sačuvan!`);
       setSaveDialogOpen(false);
     } catch (e) {
-      console.error('[performSave] exception', e);
-      toast.error('Greška pri čuvanju ormana');
+      console.error("[performSave] exception", e);
+      toast.error("Greška pri čuvanju ormana");
     }
   };
 
   // Handle logout
   const handleLogout = async () => {
     await signOut();
-    toast.success('Odjavljeni ste');
+    toast.success("Odjavljeni ste");
   };
 
   // Download 2D front view as JPG
-  const setViewMode = useShelfStore(state => state.setViewMode);
-  const viewMode = useShelfStore(state => state.viewMode);
+  const setViewMode = useShelfStore((state) => state.setViewMode);
+  const viewMode = useShelfStore((state) => state.viewMode);
   // For backward compatibility with existing camera mode logic
   const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
   const setCameraMode = (mode: "2D" | "3D") => setViewMode(mode);
-  const setShowEdgesOnly = useShelfStore(state => state.setShowEdgesOnly);
-  const showEdgesOnly = useShelfStore(state => state.showEdgesOnly);
+  const setShowEdgesOnly = useShelfStore((state) => state.setShowEdgesOnly);
+  const _showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
 
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
@@ -165,7 +177,7 @@ export function ConfiguratorControls({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
     await new Promise(requestAnimationFrame);
     const canvas = document.querySelector("canvas");
@@ -189,7 +201,7 @@ export function ConfiguratorControls({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
     const canvas = document.querySelector("canvas");
     if (!canvas) {
@@ -213,7 +225,7 @@ export function ConfiguratorControls({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
     await new Promise(requestAnimationFrame);
     const canvas = document.querySelector("canvas");
@@ -242,39 +254,39 @@ export function ConfiguratorControls({
   } = useShelfStore();
 
   // Add these if not already in your store:
-  const selectedMaterialId = useShelfStore(state => state.selectedMaterialId);
+  const selectedMaterialId = useShelfStore((state) => state.selectedMaterialId);
   const setSelectedMaterialId = useShelfStore(
-    state => state.setSelectedMaterialId
+    (state) => state.setSelectedMaterialId,
   );
   const selectedBackMaterialId = useShelfStore(
-    state => state.selectedBackMaterialId
+    (state) => state.selectedBackMaterialId,
   );
   const setSelectedBackMaterialId = useShelfStore(
-    state => state.setSelectedBackMaterialId
+    (state) => state.setSelectedBackMaterialId,
   );
 
-  const showDimensions = useShelfStore(state => state.showDimensions);
-  const setShowDimensions = useShelfStore(state => state.setShowDimensions);
+  const showDimensions = useShelfStore((state) => state.showDimensions);
+  const setShowDimensions = useShelfStore((state) => state.setShowDimensions);
   // Base (baza) state
-  const hasBase = useShelfStore(state => state.hasBase);
-  const baseHeight = useShelfStore(state => state.baseHeight);
-  const setHasBase = useShelfStore(state => state.setHasBase);
-  const setBaseHeight = useShelfStore(state => state.setBaseHeight);
+  const hasBase = useShelfStore((state) => state.hasBase);
+  const baseHeight = useShelfStore((state) => state.baseHeight);
+  const setHasBase = useShelfStore((state) => state.setHasBase);
+  const setBaseHeight = useShelfStore((state) => state.setBaseHeight);
 
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
   const [showCutList, setShowCutList] = React.useState(false);
 
   // Additional store reads needed for cut list (top-level to respect Rules of Hooks)
-  const elementConfigs = useShelfStore(state => state.elementConfigs);
-  const compartmentExtras = useShelfStore(state => state.compartmentExtras);
-  const doorSelections = useShelfStore(state => state.doorSelections);
+  const elementConfigs = useShelfStore((state) => state.elementConfigs);
+  const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
+  const doorSelections = useShelfStore((state) => state.doorSelections);
 
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(() => {
     try {
       const mat = (materials as any[]).find(
-        m => String(m.id) === String(selectedMaterialId as number)
+        (m) => String(m.id) === String(selectedMaterialId as number),
       );
       const pricePerM2 = Number(mat?.price ?? 0);
       const t = (Number(mat?.thickness ?? 18) / 1000) as number; // m
@@ -283,9 +295,10 @@ export function ConfiguratorControls({
       const doubleGap = 3 / 1000; // 3mm between double leaves
 
       // Back material price and thickness (5mm)
-      const backId = (useShelfStore.getState().selectedBackMaterialId ?? null) as any;
-      const backMat = (materials as any[]).find(m =>
-        backId ? String(m.id) === String(backId) : m.thickness === 5
+      const backId = (useShelfStore.getState().selectedBackMaterialId ??
+        null) as any;
+      const backMat = (materials as any[]).find((m) =>
+        backId ? String(m.id) === String(backId) : m.thickness === 5,
       );
       const backPricePerM2 = Number(backMat?.price ?? 0);
       const backT = (Number(backMat?.thickness ?? 5) / 1000) as number;
@@ -307,7 +320,8 @@ export function ConfiguratorControls({
       const modulesY: { yStart: number; yEnd: number }[] = [];
       if (h > 200 / 100) {
         const yStartBottom = -h / 2;
-        const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+        const bottomH =
+          h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
         const yEndBottom = yStartBottom + bottomH;
         const yStartTop = yEndBottom;
         const yEndTop = h / 2;
@@ -340,20 +354,20 @@ export function ConfiguratorControls({
 
       const items: Item[] = [];
 
-    let idx = 0;
+      let idx = 0;
       modulesY.forEach((m, mIdx) => {
         const moduleH = m.yEnd - m.yStart;
         const doorH = Math.max(moduleH - clearance, 0);
-        blocksX.forEach(bx => {
+        blocksX.forEach((bx) => {
           const letter = toLetters(idx);
           const elemW = bx.end - bx.start;
           const innerStartX = bx.start + t;
           const innerEndX = bx.end - t;
           const innerW = Math.max(innerEndX - innerStartX, 0);
           const suffix = `.${mIdx + 1}`;
-      const yStartInner = m.yStart + t;
-      const yEndInner = m.yEnd - t;
-      const innerH = Math.max(yEndInner - yStartInner, 0);
+          const yStartInner = m.yStart + t;
+          const yEndInner = m.yEnd - t;
+          const _innerH = Math.max(yEndInner - yStartInner, 0);
 
           // Sides
           const sideW = d;
@@ -384,7 +398,8 @@ export function ConfiguratorControls({
           const cfg = elementConfigs[letter] ?? { columns: 1, rowCounts: [0] };
           const cols = Math.max(1, (cfg.columns as number) | 0);
           const xs: number[] = [innerStartX];
-          for (let c = 1; c <= cols - 1; c++) xs.push(innerStartX + (innerW * c) / cols);
+          for (let c = 1; c <= cols - 1; c++)
+            xs.push(innerStartX + (innerW * c) / cols);
           xs.push(innerEndX);
           const compWidths = xs.slice(0, -1).map((x0, cIdx) => {
             const x1 = xs[cIdx + 1];
@@ -394,7 +409,10 @@ export function ConfiguratorControls({
           });
           let shelfSerial = 0;
           compWidths.forEach((compW, cIdx) => {
-            const count = Math.max(0, Math.floor((cfg.rowCounts as number[] | undefined)?.[cIdx] ?? 0));
+            const count = Math.max(
+              0,
+              Math.floor((cfg.rowCounts as number[] | undefined)?.[cIdx] ?? 0),
+            );
             for (let s = 0; s < count; s++) {
               shelfSerial += 1;
               const area = compW * d;
@@ -441,15 +459,26 @@ export function ConfiguratorControls({
           // Internal vertical dividers from elementConfigs (between compartments)
           if (cols > 1) {
             // Compute drawers region to shorten divider height (same approach as CarcassFrame)
-            const extrasForEl = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+            const extrasForEl = compartmentExtras[
+              letter as keyof typeof compartmentExtras
+            ] as any;
             const drawerH = 10 / 100; // 10cm
             const gap = 1 / 100; // 1cm
             const per = drawerH + gap;
-            const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+            const raiseByBase =
+              hasBase && (modulesY.length === 1 || mIdx === 0)
+                ? baseHeight / 100
+                : 0;
             const drawersYStart = yStartInner + raiseByBase;
             const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-            const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
-            const countFromState = Math.max(0, Math.floor(extrasForEl?.drawersCount ?? 0));
+            const maxAuto = Math.max(
+              0,
+              Math.floor((innerHForDrawers + gap) / per),
+            );
+            const countFromState = Math.max(
+              0,
+              Math.floor(extrasForEl?.drawersCount ?? 0),
+            );
             const usedDrawerCount = extrasForEl?.drawers
               ? countFromState > 0
                 ? Math.min(countFromState, maxAuto)
@@ -460,7 +489,9 @@ export function ConfiguratorControls({
                 ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
                 : 0;
             const autoShelfExists =
-              usedDrawerCount > 0 && usedDrawerCount < maxAuto && yEndInner - (drawersTopY + gap) >= t;
+              usedDrawerCount > 0 &&
+              usedDrawerCount < maxAuto &&
+              yEndInner - (drawersTopY + gap) >= t;
             let yDivFrom = yStartInner;
             if (usedDrawerCount > 0) {
               const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
@@ -485,7 +516,9 @@ export function ConfiguratorControls({
           }
 
           // Doors
-          const sel = doorSelections[letter as keyof typeof doorSelections] as any;
+          const sel = doorSelections[
+            letter as keyof typeof doorSelections
+          ] as any;
           if (sel && sel !== "none") {
             const totalAvailW = Math.max(elemW - clearance, 0);
             if (sel === "double" || sel === "doubleMirror") {
@@ -515,7 +548,11 @@ export function ConfiguratorControls({
               const leafW = totalAvailW;
               const area = leafW * doorH;
               const isLeft = sel === "left" || sel === "leftMirror";
-              const codeSuffix = isLeft ? "L" : sel === "right" || sel === "rightMirror" ? "D" : "";
+              const codeSuffix = isLeft
+                ? "L"
+                : sel === "right" || sel === "rightMirror"
+                  ? "D"
+                  : "";
               items.push({
                 code: `A${letter}V.${codeSuffix}${suffix}`,
                 desc: `Vrata ${isLeft ? "leva" : codeSuffix === "D" ? "desna" : "jednokrilna"} ${letter}${suffix}`,
@@ -531,16 +568,27 @@ export function ConfiguratorControls({
 
           // Extras center vertical divider (from Extras menu)
           {
-            const extras = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+            const extras = compartmentExtras[
+              letter as keyof typeof compartmentExtras
+            ] as any;
             if (extras?.verticalDivider) {
               const drawerH = 10 / 100;
               const gap = 1 / 100;
               const per = drawerH + gap;
-              const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+              const raiseByBase =
+                hasBase && (modulesY.length === 1 || mIdx === 0)
+                  ? baseHeight / 100
+                  : 0;
               const drawersYStart = yStartInner + raiseByBase;
               const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-              const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
-              const countFromState = Math.max(0, Math.floor(extras?.drawersCount ?? 0));
+              const maxAuto = Math.max(
+                0,
+                Math.floor((innerHForDrawers + gap) / per),
+              );
+              const countFromState = Math.max(
+                0,
+                Math.floor(extras?.drawersCount ?? 0),
+              );
               const usedDrawerCount = extras?.drawers
                 ? countFromState > 0
                   ? Math.min(countFromState, maxAuto)
@@ -551,7 +599,9 @@ export function ConfiguratorControls({
                   ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
                   : 0;
               const autoShelfExists =
-                usedDrawerCount > 0 && usedDrawerCount < maxAuto && yEndInner - (drawersTopY + gap) >= t;
+                usedDrawerCount > 0 &&
+                usedDrawerCount < maxAuto &&
+                yEndInner - (drawersTopY + gap) >= t;
               let yDivFrom = yStartInner;
               if (usedDrawerCount > 0) {
                 const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
@@ -575,19 +625,31 @@ export function ConfiguratorControls({
           }
 
           // Drawers
-          const extras = compartmentExtras[letter as keyof typeof compartmentExtras] as any;
+          const extras = compartmentExtras[
+            letter as keyof typeof compartmentExtras
+          ] as any;
           if (extras?.drawers) {
             const drawerH = 10 / 100;
             const gap = 1 / 100;
             const per = drawerH + gap;
             const yStartInner = m.yStart + t;
             const yEndInner = m.yEnd - t;
-            const raiseByBase = hasBase && (modulesY.length === 1 || mIdx === 0) ? baseHeight / 100 : 0;
+            const raiseByBase =
+              hasBase && (modulesY.length === 1 || mIdx === 0)
+                ? baseHeight / 100
+                : 0;
             const drawersYStart = yStartInner + raiseByBase;
             const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-            const maxAuto = Math.max(0, Math.floor((innerHForDrawers + gap) / per));
-            const countFromState = Math.max(0, Math.floor(extras.drawersCount ?? 0));
-            const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+            const maxAuto = Math.max(
+              0,
+              Math.floor((innerHForDrawers + gap) / per),
+            );
+            const countFromState = Math.max(
+              0,
+              Math.floor(extras.drawersCount ?? 0),
+            );
+            const used =
+              countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
             for (let i = 0; i < used; i++) {
               const area = innerW * drawerH;
               items.push({
@@ -655,8 +717,14 @@ export function ConfiguratorControls({
       }, {});
 
       return { items, grouped, totalArea, totalCost, pricePerM2 };
-    } catch (e) {
-      return { items: [], grouped: {}, totalArea: 0, totalCost: 0, pricePerM2: 0 } as {
+    } catch (_e) {
+      return {
+        items: [],
+        grouped: {},
+        totalArea: 0,
+        totalCost: 0,
+        pricePerM2: 0,
+      } as {
         items: any[];
         grouped: Record<string, any[]>;
         totalArea: number;
@@ -676,26 +744,36 @@ export function ConfiguratorControls({
     doorSelections,
   ]);
 
+  // Number formatter: 2 decimals consistently
+  const fmt2 = React.useCallback(
+    (n: number) =>
+      Number(n ?? 0).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
+
   // Export per-element specification to PDF
   const handleExportElementSpecs = React.useCallback(() => {
     try {
       const doc = new jsPDF({ unit: "mm", format: "a4" });
-      const pageW = 210;
+      const _pageW = 210;
       const pageH = 297;
       const margin = 12;
       const baseFont = 11;
 
-  // Sizing helpers from store
-  const widthCm = useShelfStore.getState().width; // cm
-  const heightCm = useShelfStore.getState().height; // cm
-  const hasBase = useShelfStore.getState().hasBase;
-  const baseHeight = useShelfStore.getState().baseHeight; // cm
+      // Sizing helpers from store
+      const widthCm = useShelfStore.getState().width; // cm
+      const heightCm = useShelfStore.getState().height; // cm
+      const hasBase = useShelfStore.getState().hasBase;
+      const baseHeight = useShelfStore.getState().baseHeight; // cm
       const maxSegX = 100; // cm per block
       const nBlocksX = Math.max(1, Math.ceil(widthCm / maxSegX));
       const hasSplitY = heightCm > 200;
       const minTopH = 10; // cm
       let bottomModuleCm = Math.min(200, heightCm);
-      let topModuleCm = hasSplitY ? Math.max(minTopH, heightCm - 200) : 0;
+      const topModuleCm = hasSplitY ? Math.max(minTopH, heightCm - 200) : 0;
       if (hasSplitY && heightCm - 200 < minTopH) {
         // Adjust bottom if top had to be enlarged
         bottomModuleCm = heightCm - topModuleCm;
@@ -704,7 +782,10 @@ export function ConfiguratorControls({
 
       // Precompute block widths in cm (match BlueprintView: equal division across blocks)
       const equalBlockW = widthCm / nBlocksX;
-      const blockWidthsCm: number[] = Array.from({ length: nBlocksX }, () => equalBlockW);
+      const blockWidthsCm: number[] = Array.from(
+        { length: nBlocksX },
+        () => equalBlockW,
+      );
 
       // Letter index helpers (A..Z..AA..)
       const fromLetters = (s: string) => {
@@ -720,7 +801,12 @@ export function ConfiguratorControls({
         const rowIdx = Math.floor(idx / nBlocksX); // 0 bottom, 1 top if split
         const colIdx = idx % nBlocksX;
         const wCm = blockWidthsCm[colIdx] ?? widthCm; // fallback to total
-        const hCm = nModulesY === 1 ? heightCm : rowIdx === 0 ? bottomModuleCm : topModuleCm;
+        const hCm =
+          nModulesY === 1
+            ? heightCm
+            : rowIdx === 0
+              ? bottomModuleCm
+              : topModuleCm;
         return { wCm, hCm, rowIdx, colIdx };
       };
 
@@ -730,7 +816,7 @@ export function ConfiguratorControls({
         y: number,
         x2: number,
         label: string,
-        options?: { arrows?: boolean; ext?: number; font?: number }
+        options?: { arrows?: boolean; ext?: number; font?: number },
       ) => {
         const ext = options?.ext ?? 3;
         const font = options?.font ?? 9;
@@ -749,7 +835,10 @@ export function ConfiguratorControls({
         // label centered
         const cx = (x1 + x2) / 2;
         doc.setFontSize(font);
-        doc.text(label, cx, y - 1.5, { align: "center", baseline: "bottom" as any });
+        doc.text(label, cx, y - 1.5, {
+          align: "center",
+          baseline: "bottom" as any,
+        });
         doc.setFontSize(baseFont);
       };
 
@@ -758,7 +847,7 @@ export function ConfiguratorControls({
         y1: number,
         y2: number,
         label: string,
-        options?: { arrows?: boolean; ext?: number; font?: number }
+        options?: { arrows?: boolean; ext?: number; font?: number },
       ) => {
         const ext = options?.ext ?? 3;
         const font = options?.font ?? 9;
@@ -777,7 +866,10 @@ export function ConfiguratorControls({
         // label centered
         const cy = (y1 + y2) / 2;
         doc.setFontSize(font);
-        doc.text(label, x + 2.5, cy, { align: "left", baseline: "middle" as any });
+        doc.text(label, x + 2.5, cy, {
+          align: "left",
+          baseline: "middle" as any,
+        });
         doc.setFontSize(baseFont);
       };
 
@@ -800,37 +892,57 @@ export function ConfiguratorControls({
         const boxX = margin;
         const boxY = margin + 10;
         // Outer box
-        doc.rect(boxX, boxY, boxW, boxH, 'S');
+        doc.rect(boxX, boxY, boxW, boxH, "S");
         // Internal layout using elementConfigs and extras
         const elementConfigs = useShelfStore.getState().elementConfigs;
         const compartmentExtras = useShelfStore.getState().compartmentExtras;
-        const cfg = (elementConfigs as any)[letter] ?? { columns: 1, rowCounts: [0] };
+        const cfg = (elementConfigs as any)[letter] ?? {
+          columns: 1,
+          rowCounts: [0],
+        };
         const cols = Math.max(1, Number(cfg.columns) || 1);
-  const { wCm: elementWcm, hCm: elementHcm, rowIdx } = getElementDimsCm(letter);
-  const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
-  const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
-  // Material thickness in cm from selected material
-  const selectedMaterialId = useShelfStore.getState().selectedMaterialId;
-  const mat = (materials as any[]).find(m => String(m.id) === String(selectedMaterialId));
-  const tCm = Number(mat?.thickness ?? 18) / 10; // cm
-  const tOffsetXmm = tCm / cmPerMmX;
-  const tOffsetYmm = tCm / cmPerMmY;
+        const {
+          wCm: elementWcm,
+          hCm: elementHcm,
+          rowIdx,
+        } = getElementDimsCm(letter);
+        const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
+        const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
+        // Material thickness in cm from selected material
+        const selectedMaterialId = useShelfStore.getState().selectedMaterialId;
+        const mat = (materials as any[]).find(
+          (m) => String(m.id) === String(selectedMaterialId),
+        );
+        const tCm = Number(mat?.thickness ?? 18) / 10; // cm
+        const tOffsetXmm = tCm / cmPerMmX;
+        const tOffsetYmm = tCm / cmPerMmY;
         // Base region inside element (applies to lower module or single)
-  const appliesBase = hasBase && ((heightCm <= 200) || rowIdx === 0);
-  const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
-  const innerTopMmY = boxY + tOffsetYmm;
-  const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
-  const innerLeftMmX = boxX + tOffsetXmm;
-  const innerRightMmX = boxX + boxW - tOffsetXmm;
+        const appliesBase = hasBase && (heightCm <= 200 || rowIdx === 0);
+        const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
+        const innerTopMmY = boxY + tOffsetYmm;
+        const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
+        const innerLeftMmX = boxX + tOffsetXmm;
+        const innerRightMmX = boxX + boxW - tOffsetXmm;
         // Draw base (hatched rectangle) if applicable
         if (appliesBase && baseMm > 0) {
           const by = boxY + boxH - baseMm;
-          doc.setFillColor('#e6e6e6');
-          doc.rect(innerLeftMmX, by, innerRightMmX - innerLeftMmX, baseMm, 'FD');
-          doc.setFillColor('#ffffff');
+          doc.setFillColor("#e6e6e6");
+          doc.rect(
+            innerLeftMmX,
+            by,
+            innerRightMmX - innerLeftMmX,
+            baseMm,
+            "FD",
+          );
+          doc.setFillColor("#ffffff");
           // Base height label
           doc.setFontSize(8);
-          doc.text(`${fmt2(baseHeight)} cm`, innerRightMmX - 6, by + baseMm / 2, { align: 'right', baseline: 'middle' as any });
+          doc.text(
+            `${fmt2(baseHeight)} cm`,
+            innerRightMmX - 6,
+            by + baseMm / 2,
+            { align: "right", baseline: "middle" as any },
+          );
           doc.setFontSize(baseFont);
         }
         // Vertical dividers (between inner left/right), equal division per app
@@ -841,7 +953,10 @@ export function ConfiguratorControls({
         // Shelves per compartment (distributed evenly)
         let firstCompGapCm: number | null = null;
         for (let c = 0; c < cols; c++) {
-          const count = Math.max(0, Math.floor(Number(cfg.rowCounts?.[c] ?? 0)));
+          const count = Math.max(
+            0,
+            Math.floor(Number(cfg.rowCounts?.[c] ?? 0)),
+          );
           if (count <= 0) continue;
           const compX0 = boxX + (c * boxW) / cols + 1;
           const compX1 = boxX + ((c + 1) * boxW) / cols - 1;
@@ -855,39 +970,64 @@ export function ConfiguratorControls({
           }
           // Draw a combined vertical dimension for these gaps on the left side
           const dimXLeft = boxX - 6;
-          drawDimV(dimXLeft, innerTopMmY, innerTopMmY + gapMm, `${fmt2(gapCm)} cm × ${count + 1}`, { arrows: true, ext: 2.5, font: 8 });
+          drawDimV(
+            dimXLeft,
+            innerTopMmY,
+            innerTopMmY + gapMm,
+            `${fmt2(gapCm)} cm × ${count + 1}`,
+            { arrows: true, ext: 2.5, font: 8 },
+          );
         }
         // Drawers region (occupies full width; count from extras) – match BlueprintView logic
         const extras = (compartmentExtras as any)[letter] ?? {};
         if (extras.drawers) {
           const drawerHcm = 10; // 10cm each
-          const gapCm = 1;      // 1cm gap between
+          const gapCm = 1; // 1cm gap between
           const drawerHMm = drawerHcm / cmPerMmY;
           const gapMm = gapCm / cmPerMmY;
           const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
-          const maxAuto = Math.max(0, Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)));
-          const countFromState = Math.max(0, Math.floor(Number(extras.drawersCount ?? 0)));
-          const used = countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+          const maxAuto = Math.max(
+            0,
+            Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)),
+          );
+          const countFromState = Math.max(
+            0,
+            Math.floor(Number(extras.drawersCount ?? 0)),
+          );
+          const used =
+            countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
           let lastTopOffsetMm = 0;
           for (let d = 0; d < used; d++) {
             const bottomOffsetMm = d * (drawerHMm + gapMm);
-            const topOffsetMm = Math.min(bottomOffsetMm + drawerHMm, innerHMm - gapMm);
+            const topOffsetMm = Math.min(
+              bottomOffsetMm + drawerHMm,
+              innerHMm - gapMm,
+            );
             lastTopOffsetMm = topOffsetMm;
             const yTop = innerBottomMmY - topOffsetMm;
             const yBottom = innerBottomMmY - bottomOffsetMm;
             const hMm = Math.max(0, yBottom - yTop);
             // Ensure within inner bounds
             if (yTop < innerTopMmY) break;
-            doc.rect(innerLeftMmX + 1, yTop, (innerRightMmX - innerLeftMmX) - 2, hMm, 'S');
+            doc.rect(
+              innerLeftMmX + 1,
+              yTop,
+              innerRightMmX - innerLeftMmX - 2,
+              hMm,
+              "S",
+            );
             // Drawer height label
             const hCm = hMm * cmPerMmY;
             doc.setFontSize(8);
-            doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + hMm / 2, { align: 'center', baseline: 'middle' as any });
+            doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + hMm / 2, {
+              align: "center",
+              baseline: "middle" as any,
+            });
             doc.setFontSize(baseFont);
           }
           // Auto shelf directly above drawers if space remains
           if (used > 0 && used < maxAuto) {
-            const shelfOffsetMm = lastTopOffsetMm + gapMm + (tCm / cmPerMmY);
+            const shelfOffsetMm = lastTopOffsetMm + gapMm + tCm / cmPerMmY;
             if (shelfOffsetMm < innerHMm) {
               const shelfY = innerBottomMmY - shelfOffsetMm;
               doc.line(innerLeftMmX, shelfY, innerRightMmX, shelfY);
@@ -907,7 +1047,10 @@ export function ConfiguratorControls({
         if (extras.led) {
           const yLabel = innerTopMmY + 3;
           doc.setFontSize(7.5);
-          doc.text('LED', (innerLeftMmX + innerRightMmX) / 2, yLabel, { align: 'center', baseline: 'top' as any });
+          doc.text("LED", (innerLeftMmX + innerRightMmX) / 2, yLabel, {
+            align: "center",
+            baseline: "top" as any,
+          });
           doc.setFontSize(baseFont);
         }
         // Optional central divider
@@ -925,21 +1068,17 @@ export function ConfiguratorControls({
         }
         // Dimension lines and labels (outer)
         const dimY = boxY + boxH + 6;
-        drawDimH(
-          boxX,
-          dimY,
-          boxX + boxW,
-          `${fmt2(elementWcm)} cm`,
-          { arrows: true, ext: 3, font: 9 }
-        );
+        drawDimH(boxX, dimY, boxX + boxW, `${fmt2(elementWcm)} cm`, {
+          arrows: true,
+          ext: 3,
+          font: 9,
+        });
         const dimX = boxX + boxW + 8;
-        drawDimV(
-          dimX,
-          boxY,
-          boxY + boxH,
-          `${fmt2(elementHcm)} cm`,
-          { arrows: true, ext: 3, font: 9 }
-        );
+        drawDimV(dimX, boxY, boxY + boxH, `${fmt2(elementHcm)} cm`, {
+          arrows: true,
+          ext: 3,
+          font: 9,
+        });
         // Per-compartment width dimensions (evenly divided)
         if (cols > 1) {
           const compY = dimY + 6;
@@ -953,22 +1092,38 @@ export function ConfiguratorControls({
             });
           }
         }
-  const rows = cutList.grouped[letter];
-    // Table headers
-  const headers = ["Oznaka", "Opis", "Širina (cm)", "Visina (cm)", "Debljina (mm)", "Kvadratura (m²)", "Cena"];
-  // Tighter column layout to reduce total table width
-  const colX = [margin, 40, 85, 115, 140, 165, 185];
-  const colW = [colX[1]-colX[0], colX[2]-colX[1], colX[3]-colX[2], colX[4]-colX[3], colX[5]-colX[4], colX[6]-colX[5], 210 - margin - colX[6]];
-    let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(9);
-          headers.forEach((h, i) => {
-            doc.text(h, colX[i] + 2, y);
-            doc.rect(colX[i], y - 5, colW[i], 7, 'S');
-          });
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(8);
-          y += 8;
+        const rows = cutList.grouped[letter];
+        // Table headers
+        const headers = [
+          "Oznaka",
+          "Opis",
+          "Širina (cm)",
+          "Visina (cm)",
+          "Debljina (mm)",
+          "Kvadratura (m²)",
+          "Cena",
+        ];
+        // Tighter column layout to reduce total table width
+        const colX = [margin, 40, 85, 115, 140, 165, 185];
+        const colW = [
+          colX[1] - colX[0],
+          colX[2] - colX[1],
+          colX[3] - colX[2],
+          colX[4] - colX[3],
+          colX[5] - colX[4],
+          colX[6] - colX[5],
+          210 - margin - colX[6],
+        ];
+        let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        headers.forEach((h, i) => {
+          doc.text(h, colX[i] + 2, y);
+          doc.rect(colX[i], y - 5, colW[i], 7, "S");
+        });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        y += 8;
         rows.forEach((it: any) => {
           const line = [
             it.code ?? "",
@@ -982,30 +1137,36 @@ export function ConfiguratorControls({
           // Wrap description if too long
           const descLines = doc.splitTextToSize(line[1], colW[1] - 4);
           const rowH = Math.max(7, (descLines.length || 1) * 4 + 3);
-          doc.rect(colX[0], y - 5, colW[0], rowH, 'S');
+          doc.rect(colX[0], y - 5, colW[0], rowH, "S");
           doc.text(line[0], colX[0] + 2, y);
-          doc.rect(colX[1], y - 5, colW[1], rowH, 'S');
+          doc.rect(colX[1], y - 5, colW[1], rowH, "S");
           doc.text(descLines, colX[1] + 2, y);
-          doc.rect(colX[2], y - 5, colW[2], rowH, 'S');
+          doc.rect(colX[2], y - 5, colW[2], rowH, "S");
           doc.text(line[2], colX[2] + 2, y);
-          doc.rect(colX[3], y - 5, colW[3], rowH, 'S');
+          doc.rect(colX[3], y - 5, colW[3], rowH, "S");
           doc.text(line[3], colX[3] + 2, y);
-          doc.rect(colX[4], y - 5, colW[4], rowH, 'S');
+          doc.rect(colX[4], y - 5, colW[4], rowH, "S");
           doc.text(line[4], colX[4] + 2, y);
-          doc.rect(colX[5], y - 5, colW[5], rowH, 'S');
+          doc.rect(colX[5], y - 5, colW[5], rowH, "S");
           doc.text(line[5], colX[5] + 2, y);
-          doc.rect(colX[6], y - 5, colW[6], rowH, 'S');
+          doc.rect(colX[6], y - 5, colW[6], rowH, "S");
           doc.text(line[6], colX[6] + 2, y);
           y += rowH + 2;
-            // Page break if near bottom
-            if (y > pageH - margin - 10) {
-              doc.addPage();
-              y = margin + 10;
-            }
+          // Page break if near bottom
+          if (y > pageH - margin - 10) {
+            doc.addPage();
+            y = margin + 10;
+          }
         });
         // Footer totals for the element
-        const elementArea = rows.reduce((a: number, b: any) => a + (b.areaM2 ?? 0), 0);
-        const elementCost = rows.reduce((a: number, b: any) => a + (b.cost ?? 0), 0);
+        const elementArea = rows.reduce(
+          (a: number, b: any) => a + (b.areaM2 ?? 0),
+          0,
+        );
+        const elementCost = rows.reduce(
+          (a: number, b: any) => a + (b.cost ?? 0),
+          0,
+        );
         y += 8;
         doc.setFont("helvetica", "bold");
         doc.text(`Ukupna kvadratura: ${fmt2(elementArea)} m²`, margin, y);
@@ -1016,32 +1177,22 @@ export function ConfiguratorControls({
     } catch (e) {
       console.error("PDF export failed", e);
     }
-  }, [cutList]);
-
-  // Number formatter: 2 decimals consistently
-  const fmt2 = React.useCallback(
-    (n: number) =>
-      Number(n ?? 0).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
-    []
-  );
+  }, [cutList, fmt2]);
 
   // Reset info button state if wardrobe structure changes
-  const rowCounts = useShelfStore(state => state.rowCounts);
+  const rowCounts = useShelfStore((state) => state.rowCounts);
   React.useEffect(() => {
     setAllInfoShown(false);
     // Always reset overlays to hidden on structure change
     if (wardrobeRef?.current?.toggleAllInfo) {
       wardrobeRef.current.toggleAllInfo(false);
     }
-  }, [numberOfColumns, JSON.stringify(rowCounts)]);
+  }, [rowCounts, wardrobeRef]);
 
   const handleToggleAllInfo = () => {
     if (wardrobeRef?.current?.toggleAllInfo) {
       wardrobeRef.current.toggleAllInfo(!allInfoShown);
-      setAllInfoShown(prev => !prev);
+      setAllInfoShown((prev) => !prev);
     }
   };
 
@@ -1054,10 +1205,16 @@ export function ConfiguratorControls({
         ) : session ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-auto py-1.5 hover:text-white">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 h-auto py-1.5 hover:text-white"
+              >
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="text-xs">
-                    {getInitials(session.user?.name || session.user?.email || 'U')}
+                    {getInitials(
+                      session.user?.name || session.user?.email || "U",
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-xs truncate flex-1 text-left">
@@ -1089,7 +1246,10 @@ export function ConfiguratorControls({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="flex items-center">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="flex items-center"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Odjavi se
               </DropdownMenuItem>
@@ -1185,7 +1345,7 @@ export function ConfiguratorControls({
               const minTopH = 10 / 100;
               const targetBottomH = 200 / 100;
               const hasSplitY = h > 200 / 100; // split when > 200cm
-              const topH = hasSplitY
+              const _topH = hasSplitY
                 ? h - targetBottomH < minTopH
                   ? minTopH
                   : h - targetBottomH
@@ -1196,19 +1356,19 @@ export function ConfiguratorControls({
                 letters.push(toLetters(i));
 
               const selectedElementKey = useShelfStore(
-                state => state.selectedElementKey
+                (state) => state.selectedElementKey,
               );
               const setSelectedElementKey = useShelfStore(
-                state => state.setSelectedElementKey
+                (state) => state.setSelectedElementKey,
               );
               const elementConfigs = useShelfStore(
-                state => state.elementConfigs
+                (state) => state.elementConfigs,
               );
               const setElementColumns = useShelfStore(
-                state => state.setElementColumns
+                (state) => state.setElementColumns,
               );
               const setElementRowCount = useShelfStore(
-                state => state.setElementRowCount
+                (state) => state.setElementRowCount,
               );
 
               return (
@@ -1217,7 +1377,7 @@ export function ConfiguratorControls({
                     <span className="text-sm text-muted-foreground">
                       Element:
                     </span>
-                    {letters.map((ltr, idx) => (
+                    {letters.map((ltr, _idx) => (
                       <Button
                         key={ltr}
                         variant={
@@ -1248,7 +1408,7 @@ export function ConfiguratorControls({
                               elementConfigs[selectedElementKey]?.columns ?? 1;
                             setElementColumns(
                               selectedElementKey,
-                              Math.max(curr - 1, 1)
+                              Math.max(curr - 1, 1),
                             );
                           }}
                           className="px-2"
@@ -1275,7 +1435,7 @@ export function ConfiguratorControls({
                               elementConfigs[selectedElementKey]?.columns ?? 1;
                             setElementColumns(
                               selectedElementKey,
-                              Math.min(curr + 1, 8)
+                              Math.min(curr + 1, 8),
                             );
                           }}
                           className="px-2"
@@ -1309,7 +1469,7 @@ export function ConfiguratorControls({
                                   setElementRowCount(
                                     selectedElementKey,
                                     idx,
-                                    Math.max(count - 1, 0)
+                                    Math.max(count - 1, 0),
                                   )
                                 }
                                 disabled={count <= 0}
@@ -1326,7 +1486,7 @@ export function ConfiguratorControls({
                                   setElementRowCount(
                                     selectedElementKey,
                                     idx,
-                                    val
+                                    val,
                                   )
                                 }
                                 className="flex-1"
@@ -1338,7 +1498,7 @@ export function ConfiguratorControls({
                                   setElementRowCount(
                                     selectedElementKey,
                                     idx,
-                                    Math.min(count + 1, 10)
+                                    Math.min(count + 1, 10),
                                   )
                                 }
                                 disabled={count >= 10}
@@ -1347,7 +1507,12 @@ export function ConfiguratorControls({
                                 +
                               </Button>
                               <span className="text-xs w-10 text-right">
-                                {count} {count === 1 ? 'polica' : (count >= 2 && count <= 4) ? 'police' : 'polica'}
+                                {count}{" "}
+                                {count === 1
+                                  ? "polica"
+                                  : count >= 2 && count <= 4
+                                    ? "police"
+                                    : "polica"}
                               </span>
                             </div>
                           );
@@ -1373,7 +1538,10 @@ export function ConfiguratorControls({
                 checked={hasBase}
                 onCheckedChange={setHasBase}
               />
-              <label htmlFor="chk-base" className="text-sm select-none cursor-pointer">
+              <label
+                htmlFor="chk-base"
+                className="text-sm select-none cursor-pointer"
+              >
                 Uključi bazu (donja pregrada)
               </label>
             </div>
@@ -1430,8 +1598,8 @@ export function ConfiguratorControls({
               </h4>
               <div className="grid grid-cols-3 gap-4">
                 {materials
-                  .filter(m => m.thickness >= 10 && m.thickness <= 25)
-                  .map(material => (
+                  .filter((m) => m.thickness >= 10 && m.thickness <= 25)
+                  .map((material) => (
                     <div
                       key={material.id}
                       className="flex flex-col items-center"
@@ -1456,16 +1624,15 @@ export function ConfiguratorControls({
               </div>
             </div>
 
-            {/* Materijal Leđa */
-            }
+            {/* Materijal Leđa */}
             <div>
               <h4 className="text-sm font-semibold mb-2">
                 Materijal Leđa (5mm)
               </h4>
               <div className="grid grid-cols-3 gap-4">
                 {materials
-                  .filter(m => m.thickness === 5) // for 5mm
-                  .map(material => (
+                  .filter((m) => m.thickness === 5) // for 5mm
+                  .map((material) => (
                     <div
                       key={material.id}
                       className="flex flex-col items-center"
@@ -1499,30 +1666,36 @@ export function ConfiguratorControls({
           <AccordionContent className="space-y-4 pt-4">
             {(() => {
               // Prava reaktivna veza na Zustand store
-              const extrasMode = useShelfStore(state => state.extrasMode);
-              const setExtrasMode = useShelfStore(state => state.setExtrasMode);
+              const extrasMode = useShelfStore((state) => state.extrasMode);
+              const setExtrasMode = useShelfStore(
+                (state) => state.setExtrasMode,
+              );
               const selectedCompartmentKey = useShelfStore(
-                state => state.selectedCompartmentKey
+                (state) => state.selectedCompartmentKey,
               );
               const setSelectedCompartmentKey = useShelfStore(
-                state => state.setSelectedCompartmentKey
+                (state) => state.setSelectedCompartmentKey,
               );
               const compartmentExtras = useShelfStore(
-                state => state.compartmentExtras
+                (state) => state.compartmentExtras,
               );
               const toggleCompVerticalDivider = useShelfStore(
-                state => state.toggleCompVerticalDivider
+                (state) => state.toggleCompVerticalDivider,
               );
               const toggleCompDrawers = useShelfStore(
-                state => state.toggleCompDrawers
+                (state) => state.toggleCompDrawers,
               );
-              const toggleCompRod = useShelfStore(state => state.toggleCompRod);
-              const toggleCompLed = useShelfStore(state => state.toggleCompLed);
+              const toggleCompRod = useShelfStore(
+                (state) => state.toggleCompRod,
+              );
+              const toggleCompLed = useShelfStore(
+                (state) => state.toggleCompLed,
+              );
 
               // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
               // Identicno kao u CarcassFrame elementLabels: blokovi po 100cm (X) i moduli po visini (Y)
-              const width = useShelfStore(state => state.width);
-              const height = useShelfStore(state => state.height);
+              const width = useShelfStore((state) => state.width);
+              const height = useShelfStore((state) => state.height);
               const w = width / 100;
               const h = height / 100;
               const maxSegX = 100 / 100;
@@ -1541,7 +1714,7 @@ export function ConfiguratorControls({
               };
               const allKeys = Array.from(
                 { length: nBlocksX * nModulesY },
-                (_, i) => toLetters(i)
+                (_, i) => toLetters(i),
               );
 
               // Prikaz stanja za selektovani element
@@ -1561,7 +1734,8 @@ export function ConfiguratorControls({
 
                   {!extrasMode ? (
                     <div className="text-sm text-muted-foreground">
-                      Uključite režim selekcije da biste mogli da izaberete elemente i dodate dodatke.
+                      Uključite režim selekcije da biste mogli da izaberete
+                      elemente i dodate dodatke.
                     </div>
                   ) : (
                     <>
@@ -1570,11 +1744,13 @@ export function ConfiguratorControls({
                         <span className="text-sm text-muted-foreground">
                           Element:
                         </span>
-                        {allKeys.map(ltr => (
+                        {allKeys.map((ltr) => (
                           <Button
                             key={ltr}
                             variant={
-                              selectedCompartmentKey === ltr ? "default" : "outline"
+                              selectedCompartmentKey === ltr
+                                ? "default"
+                                : "outline"
                             }
                             onClick={() => setSelectedCompartmentKey(ltr)}
                             className="px-2 py-1 h-8  transition-colors"
@@ -1585,192 +1761,204 @@ export function ConfiguratorControls({
                       </div>
                       {!selectedCompartmentKey ? (
                         <div className="text-sm text-muted-foreground">
-                          Izaberi element klikom na slovo iznad, pa dodaj dodatke.
+                          Izaberi element klikom na slovo iznad, pa dodaj
+                          dodatke.
                         </div>
                       ) : (
-                    <div className="space-y-3">
-                      <div className="text-sm">
-                        Odabrani: {selectedCompartmentKey}
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <Button
-                          variant={
-                            extras.verticalDivider ? "default" : "outline"
-                          }
-                          onClick={() =>
-                            toggleCompVerticalDivider(selectedCompartmentKey)
-                          }
-                          className=" transition-colors"
-                        >
-                          {extras.verticalDivider ? "✔ " : ""}+ Vertikalni
-                          divider
-                        </Button>
-                        {/* Drawers button + count selector together */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant={extras.drawers ? "default" : "outline"}
-                            onClick={() =>
-                              toggleCompDrawers(selectedCompartmentKey)
-                            }
-                            className="flex-1 transition-colors"
-                          >
-                            {extras.drawers ? "✔ " : ""}+ Fioke
-                          </Button>
-                          {(() => {
-                            const width = useShelfStore.getState().width;
-                            const height = useShelfStore.getState().height;
-                            const selectedMaterialId =
-                              useShelfStore.getState()
-                                .selectedMaterialId as number;
-                            const mat = (materials as any[]).find(
-                              m => String(m.id) === String(selectedMaterialId)
-                            );
-                            const thicknessMm = mat?.thickness ?? 18; // mm
-                            const t = thicknessMm / 1000; // world units (m)
-                            const w = width / 100;
-                            const h = height / 100;
-                            const maxSegX = 100 / 100;
-                            const nBlocksX = Math.max(
-                              1,
-                              Math.ceil(w / maxSegX)
-                            );
-                            const segWX = w / nBlocksX;
-                            const targetBottomH = 200 / 100;
-                            const minTopH = 10 / 100;
-                            const modulesY: {
-                              yStart: number;
-                              yEnd: number;
-                            }[] = [];
-                            if (h > 200 / 100) {
-                              const yStartBottom = -h / 2;
-                              const bottomH =
-                                h - targetBottomH < minTopH
-                                  ? h - minTopH
-                                  : targetBottomH;
-                              const yEndBottom = yStartBottom + bottomH;
-                              const yStartTop = yEndBottom;
-                              const yEndTop = h / 2;
-                              modulesY.push({
-                                yStart: yStartBottom,
-                                yEnd: yEndBottom,
-                              });
-                              modulesY.push({
-                                yStart: yStartTop,
-                                yEnd: yEndTop,
-                              });
-                            } else {
-                              modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-                            }
-                            const toLetters = (num: number) => {
-                              let n = num + 1;
-                              let s = "";
-                              while (n > 0) {
-                                const rem = (n - 1) % 26;
-                                s = String.fromCharCode(65 + rem) + s;
-                                n = Math.floor((n - 1) / 26);
+                        <div className="space-y-3">
+                          <div className="text-sm">
+                            Odabrani: {selectedCompartmentKey}
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <Button
+                              variant={
+                                extras.verticalDivider ? "default" : "outline"
                               }
-                              return s;
-                            };
-                            const blocksX = Array.from(
-                              { length: nBlocksX },
-                              (_, i) => {
-                                const start = -w / 2 + i * segWX;
-                                const end = start + segWX;
-                                return { start, end };
+                              onClick={() =>
+                                toggleCompVerticalDivider(
+                                  selectedCompartmentKey,
+                                )
                               }
-                            );
-                            let idx = 0;
-                            let innerHForDrawers = 0;
-                            let found = false;
-                            modulesY.forEach((m, mIdx) => {
-                              blocksX.forEach(bx => {
-                                const letter = toLetters(idx);
-                                if (
-                                  !found &&
-                                  letter === selectedCompartmentKey
-                                ) {
-                                  const yStartInner = m.yStart + t;
-                                  const yEndInner = m.yEnd - t;
-                                  const raiseByBase =
-                                    hasBase &&
-                                    (modulesY.length === 1 || mIdx === 0)
-                                      ? baseHeight / 100
-                                      : 0;
-                                  const drawersYStart =
-                                    yStartInner + raiseByBase;
-                                  innerHForDrawers = Math.max(
-                                    yEndInner - drawersYStart,
-                                    0
-                                  );
-                                  found = true;
+                              className=" transition-colors"
+                            >
+                              {extras.verticalDivider ? "✔ " : ""}+ Vertikalni
+                              divider
+                            </Button>
+                            {/* Drawers button + count selector together */}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant={extras.drawers ? "default" : "outline"}
+                                onClick={() =>
+                                  toggleCompDrawers(selectedCompartmentKey)
                                 }
-                                idx += 1;
-                              });
-                            });
-                            const drawerH = 10 / 100; // 10cm
-                            const gap = 1 / 100; // 1cm
-                            const maxCount = Math.max(
-                              0,
-                              Math.floor(
-                                (innerHForDrawers + gap) / (drawerH + gap)
-                              )
-                            );
-                            const current = extras.drawersCount ?? 0;
-                            const options = [] as number[];
-                            for (let i = 0; i <= maxCount; i++)
-                              options.push(i);
-                            if (current > maxCount) options.push(current);
-
-                            return (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    disabled={
-                                      !selectedCompartmentKey || !extras.drawers
+                                className="flex-1 transition-colors"
+                              >
+                                {extras.drawers ? "✔ " : ""}+ Fioke
+                              </Button>
+                              {(() => {
+                                const width = useShelfStore.getState().width;
+                                const height = useShelfStore.getState().height;
+                                const selectedMaterialId =
+                                  useShelfStore.getState()
+                                    .selectedMaterialId as number;
+                                const mat = (materials as any[]).find(
+                                  (m) =>
+                                    String(m.id) === String(selectedMaterialId),
+                                );
+                                const thicknessMm = mat?.thickness ?? 18; // mm
+                                const t = thicknessMm / 1000; // world units (m)
+                                const w = width / 100;
+                                const h = height / 100;
+                                const maxSegX = 100 / 100;
+                                const nBlocksX = Math.max(
+                                  1,
+                                  Math.ceil(w / maxSegX),
+                                );
+                                const segWX = w / nBlocksX;
+                                const targetBottomH = 200 / 100;
+                                const minTopH = 10 / 100;
+                                const modulesY: {
+                                  yStart: number;
+                                  yEnd: number;
+                                }[] = [];
+                                if (h > 200 / 100) {
+                                  const yStartBottom = -h / 2;
+                                  const bottomH =
+                                    h - targetBottomH < minTopH
+                                      ? h - minTopH
+                                      : targetBottomH;
+                                  const yEndBottom = yStartBottom + bottomH;
+                                  const yStartTop = yEndBottom;
+                                  const yEndTop = h / 2;
+                                  modulesY.push({
+                                    yStart: yStartBottom,
+                                    yEnd: yEndBottom,
+                                  });
+                                  modulesY.push({
+                                    yStart: yStartTop,
+                                    yEnd: yEndTop,
+                                  });
+                                } else {
+                                  modulesY.push({
+                                    yStart: -h / 2,
+                                    yEnd: h / 2,
+                                  });
+                                }
+                                const toLetters = (num: number) => {
+                                  let n = num + 1;
+                                  let s = "";
+                                  while (n > 0) {
+                                    const rem = (n - 1) % 26;
+                                    s = String.fromCharCode(65 + rem) + s;
+                                    n = Math.floor((n - 1) / 26);
+                                  }
+                                  return s;
+                                };
+                                const blocksX = Array.from(
+                                  { length: nBlocksX },
+                                  (_, i) => {
+                                    const start = -w / 2 + i * segWX;
+                                    const end = start + segWX;
+                                    return { start, end };
+                                  },
+                                );
+                                let idx = 0;
+                                let innerHForDrawers = 0;
+                                let found = false;
+                                modulesY.forEach((m, mIdx) => {
+                                  blocksX.forEach((_bx) => {
+                                    const letter = toLetters(idx);
+                                    if (
+                                      !found &&
+                                      letter === selectedCompartmentKey
+                                    ) {
+                                      const yStartInner = m.yStart + t;
+                                      const yEndInner = m.yEnd - t;
+                                      const raiseByBase =
+                                        hasBase &&
+                                        (modulesY.length === 1 || mIdx === 0)
+                                          ? baseHeight / 100
+                                          : 0;
+                                      const drawersYStart =
+                                        yStartInner + raiseByBase;
+                                      innerHForDrawers = Math.max(
+                                        yEndInner - drawersYStart,
+                                        0,
+                                      );
+                                      found = true;
                                     }
-                                    className="w-16"
-                                  >
-                                    {current}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {options.map(n => (
-                                    <DropdownMenuItem
-                                      key={n}
-                                      onClick={() => {
-                                        useShelfStore
-                                          .getState()
-                                          .setCompDrawersCount(
-                                            selectedCompartmentKey!,
-                                            n
-                                          );
-                                      }}
-                                    >
-                                      {n}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            );
-                          })()}
+                                    idx += 1;
+                                  });
+                                });
+                                const drawerH = 10 / 100; // 10cm
+                                const gap = 1 / 100; // 1cm
+                                const maxCount = Math.max(
+                                  0,
+                                  Math.floor(
+                                    (innerHForDrawers + gap) / (drawerH + gap),
+                                  ),
+                                );
+                                const current = extras.drawersCount ?? 0;
+                                const options = [] as number[];
+                                for (let i = 0; i <= maxCount; i++)
+                                  options.push(i);
+                                if (current > maxCount) options.push(current);
+
+                                return (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        disabled={
+                                          !selectedCompartmentKey ||
+                                          !extras.drawers
+                                        }
+                                        className="w-16"
+                                      >
+                                        {current}
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      {options.map((n) => (
+                                        <DropdownMenuItem
+                                          key={n}
+                                          onClick={() => {
+                                            useShelfStore
+                                              .getState()
+                                              .setCompDrawersCount(
+                                                selectedCompartmentKey!,
+                                                n,
+                                              );
+                                          }}
+                                        >
+                                          {n}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                );
+                              })()}
+                            </div>
+                            <Button
+                              variant={extras.rod ? "default" : "outline"}
+                              onClick={() =>
+                                toggleCompRod(selectedCompartmentKey)
+                              }
+                              className=" transition-colors"
+                            >
+                              {extras.rod ? "✔ " : ""}+ Šipka za ofingere
+                            </Button>
+                            <Button
+                              variant={extras.led ? "default" : "outline"}
+                              onClick={() =>
+                                toggleCompLed(selectedCompartmentKey)
+                              }
+                              className=" transition-colors"
+                            >
+                              {extras.led ? "✔ " : ""}LED rasveta
+                            </Button>
+                          </div>
                         </div>
-                        <Button
-                          variant={extras.rod ? "default" : "outline"}
-                          onClick={() => toggleCompRod(selectedCompartmentKey)}
-                          className=" transition-colors"
-                        >
-                          {extras.rod ? "✔ " : ""}+ Šipka za ofingere
-                        </Button>
-                        <Button
-                          variant={extras.led ? "default" : "outline"}
-                          onClick={() => toggleCompLed(selectedCompartmentKey)}
-                          className=" transition-colors"
-                        >
-                          {extras.led ? "✔ " : ""}LED rasveta
-                        </Button>
-                      </div>
-                    </div>
                       )}
                     </>
                   )}
@@ -1786,8 +1974,8 @@ export function ConfiguratorControls({
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             {(() => {
-              const width = useShelfStore(state => state.width);
-              const height = useShelfStore(state => state.height);
+              const width = useShelfStore((state) => state.width);
+              const height = useShelfStore((state) => state.height);
               const w = width / 100;
               const h = height / 100;
               const maxSegX = 100 / 100;
@@ -1806,19 +1994,21 @@ export function ConfiguratorControls({
               };
               const allKeys = Array.from(
                 { length: nBlocksX * nModulesY },
-                (_, i) => toLetters(i)
+                (_, i) => toLetters(i),
               );
 
               const selectedDoorElementKey = useShelfStore(
-                state => state.selectedDoorElementKey
+                (state) => state.selectedDoorElementKey,
               );
               const setSelectedDoorElementKey = useShelfStore(
-                state => state.setSelectedDoorElementKey
+                (state) => state.setSelectedDoorElementKey,
               );
               const doorSelections = useShelfStore(
-                state => state.doorSelections
+                (state) => state.doorSelections,
               );
-              const setDoorOption = useShelfStore(state => state.setDoorOption);
+              const setDoorOption = useShelfStore(
+                (state) => state.setDoorOption,
+              );
 
               const options: { key: string; label: string }[] = [
                 { key: "none", label: "Bez vrata" },
@@ -1837,7 +2027,7 @@ export function ConfiguratorControls({
                     <span className="text-sm text-muted-foreground">
                       Element:
                     </span>
-                    {allKeys.map(ltr => (
+                    {allKeys.map((ltr) => (
                       <Button
                         key={ltr}
                         variant={
@@ -1853,7 +2043,8 @@ export function ConfiguratorControls({
 
                   {!selectedDoorElementKey ? (
                     <div className="text-sm text-muted-foreground">
-                      Izaberi element klikom na slovo iznad, pa izaberi tip vrata.
+                      Izaberi element klikom na slovo iznad, pa izaberi tip
+                      vrata.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1861,7 +2052,7 @@ export function ConfiguratorControls({
                         Odabrani: {selectedDoorElementKey}
                       </div>
                       <div className="grid grid-cols-1 gap-2">
-                        {options.map(opt => {
+                        {options.map((opt) => {
                           const curr = doorSelections[selectedDoorElementKey];
                           const isSel = curr === (opt.key as any);
                           return (
@@ -1869,7 +2060,10 @@ export function ConfiguratorControls({
                               key={opt.key}
                               variant={isSel ? "default" : "outline"}
                               onClick={() =>
-                                setDoorOption(selectedDoorElementKey, opt.key as any)
+                                setDoorOption(
+                                  selectedDoorElementKey,
+                                  opt.key as any,
+                                )
                               }
                               className="text-sm"
                             >
@@ -1904,7 +2098,9 @@ export function ConfiguratorControls({
 
           {/* View Controls */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">Prikaz</p>
+            <p className="text-xs font-medium text-muted-foreground px-1">
+              Prikaz
+            </p>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
@@ -1912,7 +2108,11 @@ export function ConfiguratorControls({
                 className="flex-1 hover:text-white"
                 size="sm"
               >
-                {allInfoShown ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {allInfoShown ? (
+                  <EyeOff className="h-4 w-4 mr-1" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-1" />
+                )}
                 {allInfoShown ? "Sakrij Info" : "Prikaži Info"}
               </Button>
               <Button
@@ -1921,7 +2121,11 @@ export function ConfiguratorControls({
                 className="flex-1 hover:text-white"
                 size="sm"
               >
-                {showDimensions ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {showDimensions ? (
+                  <EyeOff className="h-4 w-4 mr-1" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-1" />
+                )}
                 {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
               </Button>
             </div>
@@ -1929,7 +2133,9 @@ export function ConfiguratorControls({
 
           {/* Reports & Data */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">Izveštaji</p>
+            <p className="text-xs font-medium text-muted-foreground px-1">
+              Izveštaji
+            </p>
             <div className="flex flex-col gap-2">
               <Button
                 variant="secondary"
@@ -1954,7 +2160,9 @@ export function ConfiguratorControls({
 
           {/* Downloads */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">Preuzimanja</p>
+            <p className="text-xs font-medium text-muted-foreground px-1">
+              Preuzimanja
+            </p>
             <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
@@ -2016,7 +2224,7 @@ export function ConfiguratorControls({
               <div className="text-sm text-muted-foreground">
                 Cena materijala (po m²): {fmt2(cutList.pricePerM2)}
               </div>
-              {Object.keys(cutList.grouped).map(letter => (
+              {Object.keys(cutList.grouped).map((letter) => (
                 <div key={letter} className="space-y-2">
                   <div className="font-semibold">Element {letter}</div>
                   <div className="overflow-auto">
@@ -2027,21 +2235,40 @@ export function ConfiguratorControls({
                           <th className="text-left py-1 pr-2">Opis</th>
                           <th className="text-right py-1 pr-2">Širina (cm)</th>
                           <th className="text-right py-1 pr-2">Visina (cm)</th>
-                          <th className="text-right py-1 pr-2">Debljina (mm)</th>
-                          <th className="text-right py-1 pr-2">Kvadratura (m²)</th>
+                          <th className="text-right py-1 pr-2">
+                            Debljina (mm)
+                          </th>
+                          <th className="text-right py-1 pr-2">
+                            Kvadratura (m²)
+                          </th>
                           <th className="text-right py-1 pr-2">Cena</th>
                         </tr>
                       </thead>
                       <tbody>
-            {cutList.grouped[letter].map((it: any, i: number) => (
-                          <tr key={`${it.code}-${i}`} className="border-b last:border-0">
-                            <td className="py-1 pr-2 whitespace-nowrap">{it.code}</td>
+                        {cutList.grouped[letter].map((it: any, i: number) => (
+                          <tr
+                            key={`${it.code}-${i}`}
+                            className="border-b last:border-0"
+                          >
+                            <td className="py-1 pr-2 whitespace-nowrap">
+                              {it.code}
+                            </td>
                             <td className="py-1 pr-2">{it.desc}</td>
-              <td className="py-1 pr-2 text-right">{fmt2(it.widthCm)}</td>
-              <td className="py-1 pr-2 text-right">{fmt2(it.heightCm)}</td>
-              <td className="py-1 pr-2 text-right">{fmt2(it.thicknessMm)}</td>
-              <td className="py-1 pr-2 text-right">{fmt2(it.areaM2)}</td>
-              <td className="py-1 pr-2 text-right">{fmt2(it.cost)}</td>
+                            <td className="py-1 pr-2 text-right">
+                              {fmt2(it.widthCm)}
+                            </td>
+                            <td className="py-1 pr-2 text-right">
+                              {fmt2(it.heightCm)}
+                            </td>
+                            <td className="py-1 pr-2 text-right">
+                              {fmt2(it.thicknessMm)}
+                            </td>
+                            <td className="py-1 pr-2 text-right">
+                              {fmt2(it.areaM2)}
+                            </td>
+                            <td className="py-1 pr-2 text-right">
+                              {fmt2(it.cost)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -2050,8 +2277,8 @@ export function ConfiguratorControls({
                 </div>
               ))}
               <div className="flex justify-end gap-8 text-sm font-semibold">
-        <div>Ukupna kvadratura: {fmt2(cutList.totalArea)} m²</div>
-        <div>Ukupna cena: {fmt2(cutList.totalCost)}</div>
+                <div>Ukupna kvadratura: {fmt2(cutList.totalArea)} m²</div>
+                <div>Ukupna cena: {fmt2(cutList.totalCost)}</div>
               </div>
             </div>
           </div>
@@ -2064,15 +2291,18 @@ export function ConfiguratorControls({
           <AlertDialogHeader>
             <AlertDialogTitle>Prijavite se</AlertDialogTitle>
             <AlertDialogDescription>
-              Morate biti prijavljeni da biste sačuvali orman. Želite li da se prijavite sada?
+              Morate biti prijavljeni da biste sačuvali orman. Želite li da se
+              prijavite sada?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Otkaži</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              setLoginAlertOpen(false);
-              handleLoginClick();
-            }}>
+            <AlertDialogAction
+              onClick={() => {
+                setLoginAlertOpen(false);
+                handleLoginClick();
+              }}
+            >
               Prijavi se
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -2084,9 +2314,7 @@ export function ConfiguratorControls({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Sačuvaj orman</DialogTitle>
-            <DialogDescription>
-              Unesite naziv za vaš orman
-            </DialogDescription>
+            <DialogDescription>Unesite naziv za vaš orman</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -2097,7 +2325,7 @@ export function ConfiguratorControls({
                 onChange={(e) => setWardrobeName(e.target.value)}
                 placeholder="Unesite naziv..."
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     performSave();
                   }
                 }}
@@ -2108,9 +2336,7 @@ export function ConfiguratorControls({
             <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
               Otkaži
             </Button>
-            <Button onClick={performSave}>
-              Sačuvaj
-            </Button>
+            <Button onClick={performSave}>Sačuvaj</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2120,13 +2346,13 @@ export function ConfiguratorControls({
 
 // Example: Top-right controls (e.g. in Scene.tsx or AppBar.tsx)
 export function TopRightControls() {
-  const viewMode = useShelfStore(state => state.viewMode);
-  const setViewMode = useShelfStore(state => state.setViewMode);
+  const viewMode = useShelfStore((state) => state.viewMode);
+  const setViewMode = useShelfStore((state) => state.setViewMode);
   // For backward compatibility with existing camera mode logic
   const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
   const setCameraMode = (mode: "2D" | "3D") => setViewMode(mode);
-  const showDimensions = useShelfStore(state => state.showDimensions);
-  const setShowDimensions = useShelfStore(state => state.setShowDimensions);
+  const showDimensions = useShelfStore((state) => state.showDimensions);
+  const setShowDimensions = useShelfStore((state) => state.setShowDimensions);
 
   return (
     <div

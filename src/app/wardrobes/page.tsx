@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { MoreVertical, Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { MoreVertical, Plus } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
+import { useSession } from "@/lib/auth-client";
 
 interface Wardrobe {
   id: string;
@@ -33,11 +38,12 @@ function formatRelativeTime(date: Date): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffSec < 60) return 'Just now';
-  if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
-  if (diffHour < 24) return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
-  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)} week${Math.floor(diffDay / 7) !== 1 ? 's' : ''} ago`;
+  if (diffSec < 60) return "Just now";
+  if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? "s" : ""} ago`;
+  if (diffHour < 24) return `${diffHour} hour${diffHour !== 1 ? "s" : ""} ago`;
+  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? "s" : ""} ago`;
+  if (diffDay < 30)
+    return `${Math.floor(diffDay / 7)} week${Math.floor(diffDay / 7) !== 1 ? "s" : ""} ago`;
   return new Date(date).toLocaleDateString();
 }
 
@@ -50,7 +56,7 @@ export default function WardrobesPage() {
   // Redirect to home if not logged in
   useEffect(() => {
     if (!isPending && !session) {
-      router.push('/');
+      router.push("/");
     }
   }, [session, isPending, router]);
 
@@ -59,16 +65,16 @@ export default function WardrobesPage() {
     if (!session) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/wardrobes');
+      const res = await fetch("/api/wardrobes");
       if (res.ok) {
         const data = await res.json();
         setWardrobes(data);
       } else {
-        toast.error('Failed to load wardrobes');
+        toast.error("Failed to load wardrobes");
       }
     } catch (error) {
-      console.error('Failed to fetch wardrobes:', error);
-      toast.error('Failed to load wardrobes');
+      console.error("Failed to fetch wardrobes:", error);
+      toast.error("Failed to load wardrobes");
     } finally {
       setLoading(false);
     }
@@ -76,7 +82,7 @@ export default function WardrobesPage() {
 
   useEffect(() => {
     fetchWardrobes();
-  }, [session]);
+  }, [fetchWardrobes]);
 
   // Handle load wardrobe
   function handleLoad(id: string) {
@@ -85,22 +91,22 @@ export default function WardrobesPage() {
 
   // Handle duplicate wardrobe
   async function handleDuplicate(id: string) {
-    const original = wardrobes.find(w => w.id === id);
+    const original = wardrobes.find((w) => w.id === id);
     if (!original) return;
 
     try {
       // Fetch full wardrobe data first
       const res = await fetch(`/api/wardrobes/${id}`);
       if (!res.ok) {
-        toast.error('Failed to load wardrobe');
+        toast.error("Failed to load wardrobe");
         return;
       }
       const fullWardrobe = await res.json();
 
       // Create duplicate
-      const duplicateRes = await fetch('/api/wardrobes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const duplicateRes = await fetch("/api/wardrobes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: `${original.name} (Copy)`,
           data: fullWardrobe.data,
@@ -109,14 +115,14 @@ export default function WardrobesPage() {
       });
 
       if (duplicateRes.ok) {
-        toast.success('Wardrobe duplicated!');
+        toast.success("Wardrobe duplicated!");
         await fetchWardrobes();
       } else {
-        toast.error('Failed to duplicate wardrobe');
+        toast.error("Failed to duplicate wardrobe");
       }
     } catch (error) {
-      console.error('Failed to duplicate:', error);
-      toast.error('Failed to duplicate wardrobe');
+      console.error("Failed to duplicate:", error);
+      toast.error("Failed to duplicate wardrobe");
     }
   }
 
@@ -125,31 +131,31 @@ export default function WardrobesPage() {
     const shareUrl = `${window.location.origin}/design?load=${id}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success('Link copied to clipboard!');
+      toast.success("Link copied to clipboard!");
     } catch (error) {
-      console.error('Failed to copy:', error);
-      toast.error('Failed to copy link');
+      console.error("Failed to copy:", error);
+      toast.error("Failed to copy link");
     }
   }
 
   // Handle delete wardrobe
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this wardrobe?')) return;
+    if (!confirm("Are you sure you want to delete this wardrobe?")) return;
 
     try {
       const res = await fetch(`/api/wardrobes/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (res.ok) {
-        toast.success('Wardrobe deleted');
+        toast.success("Wardrobe deleted");
         await fetchWardrobes();
       } else {
-        toast.error('Failed to delete wardrobe');
+        toast.error("Failed to delete wardrobe");
       }
     } catch (error) {
-      console.error('Failed to delete:', error);
-      toast.error('Failed to delete wardrobe');
+      console.error("Failed to delete:", error);
+      toast.error("Failed to delete wardrobe");
     }
   }
 
@@ -167,7 +173,9 @@ export default function WardrobesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">My Wardrobes</h1>
-          <p className="text-muted-foreground mt-1">Manage your saved wardrobe designs</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your saved wardrobe designs
+          </p>
         </div>
         <Link href="/design">
           <Button>
@@ -178,7 +186,9 @@ export default function WardrobesPage() {
       </div>
 
       {loading ? (
-        <div className="text-center text-muted-foreground py-12">Loading wardrobes...</div>
+        <div className="text-center text-muted-foreground py-12">
+          Loading wardrobes...
+        </div>
       ) : wardrobes.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No saved wardrobes yet</p>
@@ -192,7 +202,10 @@ export default function WardrobesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wardrobes.map((wardrobe) => (
-            <Card key={wardrobe.id} className="group relative overflow-hidden hover:shadow-lg transition-shadow">
+            <Card
+              key={wardrobe.id}
+              className="group relative overflow-hidden hover:shadow-lg transition-shadow"
+            >
               <div className="aspect-video bg-muted relative">
                 {wardrobe.thumbnail ? (
                   <img
@@ -219,7 +232,9 @@ export default function WardrobesPage() {
 
               <CardHeader className="flex flex-row items-start justify-between p-4">
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base truncate">{wardrobe.name}</CardTitle>
+                  <CardTitle className="text-base truncate">
+                    {wardrobe.name}
+                  </CardTitle>
                   <CardDescription className="text-xs">
                     {formatRelativeTime(wardrobe.updatedAt)}
                   </CardDescription>
@@ -235,7 +250,9 @@ export default function WardrobesPage() {
                     <DropdownMenuItem onClick={() => handleLoad(wardrobe.id)}>
                       Load
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDuplicate(wardrobe.id)}>
+                    <DropdownMenuItem
+                      onClick={() => handleDuplicate(wardrobe.id)}
+                    >
                       Duplicate
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleShare(wardrobe.id)}>

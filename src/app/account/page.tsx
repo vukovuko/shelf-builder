@@ -1,24 +1,24 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth } from "@/lib/auth";
 
 export default async function AccountPage() {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
   });
 
   if (!session) {
-    redirect('/');
+    redirect("/");
   }
 
   // Format date
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(new Date(date));
   };
 
@@ -32,27 +32,37 @@ export default async function AccountPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Name</label>
+            <label className="text-sm font-medium text-muted-foreground">
+              Name
+            </label>
             <p className="text-base">{session.user.name}</p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Email</label>
+            <label className="text-sm font-medium text-muted-foreground">
+              Email
+            </label>
             <p className="text-base">{session.user.email}</p>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Account Created</label>
+            <label className="text-sm font-medium text-muted-foreground">
+              Account Created
+            </label>
             <p className="text-base">
-              {session.user.createdAt ? formatDate(session.user.createdAt) : 'N/A'}
+              {session.user.createdAt
+                ? formatDate(session.user.createdAt)
+                : "N/A"}
             </p>
           </div>
 
           {session.user.emailVerified !== undefined && (
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Email Verified</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Email Verified
+              </label>
               <p className="text-base">
-                {session.user.emailVerified ? '✓ Verified' : '✗ Not verified'}
+                {session.user.emailVerified ? "✓ Verified" : "✗ Not verified"}
               </p>
             </div>
           )}
