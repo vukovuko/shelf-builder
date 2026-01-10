@@ -12,15 +12,142 @@ import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
 import materials from "@/data/materials.json";
 import { Slider } from "@/components/ui/slider";
-import { SaveLoadBar } from "./SaveLoadBar";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AuthForms } from "./AuthForms";
 import jsPDF from "jspdf";
+import { useSession, signOut } from "@/lib/auth-client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { User, ChevronDown, Save, Settings, LogOut, FolderOpen, Eye, EyeOff, Download, FileText, Table } from "lucide-react";
+import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { toast } from "sonner";
+import { captureThumbnail } from "@/lib/captureThumbnail";
+
+// Helper function to get initials from name/email
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export function ConfiguratorControls({
   wardrobeRef,
 }: {
   wardrobeRef: React.RefObject<any>;
 }) {
+  // Auth state
+  const { data: session, isPending } = useSession();
+  const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
+  const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
+  const [wardrobeName, setWardrobeName] = React.useState('Orman');
+
+  // Handle login click - save state before opening auth
+  const handleLoginClick = () => {
+    const currentState = getWardrobeSnapshot();
+    localStorage.setItem('pendingWardrobeState', JSON.stringify(currentState));
+    setAuthDialogOpen(true);
+  };
+
+  // Handle save wardrobe click
+  const handleSaveClick = () => {
+    if (!session) {
+      // Not logged in - show alert dialog
+      setLoginAlertOpen(true);
+      return;
+    }
+
+    // Logged in - show save dialog
+    setWardrobeName('Orman');
+    setSaveDialogOpen(true);
+  };
+
+  // Perform actual save
+  const performSave = async () => {
+    if (!wardrobeName.trim()) {
+      toast.error('Molimo unesite naziv ormana');
+      return;
+    }
+
+    try {
+      const snapshot = getWardrobeSnapshot();
+      if (!snapshot || typeof snapshot !== 'object') {
+        console.error('[performSave] invalid snapshot', snapshot);
+        toast.error('Greška pri čuvanju ormana');
+        return;
+      }
+
+      // Capture thumbnail from canvas
+      let thumbnail: string | null = null;
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        try {
+          thumbnail = await captureThumbnail(canvas);
+        } catch (e) {
+          console.error('[performSave] Failed to capture thumbnail', e);
+          // Continue without thumbnail
+        }
+      }
+
+      const res = await fetch('/api/wardrobes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: wardrobeName, data: snapshot, thumbnail }),
+      });
+
+      if (!res.ok) {
+        console.error('[performSave] save failed', res.status);
+        toast.error('Greška pri čuvanju ormana');
+        return;
+      }
+
+      toast.success(`Orman "${wardrobeName}" je sačuvan!`);
+      setSaveDialogOpen(false);
+    } catch (e) {
+      console.error('[performSave] exception', e);
+      toast.error('Greška pri čuvanju ormana');
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+    toast.success('Odjavljeni ste');
+  };
+
   // Download 2D front view as JPG
   const setViewMode = useShelfStore(state => state.setViewMode);
   const viewMode = useShelfStore(state => state.viewMode);
@@ -920,6 +1047,80 @@ export function ConfiguratorControls({
 
   return (
     <>
+      {/* Mini Auth Section - Compact at top of sidebar */}
+      <div className="pb-3 border-b mb-4">
+        {isPending ? (
+          <div className="h-9 w-full animate-pulse bg-muted rounded" />
+        ) : session ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-auto py-1.5">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs">
+                    {getInitials(session.user?.name || session.user?.email || 'U')}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs truncate flex-1 text-left">
+                  {session.user?.email}
+                </span>
+                <ChevronDown className="h-3 w-3 flex-shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{session.user?.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {session.user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/wardrobes" className="flex items-center">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Moji Ormani
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account" className="flex items-center">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Nalog
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="flex items-center">
+                <LogOut className="h-4 w-4 mr-2" />
+                Odjavi se
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLoginClick}
+                className="w-full justify-start hover:text-white"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Prijavi se
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Dobrodošli</DialogTitle>
+                <DialogDescription>
+                  Prijavite se da biste sačuvali vaš dizajn ormana
+                </DialogDescription>
+              </DialogHeader>
+              <AuthForms onSuccess={() => setAuthDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
       <Accordion
         type="single"
         collapsible
@@ -928,11 +1129,11 @@ export function ConfiguratorControls({
       >
         <AccordionItem value="item-1" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            1. Define exterior dimensions
+            1. Definiši spoljašnje dimenzije
           </AccordionTrigger>
           <AccordionContent className="space-y-6 pt-4">
             <DimensionControl
-              label="Width"
+              label="Širina"
               value={width}
               setValue={setWidth}
               min={50}
@@ -940,7 +1141,7 @@ export function ConfiguratorControls({
               step={1}
             />
             <DimensionControl
-              label="Height"
+              label="Visina"
               value={height}
               setValue={setHeight}
               min={50}
@@ -948,7 +1149,7 @@ export function ConfiguratorControls({
               step={1}
             />
             <DimensionControl
-              label="Depth"
+              label="Dubina"
               value={depth}
               setValue={setDepth}
               min={20}
@@ -960,7 +1161,7 @@ export function ConfiguratorControls({
 
         <AccordionItem value="item-2" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            2. Columns & Compartments
+            2. Kolone i Pregrade
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             {/* Per-element selection and controls */}
@@ -1033,7 +1234,7 @@ export function ConfiguratorControls({
                   {selectedElementKey && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Compartments (vertical)</span>
+                        <span className="text-sm">Pregrade (vertikalne)</span>
                         <span className="text-xs text-muted-foreground">
                           {elementConfigs[selectedElementKey]?.columns ?? 1}
                         </span>
@@ -1099,7 +1300,7 @@ export function ConfiguratorControls({
                               className="flex items-center space-x-2"
                             >
                               <span className="text-xs text-muted-foreground">
-                                Shelves in Comp {idx + 1}
+                                Police u pregradi {idx + 1}
                               </span>
                               <Button
                                 variant="outline"
@@ -1146,7 +1347,7 @@ export function ConfiguratorControls({
                                 +
                               </Button>
                               <span className="text-xs w-10 text-right">
-                                {count} shelves
+                                {count} {count === 1 ? 'polica' : (count >= 2 && count <= 4) ? 'police' : 'polica'}
                               </span>
                             </div>
                           );
@@ -1163,20 +1364,16 @@ export function ConfiguratorControls({
         {/* 4. Base (Baza) */}
         <AccordionItem value="item-4" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            4. Base (Baza)
+            4. Baza
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             <div className="flex items-center gap-2">
-              <input
+              <Checkbox
                 id="chk-base"
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
                 checked={hasBase}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setHasBase(e.target.checked)
-                }
+                onCheckedChange={setHasBase}
               />
-              <label htmlFor="chk-base" className="text-sm select-none">
+              <label htmlFor="chk-base" className="text-sm select-none cursor-pointer">
                 Uključi bazu (donja pregrada)
               </label>
             </div>
@@ -1223,7 +1420,7 @@ export function ConfiguratorControls({
 
         <AccordionItem value="item-3" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            3. Choose material
+            3. Izbor materijala
           </AccordionTrigger>
           <AccordionContent className="space-y-6 pt-4">
             {/* Materijal Korpusa */}
@@ -1297,7 +1494,7 @@ export function ConfiguratorControls({
         {/* 5. Extras */}
         <AccordionItem value="item-5" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            5. Extras
+            5. Dodaci
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             {(() => {
@@ -1355,44 +1552,47 @@ export function ConfiguratorControls({
               return (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Selection mode</span>
-                    <Button
-                      variant={extrasMode ? "default" : "outline"}
-                      onClick={() => setExtrasMode(!extrasMode)}
-                      className="h-8 px-3"
-                    >
-                      {extrasMode ? "On" : "Off"}
-                    </Button>
+                    <span className="text-sm">Režim selekcije</span>
+                    <Switch
+                      checked={extrasMode}
+                      onCheckedChange={setExtrasMode}
+                    />
                   </div>
 
-                  {/* Element selection row for extras */}
-                  <div className="flex flex-wrap gap-2 items-center mb-2">
-                    <span className="text-sm text-muted-foreground">
-                      Element:
-                    </span>
-                    {allKeys.map(ltr => (
-                      <Button
-                        key={ltr}
-                        variant={
-                          selectedCompartmentKey === ltr ? "default" : "outline"
-                        }
-                        onClick={() => setSelectedCompartmentKey(ltr)}
-                        className="px-2 py-1 h-8  transition-colors"
-                      >
-                        {ltr}
-                      </Button>
-                    ))}
-                  </div>
-                  {!selectedCompartmentKey ? (
+                  {!extrasMode ? (
                     <div className="text-sm text-muted-foreground">
-                      Izaberi element klikom na slovo iznad, pa dodaj dodatke.
+                      Uključite režim selekcije da biste mogli da izaberete elemente i dodate dodatke.
                     </div>
                   ) : (
+                    <>
+                      {/* Element selection row for extras */}
+                      <div className="flex flex-wrap gap-2 items-center mb-2">
+                        <span className="text-sm text-muted-foreground">
+                          Element:
+                        </span>
+                        {allKeys.map(ltr => (
+                          <Button
+                            key={ltr}
+                            variant={
+                              selectedCompartmentKey === ltr ? "default" : "outline"
+                            }
+                            onClick={() => setSelectedCompartmentKey(ltr)}
+                            className="px-2 py-1 h-8  transition-colors"
+                          >
+                            {ltr}
+                          </Button>
+                        ))}
+                      </div>
+                      {!selectedCompartmentKey ? (
+                        <div className="text-sm text-muted-foreground">
+                          Izaberi element klikom na slovo iznad, pa dodaj dodatke.
+                        </div>
+                      ) : (
                     <div className="space-y-3">
                       <div className="text-sm">
                         Odabrani: {selectedCompartmentKey}
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         <Button
                           variant={
                             extras.verticalDivider ? "default" : "outline"
@@ -1412,137 +1612,148 @@ export function ConfiguratorControls({
                             onClick={() =>
                               toggleCompDrawers(selectedCompartmentKey)
                             }
-                            className=" transition-colors"
+                            className="flex-1 transition-colors"
                           >
                             {extras.drawers ? "✔ " : ""}+ Fioke
                           </Button>
-                          <select
-                            className="h-9 px-2 border rounded"
-                            disabled={
-                              !selectedCompartmentKey || !extras.drawers
-                            }
-                            value={extras.drawersCount ?? 0}
-                            onChange={e => {
-                              const val = parseInt(e.target.value, 10) || 0;
-                              useShelfStore
-                                .getState()
-                                .setCompDrawersCount(
-                                  selectedCompartmentKey!,
-                                  val
-                                );
-                            }}
-                          >
-                            {(() => {
-                              const width = useShelfStore.getState().width;
-                              const height = useShelfStore.getState().height;
-                              const selectedMaterialId =
-                                useShelfStore.getState()
-                                  .selectedMaterialId as number;
-                              const mat = (materials as any[]).find(
-                                m => String(m.id) === String(selectedMaterialId)
-                              );
-                              const thicknessMm = mat?.thickness ?? 18; // mm
-                              const t = thicknessMm / 1000; // world units (m)
-                              const w = width / 100;
-                              const h = height / 100;
-                              const maxSegX = 100 / 100;
-                              const nBlocksX = Math.max(
-                                1,
-                                Math.ceil(w / maxSegX)
-                              );
-                              const segWX = w / nBlocksX;
-                              const targetBottomH = 200 / 100;
-                              const minTopH = 10 / 100;
-                              const modulesY: {
-                                yStart: number;
-                                yEnd: number;
-                              }[] = [];
-                              if (h > 200 / 100) {
-                                const yStartBottom = -h / 2;
-                                const bottomH =
-                                  h - targetBottomH < minTopH
-                                    ? h - minTopH
-                                    : targetBottomH;
-                                const yEndBottom = yStartBottom + bottomH;
-                                const yStartTop = yEndBottom;
-                                const yEndTop = h / 2;
-                                modulesY.push({
-                                  yStart: yStartBottom,
-                                  yEnd: yEndBottom,
-                                });
-                                modulesY.push({
-                                  yStart: yStartTop,
-                                  yEnd: yEndTop,
-                                });
-                              } else {
-                                modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-                              }
-                              const toLetters = (num: number) => {
-                                let n = num + 1;
-                                let s = "";
-                                while (n > 0) {
-                                  const rem = (n - 1) % 26;
-                                  s = String.fromCharCode(65 + rem) + s;
-                                  n = Math.floor((n - 1) / 26);
-                                }
-                                return s;
-                              };
-                              const blocksX = Array.from(
-                                { length: nBlocksX },
-                                (_, i) => {
-                                  const start = -w / 2 + i * segWX;
-                                  const end = start + segWX;
-                                  return { start, end };
-                                }
-                              );
-                              let idx = 0;
-                              let innerHForDrawers = 0;
-                              let found = false;
-                              modulesY.forEach((m, mIdx) => {
-                                blocksX.forEach(bx => {
-                                  const letter = toLetters(idx);
-                                  if (
-                                    !found &&
-                                    letter === selectedCompartmentKey
-                                  ) {
-                                    const yStartInner = m.yStart + t;
-                                    const yEndInner = m.yEnd - t;
-                                    const raiseByBase =
-                                      hasBase &&
-                                      (modulesY.length === 1 || mIdx === 0)
-                                        ? baseHeight / 100
-                                        : 0;
-                                    const drawersYStart =
-                                      yStartInner + raiseByBase;
-                                    innerHForDrawers = Math.max(
-                                      yEndInner - drawersYStart,
-                                      0
-                                    );
-                                    found = true;
-                                  }
-                                  idx += 1;
-                                });
+                          {(() => {
+                            const width = useShelfStore.getState().width;
+                            const height = useShelfStore.getState().height;
+                            const selectedMaterialId =
+                              useShelfStore.getState()
+                                .selectedMaterialId as number;
+                            const mat = (materials as any[]).find(
+                              m => String(m.id) === String(selectedMaterialId)
+                            );
+                            const thicknessMm = mat?.thickness ?? 18; // mm
+                            const t = thicknessMm / 1000; // world units (m)
+                            const w = width / 100;
+                            const h = height / 100;
+                            const maxSegX = 100 / 100;
+                            const nBlocksX = Math.max(
+                              1,
+                              Math.ceil(w / maxSegX)
+                            );
+                            const segWX = w / nBlocksX;
+                            const targetBottomH = 200 / 100;
+                            const minTopH = 10 / 100;
+                            const modulesY: {
+                              yStart: number;
+                              yEnd: number;
+                            }[] = [];
+                            if (h > 200 / 100) {
+                              const yStartBottom = -h / 2;
+                              const bottomH =
+                                h - targetBottomH < minTopH
+                                  ? h - minTopH
+                                  : targetBottomH;
+                              const yEndBottom = yStartBottom + bottomH;
+                              const yStartTop = yEndBottom;
+                              const yEndTop = h / 2;
+                              modulesY.push({
+                                yStart: yStartBottom,
+                                yEnd: yEndBottom,
                               });
-                              const drawerH = 10 / 100; // 10cm
-                              const gap = 1 / 100; // 1cm
-                              const maxCount = Math.max(
-                                0,
-                                Math.floor(
-                                  (innerHForDrawers + gap) / (drawerH + gap)
-                                )
-                              );
-                              const current = extras.drawersCount ?? 0;
-                              const options = [] as number[];
-                              for (let i = 0; i <= maxCount; i++)
-                                options.push(i);
-                              if (current > maxCount) options.push(current);
-                              return options.map(n => (
-                                <option key={n} value={n}>
-                                  {n}
-                                </option>
-                              ));
-                            })()}
-                          </select>
+                              modulesY.push({
+                                yStart: yStartTop,
+                                yEnd: yEndTop,
+                              });
+                            } else {
+                              modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+                            }
+                            const toLetters = (num: number) => {
+                              let n = num + 1;
+                              let s = "";
+                              while (n > 0) {
+                                const rem = (n - 1) % 26;
+                                s = String.fromCharCode(65 + rem) + s;
+                                n = Math.floor((n - 1) / 26);
+                              }
+                              return s;
+                            };
+                            const blocksX = Array.from(
+                              { length: nBlocksX },
+                              (_, i) => {
+                                const start = -w / 2 + i * segWX;
+                                const end = start + segWX;
+                                return { start, end };
+                              }
+                            );
+                            let idx = 0;
+                            let innerHForDrawers = 0;
+                            let found = false;
+                            modulesY.forEach((m, mIdx) => {
+                              blocksX.forEach(bx => {
+                                const letter = toLetters(idx);
+                                if (
+                                  !found &&
+                                  letter === selectedCompartmentKey
+                                ) {
+                                  const yStartInner = m.yStart + t;
+                                  const yEndInner = m.yEnd - t;
+                                  const raiseByBase =
+                                    hasBase &&
+                                    (modulesY.length === 1 || mIdx === 0)
+                                      ? baseHeight / 100
+                                      : 0;
+                                  const drawersYStart =
+                                    yStartInner + raiseByBase;
+                                  innerHForDrawers = Math.max(
+                                    yEndInner - drawersYStart,
+                                    0
+                                  );
+                                  found = true;
+                                }
+                                idx += 1;
+                              });
+                            });
+                            const drawerH = 10 / 100; // 10cm
+                            const gap = 1 / 100; // 1cm
+                            const maxCount = Math.max(
+                              0,
+                              Math.floor(
+                                (innerHForDrawers + gap) / (drawerH + gap)
+                              )
+                            );
+                            const current = extras.drawersCount ?? 0;
+                            const options = [] as number[];
+                            for (let i = 0; i <= maxCount; i++)
+                              options.push(i);
+                            if (current > maxCount) options.push(current);
+
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    disabled={
+                                      !selectedCompartmentKey || !extras.drawers
+                                    }
+                                    className="w-16"
+                                  >
+                                    {current}
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {options.map(n => (
+                                    <DropdownMenuItem
+                                      key={n}
+                                      onClick={() => {
+                                        useShelfStore
+                                          .getState()
+                                          .setCompDrawersCount(
+                                            selectedCompartmentKey!,
+                                            n
+                                          );
+                                      }}
+                                    >
+                                      {n}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </div>
                         <Button
                           variant={extras.rod ? "default" : "outline"}
@@ -1560,6 +1771,8 @@ export function ConfiguratorControls({
                         </Button>
                       </div>
                     </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
@@ -1569,7 +1782,7 @@ export function ConfiguratorControls({
         {/* 6. Doors */}
         <AccordionItem value="item-6" className="border-border">
           <AccordionTrigger className="text-base font-bold hover:no-underline">
-            6. Doors
+            6. Vrata
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-4">
             {(() => {
@@ -1647,7 +1860,7 @@ export function ConfiguratorControls({
                       <div className="text-sm">
                         Odabrani: {selectedDoorElementKey}
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         {options.map(opt => {
                           const curr = doorSelections[selectedDoorElementKey];
                           const isSel = curr === (opt.key as any);
@@ -1676,49 +1889,113 @@ export function ConfiguratorControls({
             })()}
           </AccordionContent>
         </AccordionItem>
-        {/* Global Show/Hide Info Button */}
-        <div className="flex flex-col items-center gap-3 mt-6">
-          <Button variant="outline" onClick={handleToggleAllInfo}>
-            {allInfoShown ? "Hide All Info" : "Show All Info"}
-          </Button>
+        {/* Actions and Controls */}
+        <div className="flex flex-col gap-4 mt-6">
+          {/* Primary Action */}
           <Button
-            variant="outline"
-            onClick={() => setShowDimensions(!showDimensions)}
+            variant="default"
+            onClick={handleSaveClick}
+            className="w-full"
+            size="lg"
           >
-            {showDimensions ? "Hide Dimensions" : "Show Dimensions"}
+            <Save className="h-4 w-4 mr-2" />
+            Sačuvaj Orman
           </Button>
-          <Button variant="outline" onClick={handleDownloadFrontView}>
-            Download Front View (JPG)
-          </Button>
-          <Button variant="outline" onClick={handleDownloadFrontEdges}>
-            Download Front Edges (JPG)
-          </Button>
-          <Button variant="outline" onClick={handleDownloadTechnical2D}>
-            Download 2D Technical (JPG)
-          </Button>
-          <Button variant="default" onClick={() => setShowCutList(true)}>
-            Tabela ploča
-          </Button>
-          <Button variant="default" onClick={handleExportElementSpecs}>
-            Specifikacija elemenata
-          </Button>
+
+          {/* View Controls */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground px-1">Prikaz</p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleToggleAllInfo}
+                className="flex-1"
+                size="sm"
+              >
+                {allInfoShown ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {allInfoShown ? "Sakrij Info" : "Prikaži Info"}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowDimensions(!showDimensions)}
+                className="flex-1"
+                size="sm"
+              >
+                {showDimensions ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Reports & Data */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground px-1">Izveštaji</p>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowCutList(true)}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <Table className="h-4 w-4 mr-2" />
+                Tabela ploča
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleExportElementSpecs}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Specifikacija elemenata
+              </Button>
+            </div>
+          </div>
+
+          {/* Downloads */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground px-1">Preuzimanja</p>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownloadFrontView}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Frontalni prikaz
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadFrontEdges}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Ivice (front)
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadTechnical2D}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Tehnički crtež 2D
+              </Button>
+            </div>
+          </div>
         </div>
       </Accordion>
 
       {/* Bottom summary bar */}
-      <div className="mt-4 w-full bg-green-600 text-white h-[50px] flex items-center justify-between px-3 rounded">
+      <div className="mt-4 w-full bg-primary text-primary-foreground h-[50px] flex items-center justify-between px-3 rounded">
         <span className="text-sm font-medium">
           Ukupna kvadratura: {fmt2(cutList.totalArea)} m²
         </span>
         <span className="text-sm font-semibold">
           Ukupna cena: {fmt2(cutList.totalCost)}
         </span>
-      </div>
-
-      {/* Auth + Save/Load */}
-      <div className="mt-4 space-y-4">
-        <AuthForms />
-        <SaveLoadBar />
       </div>
 
       {/* Cut List Modal */}
@@ -1728,7 +2005,7 @@ export function ConfiguratorControls({
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowCutList(false)}
           />
-          <div className="relative bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] overflow-auto p-4">
+          <div className="relative bg-background border rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] overflow-auto p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Tabela ploča (Cut list)</h3>
               <Button variant="outline" onClick={() => setShowCutList(false)}>
@@ -1780,6 +2057,63 @@ export function ConfiguratorControls({
           </div>
         </div>
       )}
+
+      {/* Login Alert Dialog - shown when user tries to save without being logged in */}
+      <AlertDialog open={loginAlertOpen} onOpenChange={setLoginAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Prijavite se</AlertDialogTitle>
+            <AlertDialogDescription>
+              Morate biti prijavljeni da biste sačuvali orman. Želite li da se prijavite sada?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Otkaži</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setLoginAlertOpen(false);
+              handleLoginClick();
+            }}>
+              Prijavi se
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Save Wardrobe Dialog - shown when logged in user clicks save */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sačuvaj orman</DialogTitle>
+            <DialogDescription>
+              Unesite naziv za vaš orman
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="wardrobe-name">Naziv ormana</Label>
+              <Input
+                id="wardrobe-name"
+                value={wardrobeName}
+                onChange={(e) => setWardrobeName(e.target.value)}
+                placeholder="Unesite naziv..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    performSave();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Otkaži
+            </Button>
+            <Button onClick={performSave}>
+              Sačuvaj
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -1805,30 +2139,27 @@ export function TopRightControls() {
         zIndex: 10,
       }}
     >
-      <button
-        className={`px-3 py-1 rounded ${
-          cameraMode === "2D" ? "bg-primary text-white" : "bg-white border"
-        }`}
+      <Button
+        variant={cameraMode === "2D" ? "default" : "outline"}
+        size="sm"
         onClick={() => setCameraMode("2D")}
       >
         2D
-      </button>
-      <button
-        className={`px-3 py-1 rounded ${
-          cameraMode === "3D" ? "bg-primary text-white" : "bg-white border"
-        }`}
+      </Button>
+      <Button
+        variant={cameraMode === "3D" ? "default" : "outline"}
+        size="sm"
         onClick={() => setCameraMode("3D")}
       >
         3D
-      </button>
-      <button
-        className={`px-3 py-1 rounded ${
-          showDimensions ? "bg-primary text-white" : "bg-white border"
-        }`}
+      </Button>
+      <Button
+        variant={showDimensions ? "default" : "outline"}
+        size="sm"
         onClick={() => setShowDimensions(!showDimensions)}
       >
         {showDimensions ? "Hide Dimensions" : "Show Dimensions"}
-      </button>
+      </Button>
     </div>
   );
 }

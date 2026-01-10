@@ -699,6 +699,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               center
               distanceFactor={cameraMode === "3D" ? 4 : 8}
               style={{ pointerEvents: "auto" }}
+              zIndexRange={[0, 0]}
             >
               <button
                 style={{
@@ -761,6 +762,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             position={el.position}
             center
             distanceFactor={cameraMode === "3D" ? 4 : 8}
+            zIndexRange={[0, 0]}
             style={{
               pointerEvents: "none",
               background: "rgba(255,255,255,0.85)",
@@ -801,6 +803,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   center
                   distanceFactor={8}
                   style={{ pointerEvents: "auto" }}
+                  zIndexRange={[0, 0]}
                 >
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 4 }}
@@ -919,6 +922,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   center
                   distanceFactor={8}
                   style={{ pointerEvents: "auto" }}
+                  zIndexRange={[0, 0]}
                 >
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 4 }}

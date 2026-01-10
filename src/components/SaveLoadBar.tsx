@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { getWardrobeSnapshot, applyWardrobeSnapshot } from '@/lib/serializeWardrobe';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from '@/lib/auth-client';
 
 export function SaveLoadBar() {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = useSession();
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +19,10 @@ export function SaveLoadBar() {
 
   async function save() {
     try {
-      if (!session) return signIn();
+      if (!session) {
+        alert('Prijavite se da biste sačuvali orman');
+        return;
+      }
       const name = prompt('Naziv ormana:', 'Orman');
       if (!name) return;
       const snapshot = getWardrobeSnapshot();
@@ -72,14 +75,14 @@ export function SaveLoadBar() {
             <button onClick={() => signOut()} className="text-xs underline">Odjava</button>
           </>
         ) : (
-          <button onClick={() => signIn()} className="text-xs underline">Prijava</button>
+          <span className="text-xs text-muted-foreground">Nije prijavljen</span>
         )}
       </div>
       <div className="flex gap-2">
         <button onClick={save} className="px-3 py-1 bg-primary text-white rounded text-sm">Sačuvaj</button>
         <button onClick={refresh} disabled={!session} className="px-3 py-1 border rounded text-sm disabled:opacity-40">Osveži</button>
       </div>
-      {status === 'loading' && <div className='text-xs'>...</div>}
+      {isPending && <div className='text-xs'>...</div>}
       {session && (
         <div className="max-h-40 overflow-auto text-sm space-y-1">
           {loading && <div>Učitavanje...</div>}

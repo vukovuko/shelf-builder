@@ -124,7 +124,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
         </>
       )}
 
-      <group position={[0, -0.5, 0]} ref={sceneGroupRef}>
+      <group position={[0, 0, 0]} ref={sceneGroupRef}>
         <Wardrobe ref={wardrobeRef} />
       </group>
 
