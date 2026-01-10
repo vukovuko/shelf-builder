@@ -238,26 +238,25 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                   <DropdownMenuTrigger asChild>
                     <button
                       onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
                       className="p-1.5 hover:bg-accent rounded transition flex-shrink-0"
                     >
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleLoad(wardrobe.id)}>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onSelect={() => handleLoad(wardrobe.id)}>
                       Učitaj
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDuplicate(wardrobe.id)}
-                    >
+                    <DropdownMenuItem onSelect={() => handleDuplicate(wardrobe.id)}>
                       Dupliraj
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleShare(wardrobe.id)}>
+                    <DropdownMenuItem onSelect={() => handleShare(wardrobe.id)}>
                       Podeli
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => handleDeleteClick(wardrobe)}
+                      onSelect={() => handleDeleteClick(wardrobe)}
                       className="text-destructive"
                     >
                       Obriši

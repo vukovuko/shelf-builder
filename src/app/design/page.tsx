@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import type React from "react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
@@ -11,16 +11,21 @@ import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 function LoadFromUrl() {
   const searchParams = useSearchParams();
   const loadId = searchParams.get("load");
-  const [hasLoadedFromUrl, setHasLoadedFromUrl] = useState(false);
+  // Use ref instead of state to persist across React Strict Mode remounts
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     async function loadWardrobe() {
-      if (!loadId || hasLoadedFromUrl) return;
+      if (!loadId || hasLoadedRef.current) return;
+
+      // Mark as loaded immediately to prevent double execution
+      hasLoadedRef.current = true;
 
       try {
         const res = await fetch(`/api/wardrobes/${loadId}`);
         if (!res.ok) {
           toast.error("Greška pri učitavanju ormana");
+          hasLoadedRef.current = false; // Reset on error so user can retry
           return;
         }
 
@@ -29,15 +34,15 @@ function LoadFromUrl() {
         toast.success(`Učitano: ${wardrobe.name}`);
 
         window.history.replaceState({}, "", "/design");
-        setHasLoadedFromUrl(true);
       } catch (e) {
         console.error("Failed to load wardrobe", e);
         toast.error("Greška pri učitavanju ormana");
+        hasLoadedRef.current = false; // Reset on error so user can retry
       }
     }
 
     loadWardrobe();
-  }, [loadId, hasLoadedFromUrl]);
+  }, [loadId]);
 
   return null;
 }

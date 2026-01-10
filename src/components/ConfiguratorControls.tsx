@@ -2219,15 +2219,20 @@ export function ConfiguratorControls({
             </div>
           </div>
         </Accordion>
+      </div>
 
-        {/* Bottom summary bar */}
-        <div className="mt-4 w-full bg-primary text-primary-foreground h-[50px] flex items-center justify-between px-3 rounded">
-          <span className="text-sm font-medium">
-            Ukupna kvadratura: {fmt2(cutList.totalArea)} m²
-          </span>
-          <span className="text-sm font-semibold">
-            Ukupna cena: {fmt2(cutList.totalCost)}
-          </span>
+      {/* Sticky Footer - Summary */}
+      <div className="flex-shrink-0 sticky bottom-0 bg-sidebar z-10 px-4 py-3 border-t space-y-2">
+        {/* Kvadratura row */}
+        <div className="flex items-center justify-between">
+          <span className="text-base text-muted-foreground">Ukupna kvadratura</span>
+          <span className="text-lg font-bold">{fmt2(cutList.totalArea)} m²</span>
+        </div>
+
+        {/* Ukupna cena row - accent background */}
+        <div className="flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg">
+          <span className="text-base font-medium">Ukupna cena</span>
+          <span className="text-xl font-bold">{fmt2(cutList.totalCost)} RSD</span>
         </div>
       </div>
 
