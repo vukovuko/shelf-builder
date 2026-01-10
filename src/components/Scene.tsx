@@ -11,13 +11,14 @@ import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
 
 // Component to handle WebGL context recovery and visibility changes
 function ContextMonitor() {
-  const { gl } = useThree();
+  const { invalidate } = useThree();
+  const store = useShelfStore();
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         // Force a render when tab becomes visible to prevent context loss
-        gl.render(gl.scene as any, gl.camera as any);
+        invalidate();
       }
     };
 
@@ -26,7 +27,24 @@ function ContextMonitor() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [gl]);
+  }, [invalidate]);
+
+  // Invalidate when store state changes to ensure scene is ready for thumbnail capture
+  useEffect(() => {
+    invalidate();
+  }, [
+    store.width,
+    store.height,
+    store.depth,
+    store.numberOfColumns,
+    store.rowCounts,
+    store.selectedMaterialId,
+    store.viewMode,
+    store.elementConfigs,
+    store.compartmentExtras,
+    store.doorSelections,
+    invalidate,
+  ]);
 
   return null;
 }
