@@ -86,11 +86,16 @@ export default function DesignPage(props: any) {
       {/* Loading overlay - positioned above scene but doesn't prevent mounting */}
       {isSceneLoading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-base text-foreground font-medium">
-              Učitavanje, molimo sačekajte...
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-base text-foreground font-medium">
+                Dizajnirajte vaš orman po želji
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Učitavanje, molimo sačekajte...
+              </p>
+            </div>
           </div>
         </div>
       )}

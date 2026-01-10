@@ -1197,21 +1197,21 @@ export function ConfiguratorControls({
   };
 
   return (
-    <>
-      {/* Mini Auth Section - Compact at top of sidebar */}
-      <div className="pb-3 border-b mb-4">
+    <div className="flex flex-col h-full">
+      {/* Sticky Auth Section at top */}
+      <div className="flex-shrink-0 sticky top-0 bg-sidebar z-10 px-4 pt-3 pb-2 border-b">
         {isPending ? (
-          <div className="h-9 w-full animate-pulse bg-muted rounded" />
+          <div className="h-7 w-full animate-pulse bg-muted rounded" />
         ) : session ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start gap-2 h-auto py-1.5 hover:text-white"
+                className="w-full justify-start gap-2 h-auto py-1 hover:text-white"
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-xs">
+                <Avatar className="h-5 w-5">
+                  <AvatarFallback className="text-[10px]">
                     {getInitials(
                       session.user?.name || session.user?.email || "U",
                     )}
@@ -1262,9 +1262,9 @@ export function ConfiguratorControls({
                 variant="ghost"
                 size="sm"
                 onClick={handleLoginClick}
-                className="w-full justify-start hover:text-white"
+                className="w-full justify-start hover:text-white h-auto py-1"
               >
-                <User className="h-4 w-4 mr-2" />
+                <User className="h-3.5 w-3.5 mr-2" />
                 Prijavi se
               </Button>
             </DialogTrigger>
@@ -1281,929 +1281,941 @@ export function ConfiguratorControls({
         )}
       </div>
 
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue="item-1"
-        className="w-full"
-      >
-        <AccordionItem value="item-1" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            1. Definiši spoljašnje dimenzije
-          </AccordionTrigger>
-          <AccordionContent className="space-y-6 pt-4">
-            <DimensionControl
-              label="Širina"
-              value={width}
-              setValue={setWidth}
-              min={50}
-              max={400}
-              step={1}
-            />
-            <DimensionControl
-              label="Visina"
-              value={height}
-              setValue={setHeight}
-              min={50}
-              max={280}
-              step={1}
-            />
-            <DimensionControl
-              label="Dubina"
-              value={depth}
-              setValue={setDepth}
-              min={20}
-              max={100}
-              step={1}
-            />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="item-2" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            2. Kolone i Pregrade
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            {/* Per-element selection and controls */}
-            {(() => {
-              // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
-              const w = useShelfStore.getState().width / 100;
-              const h = useShelfStore.getState().height / 100;
-              const maxSegX = 100 / 100;
-              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-              const letters: string[] = [];
-              const toLetters = (num: number) => {
-                let n = num + 1;
-                let s = "";
-                while (n > 0) {
-                  const rem = (n - 1) % 26;
-                  s = String.fromCharCode(65 + rem) + s;
-                  n = Math.floor((n - 1) / 26);
-                }
-                return s;
-              };
-              const minTopH = 10 / 100;
-              const targetBottomH = 200 / 100;
-              const hasSplitY = h > 200 / 100; // split when > 200cm
-              const _topH = hasSplitY
-                ? h - targetBottomH < minTopH
-                  ? minTopH
-                  : h - targetBottomH
-                : 0;
-              const nModulesY = hasSplitY ? 2 : 1;
-              const totalElements = nBlocksX * nModulesY;
-              for (let i = 0; i < totalElements; i++)
-                letters.push(toLetters(i));
-
-              const selectedElementKey = useShelfStore(
-                (state) => state.selectedElementKey,
-              );
-              const setSelectedElementKey = useShelfStore(
-                (state) => state.setSelectedElementKey,
-              );
-              const elementConfigs = useShelfStore(
-                (state) => state.elementConfigs,
-              );
-              const setElementColumns = useShelfStore(
-                (state) => state.setElementColumns,
-              );
-              const setElementRowCount = useShelfStore(
-                (state) => state.setElementRowCount,
-              );
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm text-muted-foreground">
-                      Element:
-                    </span>
-                    {letters.map((ltr, _idx) => (
-                      <Button
-                        key={ltr}
-                        variant={
-                          selectedElementKey === ltr ? "default" : "outline"
-                        }
-                        onClick={() => setSelectedElementKey(ltr)}
-                        className="px-2 py-1 h-8  transition-colors"
-                      >
-                        {ltr}
-                      </Button>
-                    ))}
-                  </div>
-
-                  {selectedElementKey && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Pregrade (vertikalne)</span>
-                        <span className="text-xs text-muted-foreground">
-                          {elementConfigs[selectedElementKey]?.columns ?? 1}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const curr =
-                              elementConfigs[selectedElementKey]?.columns ?? 1;
-                            setElementColumns(
-                              selectedElementKey,
-                              Math.max(curr - 1, 1),
-                            );
-                          }}
-                          className="px-2"
-                        >
-                          –
-                        </Button>
-                        <Slider
-                          min={1}
-                          max={8}
-                          step={1}
-                          value={[
-                            elementConfigs[selectedElementKey]?.columns ?? 1,
-                          ]}
-                          onValueChange={([val]) =>
-                            setElementColumns(selectedElementKey, val)
-                          }
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const curr =
-                              elementConfigs[selectedElementKey]?.columns ?? 1;
-                            setElementColumns(
-                              selectedElementKey,
-                              Math.min(curr + 1, 8),
-                            );
-                          }}
-                          className="px-2"
-                        >
-                          +
-                        </Button>
-                      </div>
-
-                      {/* Shelf sliders per compartment */}
-                      <div className="space-y-2">
-                        {Array.from({
-                          length:
-                            elementConfigs[selectedElementKey]?.columns ?? 1,
-                        }).map((_, idx) => {
-                          const count =
-                            elementConfigs[selectedElementKey]?.rowCounts?.[
-                              idx
-                            ] ?? 0;
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center space-x-2"
-                            >
-                              <span className="text-xs text-muted-foreground">
-                                Police u pregradi {idx + 1}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() =>
-                                  setElementRowCount(
-                                    selectedElementKey,
-                                    idx,
-                                    Math.max(count - 1, 0),
-                                  )
-                                }
-                                disabled={count <= 0}
-                                className="px-2"
-                              >
-                                –
-                              </Button>
-                              <Slider
-                                min={0}
-                                max={10}
-                                step={1}
-                                value={[count]}
-                                onValueChange={([val]) =>
-                                  setElementRowCount(
-                                    selectedElementKey,
-                                    idx,
-                                    val,
-                                  )
-                                }
-                                className="flex-1"
-                              />
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() =>
-                                  setElementRowCount(
-                                    selectedElementKey,
-                                    idx,
-                                    Math.min(count + 1, 10),
-                                  )
-                                }
-                                disabled={count >= 10}
-                                className="px-2"
-                              >
-                                +
-                              </Button>
-                              <span className="text-xs w-10 text-right">
-                                {count}{" "}
-                                {count === 1
-                                  ? "polica"
-                                  : count >= 2 && count <= 4
-                                    ? "police"
-                                    : "polica"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* 4. Base (Baza) */}
-        <AccordionItem value="item-4" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            4. Baza
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="chk-base"
-                checked={hasBase}
-                onCheckedChange={setHasBase}
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        <Accordion
+          type="single"
+          collapsible
+          defaultValue="item-1"
+          className="w-full"
+        >
+          <AccordionItem value="item-1" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              1. Definiši spoljašnje dimenzije
+            </AccordionTrigger>
+            <AccordionContent className="space-y-6 pt-4">
+              <DimensionControl
+                label="Širina"
+                value={width}
+                setValue={setWidth}
+                min={50}
+                max={400}
+                step={1}
               />
-              <label
-                htmlFor="chk-base"
-                className="text-sm select-none cursor-pointer"
-              >
-                Uključi bazu (donja pregrada)
-              </label>
-            </div>
+              <DimensionControl
+                label="Visina"
+                value={height}
+                setValue={setHeight}
+                min={50}
+                max={280}
+                step={1}
+              />
+              <DimensionControl
+                label="Dubina"
+                value={depth}
+                setValue={setDepth}
+                min={20}
+                max={100}
+                step={1}
+              />
+            </AccordionContent>
+          </AccordionItem>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Visina baze</span>
-                <span className="text-xs text-muted-foreground">
-                  {baseHeight} cm
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setBaseHeight(Math.max(baseHeight - 1, 0))}
-                  disabled={!hasBase}
-                  className="px-2"
-                >
-                  –
-                </Button>
-                <Slider
-                  min={0}
-                  max={15}
-                  step={1}
-                  value={[baseHeight]}
-                  onValueChange={([val]) => setBaseHeight(val)}
-                  disabled={!hasBase}
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setBaseHeight(Math.min(baseHeight + 1, 20))}
-                  disabled={!hasBase}
-                  className="px-2"
-                >
-                  +
-                </Button>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
+          <AccordionItem value="item-2" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              2. Kolone i Pregrade
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-4">
+              {/* Per-element selection and controls */}
+              {(() => {
+                // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
+                const w = useShelfStore.getState().width / 100;
+                const h = useShelfStore.getState().height / 100;
+                const maxSegX = 100 / 100;
+                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+                const letters: string[] = [];
+                const toLetters = (num: number) => {
+                  let n = num + 1;
+                  let s = "";
+                  while (n > 0) {
+                    const rem = (n - 1) % 26;
+                    s = String.fromCharCode(65 + rem) + s;
+                    n = Math.floor((n - 1) / 26);
+                  }
+                  return s;
+                };
+                const minTopH = 10 / 100;
+                const targetBottomH = 200 / 100;
+                const hasSplitY = h > 200 / 100; // split when > 200cm
+                const _topH = hasSplitY
+                  ? h - targetBottomH < minTopH
+                    ? minTopH
+                    : h - targetBottomH
+                  : 0;
+                const nModulesY = hasSplitY ? 2 : 1;
+                const totalElements = nBlocksX * nModulesY;
+                for (let i = 0; i < totalElements; i++)
+                  letters.push(toLetters(i));
 
-        <AccordionItem value="item-3" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            3. Izbor materijala
-          </AccordionTrigger>
-          <AccordionContent className="space-y-6 pt-4">
-            {/* Materijal Korpusa */}
-            <div>
-              <h4 className="text-sm font-semibold mb-2">
-                Materijal Korpusa (10–25mm)
-              </h4>
-              <div className="grid grid-cols-3 gap-4">
-                {materials
-                  .filter((m) => m.thickness >= 10 && m.thickness <= 25)
-                  .map((material) => (
-                    <div
-                      key={material.id}
-                      className="flex flex-col items-center"
-                    >
-                      <button
-                        className={`rounded-lg border-2 ${
-                          selectedMaterialId === material.id
-                            ? "border-primary"
-                            : "border-transparent"
-                        } hover:border-primary h-24 w-full bg-cover bg-center`}
-                        style={{ backgroundImage: `url(${material.img})` }}
-                        onClick={() => setSelectedMaterialId(material.id)}
-                        title={material.name}
-                      >
-                        <span className="sr-only">{material.name}</span>
-                      </button>
-                      <span className="text-sm mt-1 text-center">
-                        {material.name}
+                const selectedElementKey = useShelfStore(
+                  (state) => state.selectedElementKey,
+                );
+                const setSelectedElementKey = useShelfStore(
+                  (state) => state.setSelectedElementKey,
+                );
+                const elementConfigs = useShelfStore(
+                  (state) => state.elementConfigs,
+                );
+                const setElementColumns = useShelfStore(
+                  (state) => state.setElementColumns,
+                );
+                const setElementRowCount = useShelfStore(
+                  (state) => state.setElementRowCount,
+                );
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-sm text-muted-foreground">
+                        Element:
                       </span>
+                      {letters.map((ltr, _idx) => (
+                        <Button
+                          key={ltr}
+                          variant={
+                            selectedElementKey === ltr ? "default" : "outline"
+                          }
+                          onClick={() => setSelectedElementKey(ltr)}
+                          className="px-2 py-1 h-8  transition-colors"
+                        >
+                          {ltr}
+                        </Button>
+                      ))}
                     </div>
-                  ))}
-              </div>
-            </div>
 
-            {/* Materijal Leđa */}
-            <div>
-              <h4 className="text-sm font-semibold mb-2">
-                Materijal Leđa (5mm)
-              </h4>
-              <div className="grid grid-cols-3 gap-4">
-                {materials
-                  .filter((m) => m.thickness === 5) // for 5mm
-                  .map((material) => (
-                    <div
-                      key={material.id}
-                      className="flex flex-col items-center"
-                    >
-                      <button
-                        className={`rounded-lg border-2 ${
-                          selectedBackMaterialId === material.id
-                            ? "border-primary"
-                            : "border-transparent"
-                        } hover:border-primary h-24 w-full bg-cover bg-center`}
-                        style={{ backgroundImage: `url(${material.img})` }}
-                        onClick={() => setSelectedBackMaterialId(material.id)}
-                        title={material.name}
-                      >
-                        <span className="sr-only">{material.name}</span>
-                      </button>
-                      <span className="text-sm mt-1 text-center">
-                        {material.name}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-        {/* 5. Extras */}
-        <AccordionItem value="item-5" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            5. Dodaci
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            {(() => {
-              // Prava reaktivna veza na Zustand store
-              const extrasMode = useShelfStore((state) => state.extrasMode);
-              const setExtrasMode = useShelfStore(
-                (state) => state.setExtrasMode,
-              );
-              const selectedCompartmentKey = useShelfStore(
-                (state) => state.selectedCompartmentKey,
-              );
-              const setSelectedCompartmentKey = useShelfStore(
-                (state) => state.setSelectedCompartmentKey,
-              );
-              const compartmentExtras = useShelfStore(
-                (state) => state.compartmentExtras,
-              );
-              const toggleCompVerticalDivider = useShelfStore(
-                (state) => state.toggleCompVerticalDivider,
-              );
-              const toggleCompDrawers = useShelfStore(
-                (state) => state.toggleCompDrawers,
-              );
-              const toggleCompRod = useShelfStore(
-                (state) => state.toggleCompRod,
-              );
-              const toggleCompLed = useShelfStore(
-                (state) => state.toggleCompLed,
-              );
-
-              // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
-              // Identicno kao u CarcassFrame elementLabels: blokovi po 100cm (X) i moduli po visini (Y)
-              const width = useShelfStore((state) => state.width);
-              const height = useShelfStore((state) => state.height);
-              const w = width / 100;
-              const h = height / 100;
-              const maxSegX = 100 / 100;
-              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-              const hasSplitY = h > 200 / 100;
-              const nModulesY = hasSplitY ? 2 : 1;
-              const toLetters = (num: number) => {
-                let n = num + 1;
-                let s = "";
-                while (n > 0) {
-                  const rem = (n - 1) % 26;
-                  s = String.fromCharCode(65 + rem) + s;
-                  n = Math.floor((n - 1) / 26);
-                }
-                return s;
-              };
-              const allKeys = Array.from(
-                { length: nBlocksX * nModulesY },
-                (_, i) => toLetters(i),
-              );
-
-              // Prikaz stanja za selektovani element
-              const extras = selectedCompartmentKey
-                ? compartmentExtras[selectedCompartmentKey] || {}
-                : {};
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Režim selekcije</span>
-                    <Switch
-                      checked={extrasMode}
-                      onCheckedChange={setExtrasMode}
-                    />
-                  </div>
-
-                  {!extrasMode ? (
-                    <div className="text-sm text-muted-foreground">
-                      Uključite režim selekcije da biste mogli da izaberete
-                      elemente i dodate dodatke.
-                    </div>
-                  ) : (
-                    <>
-                      {/* Element selection row for extras */}
-                      <div className="flex flex-wrap gap-2 items-center mb-2">
-                        <span className="text-sm text-muted-foreground">
-                          Element:
-                        </span>
-                        {allKeys.map((ltr) => (
+                    {selectedElementKey && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Pregrade (vertikalne)</span>
+                          <span className="text-xs text-muted-foreground">
+                            {elementConfigs[selectedElementKey]?.columns ?? 1}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <Button
-                            key={ltr}
-                            variant={
-                              selectedCompartmentKey === ltr
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={() => setSelectedCompartmentKey(ltr)}
-                            className="px-2 py-1 h-8  transition-colors"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const curr =
+                                elementConfigs[selectedElementKey]?.columns ??
+                                1;
+                              setElementColumns(
+                                selectedElementKey,
+                                Math.max(curr - 1, 1),
+                              );
+                            }}
+                            className="px-2"
                           >
-                            {ltr}
+                            –
                           </Button>
-                        ))}
-                      </div>
-                      {!selectedCompartmentKey ? (
-                        <div className="text-sm text-muted-foreground">
-                          Izaberi element klikom na slovo iznad, pa dodaj
-                          dodatke.
+                          <Slider
+                            min={1}
+                            max={8}
+                            step={1}
+                            value={[
+                              elementConfigs[selectedElementKey]?.columns ?? 1,
+                            ]}
+                            onValueChange={([val]) =>
+                              setElementColumns(selectedElementKey, val)
+                            }
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const curr =
+                                elementConfigs[selectedElementKey]?.columns ??
+                                1;
+                              setElementColumns(
+                                selectedElementKey,
+                                Math.min(curr + 1, 8),
+                              );
+                            }}
+                            className="px-2"
+                          >
+                            +
+                          </Button>
                         </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="text-sm">
-                            Odabrani: {selectedCompartmentKey}
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            <Button
-                              variant={
-                                extras.verticalDivider ? "default" : "outline"
-                              }
-                              onClick={() =>
-                                toggleCompVerticalDivider(
-                                  selectedCompartmentKey,
-                                )
-                              }
-                              className=" transition-colors"
-                            >
-                              {extras.verticalDivider ? "✔ " : ""}+ Vertikalni
-                              divider
-                            </Button>
-                            {/* Drawers button + count selector together */}
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant={extras.drawers ? "default" : "outline"}
-                                onClick={() =>
-                                  toggleCompDrawers(selectedCompartmentKey)
-                                }
-                                className="flex-1 transition-colors"
+
+                        {/* Shelf sliders per compartment */}
+                        <div className="space-y-2">
+                          {Array.from({
+                            length:
+                              elementConfigs[selectedElementKey]?.columns ?? 1,
+                          }).map((_, idx) => {
+                            const count =
+                              elementConfigs[selectedElementKey]?.rowCounts?.[
+                                idx
+                              ] ?? 0;
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center space-x-2"
                               >
-                                {extras.drawers ? "✔ " : ""}+ Fioke
-                              </Button>
-                              {(() => {
-                                const width = useShelfStore.getState().width;
-                                const height = useShelfStore.getState().height;
-                                const selectedMaterialId =
-                                  useShelfStore.getState()
-                                    .selectedMaterialId as number;
-                                const mat = (materials as any[]).find(
-                                  (m) =>
-                                    String(m.id) === String(selectedMaterialId),
-                                );
-                                const thicknessMm = mat?.thickness ?? 18; // mm
-                                const t = thicknessMm / 1000; // world units (m)
-                                const w = width / 100;
-                                const h = height / 100;
-                                const maxSegX = 100 / 100;
-                                const nBlocksX = Math.max(
-                                  1,
-                                  Math.ceil(w / maxSegX),
-                                );
-                                const segWX = w / nBlocksX;
-                                const targetBottomH = 200 / 100;
-                                const minTopH = 10 / 100;
-                                const modulesY: {
-                                  yStart: number;
-                                  yEnd: number;
-                                }[] = [];
-                                if (h > 200 / 100) {
-                                  const yStartBottom = -h / 2;
-                                  const bottomH =
-                                    h - targetBottomH < minTopH
-                                      ? h - minTopH
-                                      : targetBottomH;
-                                  const yEndBottom = yStartBottom + bottomH;
-                                  const yStartTop = yEndBottom;
-                                  const yEndTop = h / 2;
-                                  modulesY.push({
-                                    yStart: yStartBottom,
-                                    yEnd: yEndBottom,
-                                  });
-                                  modulesY.push({
-                                    yStart: yStartTop,
-                                    yEnd: yEndTop,
-                                  });
-                                } else {
-                                  modulesY.push({
-                                    yStart: -h / 2,
-                                    yEnd: h / 2,
-                                  });
-                                }
-                                const toLetters = (num: number) => {
-                                  let n = num + 1;
-                                  let s = "";
-                                  while (n > 0) {
-                                    const rem = (n - 1) % 26;
-                                    s = String.fromCharCode(65 + rem) + s;
-                                    n = Math.floor((n - 1) / 26);
+                                <span className="text-xs text-muted-foreground">
+                                  Police u pregradi {idx + 1}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() =>
+                                    setElementRowCount(
+                                      selectedElementKey,
+                                      idx,
+                                      Math.max(count - 1, 0),
+                                    )
                                   }
-                                  return s;
-                                };
-                                const blocksX = Array.from(
-                                  { length: nBlocksX },
-                                  (_, i) => {
-                                    const start = -w / 2 + i * segWX;
-                                    const end = start + segWX;
-                                    return { start, end };
-                                  },
-                                );
-                                let idx = 0;
-                                let innerHForDrawers = 0;
-                                let found = false;
-                                modulesY.forEach((m, mIdx) => {
-                                  blocksX.forEach((_bx) => {
-                                    const letter = toLetters(idx);
-                                    if (
-                                      !found &&
-                                      letter === selectedCompartmentKey
-                                    ) {
-                                      const yStartInner = m.yStart + t;
-                                      const yEndInner = m.yEnd - t;
-                                      const raiseByBase =
-                                        hasBase &&
-                                        (modulesY.length === 1 || mIdx === 0)
-                                          ? baseHeight / 100
-                                          : 0;
-                                      const drawersYStart =
-                                        yStartInner + raiseByBase;
-                                      innerHForDrawers = Math.max(
-                                        yEndInner - drawersYStart,
-                                        0,
-                                      );
-                                      found = true;
-                                    }
-                                    idx += 1;
-                                  });
-                                });
-                                const drawerH = 10 / 100; // 10cm
-                                const gap = 1 / 100; // 1cm
-                                const maxCount = Math.max(
-                                  0,
-                                  Math.floor(
-                                    (innerHForDrawers + gap) / (drawerH + gap),
-                                  ),
-                                );
-                                const current = extras.drawersCount ?? 0;
-                                const options = [] as number[];
-                                for (let i = 0; i <= maxCount; i++)
-                                  options.push(i);
-                                if (current > maxCount) options.push(current);
-
-                                return (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        disabled={
-                                          !selectedCompartmentKey ||
-                                          !extras.drawers
-                                        }
-                                        className="w-16"
-                                      >
-                                        {current}
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      {options.map((n) => (
-                                        <DropdownMenuItem
-                                          key={n}
-                                          onClick={() => {
-                                            useShelfStore
-                                              .getState()
-                                              .setCompDrawersCount(
-                                                selectedCompartmentKey!,
-                                                n,
-                                              );
-                                          }}
-                                        >
-                                          {n}
-                                        </DropdownMenuItem>
-                                      ))}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                );
-                              })()}
-                            </div>
-                            <Button
-                              variant={extras.rod ? "default" : "outline"}
-                              onClick={() =>
-                                toggleCompRod(selectedCompartmentKey)
-                              }
-                              className=" transition-colors"
-                            >
-                              {extras.rod ? "✔ " : ""}+ Šipka za ofingere
-                            </Button>
-                            <Button
-                              variant={extras.led ? "default" : "outline"}
-                              onClick={() =>
-                                toggleCompLed(selectedCompartmentKey)
-                              }
-                              className=" transition-colors"
-                            >
-                              {extras.led ? "✔ " : ""}LED rasveta
-                            </Button>
-                          </div>
+                                  disabled={count <= 0}
+                                  className="px-2"
+                                >
+                                  –
+                                </Button>
+                                <Slider
+                                  min={0}
+                                  max={10}
+                                  step={1}
+                                  value={[count]}
+                                  onValueChange={([val]) =>
+                                    setElementRowCount(
+                                      selectedElementKey,
+                                      idx,
+                                      val,
+                                    )
+                                  }
+                                  className="flex-1"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() =>
+                                    setElementRowCount(
+                                      selectedElementKey,
+                                      idx,
+                                      Math.min(count + 1, 10),
+                                    )
+                                  }
+                                  disabled={count >= 10}
+                                  className="px-2"
+                                >
+                                  +
+                                </Button>
+                                <span className="text-xs w-10 text-right">
+                                  {count}{" "}
+                                  {count === 1
+                                    ? "polica"
+                                    : count >= 2 && count <= 4
+                                      ? "police"
+                                      : "polica"}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })()}
-          </AccordionContent>
-        </AccordionItem>
-        {/* 6. Doors */}
-        <AccordionItem value="item-6" className="border-border">
-          <AccordionTrigger className="text-base font-bold hover:no-underline">
-            6. Vrata
-          </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-4">
-            {(() => {
-              const width = useShelfStore((state) => state.width);
-              const height = useShelfStore((state) => state.height);
-              const w = width / 100;
-              const h = height / 100;
-              const maxSegX = 100 / 100;
-              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-              const hasSplitY = h > 200 / 100;
-              const nModulesY = hasSplitY ? 2 : 1;
-              const toLetters = (num: number) => {
-                let n = num + 1;
-                let s = "";
-                while (n > 0) {
-                  const rem = (n - 1) % 26;
-                  s = String.fromCharCode(65 + rem) + s;
-                  n = Math.floor((n - 1) / 26);
-                }
-                return s;
-              };
-              const allKeys = Array.from(
-                { length: nBlocksX * nModulesY },
-                (_, i) => toLetters(i),
-              );
-
-              const selectedDoorElementKey = useShelfStore(
-                (state) => state.selectedDoorElementKey,
-              );
-              const setSelectedDoorElementKey = useShelfStore(
-                (state) => state.setSelectedDoorElementKey,
-              );
-              const doorSelections = useShelfStore(
-                (state) => state.doorSelections,
-              );
-              const setDoorOption = useShelfStore(
-                (state) => state.setDoorOption,
-              );
-
-              const options: { key: string; label: string }[] = [
-                { key: "none", label: "Bez vrata" },
-                { key: "left", label: "Leva vrata" },
-                { key: "right", label: "Desna vrata" },
-                { key: "double", label: "Dupla vrata" },
-                { key: "leftMirror", label: "Leva vrata sa ogledalom" },
-                { key: "rightMirror", label: "Desna vrata sa ogledalom" },
-                { key: "doubleMirror", label: "Dupla vrata sa ogledalom" },
-                { key: "drawerStyle", label: "Vrata kao fioka" },
-              ];
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2 items-center mb-1">
-                    <span className="text-sm text-muted-foreground">
-                      Element:
-                    </span>
-                    {allKeys.map((ltr) => (
-                      <Button
-                        key={ltr}
-                        variant={
-                          selectedDoorElementKey === ltr ? "default" : "outline"
-                        }
-                        onClick={() => setSelectedDoorElementKey(ltr)}
-                        className="px-2 py-1 h-8 transition-colors"
-                      >
-                        {ltr}
-                      </Button>
-                    ))}
+                      </div>
+                    )}
                   </div>
+                );
+              })()}
+            </AccordionContent>
+          </AccordionItem>
 
-                  {!selectedDoorElementKey ? (
-                    <div className="text-sm text-muted-foreground">
-                      Izaberi element klikom na slovo iznad, pa izaberi tip
-                      vrata.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        Odabrani: {selectedDoorElementKey}
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        {options.map((opt) => {
-                          const curr = doorSelections[selectedDoorElementKey];
-                          const isSel = curr === (opt.key as any);
-                          return (
-                            <Button
-                              key={opt.key}
-                              variant={isSel ? "default" : "outline"}
-                              onClick={() =>
-                                setDoorOption(
-                                  selectedDoorElementKey,
-                                  opt.key as any,
-                                )
-                              }
-                              className="text-sm"
-                            >
-                              {isSel ? "✔ " : ""}
-                              {opt.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        (Posle ćemo definisati ponašanje svake opcije.)
-                      </div>
-                    </div>
-                  )}
+          {/* 4. Base (Baza) */}
+          <AccordionItem value="item-4" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              4. Baza
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="chk-base"
+                  checked={hasBase}
+                  onCheckedChange={setHasBase}
+                />
+                <label
+                  htmlFor="chk-base"
+                  className="text-sm select-none cursor-pointer"
+                >
+                  Uključi bazu (donja pregrada)
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Visina baze</span>
+                  <span className="text-xs text-muted-foreground">
+                    {baseHeight} cm
+                  </span>
                 </div>
-              );
-            })()}
-          </AccordionContent>
-        </AccordionItem>
-        {/* Actions and Controls */}
-        <div className="flex flex-col gap-4 mt-6">
-          {/* Primary Action */}
-          <Button
-            variant="default"
-            onClick={handleSaveClick}
-            className="w-full"
-            size="lg"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Sačuvaj Orman
-          </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setBaseHeight(Math.max(baseHeight - 1, 0))}
+                    disabled={!hasBase}
+                    className="px-2"
+                  >
+                    –
+                  </Button>
+                  <Slider
+                    min={0}
+                    max={15}
+                    step={1}
+                    value={[baseHeight]}
+                    onValueChange={([val]) => setBaseHeight(val)}
+                    disabled={!hasBase}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setBaseHeight(Math.min(baseHeight + 1, 20))}
+                    disabled={!hasBase}
+                    className="px-2"
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-          {/* View Controls */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">
-              Prikaz
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleToggleAllInfo}
-                className="flex-1 hover:text-white"
-                size="sm"
-              >
-                {allInfoShown ? (
-                  <EyeOff className="h-4 w-4 mr-1" />
-                ) : (
-                  <Eye className="h-4 w-4 mr-1" />
-                )}
-                {allInfoShown ? "Sakrij Info" : "Prikaži Info"}
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setShowDimensions(!showDimensions)}
-                className="flex-1 hover:text-white"
-                size="sm"
-              >
-                {showDimensions ? (
-                  <EyeOff className="h-4 w-4 mr-1" />
-                ) : (
-                  <Eye className="h-4 w-4 mr-1" />
-                )}
-                {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
-              </Button>
+          <AccordionItem value="item-3" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              3. Izbor materijala
+            </AccordionTrigger>
+            <AccordionContent className="space-y-6 pt-4">
+              {/* Materijal Korpusa */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2">
+                  Materijal Korpusa (10–25mm)
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  {materials
+                    .filter((m) => m.thickness >= 10 && m.thickness <= 25)
+                    .map((material) => (
+                      <div
+                        key={material.id}
+                        className="flex flex-col items-center"
+                      >
+                        <button
+                          className={`rounded-lg border-2 ${
+                            selectedMaterialId === material.id
+                              ? "border-primary"
+                              : "border-transparent"
+                          } hover:border-primary h-24 w-full bg-cover bg-center`}
+                          style={{ backgroundImage: `url(${material.img})` }}
+                          onClick={() => setSelectedMaterialId(material.id)}
+                          title={material.name}
+                        >
+                          <span className="sr-only">{material.name}</span>
+                        </button>
+                        <span className="text-sm mt-1 text-center">
+                          {material.name}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Materijal Leđa */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2">
+                  Materijal Leđa (5mm)
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  {materials
+                    .filter((m) => m.thickness === 5) // for 5mm
+                    .map((material) => (
+                      <div
+                        key={material.id}
+                        className="flex flex-col items-center"
+                      >
+                        <button
+                          className={`rounded-lg border-2 ${
+                            selectedBackMaterialId === material.id
+                              ? "border-primary"
+                              : "border-transparent"
+                          } hover:border-primary h-24 w-full bg-cover bg-center`}
+                          style={{ backgroundImage: `url(${material.img})` }}
+                          onClick={() => setSelectedBackMaterialId(material.id)}
+                          title={material.name}
+                        >
+                          <span className="sr-only">{material.name}</span>
+                        </button>
+                        <span className="text-sm mt-1 text-center">
+                          {material.name}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+          {/* 5. Extras */}
+          <AccordionItem value="item-5" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              5. Dodaci
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-4">
+              {(() => {
+                // Prava reaktivna veza na Zustand store
+                const extrasMode = useShelfStore((state) => state.extrasMode);
+                const setExtrasMode = useShelfStore(
+                  (state) => state.setExtrasMode,
+                );
+                const selectedCompartmentKey = useShelfStore(
+                  (state) => state.selectedCompartmentKey,
+                );
+                const setSelectedCompartmentKey = useShelfStore(
+                  (state) => state.setSelectedCompartmentKey,
+                );
+                const compartmentExtras = useShelfStore(
+                  (state) => state.compartmentExtras,
+                );
+                const toggleCompVerticalDivider = useShelfStore(
+                  (state) => state.toggleCompVerticalDivider,
+                );
+                const toggleCompDrawers = useShelfStore(
+                  (state) => state.toggleCompDrawers,
+                );
+                const toggleCompRod = useShelfStore(
+                  (state) => state.toggleCompRod,
+                );
+                const toggleCompLed = useShelfStore(
+                  (state) => state.toggleCompLed,
+                );
+
+                // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
+                // Identicno kao u CarcassFrame elementLabels: blokovi po 100cm (X) i moduli po visini (Y)
+                const width = useShelfStore((state) => state.width);
+                const height = useShelfStore((state) => state.height);
+                const w = width / 100;
+                const h = height / 100;
+                const maxSegX = 100 / 100;
+                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+                const hasSplitY = h > 200 / 100;
+                const nModulesY = hasSplitY ? 2 : 1;
+                const toLetters = (num: number) => {
+                  let n = num + 1;
+                  let s = "";
+                  while (n > 0) {
+                    const rem = (n - 1) % 26;
+                    s = String.fromCharCode(65 + rem) + s;
+                    n = Math.floor((n - 1) / 26);
+                  }
+                  return s;
+                };
+                const allKeys = Array.from(
+                  { length: nBlocksX * nModulesY },
+                  (_, i) => toLetters(i),
+                );
+
+                // Prikaz stanja za selektovani element
+                const extras = selectedCompartmentKey
+                  ? compartmentExtras[selectedCompartmentKey] || {}
+                  : {};
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Režim selekcije</span>
+                      <Switch
+                        checked={extrasMode}
+                        onCheckedChange={setExtrasMode}
+                      />
+                    </div>
+
+                    {!extrasMode ? (
+                      <div className="text-sm text-muted-foreground">
+                        Uključite režim selekcije da biste mogli da izaberete
+                        elemente i dodate dodatke.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Element selection row for extras */}
+                        <div className="flex flex-wrap gap-2 items-center mb-2">
+                          <span className="text-sm text-muted-foreground">
+                            Element:
+                          </span>
+                          {allKeys.map((ltr) => (
+                            <Button
+                              key={ltr}
+                              variant={
+                                selectedCompartmentKey === ltr
+                                  ? "default"
+                                  : "outline"
+                              }
+                              onClick={() => setSelectedCompartmentKey(ltr)}
+                              className="px-2 py-1 h-8  transition-colors"
+                            >
+                              {ltr}
+                            </Button>
+                          ))}
+                        </div>
+                        {!selectedCompartmentKey ? (
+                          <div className="text-sm text-muted-foreground">
+                            Izaberi element klikom na slovo iznad, pa dodaj
+                            dodatke.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="text-sm">
+                              Odabrani: {selectedCompartmentKey}
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              <Button
+                                variant={
+                                  extras.verticalDivider ? "default" : "outline"
+                                }
+                                onClick={() =>
+                                  toggleCompVerticalDivider(
+                                    selectedCompartmentKey,
+                                  )
+                                }
+                                className=" transition-colors"
+                              >
+                                {extras.verticalDivider ? "✔ " : ""}+ Vertikalni
+                                divider
+                              </Button>
+                              {/* Drawers button + count selector together */}
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant={
+                                    extras.drawers ? "default" : "outline"
+                                  }
+                                  onClick={() =>
+                                    toggleCompDrawers(selectedCompartmentKey)
+                                  }
+                                  className="flex-1 transition-colors"
+                                >
+                                  {extras.drawers ? "✔ " : ""}+ Fioke
+                                </Button>
+                                {(() => {
+                                  const width = useShelfStore.getState().width;
+                                  const height =
+                                    useShelfStore.getState().height;
+                                  const selectedMaterialId =
+                                    useShelfStore.getState()
+                                      .selectedMaterialId as number;
+                                  const mat = (materials as any[]).find(
+                                    (m) =>
+                                      String(m.id) ===
+                                      String(selectedMaterialId),
+                                  );
+                                  const thicknessMm = mat?.thickness ?? 18; // mm
+                                  const t = thicknessMm / 1000; // world units (m)
+                                  const w = width / 100;
+                                  const h = height / 100;
+                                  const maxSegX = 100 / 100;
+                                  const nBlocksX = Math.max(
+                                    1,
+                                    Math.ceil(w / maxSegX),
+                                  );
+                                  const segWX = w / nBlocksX;
+                                  const targetBottomH = 200 / 100;
+                                  const minTopH = 10 / 100;
+                                  const modulesY: {
+                                    yStart: number;
+                                    yEnd: number;
+                                  }[] = [];
+                                  if (h > 200 / 100) {
+                                    const yStartBottom = -h / 2;
+                                    const bottomH =
+                                      h - targetBottomH < minTopH
+                                        ? h - minTopH
+                                        : targetBottomH;
+                                    const yEndBottom = yStartBottom + bottomH;
+                                    const yStartTop = yEndBottom;
+                                    const yEndTop = h / 2;
+                                    modulesY.push({
+                                      yStart: yStartBottom,
+                                      yEnd: yEndBottom,
+                                    });
+                                    modulesY.push({
+                                      yStart: yStartTop,
+                                      yEnd: yEndTop,
+                                    });
+                                  } else {
+                                    modulesY.push({
+                                      yStart: -h / 2,
+                                      yEnd: h / 2,
+                                    });
+                                  }
+                                  const toLetters = (num: number) => {
+                                    let n = num + 1;
+                                    let s = "";
+                                    while (n > 0) {
+                                      const rem = (n - 1) % 26;
+                                      s = String.fromCharCode(65 + rem) + s;
+                                      n = Math.floor((n - 1) / 26);
+                                    }
+                                    return s;
+                                  };
+                                  const blocksX = Array.from(
+                                    { length: nBlocksX },
+                                    (_, i) => {
+                                      const start = -w / 2 + i * segWX;
+                                      const end = start + segWX;
+                                      return { start, end };
+                                    },
+                                  );
+                                  let idx = 0;
+                                  let innerHForDrawers = 0;
+                                  let found = false;
+                                  modulesY.forEach((m, mIdx) => {
+                                    blocksX.forEach((_bx) => {
+                                      const letter = toLetters(idx);
+                                      if (
+                                        !found &&
+                                        letter === selectedCompartmentKey
+                                      ) {
+                                        const yStartInner = m.yStart + t;
+                                        const yEndInner = m.yEnd - t;
+                                        const raiseByBase =
+                                          hasBase &&
+                                          (modulesY.length === 1 || mIdx === 0)
+                                            ? baseHeight / 100
+                                            : 0;
+                                        const drawersYStart =
+                                          yStartInner + raiseByBase;
+                                        innerHForDrawers = Math.max(
+                                          yEndInner - drawersYStart,
+                                          0,
+                                        );
+                                        found = true;
+                                      }
+                                      idx += 1;
+                                    });
+                                  });
+                                  const drawerH = 10 / 100; // 10cm
+                                  const gap = 1 / 100; // 1cm
+                                  const maxCount = Math.max(
+                                    0,
+                                    Math.floor(
+                                      (innerHForDrawers + gap) /
+                                        (drawerH + gap),
+                                    ),
+                                  );
+                                  const current = extras.drawersCount ?? 0;
+                                  const options = [] as number[];
+                                  for (let i = 0; i <= maxCount; i++)
+                                    options.push(i);
+                                  if (current > maxCount) options.push(current);
+
+                                  return (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          disabled={
+                                            !selectedCompartmentKey ||
+                                            !extras.drawers
+                                          }
+                                          className="w-16"
+                                        >
+                                          {current}
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        {options.map((n) => (
+                                          <DropdownMenuItem
+                                            key={n}
+                                            onClick={() => {
+                                              useShelfStore
+                                                .getState()
+                                                .setCompDrawersCount(
+                                                  selectedCompartmentKey!,
+                                                  n,
+                                                );
+                                            }}
+                                          >
+                                            {n}
+                                          </DropdownMenuItem>
+                                        ))}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  );
+                                })()}
+                              </div>
+                              <Button
+                                variant={extras.rod ? "default" : "outline"}
+                                onClick={() =>
+                                  toggleCompRod(selectedCompartmentKey)
+                                }
+                                className=" transition-colors"
+                              >
+                                {extras.rod ? "✔ " : ""}+ Šipka za ofingere
+                              </Button>
+                              <Button
+                                variant={extras.led ? "default" : "outline"}
+                                onClick={() =>
+                                  toggleCompLed(selectedCompartmentKey)
+                                }
+                                className=" transition-colors"
+                              >
+                                {extras.led ? "✔ " : ""}LED rasveta
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </AccordionContent>
+          </AccordionItem>
+          {/* 6. Doors */}
+          <AccordionItem value="item-6" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              6. Vrata
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-4">
+              {(() => {
+                const width = useShelfStore((state) => state.width);
+                const height = useShelfStore((state) => state.height);
+                const w = width / 100;
+                const h = height / 100;
+                const maxSegX = 100 / 100;
+                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+                const hasSplitY = h > 200 / 100;
+                const nModulesY = hasSplitY ? 2 : 1;
+                const toLetters = (num: number) => {
+                  let n = num + 1;
+                  let s = "";
+                  while (n > 0) {
+                    const rem = (n - 1) % 26;
+                    s = String.fromCharCode(65 + rem) + s;
+                    n = Math.floor((n - 1) / 26);
+                  }
+                  return s;
+                };
+                const allKeys = Array.from(
+                  { length: nBlocksX * nModulesY },
+                  (_, i) => toLetters(i),
+                );
+
+                const selectedDoorElementKey = useShelfStore(
+                  (state) => state.selectedDoorElementKey,
+                );
+                const setSelectedDoorElementKey = useShelfStore(
+                  (state) => state.setSelectedDoorElementKey,
+                );
+                const doorSelections = useShelfStore(
+                  (state) => state.doorSelections,
+                );
+                const setDoorOption = useShelfStore(
+                  (state) => state.setDoorOption,
+                );
+
+                const options: { key: string; label: string }[] = [
+                  { key: "none", label: "Bez vrata" },
+                  { key: "left", label: "Leva vrata" },
+                  { key: "right", label: "Desna vrata" },
+                  { key: "double", label: "Dupla vrata" },
+                  { key: "leftMirror", label: "Leva vrata sa ogledalom" },
+                  { key: "rightMirror", label: "Desna vrata sa ogledalom" },
+                  { key: "doubleMirror", label: "Dupla vrata sa ogledalom" },
+                  { key: "drawerStyle", label: "Vrata kao fioka" },
+                ];
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                      <span className="text-sm text-muted-foreground">
+                        Element:
+                      </span>
+                      {allKeys.map((ltr) => (
+                        <Button
+                          key={ltr}
+                          variant={
+                            selectedDoorElementKey === ltr
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() => setSelectedDoorElementKey(ltr)}
+                          className="px-2 py-1 h-8 transition-colors"
+                        >
+                          {ltr}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {!selectedDoorElementKey ? (
+                      <div className="text-sm text-muted-foreground">
+                        Izaberi element klikom na slovo iznad, pa izaberi tip
+                        vrata.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          Odabrani: {selectedDoorElementKey}
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                          {options.map((opt) => {
+                            const curr = doorSelections[selectedDoorElementKey];
+                            const isSel = curr === (opt.key as any);
+                            return (
+                              <Button
+                                key={opt.key}
+                                variant={isSel ? "default" : "outline"}
+                                onClick={() =>
+                                  setDoorOption(
+                                    selectedDoorElementKey,
+                                    opt.key as any,
+                                  )
+                                }
+                                className="text-sm"
+                              >
+                                {isSel ? "✔ " : ""}
+                                {opt.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          (Posle ćemo definisati ponašanje svake opcije.)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </AccordionContent>
+          </AccordionItem>
+          {/* Actions and Controls */}
+          <div className="flex flex-col gap-4 mt-6">
+            {/* Primary Action */}
+            <Button
+              variant="default"
+              onClick={handleSaveClick}
+              className="w-full"
+              size="lg"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Sačuvaj Orman
+            </Button>
+
+            {/* View Controls */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground px-1">
+                Prikaz
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={handleToggleAllInfo}
+                  className="flex-1 hover:text-white"
+                  size="sm"
+                >
+                  {allInfoShown ? (
+                    <EyeOff className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-1" />
+                  )}
+                  {allInfoShown ? "Sakrij Info" : "Prikaži Info"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowDimensions(!showDimensions)}
+                  className="flex-1 hover:text-white"
+                  size="sm"
+                >
+                  {showDimensions ? (
+                    <EyeOff className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-1" />
+                  )}
+                  {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Reports & Data */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground px-1">
+                Izveštaji
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowCutList(true)}
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <Table className="h-4 w-4 mr-2" />
+                  Tabela ploča
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleExportElementSpecs}
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Specifikacija elemenata
+                </Button>
+              </div>
+            </div>
+
+            {/* Downloads */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground px-1">
+                Preuzimanja
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadFrontView}
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Frontalni prikaz
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadFrontEdges}
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Ivice (front)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadTechnical2D}
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Tehnički crtež 2D
+                </Button>
+              </div>
             </div>
           </div>
+        </Accordion>
 
-          {/* Reports & Data */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">
-              Izveštaji
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setShowCutList(true)}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <Table className="h-4 w-4 mr-2" />
-                Tabela ploča
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleExportElementSpecs}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Specifikacija elemenata
-              </Button>
-            </div>
-          </div>
-
-          {/* Downloads */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground px-1">
-              Preuzimanja
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button
-                variant="outline"
-                onClick={handleDownloadFrontView}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Frontalni prikaz
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownloadFrontEdges}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Ivice (front)
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownloadTechnical2D}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Tehnički crtež 2D
-              </Button>
-            </div>
-          </div>
+        {/* Bottom summary bar */}
+        <div className="mt-4 w-full bg-primary text-primary-foreground h-[50px] flex items-center justify-between px-3 rounded">
+          <span className="text-sm font-medium">
+            Ukupna kvadratura: {fmt2(cutList.totalArea)} m²
+          </span>
+          <span className="text-sm font-semibold">
+            Ukupna cena: {fmt2(cutList.totalCost)}
+          </span>
         </div>
-      </Accordion>
-
-      {/* Bottom summary bar */}
-      <div className="mt-4 w-full bg-primary text-primary-foreground h-[50px] flex items-center justify-between px-3 rounded">
-        <span className="text-sm font-medium">
-          Ukupna kvadratura: {fmt2(cutList.totalArea)} m²
-        </span>
-        <span className="text-sm font-semibold">
-          Ukupna cena: {fmt2(cutList.totalCost)}
-        </span>
       </div>
 
       {/* Cut List Modal */}
@@ -2340,7 +2352,7 @@ export function ConfiguratorControls({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

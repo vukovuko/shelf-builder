@@ -36,15 +36,7 @@ export default function DesignLayout({
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Desktop aside */}
       <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
-        <div className="p-6 pb-4 flex-shrink-0">
-          <h1 className="text-2xl font-bold">Vaš Orman</h1>
-          <p className="text-sm text-muted-foreground">
-            Dizajnirajte svoj orman u samo nekoliko koraka.
-          </p>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
-          <ConfiguratorControls wardrobeRef={wardrobeRef} />
-        </div>
+        <ConfiguratorControls wardrobeRef={wardrobeRef} />
       </aside>
 
       {/* Mobile header */}
@@ -70,7 +62,7 @@ export default function DesignLayout({
             onClick={() => setDrawerOpen(false)}
           />
           <div className="absolute inset-y-0 left-0 w-[85vw] max-w-xs bg-sidebar border-r border-sidebar-border p-4 overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Podešavanje</h2>
               <button
                 onClick={() => setDrawerOpen(false)}
@@ -79,9 +71,6 @@ export default function DesignLayout({
               >
                 Zatvori
               </button>
-            </div>
-            <div className="text-xs text-muted-foreground mb-4">
-              Dizajnirajte svoj orman u samo nekoliko koraka.
             </div>
             <div className="-mx-1 flex-1">
               <ConfiguratorControls wardrobeRef={wardrobeRef} />
