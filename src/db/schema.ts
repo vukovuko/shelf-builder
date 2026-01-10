@@ -1,5 +1,15 @@
 import { relations } from "drizzle-orm";
-import { boolean, json, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  json,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+// Role enum - expandable for future roles
+export const roleEnum = pgEnum("user_role", ["user", "admin"]);
 
 // Better Auth Tables
 export const user = pgTable("user", {
@@ -8,6 +18,9 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("emailVerified").notNull(),
   image: text("image"),
+  role: roleEnum("role").notNull().default("user"),
+  banned: boolean("banned").default(false),
+  banReason: text("banReason"),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
 });

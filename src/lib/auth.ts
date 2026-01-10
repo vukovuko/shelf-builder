@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { admin } from "better-auth/plugins";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
 
@@ -19,5 +20,18 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-  plugins: [nextCookies()], // Must be last plugin
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "user",
+        input: false, // Don't allow users to set their own role
+      },
+    },
+  },
+  plugins: [
+    admin(), // Admin plugin for role management
+    nextCookies(), // Must be last plugin
+  ],
 });
