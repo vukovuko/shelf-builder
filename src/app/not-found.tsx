@@ -1,60 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="text-center max-w-md mx-auto">
-        {/* Large 404 Number */}
-        <div className="mb-8">
-          <h1 className="text-8xl font-bold text-primary mb-4">404</h1>
-          <div className="w-24 h-1 bg-accent mx-auto rounded-full"></div>
-        </div>
+    <div className='grid min-h-screen grid-cols-1 lg:grid-cols-2'>
+      <div className='flex flex-col items-center justify-center px-4 py-8 text-center'>
+        <h2 className='mb-6 text-5xl font-semibold'>Ups!</h2>
+        <h3 className='mb-1.5 text-3xl font-semibold'>Stranica nije pronađena</h3>
+        <p className='text-muted-foreground mb-6 max-w-sm'>
+          Stranica koju tražite ne postoji. Predlažemo da se vratite nazad.
+        </p>
+        <Button
+          size='lg'
+          className='rounded-lg text-base'
+          onClick={() => window.history.back()}
+        >
+          Nazad na prethodnu stranicu
+        </Button>
+      </div>
 
-        {/* Error Message */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-foreground mb-3">
-            Page Not Found
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Sorry, we couldn't find the page you're looking for. The page may
-            have been moved, deleted, or you entered the wrong URL.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-4">
-          <Link href="/design">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg">
-              Start Designing
-            </Button>
-          </Link>
-
-          <div className="flex items-center justify-center space-x-4 text-sm">
-            <Link
-              href="/"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Go Home
-            </Link>
-            <span className="text-border">•</span>
-            <button
-              onClick={() => window.history.back()}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-
-        {/* Decorative Element */}
-        <div className="mt-12 flex justify-center space-x-2">
-          <div className="w-2 h-2 bg-accent rounded-full opacity-60"></div>
-          <div className="w-2 h-2 bg-primary rounded-full opacity-80"></div>
-          <div className="w-2 h-2 bg-accent rounded-full opacity-60"></div>
-        </div>
+      <div className='relative max-h-screen w-full p-2 max-lg:hidden'>
+        <div className='h-full w-full rounded-2xl bg-black'></div>
+        <Image
+          src='https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/error/image-1.png'
+          alt='404 ilustracija'
+          width={406}
+          height={406}
+          className='absolute top-1/2 left-1/2 h-[clamp(260px,25vw,406px)] w-auto -translate-x-1/2 -translate-y-1/2'
+        />
       </div>
     </div>
   );

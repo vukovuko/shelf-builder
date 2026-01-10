@@ -1054,7 +1054,7 @@ export function ConfiguratorControls({
         ) : session ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-auto py-1.5">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-auto py-1.5 hover:text-white">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="text-xs">
                     {getInitials(session.user?.name || session.user?.email || 'U')}
@@ -1909,7 +1909,7 @@ export function ConfiguratorControls({
               <Button
                 variant="ghost"
                 onClick={handleToggleAllInfo}
-                className="flex-1"
+                className="flex-1 hover:text-white"
                 size="sm"
               >
                 {allInfoShown ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
@@ -1918,7 +1918,7 @@ export function ConfiguratorControls({
               <Button
                 variant="ghost"
                 onClick={() => setShowDimensions(!showDimensions)}
-                className="flex-1"
+                className="flex-1 hover:text-white"
                 size="sm"
               >
                 {showDimensions ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}

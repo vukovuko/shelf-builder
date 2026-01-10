@@ -701,59 +701,67 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               style={{ pointerEvents: "auto" }}
               zIndexRange={[0, 0]}
             >
-              <button
-                style={{
-                  fontSize: "4px",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  border: "1px solid #888",
-                  background: "#fff",
-                  cursor: "pointer",
-                  marginBottom: "4px",
-                }}
-                onClick={e => {
-                  e.stopPropagation();
-                  setShowPanelLabels(prev => ({
-                    ...prev,
-                    [panel.label]: !prev[panel.label],
-                  }));
-                }}
-              >
-                {showPanelLabels[panel.label] ? "Hide Info" : "Show Info"}
-              </button>
-              {showPanelLabels[panel.label] && (
-                <div
+              <div style={{ position: "relative" }}>
+                <button
                   style={{
-                    background: "rgba(255,255,255,0.85)",
+                    fontSize: "4px",
                     padding: "2px 6px",
                     borderRadius: "4px",
-                    fontSize: "4px",
-                    color: "#222",
-                    border: "1px solid #ccc",
-                    marginTop: "2px",
-                    whiteSpace: "pre",
+                    border: "1px solid #888",
+                    background: "#fff",
+                    cursor: "pointer",
+                    minWidth: "28px",
+                  }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowPanelLabels(prev => ({
+                      ...prev,
+                      [panel.label]: !prev[panel.label],
+                    }));
                   }}
                 >
-                  <>
-                    {panel.label}
-                    <br />
-                    pos: [
-                    {(panel.position as number[])
-                      .map((n: number) => n.toFixed(3))
-                      .join(", ")}
-                    ]
-                    <br />
-                    size: [
-                    {(panel.size as number[])
-                      .map((n: number) => n.toFixed(3))
-                      .join(", ")}
-                    ]
-                  </>
-                </div>
-              )}
+                  {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
+                </button>
+                {showPanelLabels[panel.label] && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      background: "rgba(255,255,255,0.85)",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      fontSize: "4px",
+                      color: "#222",
+                      border: "1px solid #ccc",
+                      marginTop: "2px",
+                      whiteSpace: "pre",
+                      zIndex: 10,
+                    }}
+                  >
+                    <>
+                      {panel.label}
+                      <br />
+                      pos: [
+                      {(panel.position as number[])
+                        .map((n: number) => n.toFixed(3))
+                        .join(", ")}
+                      ]
+                      <br />
+                      size: [
+                      {(panel.size as number[])
+                        .map((n: number) => n.toFixed(3))
+                        .join(", ")}
+                      ]
+                    </>
+                  </div>
+                )}
+              </div>
             </Html>
           </group>
         ))}
+
 
         {/* Element letter markers on the back side */}
         {elementLabels.map(el => (
@@ -805,98 +813,103 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   style={{ pointerEvents: "auto" }}
                   zIndexRange={[0, 0]}
                 >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    {/* Show Info Button */}
-                    <button
-                      style={{
-                        fontSize: "4px",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        border: "1px solid #888",
-                        background: "#fff",
-                        cursor: "pointer",
-                        marginBottom: "4px",
-                      }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        setShowDividerLabels(prev => ({
-                          ...prev,
-                          [divider.id]: !prev[divider.id],
-                        }));
-                      }}
-                    >
-                      {showDividerLabels[divider.id]
-                        ? "Hide Info"
-                        : "Show Info"}
-                    </button>
-                    {/* Drag Button */}
-                    <button
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "1px solid #888",
-                        background:
-                          draggedDividerKey === divider.id ? "#eee" : "#fff",
-                        cursor:
-                          draggedDividerKey === divider.id
-                            ? "grabbing"
-                            : "grab",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: "4px",
-                      }}
-                      onMouseDown={e => {
-                        e.stopPropagation();
-                        setDraggedDividerKey(divider.id);
-                        setDragOffset(e.clientX);
-                        setInitialDividerX(
-                          customDividerPositions[divider.id] ??
-                            divider.position[0]
-                        );
-                        document.body.style.userSelect = "none";
-                      }}
-                    >
-                      <img
-                        src="/up-down-arrow-icon.png"
-                        alt="Drag Divider"
-                        style={{ width: 14, height: 14, pointerEvents: "none" }}
-                      />
-                    </button>
-                  </div>
-                  {showDividerLabels[divider.id] && (
+                  <div style={{ position: "relative" }}>
                     <div
-                      style={{
-                        background: "rgba(255,255,255,0.85)",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        fontSize: "4px",
-                        color: "#222",
-                        border: "1px solid #ccc",
-                        marginTop: "2px",
-                        whiteSpace: "pre",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <>
-                        Divider {i + 1}
-                        <br />
-                        pos: [
-                        {(divider.position as number[])
-                          .map((n: number) => n.toFixed(3))
-                          .join(", ")}
-                        ]
-                        <br />
-                        size: [
-                        {(divider.size as number[])
-                          .map((n: number) => n.toFixed(3))
-                          .join(", ")}
-                        ]
-                      </>
+                      {/* Show Info Button */}
+                      <button
+                        style={{
+                          fontSize: "4px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          border: "1px solid #888",
+                          background: "#fff",
+                          cursor: "pointer",
+                          minWidth: "28px",
+                        }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setShowDividerLabels(prev => ({
+                            ...prev,
+                            [divider.id]: !prev[divider.id],
+                          }));
+                        }}
+                      >
+                        {showDividerLabels[divider.id]
+                          ? "Sakrij"
+                          : "Prikaži"}
+                      </button>
+                      {/* Drag Button */}
+                      <button
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          border: "1px solid #888",
+                          background:
+                            draggedDividerKey === divider.id ? "#eee" : "#fff",
+                          cursor:
+                            draggedDividerKey === divider.id
+                              ? "grabbing"
+                              : "grab",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onMouseDown={e => {
+                          e.stopPropagation();
+                          setDraggedDividerKey(divider.id);
+                          setDragOffset(e.clientX);
+                          setInitialDividerX(
+                            customDividerPositions[divider.id] ??
+                              divider.position[0]
+                          );
+                          document.body.style.userSelect = "none";
+                        }}
+                      >
+                        <img
+                          src="/up-down-arrow-icon.png"
+                          alt="Drag Divider"
+                          style={{ width: 14, height: 14, pointerEvents: "none" }}
+                        />
+                      </button>
                     </div>
-                  )}
+                    {showDividerLabels[divider.id] && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          background: "rgba(255,255,255,0.85)",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "4px",
+                          color: "#222",
+                          border: "1px solid #ccc",
+                          marginTop: "2px",
+                          whiteSpace: "pre",
+                          zIndex: 10,
+                        }}
+                      >
+                        <>
+                          Divider {i + 1}
+                          <br />
+                          pos: [
+                          {(divider.position as number[])
+                            .map((n: number) => n.toFixed(3))
+                            .join(", ")}
+                          ]
+                          <br />
+                          size: [
+                          {(divider.size as number[])
+                            .map((n: number) => n.toFixed(3))
+                            .join(", ")}
+                          ]
+                        </>
+                      </div>
+                    )}
+                  </div>
                 </Html>
               </group>
             ))}
@@ -924,83 +937,88 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   style={{ pointerEvents: "auto" }}
                   zIndexRange={[0, 0]}
                 >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    {/* Show Info Button */}
-                    <button
-                      style={{
-                        fontSize: "4px",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        border: "1px solid #888",
-                        background: "#fff",
-                        cursor: "pointer",
-                        marginBottom: "4px",
-                      }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        setShowShelfLabels(prev => ({
-                          ...prev,
-                          [shelf.key]: !prev[shelf.key],
-                        }));
-                      }}
-                    >
-                      {showShelfLabels[shelf.key] ? "Hide Info" : "Show Info"}
-                    </button>
-                    {/* Drag Button */}
-                    <button
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        border: "1px solid #888",
-                        background:
-                          draggedShelfKey === shelf.key ? "#eee" : "#fff",
-                        cursor:
-                          draggedShelfKey === shelf.key ? "grabbing" : "grab",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: "4px",
-                      }}
-                      onMouseDown={e => {
-                        e.stopPropagation();
-                        setDraggedShelfKey(shelf.key);
-                        setDragOffset(e.clientY);
-                        setInitialShelfY(
-                          customShelfPositions[shelf.key] ?? shelf.position[1]
-                        );
-                        document.body.style.userSelect = "none";
-                      }}
-                    >
-                      <img
-                        src="/up-down-arrow-icon.png"
-                        alt="Drag Shelf"
-                        style={{ width: 14, height: 14, pointerEvents: "none" }}
-                      />
-                    </button>
-                  </div>
-                  {showShelfLabels[shelf.key] && (
+                  <div style={{ position: "relative" }}>
                     <div
-                      style={{
-                        background: "rgba(255,255,255,0.85)",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        fontSize: "4px",
-                        color: "#222",
-                        border: "1px solid #ccc",
-                        marginTop: "2px",
-                        whiteSpace: "pre",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      {`Shelf\npos: [${shelf.position
-                        .map(n => n.toFixed(3))
-                        .join(", ")}]\nsize: [${shelf.size
-                        .map(n => n.toFixed(3))
-                        .join(", ")} ]`}
+                      {/* Show Info Button */}
+                      <button
+                        style={{
+                          fontSize: "4px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          border: "1px solid #888",
+                          background: "#fff",
+                          cursor: "pointer",
+                          minWidth: "28px",
+                        }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setShowShelfLabels(prev => ({
+                            ...prev,
+                            [shelf.key]: !prev[shelf.key],
+                          }));
+                        }}
+                      >
+                        {showShelfLabels[shelf.key] ? "Sakrij" : "Prikaži"}
+                      </button>
+                      {/* Drag Button */}
+                      <button
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          border: "1px solid #888",
+                          background:
+                            draggedShelfKey === shelf.key ? "#eee" : "#fff",
+                          cursor:
+                            draggedShelfKey === shelf.key ? "grabbing" : "grab",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onMouseDown={e => {
+                          e.stopPropagation();
+                          setDraggedShelfKey(shelf.key);
+                          setDragOffset(e.clientY);
+                          setInitialShelfY(
+                            customShelfPositions[shelf.key] ?? shelf.position[1]
+                          );
+                          document.body.style.userSelect = "none";
+                        }}
+                      >
+                        <img
+                          src="/up-down-arrow-icon.png"
+                          alt="Drag Shelf"
+                          style={{ width: 14, height: 14, pointerEvents: "none" }}
+                        />
+                      </button>
                     </div>
-                  )}
+                    {showShelfLabels[shelf.key] && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          background: "rgba(255,255,255,0.85)",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "4px",
+                          color: "#222",
+                          border: "1px solid #ccc",
+                          marginTop: "2px",
+                          whiteSpace: "pre",
+                          zIndex: 10,
+                        }}
+                      >
+                        {`Shelf\npos: [${shelf.position
+                          .map(n => n.toFixed(3))
+                          .join(", ")}]\nsize: [${shelf.size
+                          .map(n => n.toFixed(3))
+                          .join(", ")} ]`}
+                      </div>
+                    )}
+                  </div>
                 </Html>
               </group>
             ))}
@@ -1391,7 +1409,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     rotation={[0, 0, angle]}
                   >
                     <boxGeometry args={[ah, lineThk, lineThk]} />
-                    <meshBasicMaterial color="#000" />
+                    <meshBasicMaterial color="white" />
                   </mesh>
                 );
               };
@@ -1416,7 +1434,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   nodes.push(
                     <mesh key={`dim-bot-line-${i}`} position={[cx, offsetY, 0]}>
                       <boxGeometry args={[len, lineThk, lineThk]} />
-                      <meshBasicMaterial color="#000" />
+                      <meshBasicMaterial color="white" />
                     </mesh>
                   );
                 }
@@ -1436,7 +1454,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     key={`dim-bot-lbl-${i}`}
                     position={[mid, offsetY - 0.03, 0]}
                     fontSize={0.04}
-                    color="#111"
+                    color="white"
                     anchorX="center"
                     anchorY="middle"
                   >
@@ -1487,7 +1505,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       position={[x, cy, 0]}
                     >
                       <boxGeometry args={[lineThk, vLen, lineThk]} />
-                      <meshBasicMaterial color="#000" />
+                      <meshBasicMaterial color="white" />
                     </mesh>
                   );
                 }
@@ -1529,7 +1547,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       0,
                     ]}
                     fontSize={0.04}
-                    color="#111"
+                    color="white"
                     anchorX={side === "left" ? "right" : "left"}
                     anchorY="middle"
                   >

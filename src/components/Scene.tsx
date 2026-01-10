@@ -120,7 +120,16 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
             shadow-bias={-0.0001}
+            shadow-camera-left={-5}
+            shadow-camera-right={5}
+            shadow-camera-top={5}
+            shadow-camera-bottom={-5}
+            shadow-camera-near={0.5}
+            shadow-camera-far={50}
           />
+          {/* Subtle fill light from front to illuminate interior depth */}
+          <pointLight position={[0, 1, 3]} intensity={0.3} color="#ffffff" />
+          <pointLight position={[0, 0.5, 2.5]} intensity={0.2} color="#ffffff" />
         </>
       )}
 

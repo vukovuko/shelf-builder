@@ -4,6 +4,7 @@ import { wardrobes } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { createWardrobeSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -42,7 +43,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, data, thumbnail } = await req.json();
+    const body = await req.json();
+
+    // Validate input
+    const validationResult = createWardrobeSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Validacija neuspešna',
+          details: validationResult.error.issues[0].message
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, data, thumbnail } = validationResult.data;
 
     const [created] = await db
       .insert(wardrobes)

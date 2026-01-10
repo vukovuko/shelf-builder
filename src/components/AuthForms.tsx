@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { validatePassword } from '@/lib/password-validation';
+import { z } from 'zod';
 
 interface AuthFormsProps {
   onSuccess?: () => void;
@@ -18,18 +20,31 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setPasswordError(null);
+    setEmailError(null);
 
-    // Validate password length
-    if (password.length < 8) {
-      setPasswordError('Lozinka mora imati minimum 8 karaktera');
+    // Validate email
+    const emailValidation = z.email({ message: 'Neispravna email adresa' }).safeParse(email);
+    if (!emailValidation.success) {
+      setEmailError(emailValidation.error.issues[0].message);
       setLoading(false);
       return;
+    }
+
+    // Validate password complexity for registration only
+    if (mode === 'register') {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        setPasswordError(passwordValidation.error!);
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -80,6 +95,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
     setLoading(true);
     setError(null);
     setPasswordError(null);
+    setEmailError(null);
 
     try {
       const result = await signIn.social({
@@ -115,14 +131,25 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         <form onSubmit={submit} className='space-y-6 pt-4'>
           <div className="space-y-2">
             <Label htmlFor="email-login">Email</Label>
-            <Input
-              id="email-login"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder='vas@email.com'
-              type='email'
-              required
-            />
+            <div className="relative">
+              <Input
+                id="email-login"
+                value={email}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  setEmailError(null);
+                }}
+                placeholder='vas@email.com'
+                type='email'
+                required
+                className={emailError ? 'border-destructive' : ''}
+              />
+              {emailError && (
+                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                  {emailError}
+                </div>
+              )}
+            </div>
           </div>
           <div className="space-y-2 pb-2">
             <Label htmlFor="password-login">Lozinka</Label>
@@ -214,14 +241,25 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email-register">Email</Label>
-            <Input
-              id="email-register"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder='vas@email.com'
-              type='email'
-              required
-            />
+            <div className="relative">
+              <Input
+                id="email-register"
+                value={email}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  setEmailError(null);
+                }}
+                placeholder='vas@email.com'
+                type='email'
+                required
+                className={emailError ? 'border-destructive' : ''}
+              />
+              {emailError && (
+                <div className='absolute left-0 top-full mt-1 text-xs text-destructive'>
+                  {emailError}
+                </div>
+              )}
+            </div>
           </div>
           <div className="space-y-2 pb-2">
             <Label htmlFor="password-register">Lozinka</Label>

@@ -4,14 +4,17 @@ import { wardrobes } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { updateWardrobeSchema, wardrobeIdSchema } from "@/lib/validation";
 
-export async function GET(_req: Request, ctx: any) {
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const raw = ctx?.params;
-    const id = raw && typeof raw.then === 'function' ? (await raw)?.id : raw?.id;
+    const id = raw instanceof Promise ? (await raw).id : raw.id;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    // Validate ID
+    const idValidation = wardrobeIdSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json({ error: 'Nevažeći ID' }, { status: 400 });
     }
 
     const session = await auth.api.getSession({
@@ -25,7 +28,7 @@ export async function GET(_req: Request, ctx: any) {
     const [w] = await db
       .select()
       .from(wardrobes)
-      .where(and(eq(wardrobes.id, id), eq(wardrobes.userId, session.user.id)))
+      .where(and(eq(wardrobes.id, idValidation.data), eq(wardrobes.userId, session.user.id)))
       .limit(1);
 
     if (!w) {
@@ -39,13 +42,15 @@ export async function GET(_req: Request, ctx: any) {
   }
 }
 
-export async function PUT(req: Request, ctx: any) {
+export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const raw = ctx?.params;
-    const id = raw && typeof raw.then === 'function' ? (await raw)?.id : raw?.id;
+    const id = raw instanceof Promise ? (await raw).id : raw.id;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    // Validate ID
+    const idValidation = wardrobeIdSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json({ error: 'Nevažeći ID' }, { status: 400 });
     }
 
     const session = await auth.api.getSession({
@@ -56,12 +61,31 @@ export async function PUT(req: Request, ctx: any) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, data, thumbnail } = await req.json();
+    const body = await req.json();
+
+    // Validate body
+    const validationResult = updateWardrobeSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Validacija neuspešna',
+          details: validationResult.error.issues[0].message
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, data, thumbnail } = validationResult.data;
 
     await db
       .update(wardrobes)
-      .set({ name, data: data || {}, thumbnail: thumbnail || null, updatedAt: new Date() })
-      .where(and(eq(wardrobes.id, id), eq(wardrobes.userId, session.user.id)));
+      .set({
+        ...(name !== undefined && { name }),
+        ...(data !== undefined && { data }),
+        ...(thumbnail !== undefined && { thumbnail }),
+        updatedAt: new Date()
+      })
+      .where(and(eq(wardrobes.id, idValidation.data), eq(wardrobes.userId, session.user.id)));
 
     return NextResponse.json({ ok: true });
   } catch (e) {
@@ -70,13 +94,15 @@ export async function PUT(req: Request, ctx: any) {
   }
 }
 
-export async function DELETE(_req: Request, ctx: any) {
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   try {
     const raw = ctx?.params;
-    const id = raw && typeof raw.then === 'function' ? (await raw)?.id : raw?.id;
+    const id = raw instanceof Promise ? (await raw).id : raw.id;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    // Validate ID
+    const idValidation = wardrobeIdSchema.safeParse(id);
+    if (!idValidation.success) {
+      return NextResponse.json({ error: 'Nevažeći ID' }, { status: 400 });
     }
 
     const session = await auth.api.getSession({
@@ -89,7 +115,7 @@ export async function DELETE(_req: Request, ctx: any) {
 
     await db
       .delete(wardrobes)
-      .where(and(eq(wardrobes.id, id), eq(wardrobes.userId, session.user.id)));
+      .where(and(eq(wardrobes.id, idValidation.data), eq(wardrobes.userId, session.user.id)));
 
     return NextResponse.json({ ok: true });
   } catch (e) {
