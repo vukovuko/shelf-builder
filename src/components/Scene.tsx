@@ -1,13 +1,35 @@
 "use client";
 
 import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe"; // Import the new assembly component
+
+// Component to handle WebGL context recovery and visibility changes
+function ContextMonitor() {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Force a render when tab becomes visible to prevent context loss
+        gl.render(gl.scene as any, gl.camera as any);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [gl]);
+
+  return null;
+}
 
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   // Connect to the store to get the current view mode
@@ -110,7 +132,26 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
       dpr={[1, 1.75]}
       frameloop="demand"
       camera={{ position: [0, 0, 5], fov: 40 }}
+      gl={{
+        preserveDrawingBuffer: true,
+        powerPreference: "high-performance",
+        antialias: true,
+      }}
+      onCreated={({ gl }) => {
+        // Handle context loss
+        gl.domElement.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          console.warn("WebGL context lost");
+        });
+
+        gl.domElement.addEventListener("webglcontextrestored", () => {
+          console.log("WebGL context restored");
+        });
+      }}
     >
+      {/* Monitor for WebGL context and page visibility */}
+      <ContextMonitor />
+
       {/* White background for technical 2D export */}
       {showEdgesOnly && <color attach="background" args={["#ffffff"]} />}
       {/* Clean, shadowless lighting */}

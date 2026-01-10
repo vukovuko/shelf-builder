@@ -82,7 +82,8 @@ export default function WardrobesPage() {
 
   useEffect(() => {
     fetchWardrobes();
-  }, [fetchWardrobes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   // Handle load wardrobe
   function handleLoad(id: string) {
