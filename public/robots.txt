@@ -1,0 +1,54 @@
+# Allow all crawlers by default
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /wardrobes
+Disallow: /account
+
+# Google (Search + Images + Mobile)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-Mobile
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Allow: /
+
+User-agent: BingPreview
+Allow: /
+
+# Yahoo
+User-agent: Slurp
+Allow: /
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+
+# Yandex (Russian search engine)
+User-agent: YandexBot
+Allow: /
+
+# Baidu (Chinese search engine)
+User-agent: Baiduspider
+Allow: /
+
+# Facebook crawler (for link previews)
+User-agent: facebookexternalhit
+Allow: /
+
+# Twitter crawler (for card previews)
+User-agent: Twitterbot
+Allow: /
+
+# LinkedIn crawler
+User-agent: LinkedInBot
+Allow: /
+
+# Sitemap
+Sitemap: https://ormanipomeri.vercel.app/sitemap.xml

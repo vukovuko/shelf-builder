@@ -12,8 +12,49 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Shelf Builder",
-  description: "Design your custom shelf.",
+  title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+  description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica. Izaberite dimenzije, materijale, fioke i vrata. Preuzmi specifikaciju u PDF formatu.",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      {
+        rel: "android-chrome-192x192",
+        url: "/android-chrome-192x192.png",
+      },
+      {
+        rel: "android-chrome-512x512",
+        url: "/android-chrome-512x512.png",
+      },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Shelf Builder",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Shelf Builder",
+    title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+    description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+    locale: "sr_RS",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+    description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+  },
 };
 
 export default function RootLayout({
@@ -22,9 +63,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="sr" className="dark">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="color-scheme" content="dark" />
       </head>
       <body className={`${poppins.variable} ${poppins.className} antialiased`}>
         <AuthSessionProvider>{children}</AuthSessionProvider>
