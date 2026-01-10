@@ -347,7 +347,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       });
 
       return list;
-    }, [w, h, t, d, hasBase, baseH]);
+    }, [w, h, t, d, width, hasBase, baseH]);
 
     // Element letter labels (A, B, C, ...) at each element's center on the back side
     const elementLabels = React.useMemo(() => {
@@ -655,7 +655,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       dividers,
       customDividerPositions,
       customShelfPositions,
-      shelves.filter,
+      shelves,
     ]);
 
     // Handler to show/hide all shelf and divider info overlays (to be called from parent)
