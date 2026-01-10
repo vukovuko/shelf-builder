@@ -18,11 +18,15 @@ export function Panel({ position, size }: PanelProps) {
   const safePosition = position.map((v) =>
     typeof v === "number" && Number.isFinite(v) ? v : 0,
   ) as [number, number, number];
+
+  // Key based on size to force geometry/edges recreation when dimensions change
+  const geoKey = `${safeSize[0]}-${safeSize[1]}-${safeSize[2]}`;
+
   return (
     <mesh position={safePosition} castShadow receiveShadow>
-      <boxGeometry args={safeSize} />
+      <boxGeometry key={geoKey} args={safeSize} />
       {/* The material will be defined on the parent so all panels match */}
-      <Edges scale={1} threshold={15} color="black" /> {/* Black edge lines */}
+      <Edges key={`e-${geoKey}`} scale={1} threshold={15} color="black" />
     </mesh>
   );
 }

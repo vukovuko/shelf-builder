@@ -11,12 +11,15 @@ export function InteriorBack() {
   const d = depth / 100;
   const t = panelThickness / 100;
 
+  // Key based on dimensions to force geometry/edges recreation
+  const geoKey = `${w}-${h}-${d}-${t}`;
+
   // This back panel has a slightly darker color to create depth
   return (
     <mesh position={[0, 0, -d / 2 + t / 2]} receiveShadow>
-      <boxGeometry args={[w - 2 * t, h - 2 * t, t]} />
+      <boxGeometry key={geoKey} args={[w - 2 * t, h - 2 * t, t]} />
       <meshStandardMaterial color="#e5e5e5" />
-      <Edges scale={1.01} threshold={15} color="black" />
+      <Edges key={`e-${geoKey}`} scale={1.01} threshold={15} color="black" />
     </mesh>
   );
 }
