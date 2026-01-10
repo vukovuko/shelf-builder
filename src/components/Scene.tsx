@@ -159,11 +159,11 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
         // Handle context loss
         gl.domElement.addEventListener("webglcontextlost", (e) => {
           e.preventDefault();
-          console.warn("WebGL context lost");
+          // Silently prevent context loss
         });
 
         gl.domElement.addEventListener("webglcontextrestored", () => {
-          console.log("WebGL context restored");
+          // Context restored, no action needed
         });
       }}
     >

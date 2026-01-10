@@ -1,10 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import type React from "react";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
-import { useSession } from "@/lib/auth-client";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 
 // Separate component for URL param handling - wrapped in Suspense
@@ -20,19 +20,19 @@ function LoadFromUrl() {
       try {
         const res = await fetch(`/api/wardrobes/${loadId}`);
         if (!res.ok) {
-          toast.error("Failed to load wardrobe");
+          toast.error("Greška pri učitavanju ormana");
           return;
         }
 
         const wardrobe = await res.json();
         applyWardrobeSnapshot(wardrobe.data);
-        toast.success(`Loaded: ${wardrobe.name}`);
+        toast.success(`Učitano: ${wardrobe.name}`);
 
         window.history.replaceState({}, "", "/design");
         setHasLoadedFromUrl(true);
       } catch (e) {
         console.error("Failed to load wardrobe", e);
-        toast.error("Failed to load wardrobe");
+        toast.error("Greška pri učitavanju ormana");
       }
     }
 
@@ -42,14 +42,18 @@ function LoadFromUrl() {
   return null;
 }
 
-export default function DesignPage(props: any) {
-  const { data: session } = useSession();
+interface DesignPageProps {
+  wardrobeRef?: React.RefObject<any>;
+  isLoggedIn?: boolean;
+}
+
+export default function DesignPage({ wardrobeRef, isLoggedIn }: DesignPageProps) {
   const [hasRestoredState, setHasRestoredState] = useState(false);
   const [isSceneLoading, setIsSceneLoading] = useState(true);
 
   // State persistence: Restore pending work after login
   useEffect(() => {
-    if (session && !hasRestoredState) {
+    if (isLoggedIn && !hasRestoredState) {
       const pendingState = localStorage.getItem("pendingWardrobeState");
       if (pendingState) {
         try {
@@ -62,7 +66,7 @@ export default function DesignPage(props: any) {
 
           applyWardrobeSnapshot(state);
           localStorage.removeItem("pendingWardrobeState");
-          toast.success("Welcome back! Your work has been restored.");
+          toast.success("Dobrodošli nazad! Vaš rad je sačuvan.");
         } catch (_e) {
           // Just clear invalid data, don't crash
           localStorage.removeItem("pendingWardrobeState");
@@ -70,7 +74,7 @@ export default function DesignPage(props: any) {
       }
       setHasRestoredState(true);
     }
-  }, [session, hasRestoredState]);
+  }, [isLoggedIn, hasRestoredState]);
 
   // Hide loading overlay after scene initializes
   useEffect(() => {
@@ -105,7 +109,7 @@ export default function DesignPage(props: any) {
         <LoadFromUrl />
       </Suspense>
       {/* Scene stays mounted and stable */}
-      <Scene {...props} />
+      <Scene wardrobeRef={wardrobeRef!} />
     </>
   );
 }

@@ -75,13 +75,28 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+interface SessionUser {
+  id: string;
+  name: string;
+  email: string;
+  image?: string | null;
+}
+
+interface InitialSession {
+  user: SessionUser;
+}
+
 export function ConfiguratorControls({
   wardrobeRef,
+  initialSession,
 }: {
   wardrobeRef: React.RefObject<any>;
+  initialSession?: InitialSession | null;
 }) {
-  // Auth state
-  const { data: session, isPending } = useSession();
+  // Auth state - use initialSession from server, useSession for reactivity after login/logout
+  const { data: clientSession, isPending } = useSession();
+  // Use initialSession while client is loading, then switch to client session (even if null after logout)
+  const session = isPending ? initialSession : clientSession;
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
@@ -1200,9 +1215,7 @@ export function ConfiguratorControls({
     <div className="flex flex-col h-full">
       {/* Sticky Auth Section at top */}
       <div className="flex-shrink-0 sticky top-0 bg-sidebar z-10 px-4 pt-3 pb-2 border-b">
-        {isPending ? (
-          <div className="h-7 w-full animate-pulse bg-muted rounded" />
-        ) : session ? (
+        {session ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
