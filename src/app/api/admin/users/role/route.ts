@@ -4,7 +4,7 @@ import { requireAdmin, setUserRole, type Role } from "@/lib/roles";
 
 // Zod schema for role update
 const updateRoleSchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
+  userId: z.uuid({ message: "Invalid user ID format" }),
   role: z.enum(["user", "admin"], {
     message: "Role must be 'user' or 'admin'",
   }),
