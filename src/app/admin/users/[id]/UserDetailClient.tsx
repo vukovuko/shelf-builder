@@ -141,7 +141,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="user">Korisnik</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>

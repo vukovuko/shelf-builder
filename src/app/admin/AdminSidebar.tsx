@@ -49,7 +49,7 @@ export function AdminSidebar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">A</span>
           </div>
-          <span className="font-semibold">Admin Panel</span>
+          <span className="font-semibold">Admin</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
