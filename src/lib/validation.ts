@@ -66,3 +66,19 @@ export const updateWardrobeSchema = z.object({
 });
 
 export const wardrobeIdSchema = z.uuid({ message: "Nevažeći ID ormana" });
+
+export const userIdSchema = z.uuid({ message: "Nevažeći ID korisnika" });
+
+export const userUpdateSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Ime ne može biti prazno")
+    .max(100, "Ime mora biti kraće od 100 karaktera")
+    .trim()
+    .optional(),
+  phone: z
+    .string()
+    .regex(/^(\+?[1-9]\d{6,14})?$/, "Nevažeći format telefona")
+    .nullable()
+    .optional(),
+});

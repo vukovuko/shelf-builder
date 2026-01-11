@@ -4,8 +4,13 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
+import { Resend } from "resend";
+import { render } from "@react-email/components";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
+import VerificationEmail from "./emails/verification-email";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -14,7 +19,20 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false, // Set to true in production with email service
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
+      const html = await render(VerificationEmail({ url }));
+
+      await resend.emails.send({
+        from: "Ormani po meri <noreply@send.ormanipomeri.com>",
+        to: user.email,
+        subject: "Verifikujte vasu email adresu",
+        html,
+      });
+    },
   },
   socialProviders: {
     google: {
@@ -29,6 +47,11 @@ export const auth = betterAuth({
         required: false,
         defaultValue: "user",
         input: false, // Don't allow users to set their own role
+      },
+      phone: {
+        type: "string",
+        required: false,
+        input: true, // Allow users to update their phone
       },
     },
   },

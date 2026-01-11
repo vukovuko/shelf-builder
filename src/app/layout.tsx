@@ -12,7 +12,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+  title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
   description:
     "Profesionalni 3D konfigurator za dizajniranje ormana i polica. Izaberite dimenzije, materijale, fioke i vrata. Preuzmi specifikaciju u PDF formatu.",
   manifest: "/site.webmanifest",
@@ -39,22 +39,22 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Shelf Builder",
+    title: "Ormani po meri",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: "website",
-    siteName: "Shelf Builder",
-    title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+    siteName: "Ormani po meri",
+    title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
     description:
       "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
     locale: "sr_RS",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
+    title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
     description:
       "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
   },

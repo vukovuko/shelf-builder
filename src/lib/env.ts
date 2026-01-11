@@ -11,6 +11,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

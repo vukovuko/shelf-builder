@@ -3,6 +3,7 @@ import { db } from "@/db/db";
 import { user, wardrobes } from "@/db/schema";
 import { eq, count } from "drizzle-orm";
 import { requireAdmin } from "@/lib/roles";
+import { userIdSchema } from "@/lib/validation";
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +13,14 @@ export async function GET(
     await requireAdmin();
 
     const { id } = await params;
+
+    const validatedId = userIdSchema.safeParse(id);
+    if (!validatedId.success) {
+      return NextResponse.json(
+        { error: validatedId.error.issues[0].message },
+        { status: 400 },
+      );
+    }
 
     // Fetch user
     const [userData] = await db
@@ -24,7 +33,7 @@ export async function GET(
         updatedAt: user.updatedAt,
       })
       .from(user)
-      .where(eq(user.id, id));
+      .where(eq(user.id, validatedId.data));
 
     if (!userData) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -34,7 +43,7 @@ export async function GET(
     const [wardrobeCount] = await db
       .select({ count: count() })
       .from(wardrobes)
-      .where(eq(wardrobes.userId, id));
+      .where(eq(wardrobes.userId, validatedId.data));
 
     // Fetch user's wardrobes
     const userWardrobes = await db
@@ -45,7 +54,7 @@ export async function GET(
         updatedAt: wardrobes.updatedAt,
       })
       .from(wardrobes)
-      .where(eq(wardrobes.userId, id));
+      .where(eq(wardrobes.userId, validatedId.data));
 
     return NextResponse.json({
       ...userData,
