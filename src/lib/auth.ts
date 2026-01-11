@@ -20,7 +20,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true, // Auto-login after registration
-    requireEmailVerification: true,
+    requireEmailVerification: false, // Let users in immediately, just remind them to verify
   },
   emailVerification: {
     sendOnSignUp: true,
