@@ -63,10 +63,8 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           return;
         }
 
-        // auto switch to login after successful registration
-        setMode("login");
-        setPassword("");
-        setError("Uspešno ste se registrovali! Sada se prijavite.");
+        // Auto-login is enabled, so just call onSuccess
+        onSuccess?.();
       } else {
         const result = await signIn.email({
           email,
