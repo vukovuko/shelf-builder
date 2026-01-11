@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signIn, signUp } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
-import { isEmailVerified } from "@/lib/actions";
 
 interface AuthFormsProps {
   onSuccess?: () => void;
@@ -23,6 +23,16 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Password requirements check for visual indicator
+  const passwordRequirements = {
+    minLength: password.length >= 8,
+    hasLowercase: /[a-z]/.test(password),
+    hasUppercase: /[A-Z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[^a-zA-Z0-9]/.test(password),
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,9 +85,9 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           return;
         }
 
-        // Check email verification status from server
-        const verified = await isEmailVerified();
-        if (verified === false) {
+        // Check email verification from response data (not server action - cookies not set yet)
+        const emailVerified = result.data?.user?.emailVerified;
+        if (!emailVerified) {
           toast.info("Verifikujte vaš email", {
             description:
               "Poslali smo vam link za verifikaciju na email adresu. Bez verifikacije nećete moći ponovo da se prijavite.",
@@ -195,10 +205,22 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
                   setPasswordError(null);
                 }}
                 placeholder="••••••••"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
-                className={passwordError ? "border-destructive" : ""}
+                className={`pr-10 ${passwordError ? "border-destructive" : ""}`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
               {passwordError && (
                 <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {passwordError}
@@ -303,16 +325,53 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
                   setPasswordError(null);
                 }}
                 placeholder="••••••••"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
-                className={passwordError ? "border-destructive" : ""}
+                className={`pr-10 ${passwordError ? "border-destructive" : ""}`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
               {passwordError && (
                 <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
                   {passwordError}
                 </div>
               )}
             </div>
+            {/* Password requirements indicator */}
+            {password.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-2">
+                <div className={`flex items-center gap-1.5 ${passwordRequirements.minLength ? "text-green-500" : "text-muted-foreground"}`}>
+                  {passwordRequirements.minLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>Min. 8 karaktera</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasLowercase ? "text-green-500" : "text-muted-foreground"}`}>
+                  {passwordRequirements.hasLowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>Malo slovo</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasUppercase ? "text-green-500" : "text-muted-foreground"}`}>
+                  {passwordRequirements.hasUppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>Veliko slovo</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasNumber ? "text-green-500" : "text-muted-foreground"}`}>
+                  {passwordRequirements.hasNumber ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>Broj</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasSpecial ? "text-green-500" : "text-muted-foreground"}`}>
+                  {passwordRequirements.hasSpecial ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  <span>Specijalni znak</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="min-h-[0.5rem]">
             {error && (
