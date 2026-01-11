@@ -194,7 +194,7 @@ export function AccountClient({ user }: AccountClientProps) {
         <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
           <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span className="text-amber-200">
-              Vaš email nije verifikovan. Proverite inbox ili kliknite dugme za novi link. Bez verifikacije nećete moći ponovo da se prijavite.
+              Vaš email nije verifikovan. Proverite inbox ili kliknite dugme za novi link.
             </span>
             <Button
               variant="outline"

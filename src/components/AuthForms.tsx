@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn, signUp, authClient } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
 
 interface AuthFormsProps {
@@ -77,7 +77,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             result.error.message?.toLowerCase().includes("already exists")
           ) {
             setError(
-              "Korisnik sa ovim emailom već postoji. Pokušajte da se prijavite - ako niste verifikovali email, poslaćemo vam novi link."
+              "Ako već imate nalog, pokušajte da se prijavite. Ako niste verifikovali email, poslaćemo vam novi link."
             );
           } else {
             setError(result.error.message || "Registracija nije uspela");
@@ -88,9 +88,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         // Check email verification from response data (not server action - cookies not set yet)
         const emailVerified = result.data?.user?.emailVerified;
         if (!emailVerified) {
-          toast.info("Verifikujte vaš email", {
-            description:
-              "Poslali smo vam link za verifikaciju na email adresu. Bez verifikacije nećete moći ponovo da se prijavite.",
+          toast("Proverite inbox za verifikacioni email", {
             duration: 5000,
           });
         }
@@ -104,15 +102,18 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         });
 
         if (result.error) {
-          // 403 = email not verified, better-auth auto-sends new verification email
-          if (result.error.status === 403) {
-            setError(
-              "Email nije verifikovan. Poslali smo vam novi link za verifikaciju - proverite inbox."
-            );
-          } else {
-            setError("Pogrešni kredencijali");
-          }
+          setError("Pogrešni kredencijali");
           return;
+        }
+
+        // If user is not verified, manually send verification email
+        const emailVerified = result.data?.user?.emailVerified;
+        if (!emailVerified) {
+          // Send verification email in background
+          authClient.sendVerificationEmail({ email }).catch(console.error);
+          toast("Proverite inbox za verifikacioni email", {
+            duration: 5000,
+          });
         }
 
         // Call onSuccess callback after successful login

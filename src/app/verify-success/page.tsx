@@ -10,9 +10,9 @@ export default function VerifySuccessPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Auto-redirect to home after 5 seconds
+    // Auto-redirect to design after 5 seconds
     const timeout = setTimeout(() => {
-      router.push("/");
+      router.push("/design");
     }, 5000);
 
     return () => clearTimeout(timeout);
@@ -27,13 +27,13 @@ export default function VerifySuccessPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Email verifikovan!</h1>
           <p className="text-muted-foreground">
-            Vaša email adresa je uspešno verifikovana. Sada se možete prijaviti
-            na vaš nalog.
+            Vaša email adresa je uspešno verifikovana. Možete nastaviti sa
+            dizajniranjem vašeg ormana.
           </p>
         </div>
         <div className="space-y-3">
-          <Button onClick={() => router.push("/")} className="w-full">
-            Idi na početnu
+          <Button onClick={() => router.push("/design")} className="w-full">
+            Nastavi sa dizajnom
           </Button>
           <p className="text-xs text-muted-foreground">
             Automatsko preusmeravanje za 5 sekundi...
