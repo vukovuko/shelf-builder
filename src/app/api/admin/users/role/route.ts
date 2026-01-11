@@ -6,7 +6,7 @@ import { requireAdmin, setUserRole, type Role } from "@/lib/roles";
 const updateRoleSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
   role: z.enum(["user", "admin"], {
-    errorMap: () => ({ message: "Role must be 'user' or 'admin'" }),
+    message: "Role must be 'user' or 'admin'",
   }),
 });
 
@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error.errors[0]?.message || "Invalid input" },
+        { error: result.error.issues[0]?.message || "Invalid input" },
         { status: 400 }
       );
     }

@@ -1,19 +1,9 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser, isAdmin } from "@/lib/roles";
+import { getCurrentUser } from "@/lib/roles";
 import { AdminDashboard } from "./AdminDashboard";
 
 export default async function AdminPage() {
+  // Layout already checks admin access, but we need user for display
   const user = await getCurrentUser();
 
-  // Not logged in
-  if (!user) {
-    redirect("/");
-  }
-
-  // Not admin
-  if (!isAdmin(user.role)) {
-    redirect("/");
-  }
-
-  return <AdminDashboard user={user} />;
+  return <AdminDashboard user={user!} />;
 }
