@@ -2225,14 +2225,20 @@ export function ConfiguratorControls({
       <div className="flex-shrink-0 sticky bottom-0 bg-sidebar z-10 px-4 py-3 border-t space-y-2">
         {/* Kvadratura row */}
         <div className="flex items-center justify-between">
-          <span className="text-base text-muted-foreground">Ukupna kvadratura</span>
-          <span className="text-lg font-bold">{fmt2(cutList.totalArea)} m²</span>
+          <span className="text-base text-muted-foreground">
+            Ukupna kvadratura
+          </span>
+          <span className="text-lg font-bold">
+            {fmt2(cutList.totalArea)} m²
+          </span>
         </div>
 
         {/* Ukupna cena row - accent background */}
         <div className="flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg">
           <span className="text-base font-medium">Ukupna cena</span>
-          <span className="text-xl font-bold">{fmt2(cutList.totalCost)} RSD</span>
+          <span className="text-xl font-bold">
+            {fmt2(cutList.totalCost)} RSD
+          </span>
         </div>
       </div>
 

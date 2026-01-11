@@ -16,7 +16,9 @@ export async function captureThumbnail(
         }
 
         // Check if canvas has been drawn to
-        const context = canvasElement.getContext("webgl2") || canvasElement.getContext("webgl");
+        const context =
+          canvasElement.getContext("webgl2") ||
+          canvasElement.getContext("webgl");
         if (!context) {
           throw new Error("WebGL context not available");
         }

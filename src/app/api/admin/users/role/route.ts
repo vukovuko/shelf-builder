@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error.issues[0]?.message || "Invalid input" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
     if (userId === currentUser.id) {
       return NextResponse.json(
         { error: "Cannot change your own role" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Failed to update role:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -52,7 +52,10 @@ interface DesignPageProps {
   isLoggedIn?: boolean;
 }
 
-export default function DesignPage({ wardrobeRef, isLoggedIn }: DesignPageProps) {
+export default function DesignPage({
+  wardrobeRef,
+  isLoggedIn,
+}: DesignPageProps) {
   const [hasRestoredState, setHasRestoredState] = useState(false);
   const [isSceneLoading, setIsSceneLoading] = useState(true);
 

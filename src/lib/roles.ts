@@ -8,7 +8,10 @@ import { eq } from "drizzle-orm";
 export type Role = "user" | "admin";
 
 // Check if user has a specific role
-export function hasRole(userRole: string | undefined | null, role: Role): boolean {
+export function hasRole(
+  userRole: string | undefined | null,
+  role: Role,
+): boolean {
   return userRole === role;
 }
 

@@ -22,7 +22,9 @@ export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
         data={wardrobes}
         searchKey="name"
         searchPlaceholder="Pretrazi po nazivu..."
-        onRowClick={(wardrobe) => router.push(`/admin/users/${wardrobe.userId}`)}
+        onRowClick={(wardrobe) =>
+          router.push(`/admin/users/${wardrobe.userId}`)
+        }
       />
     </div>
   );

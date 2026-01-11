@@ -13,7 +13,8 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
-  description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica. Izaberite dimenzije, materijale, fioke i vrata. Preuzmi specifikaciju u PDF formatu.",
+  description:
+    "Profesionalni 3D konfigurator za dizajniranje ormana i polica. Izaberite dimenzije, materijale, fioke i vrata. Preuzmi specifikaciju u PDF formatu.",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
@@ -47,13 +48,15 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Shelf Builder",
     title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
-    description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+    description:
+      "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
     locale: "sr_RS",
   },
   twitter: {
     card: "summary_large_image",
     title: "Shelf Builder - Dizajnirajte Vaš Orman po Želji",
-    description: "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+    description:
+      "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
   },
 };
 

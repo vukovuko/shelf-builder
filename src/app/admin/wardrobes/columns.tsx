@@ -77,9 +77,7 @@ export const columns: ColumnDef<Wardrobe>[] = [
       return (
         <div>
           <p className="font-medium">{name || "Nepoznat"}</p>
-          {email && (
-            <p className="text-sm text-muted-foreground">{email}</p>
-          )}
+          {email && <p className="text-sm text-muted-foreground">{email}</p>}
         </div>
       );
     },

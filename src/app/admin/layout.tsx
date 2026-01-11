@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 
 export default async function AdminLayout({

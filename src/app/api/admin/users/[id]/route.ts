@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/roles";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await requireAdmin();
@@ -64,7 +64,7 @@ export async function GET(
     console.error("Failed to fetch user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

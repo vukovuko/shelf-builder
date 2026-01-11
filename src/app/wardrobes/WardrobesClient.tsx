@@ -244,11 +244,16 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <DropdownMenuItem onSelect={() => handleLoad(wardrobe.id)}>
                       Učitaj
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleDuplicate(wardrobe.id)}>
+                    <DropdownMenuItem
+                      onSelect={() => handleDuplicate(wardrobe.id)}
+                    >
                       Dupliraj
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleShare(wardrobe.id)}>
@@ -278,7 +283,8 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Da li ste sigurni?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ova akcija ne može biti poništena. Ovo će trajno obrisati orman &quot;
+              Ova akcija ne može biti poništena. Ovo će trajno obrisati orman
+              &quot;
               {wardrobeToDelete?.name}&quot; i sve njegove podatke.
             </AlertDialogDescription>
           </AlertDialogHeader>
