@@ -60,8 +60,18 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         });
 
         if (result.error) {
-          const errorMsg = result.error.message || "Registracija nije uspela";
-          setError(errorMsg);
+          // Check if user already exists - tell them to login instead
+          const errorCode = result.error.code?.toLowerCase() || "";
+          if (
+            errorCode.includes("user_already_exists") ||
+            result.error.message?.toLowerCase().includes("already exists")
+          ) {
+            setError(
+              "Korisnik sa ovim emailom već postoji. Pokušajte da se prijavite - ako niste verifikovali email, poslaćemo vam novi link."
+            );
+          } else {
+            setError(result.error.message || "Registracija nije uspela");
+          }
           return;
         }
 
@@ -84,7 +94,14 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         });
 
         if (result.error) {
-          setError("Pogrešni kredencijali");
+          // 403 = email not verified, better-auth auto-sends new verification email
+          if (result.error.status === 403) {
+            setError(
+              "Email nije verifikovan. Poslali smo vam novi link za verifikaciju - proverite inbox."
+            );
+          } else {
+            setError("Pogrešni kredencijali");
+          }
           return;
         }
 

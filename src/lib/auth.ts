@@ -20,7 +20,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true, // Auto-login after registration
-    requireEmailVerification: false, // TODO: Re-enable after Resend domain is verified
+    requireEmailVerification: true,
   },
   emailVerification: {
     sendOnSignUp: true,
