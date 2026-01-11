@@ -28,9 +28,9 @@ export const auth = betterAuth({
       const html = await render(VerificationEmail({ url }));
 
       await resend.emails.send({
-        from: "Ormani po meri <noreply@send.ormanipomeri.com>",
+        from: "Ormani po meri <noreply@ormanipomeri.com>",
         to: user.email,
-        subject: "Verifikujte vasu email adresu",
+        subject: "Verifikujte vašu email adresu",
         html,
       });
     },

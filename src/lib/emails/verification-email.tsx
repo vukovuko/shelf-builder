@@ -33,7 +33,7 @@ export default function VerificationEmail({ url }: VerificationEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Verifikujte vasu email adresu - Ormani po meri</Preview>
+      <Preview>Verifikujte vašu email adresu - Ormani po meri</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Logo/Brand Header */}
@@ -52,8 +52,8 @@ export default function VerificationEmail({ url }: VerificationEmailProps) {
           {/* Main Content */}
           <Heading style={h1}>Verifikacija email adrese</Heading>
           <Text style={text}>
-            Hvala vam sto ste kreirali nalog! Kliknite na dugme ispod da biste
-            verifikovali vasu email adresu i aktivirali vas nalog.
+            Hvala vam što ste kreirali nalog! Kliknite na dugme ispod da biste
+            verifikovali vašu email adresu i aktivirali vaš nalog.
           </Text>
 
           <Section style={buttonContainer}>
@@ -63,7 +63,7 @@ export default function VerificationEmail({ url }: VerificationEmailProps) {
           </Section>
 
           <Text style={textSmall}>
-            Ili kopirajte i nalepite ovaj link u vas pregledac:
+            Ili kopirajte i nalepite ovaj link u vaš pregledač:
           </Text>
           <Link href={url} style={link}>
             {url}
@@ -73,11 +73,11 @@ export default function VerificationEmail({ url }: VerificationEmailProps) {
 
           {/* Footer */}
           <Text style={footer}>
-            Ako niste kreirali nalog na Ormani po meri, mozete ignorisati ovaj
+            Ako niste kreirali nalog na Ormani po meri, možete ignorisati ovaj
             email.
           </Text>
           <Text style={footerSmall}>
-            © {new Date().getFullYear()} Ormani po meri. Sva prava zadrzana.
+            © {new Date().getFullYear()} Ormani po meri. Sva prava zadržana.
           </Text>
         </Container>
       </Body>

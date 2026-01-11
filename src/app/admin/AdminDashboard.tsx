@@ -32,7 +32,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
-        toast.error("Greska pri ucitavanju statistike");
+        toast.error("Greška pri učitavanju statistike");
       }
     }
 
@@ -42,7 +42,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Dobrodosli, {user.name}</h1>
+        <h1 className="text-3xl font-bold">Dobrodošli, {user.name}</h1>
         <p className="text-muted-foreground">Pregled admin panela</p>
       </div>
 

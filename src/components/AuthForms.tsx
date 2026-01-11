@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signIn, signUp } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
+import { isEmailVerified } from "@/lib/actions";
 
 interface AuthFormsProps {
   onSuccess?: () => void;
@@ -63,6 +65,16 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           return;
         }
 
+        // Check email verification status from server
+        const verified = await isEmailVerified();
+        if (verified === false) {
+          toast.info("Verifikujte vaš email", {
+            description:
+              "Poslali smo vam link za verifikaciju na email adresu. Bez verifikacije nećete moći ponovo da se prijavite.",
+            duration: 5000,
+          });
+        }
+
         // Auto-login is enabled, so just call onSuccess
         onSuccess?.();
       } else {
@@ -72,9 +84,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         });
 
         if (result.error) {
-          // Security-conscious error message - don't reveal if email exists or not
-          const errorMsg = "Pogrešni kredencijali";
-          setError(errorMsg);
+          setError("Pogrešni kredencijali");
           return;
         }
 

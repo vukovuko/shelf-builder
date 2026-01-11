@@ -74,7 +74,7 @@ export function AccountClient({ user }: AccountClientProps) {
       });
 
       if (result.error) {
-        toast.error(result.error.message || "Greska pri slanju emaila");
+        toast.error(result.error.message || "Greška pri slanju emaila");
       } else {
         toast.success("Verifikacioni email je poslat");
         localStorage.setItem("lastVerificationResend", Date.now().toString());
@@ -82,7 +82,7 @@ export function AccountClient({ user }: AccountClientProps) {
       }
     } catch (error) {
       console.error("Failed to resend verification:", error);
-      toast.error("Greska pri slanju emaila");
+      toast.error("Greška pri slanju emaila");
     } finally {
       setIsResending(false);
     }
@@ -115,15 +115,15 @@ export function AccountClient({ user }: AccountClientProps) {
       });
 
       if (result.error) {
-        toast.error(result.error.message || "Greska pri azuriranju imena");
+        toast.error(result.error.message || "Greška pri ažuriranju imena");
         setName(user.name);
       } else {
-        toast.success("Ime je uspesno azurirano");
+        toast.success("Ime je uspešno ažurirano");
         router.refresh();
       }
     } catch (error) {
       console.error("Failed to update name:", error);
-      toast.error("Greska pri azuriranju imena");
+      toast.error("Greška pri ažuriranju imena");
       setName(user.name);
     } finally {
       setIsLoading(false);
@@ -152,15 +152,15 @@ export function AccountClient({ user }: AccountClientProps) {
       });
 
       if (result.error) {
-        toast.error(result.error.message || "Greska pri azuriranju telefona");
+        toast.error(result.error.message || "Greška pri ažuriranju telefona");
         setPhone(user.phone || "");
       } else {
-        toast.success("Telefon je uspesno azuriran");
+        toast.success("Telefon je uspešno ažuriran");
         router.refresh();
       }
     } catch (error) {
       console.error("Failed to update phone:", error);
-      toast.error("Greska pri azuriranju telefona");
+      toast.error("Greška pri ažuriranju telefona");
       setPhone(user.phone || "");
     } finally {
       setIsLoading(false);
@@ -182,9 +182,9 @@ export function AccountClient({ user }: AccountClientProps) {
     <div className="container max-w-7xl mx-auto py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Podesavanja naloga</h1>
+          <h1 className="text-3xl font-bold">Podešavanja naloga</h1>
           <p className="text-muted-foreground mt-1">
-            Upravljajte informacijama o vasem nalogu
+            Upravljajte informacijama o vašem nalogu
           </p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export function AccountClient({ user }: AccountClientProps) {
         <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
           <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span className="text-amber-200">
-              Vas email nije verifikovan. Proverite inbox ili kliknite dugme za novi link. Bez verifikacije necete moci ponovo da se prijavite.
+              Vaš email nije verifikovan. Proverite inbox ili kliknite dugme za novi link. Bez verifikacije nećete moći ponovo da se prijavite.
             </span>
             <Button
               variant="outline"
@@ -216,7 +216,7 @@ export function AccountClient({ user }: AccountClientProps) {
               ) : (
                 <>
                   <Mail className="mr-2 h-4 w-4" />
-                  Posalji link
+                  Pošalji link
                 </>
               )}
             </Button>

@@ -64,11 +64,11 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
         toast.success("Uloga je promenjena");
       } else {
         const data = await res.json();
-        toast.error(data.error || "Greska pri promeni uloge");
+        toast.error(data.error || "Greška pri promeni uloge");
       }
     } catch (error) {
       console.error("Failed to update role:", error);
-      toast.error("Greska pri promeni uloge");
+      toast.error("Greška pri promeni uloge");
     } finally {
       setIsUpdating(false);
     }
@@ -172,7 +172,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
               <TableRow>
                 <TableHead>Naziv</TableHead>
                 <TableHead>Kreiran</TableHead>
-                <TableHead>Azuriran</TableHead>
+                <TableHead>Ažuriran</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
