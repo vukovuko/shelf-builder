@@ -162,7 +162,12 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
     <Tabs
       defaultValue="login"
       value={mode}
-      onValueChange={(v) => setMode(v as "login" | "register")}
+      onValueChange={(v) => {
+        setMode(v as "login" | "register");
+        setError(null);
+        setPasswordError(null);
+        setEmailError(null);
+      }}
       className="w-full"
     >
       <TabsList className="grid w-full grid-cols-2">

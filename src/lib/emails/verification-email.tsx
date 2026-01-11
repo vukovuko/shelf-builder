@@ -17,16 +17,15 @@ interface VerificationEmailProps {
   url: string;
 }
 
-// Brand colors (converted from oklch)
+// Brand colors (converted from globals.css dark theme)
 const colors = {
-  primary: "#a855f7", // Purple - primary
-  primaryDark: "#7c3aed", // Darker purple for button
-  accent: "#38bdf8", // Cyan - accent
-  background: "#1e1b4b", // Dark purple background
-  cardBg: "#2e2a5e", // Slightly lighter card
-  text: "#e2e8f0", // Light text
-  textMuted: "#94a3b8", // Muted text
-  border: "#3b3870", // Border color
+  primary: "#b794f6", // lab(73.7097% 25.5225 -35.515) - violet button
+  accent: "#93c5fd", // --accent: oklch(0.8467 0.0833 210.2545) - light cyan
+  background: "#252140", // --background: oklch(0.2155 0.0254 284.0647) - dark indigo
+  cardBg: "#2d2952", // --card: oklch(0.2429 0.0304 283.911) - card background
+  text: "#d8d4f0", // --foreground: oklch(0.8787 0.0426 272.2767) - light text
+  textMuted: "#a8a4c4", // --muted-foreground: oklch(0.751 0.0396 273.932)
+  border: "#3d3960", // --border: oklch(0.324 0.0319 281.9784)
 };
 
 export default function VerificationEmail({ url }: VerificationEmailProps) {
@@ -148,7 +147,7 @@ const buttonContainer = {
 const button = {
   backgroundColor: colors.primary,
   borderRadius: "6px",
-  color: "#ffffff",
+  color: "#2d2952", // --primary-foreground: dark text on light primary
   fontSize: "15px",
   fontWeight: "600",
   textDecoration: "none",

@@ -24,8 +24,14 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendOnSignUp: true,
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
-      const html = await render(VerificationEmail({ url }));
+      // Modify the callback URL to redirect to verify-success page
+      const verificationUrl = new URL(url);
+      verificationUrl.searchParams.set("callbackURL", "/verify-success");
+      const finalUrl = verificationUrl.toString();
+
+      const html = await render(VerificationEmail({ url: finalUrl }));
 
       await resend.emails.send({
         from: "Ormani po meri <noreply@ormanipomeri.com>",
