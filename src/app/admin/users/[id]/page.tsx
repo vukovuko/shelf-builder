@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db/db";
-import { user, wardrobes } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { user, wardrobes, orders } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { UserDetailClient } from "./UserDetailClient";
 
 interface PageProps {
@@ -17,7 +17,11 @@ export default async function UserDetailPage({ params }: PageProps) {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
+      receiveOrderEmails: user.receiveOrderEmails,
+      tags: user.tags,
+      notes: user.notes,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     })
@@ -27,12 +31,6 @@ export default async function UserDetailPage({ params }: PageProps) {
   if (!userData) {
     notFound();
   }
-
-  // Fetch wardrobe count
-  const [wardrobeCount] = await db
-    .select({ count: count() })
-    .from(wardrobes)
-    .where(eq(wardrobes.userId, id));
 
   // Fetch user's wardrobes
   const userWardrobes = await db
@@ -45,16 +43,42 @@ export default async function UserDetailPage({ params }: PageProps) {
     .from(wardrobes)
     .where(eq(wardrobes.userId, id));
 
+  // Fetch user's orders (for stats and timeline)
+  const userOrders = await db
+    .select({
+      id: orders.id,
+      totalPrice: orders.totalPrice,
+      status: orders.status,
+      paymentStatus: orders.paymentStatus,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      shippingStreet: orders.shippingStreet,
+      shippingCity: orders.shippingCity,
+      shippingPostalCode: orders.shippingPostalCode,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(eq(orders.userId, id))
+    .orderBy(desc(orders.createdAt));
+
+  // Calculate stats
+  const totalSpent = userOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const orderCount = userOrders.length;
+
   const serializedUser = {
     ...userData,
     createdAt: userData.createdAt.toISOString(),
     updatedAt: userData.updatedAt.toISOString(),
-    wardrobeCount: wardrobeCount?.count ?? 0,
     wardrobes: userWardrobes.map((w) => ({
       ...w,
       createdAt: w.createdAt.toISOString(),
       updatedAt: w.updatedAt.toISOString(),
     })),
+    orders: userOrders.map((o) => ({
+      ...o,
+      createdAt: o.createdAt.toISOString(),
+    })),
+    totalSpent,
+    orderCount,
   };
 
   return <UserDetailClient user={serializedUser} />;

@@ -11,10 +11,7 @@ const getBaseURL = () => {
 
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
-  plugins: [
-    adminClient(),
-    inferAdditionalFields<typeof auth>(),
-  ],
+  plugins: [adminClient(), inferAdditionalFields<typeof auth>()],
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;

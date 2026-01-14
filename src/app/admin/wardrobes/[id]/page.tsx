@@ -6,65 +6,65 @@ import { getCurrentUser, isAdmin } from "@/lib/roles";
 import { WardrobePreviewClient } from "./WardrobePreviewClient";
 
 interface PageProps {
-	params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export default async function AdminWardrobePreviewPage({ params }: PageProps) {
-	const { id } = await params;
+  const { id } = await params;
 
-	const currentUser = await getCurrentUser();
-	if (!currentUser || !isAdmin(currentUser.role)) {
-		redirect("/");
-	}
+  const currentUser = await getCurrentUser();
+  if (!currentUser || !isAdmin(currentUser.role)) {
+    redirect("/");
+  }
 
-	// Fetch wardrobe with owner info
-	const [wardrobe] = await db
-		.select({
-			id: wardrobes.id,
-			name: wardrobes.name,
-			data: wardrobes.data,
-			thumbnail: wardrobes.thumbnail,
-			createdAt: wardrobes.createdAt,
-			updatedAt: wardrobes.updatedAt,
-			userId: wardrobes.userId,
-			userName: user.name,
-			userEmail: user.email,
-		})
-		.from(wardrobes)
-		.leftJoin(user, eq(wardrobes.userId, user.id))
-		.where(eq(wardrobes.id, id))
-		.limit(1);
+  // Fetch wardrobe with owner info
+  const [wardrobe] = await db
+    .select({
+      id: wardrobes.id,
+      name: wardrobes.name,
+      data: wardrobes.data,
+      thumbnail: wardrobes.thumbnail,
+      createdAt: wardrobes.createdAt,
+      updatedAt: wardrobes.updatedAt,
+      userId: wardrobes.userId,
+      userName: user.name,
+      userEmail: user.email,
+    })
+    .from(wardrobes)
+    .leftJoin(user, eq(wardrobes.userId, user.id))
+    .where(eq(wardrobes.id, id))
+    .limit(1);
 
-	if (!wardrobe) {
-		notFound();
-	}
+  if (!wardrobe) {
+    notFound();
+  }
 
-	// Fetch all materials
-	const dbMaterials = await db.select().from(materials);
+  // Fetch all materials
+  const dbMaterials = await db.select().from(materials);
 
-	const serializedMaterials = dbMaterials.map((m) => ({
-		id: m.id,
-		name: m.name,
-		price: m.price,
-		img: m.img,
-		thickness: m.thickness,
-		stock: m.stock,
-		category: m.category,
-	}));
+  const serializedMaterials = dbMaterials.map((m) => ({
+    id: m.id,
+    name: m.name,
+    price: m.price,
+    img: m.img,
+    thickness: m.thickness,
+    stock: m.stock,
+    category: m.category,
+  }));
 
-	return (
-		<WardrobePreviewClient
-			wardrobe={{
-				id: wardrobe.id,
-				name: wardrobe.name,
-				data: wardrobe.data as Record<string, unknown>,
-				thumbnail: wardrobe.thumbnail,
-				createdAt: wardrobe.createdAt.toISOString(),
-				updatedAt: wardrobe.updatedAt.toISOString(),
-				userName: wardrobe.userName,
-				userEmail: wardrobe.userEmail,
-			}}
-			materials={serializedMaterials}
-		/>
-	);
+  return (
+    <WardrobePreviewClient
+      wardrobe={{
+        id: wardrobe.id,
+        name: wardrobe.name,
+        data: wardrobe.data as Record<string, unknown>,
+        thumbnail: wardrobe.thumbnail,
+        createdAt: wardrobe.createdAt.toISOString(),
+        updatedAt: wardrobe.updatedAt.toISOString(),
+        userName: wardrobe.userName,
+        userEmail: wardrobe.userEmail,
+      }}
+      materials={serializedMaterials}
+    />
+  );
 }

@@ -67,7 +67,7 @@ export const updateWardrobeSchema = z.object({
 
 export const wardrobeIdSchema = z.uuid({ message: "Nevažeći ID ormana" });
 
-export const userIdSchema = z.uuid({ message: "Nevažeći ID korisnika" });
+export const userIdSchema = z.string().min(1, "Nevažeći ID korisnika");
 
 export const userUpdateSchema = z.object({
   name: z

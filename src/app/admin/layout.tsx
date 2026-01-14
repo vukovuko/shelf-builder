@@ -32,7 +32,7 @@ export default async function AdminLayout({
           <SidebarTrigger />
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-x-auto">
-          <div className="max-w-6xl">{children}</div>
+          <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>

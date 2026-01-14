@@ -11,6 +11,7 @@ import {
   LogOut,
   Save,
   Settings,
+  ShoppingCart,
   Table,
   User,
 } from "lucide-react";
@@ -62,6 +63,7 @@ import { captureThumbnail } from "@/lib/captureThumbnail";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type Material } from "@/lib/store";
 import { AuthForms } from "./AuthForms";
+import { CheckoutDialog } from "./CheckoutDialog";
 import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
 
@@ -103,6 +105,7 @@ export function ConfiguratorControls({
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = React.useState(false);
   const [wardrobeName, setWardrobeName] = React.useState("Orman");
 
   // Handle login click - save state before opening auth
@@ -175,6 +178,33 @@ export function ConfiguratorControls({
       console.error("[performSave] exception", e);
       toast.error("Greška pri čuvanju ormana");
     }
+  };
+
+  // Handle order click
+  const [checkoutThumbnail, setCheckoutThumbnail] = React.useState<
+    string | null
+  >(null);
+  const handleOrderClick = async () => {
+    // Validate that we have materials selected
+    if (!selectedMaterialId) {
+      toast.error("Molimo izaberite materijal");
+      return;
+    }
+
+    // Capture thumbnail before opening dialog
+    let thumbnail: string | null = null;
+    const canvas = document.querySelector("canvas");
+    if (canvas) {
+      try {
+        thumbnail = await captureThumbnail(canvas);
+      } catch (e) {
+        console.error("Failed to capture thumbnail for order", e);
+      }
+    }
+    setCheckoutThumbnail(thumbnail);
+
+    // Open checkout dialog
+    setCheckoutDialogOpen(true);
   };
 
   // Handle logout
@@ -1629,6 +1659,7 @@ export function ConfiguratorControls({
                     (m) => m.category === category,
                   );
                   // Determine if this is a "back" category (ledja)
+                  // TODO: WHAT IS THIS?
                   const isBackCategory =
                     category.toLowerCase().includes("led") ||
                     category.toLowerCase().includes("leđ");
@@ -2111,16 +2142,27 @@ export function ConfiguratorControls({
           </AccordionItem>
           {/* Actions and Controls */}
           <div className="flex flex-col gap-4 mt-6">
-            {/* Primary Action */}
-            <Button
-              variant="default"
-              onClick={handleSaveClick}
-              className="w-full"
-              size="lg"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Sačuvaj Orman
-            </Button>
+            {/* Primary Actions */}
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                onClick={handleSaveClick}
+                className="flex-1"
+                size="lg"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Sačuvaj
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleOrderClick}
+                className="flex-1"
+                size="lg"
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Poruči
+              </Button>
+            </div>
 
             {/* View Controls */}
             <div className="space-y-2">
@@ -2235,13 +2277,16 @@ export function ConfiguratorControls({
           </span>
         </div>
 
-        {/* Ukupna cena row - accent background */}
-        <div className="flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg">
-          <span className="text-base font-medium">Ukupna cena</span>
+        {/* Poruči button with price */}
+        <button
+          onClick={handleOrderClick}
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors cursor-pointer"
+        >
+          <span className="text-base font-bold">Poruči</span>
           <span className="text-xl font-bold">
             {fmt2(cutList.totalCost)} RSD
           </span>
-        </div>
+        </button>
       </div>
 
       {/* Cut List Modal */}
@@ -2378,6 +2423,33 @@ export function ConfiguratorControls({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Checkout Dialog */}
+      <CheckoutDialog
+        open={checkoutDialogOpen}
+        onOpenChange={setCheckoutDialogOpen}
+        orderData={{
+          wardrobeSnapshot: getWardrobeSnapshot(),
+          thumbnail: checkoutThumbnail,
+          materialId: selectedMaterialId,
+          materialName:
+            materials.find((m) => String(m.id) === String(selectedMaterialId))
+              ?.name ?? "Nepoznat materijal",
+          backMaterialId: selectedBackMaterialId ?? null,
+          backMaterialName: selectedBackMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedBackMaterialId),
+              )?.name ?? null)
+            : null,
+          totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
+          totalPrice: cutList.totalCost,
+          dimensions: {
+            width,
+            height,
+            depth,
+          },
+        }}
+      />
     </div>
   );
 }

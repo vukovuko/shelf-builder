@@ -1,0 +1,259 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/db/db";
+import { user, wardrobes, orders } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import {
+  sendOrderConfirmationEmail,
+  sendAdminNewOrderEmail,
+} from "@/lib/email";
+
+const checkoutSchema = z
+  .object({
+    // Customer info
+    customerName: z.string().min(1, "Ime je obavezno"),
+    customerEmail: z.string().email().optional().or(z.literal("")),
+    customerPhone: z.string().min(6).optional().or(z.literal("")),
+    // Shipping address
+    shippingStreet: z.string().min(1, "Ulica je obavezna"),
+    shippingCity: z.string().min(1, "Grad je obavezan"),
+    shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
+    // Wardrobe data
+    wardrobeSnapshot: z.record(z.string(), z.any()),
+    thumbnail: z.string().nullable(),
+    materialId: z.number(),
+    backMaterialId: z.number().nullable(),
+    area: z.number(), // in cm²
+    totalPrice: z.number(),
+  })
+  .refine((data) => data.customerEmail || data.customerPhone, {
+    message: "Morate uneti email ili telefon",
+  });
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const validation = checkoutSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.issues[0].message },
+        { status: 400 },
+      );
+    }
+
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      shippingStreet,
+      shippingCity,
+      shippingPostalCode,
+      wardrobeSnapshot,
+      thumbnail,
+      materialId,
+      backMaterialId,
+      area,
+      totalPrice,
+    } = validation.data;
+
+    // Check if user is logged in
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    let userId: string;
+
+    if (session?.user) {
+      // User is logged in - use their ID
+      userId = session.user.id;
+    } else {
+      // Guest checkout - create or find user
+      const hasRealEmail = customerEmail && customerEmail.length > 0;
+      const hasPhone = customerPhone && customerPhone.length > 0;
+
+      if (hasRealEmail) {
+        // Check if user with this email already exists
+        const [existing] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.email, customerEmail));
+
+        if (existing) {
+          // Use existing user
+          userId = existing.id;
+        } else {
+          // Create new user with email (no login capability)
+          userId = crypto.randomUUID();
+          const now = new Date();
+
+          await db.insert(user).values({
+            id: userId,
+            name: customerName,
+            email: customerEmail,
+            phone: hasPhone ? customerPhone : null,
+            emailVerified: false,
+            role: "user",
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      } else if (hasPhone) {
+        // Phone-only user
+        const sanitizedPhone = customerPhone!.replace(/[^0-9]/g, "");
+        const internalEmail = `phone.${sanitizedPhone}@internal.local`;
+
+        // Check if user with this phone already exists
+        const [existingByPhone] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.phone, customerPhone));
+
+        if (existingByPhone) {
+          userId = existingByPhone.id;
+        } else {
+          // Check by internal email too
+          const [existingByEmail] = await db
+            .select({ id: user.id })
+            .from(user)
+            .where(eq(user.email, internalEmail));
+
+          if (existingByEmail) {
+            userId = existingByEmail.id;
+          } else {
+            // Create new phone-only user
+            userId = crypto.randomUUID();
+            const now = new Date();
+
+            await db.insert(user).values({
+              id: userId,
+              name: customerName,
+              email: internalEmail,
+              phone: customerPhone,
+              emailVerified: false,
+              role: "user",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Morate uneti email ili telefon" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Create wardrobe and order (manual rollback if order fails)
+    const now = new Date();
+    const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
+
+    const [wardrobe] = await db
+      .insert(wardrobes)
+      .values({
+        name: wardrobeName,
+        data: wardrobeSnapshot,
+        thumbnail,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: wardrobes.id });
+
+    // Create order - rollback wardrobe if this fails
+    let order;
+    try {
+      [order] = await db
+        .insert(orders)
+        .values({
+          userId,
+          wardrobeId: wardrobe.id,
+          materialId,
+          backMaterialId,
+          area: Math.round(area),
+          totalPrice: Math.round(totalPrice),
+          customerName,
+          customerEmail: customerEmail || null,
+          customerPhone: customerPhone || null,
+          shippingStreet,
+          shippingCity,
+          shippingPostalCode,
+          status: "open",
+          paymentStatus: "unpaid",
+          fulfillmentStatus: "unfulfilled",
+          returnStatus: "none",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+    } catch (orderError) {
+      // Rollback: delete the wardrobe we just created
+      await db.delete(wardrobes).where(eq(wardrobes.id, wardrobe.id));
+      throw orderError;
+    }
+
+    const result = { orderId: order.id, wardrobeId: wardrobe.id };
+
+    // Send emails (after transaction succeeds)
+    try {
+      // Send customer confirmation if they provided email
+      if (customerEmail && customerEmail.length > 0) {
+        await sendOrderConfirmationEmail({
+          to: customerEmail,
+          orderId: result.orderId,
+          customerName,
+          totalPrice: Math.round(totalPrice),
+          shippingStreet,
+          shippingCity,
+          shippingPostalCode,
+        });
+      }
+
+      // Send notification to all admins with receiveOrderEmails enabled
+      await sendAdminNewOrderEmail({
+        orderId: result.orderId,
+        customerName,
+        customerEmail: customerEmail || null,
+        customerPhone: customerPhone || null,
+        totalPrice: Math.round(totalPrice),
+        shippingStreet,
+        shippingCity,
+        shippingPostalCode,
+      });
+    } catch (emailError) {
+      // Log but don't fail the order
+      console.error("Failed to send emails:", emailError);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        orderId: result.orderId,
+        wardrobeId: result.wardrobeId,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Checkout error:", error);
+
+    if (error instanceof Error) {
+      if (
+        error.message.includes("unique") ||
+        error.message.includes("duplicate")
+      ) {
+        return NextResponse.json(
+          { error: "Greška: duplikat podataka" },
+          { status: 400 },
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { error: "Greška pri obradi porudžbine" },
+      { status: 500 },
+    );
+  }
+}

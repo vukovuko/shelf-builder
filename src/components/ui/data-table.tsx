@@ -72,7 +72,9 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
+  const selectedRows = table
+    .getFilteredSelectedRowModel()
+    .rows.map((row) => row.original);
 
   return (
     <div className="space-y-4">
@@ -102,7 +104,7 @@ export function DataTable<TData, TValue>({
                     <TableHead
                       key={header.id}
                       className={cn(
-                        index === 1 && "sticky left-0 bg-background z-10"
+                        index === 1 && "sticky left-0 bg-background z-10",
                       )}
                     >
                       {header.isPlaceholder
@@ -124,13 +126,14 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => onRowClick?.(row.original)}
-                  className={onRowClick ? "cursor-pointer" : ""}
+                  className={cn("group", onRowClick && "cursor-pointer")}
                 >
                   {row.getVisibleCells().map((cell, index) => (
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        index === 1 && "sticky left-0 bg-background z-10"
+                        index === 1 &&
+                          "sticky left-0 bg-background z-10 before:absolute before:inset-0 before:-z-10 before:bg-muted/50 before:opacity-0 group-hover:before:opacity-100 group-data-[state=selected]:before:opacity-100 group-data-[state=selected]:before:bg-muted before:transition-opacity",
                       )}
                     >
                       {flexRender(

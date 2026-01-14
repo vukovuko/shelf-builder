@@ -22,7 +22,13 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true, // Auto-login after registration
     requireEmailVerification: false, // Let users login without verification
-    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+    sendResetPassword: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }) => {
       const html = await render(ResetPasswordEmail({ url }));
 
       await resend.emails.send({
@@ -36,7 +42,13 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
+    sendVerificationEmail: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }) => {
       // Modify the callback URL to redirect to verify-success page
       const verificationUrl = new URL(url);
       verificationUrl.searchParams.set("callbackURL", "/verify-success");

@@ -17,7 +17,10 @@ const nameSchema = z
 
 const phoneSchema = z
   .string()
-  .regex(/^(\+?[1-9]\d{6,14})?$/, "Nevažeći format telefona (npr. +381601234567)")
+  .regex(
+    /^(\+?[1-9]\d{6,14})?$/,
+    "Nevažeći format telefona (npr. +381601234567)",
+  )
   .or(z.literal(""));
 
 interface AccountClientProps {
@@ -48,7 +51,9 @@ export function AccountClient({ user }: AccountClientProps) {
   useEffect(() => {
     const lastResendTime = localStorage.getItem("lastVerificationResend");
     if (lastResendTime) {
-      const elapsed = Math.floor((Date.now() - parseInt(lastResendTime)) / 1000);
+      const elapsed = Math.floor(
+        (Date.now() - parseInt(lastResendTime)) / 1000,
+      );
       const remaining = RESEND_COOLDOWN_SECONDS - elapsed;
       if (remaining > 0) {
         setResendCooldown(remaining);
@@ -59,7 +64,10 @@ export function AccountClient({ user }: AccountClientProps) {
   // Countdown timer
   useEffect(() => {
     if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000,
+      );
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
@@ -194,7 +202,8 @@ export function AccountClient({ user }: AccountClientProps) {
         <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
           <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span className="text-amber-200">
-              Vaš email nije verifikovan. Proverite inbox ili kliknite dugme za novi link.
+              Vaš email nije verifikovan. Proverite inbox ili kliknite dugme za
+              novi link.
             </span>
             <Button
               variant="outline"

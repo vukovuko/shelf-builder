@@ -31,7 +31,6 @@ const navItems = [
     title: "Porudzbine",
     href: "/admin/orders",
     icon: ShoppingCart,
-    disabled: true,
   },
   {
     title: "Ormani",
@@ -56,7 +55,11 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
-        <Link href="/admin" className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link
+          href="/admin"
+          className="flex items-center gap-2"
+          onClick={handleLinkClick}
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">A</span>
           </div>
@@ -78,20 +81,12 @@ export function AdminSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      disabled={item.disabled}
                       tooltip={item.title}
                     >
-                      {item.disabled ? (
-                        <span className="opacity-50 cursor-not-allowed">
-                          <item.icon className="mr-2" />
-                          <span>{item.title}</span>
-                        </span>
-                      ) : (
-                        <Link href={item.href} onClick={handleLinkClick}>
-                          <item.icon className="mr-2" />
-                          <span>{item.title}</span>
-                        </Link>
-                      )}
+                      <Link href={item.href} onClick={handleLinkClick}>
+                        <item.icon className="mr-2" />
+                        <span>{item.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

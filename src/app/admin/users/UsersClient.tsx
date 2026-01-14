@@ -41,8 +41,8 @@ export function UsersClient({ users }: UsersClientProps) {
     try {
       const results = await Promise.all(
         selectedUsers.map((user) =>
-          fetch(`/api/admin/users/${user.id}`, { method: "DELETE" })
-        )
+          fetch(`/api/admin/users/${user.id}`, { method: "DELETE" }),
+        ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
@@ -67,7 +67,9 @@ export function UsersClient({ users }: UsersClientProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Korisnici</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Upravljanje korisnicima sistema</p>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Upravljanje korisnicima sistema
+          </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
           <Link href="/admin/users/new">
@@ -90,7 +92,7 @@ export function UsersClient({ users }: UsersClientProps) {
               "flex items-center gap-2 transition-opacity",
               selected.length > 0
                 ? "opacity-100"
-                : "opacity-0 pointer-events-none"
+                : "opacity-0 pointer-events-none",
             )}
           >
             <span className="text-sm text-muted-foreground">

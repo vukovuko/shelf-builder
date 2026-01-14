@@ -40,8 +40,8 @@ export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
     try {
       const results = await Promise.all(
         selectedWardrobes.map((wardrobe) =>
-          fetch(`/api/admin/wardrobes/${wardrobe.id}`, { method: "DELETE" })
-        )
+          fetch(`/api/admin/wardrobes/${wardrobe.id}`, { method: "DELETE" }),
+        ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
@@ -65,7 +65,9 @@ export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">Ormani</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Svi ormani svih korisnika</p>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Svi ormani svih korisnika
+        </p>
       </div>
       <DataTable
         columns={columns}
@@ -83,7 +85,7 @@ export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
               "flex items-center gap-2 transition-opacity",
               selected.length > 0
                 ? "opacity-100"
-                : "opacity-0 pointer-events-none"
+                : "opacity-0 pointer-events-none",
             )}
           >
             <span className="text-sm text-muted-foreground">

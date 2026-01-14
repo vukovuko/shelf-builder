@@ -77,7 +77,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             result.error.message?.toLowerCase().includes("already exists")
           ) {
             setError(
-              "Ako već imate nalog, pokušajte da se prijavite. Ako niste verifikovali email, poslaćemo vam novi link."
+              "Ako već imate nalog, pokušajte da se prijavite. Ako niste verifikovali email, poslaćemo vam novi link.",
             );
           } else {
             setError(result.error.message || "Registracija nije uspela");
@@ -356,24 +356,54 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             {/* Password requirements indicator */}
             {password.length > 0 && (
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-2">
-                <div className={`flex items-center gap-1.5 ${passwordRequirements.minLength ? "text-green-500" : "text-muted-foreground"}`}>
-                  {passwordRequirements.minLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1.5 ${passwordRequirements.minLength ? "text-green-500" : "text-muted-foreground"}`}
+                >
+                  {passwordRequirements.minLength ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
                   <span>Min. 8 karaktera</span>
                 </div>
-                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasLowercase ? "text-green-500" : "text-muted-foreground"}`}>
-                  {passwordRequirements.hasLowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1.5 ${passwordRequirements.hasLowercase ? "text-green-500" : "text-muted-foreground"}`}
+                >
+                  {passwordRequirements.hasLowercase ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
                   <span>Malo slovo</span>
                 </div>
-                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasUppercase ? "text-green-500" : "text-muted-foreground"}`}>
-                  {passwordRequirements.hasUppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1.5 ${passwordRequirements.hasUppercase ? "text-green-500" : "text-muted-foreground"}`}
+                >
+                  {passwordRequirements.hasUppercase ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
                   <span>Veliko slovo</span>
                 </div>
-                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasNumber ? "text-green-500" : "text-muted-foreground"}`}>
-                  {passwordRequirements.hasNumber ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1.5 ${passwordRequirements.hasNumber ? "text-green-500" : "text-muted-foreground"}`}
+                >
+                  {passwordRequirements.hasNumber ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
                   <span>Broj</span>
                 </div>
-                <div className={`flex items-center gap-1.5 ${passwordRequirements.hasSpecial ? "text-green-500" : "text-muted-foreground"}`}>
-                  {passwordRequirements.hasSpecial ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                <div
+                  className={`flex items-center gap-1.5 ${passwordRequirements.hasSpecial ? "text-green-500" : "text-muted-foreground"}`}
+                >
+                  {passwordRequirements.hasSpecial ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <X className="h-3 w-3" />
+                  )}
                   <span>Specijalni znak</span>
                 </div>
               </div>

@@ -45,7 +45,11 @@ export function UserSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
-        <Link href="/wardrobes" className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link
+          href="/wardrobes"
+          className="flex items-center gap-2"
+          onClick={handleLinkClick}
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-sm font-bold">O</span>
           </div>
@@ -60,11 +64,16 @@ export function UserSidebar() {
               {navItems.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/wardrobes" && pathname.startsWith(item.href));
+                  (item.href !== "/wardrobes" &&
+                    pathname.startsWith(item.href));
 
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
                       <Link href={item.href} onClick={handleLinkClick}>
                         <item.icon className="mr-2" />
                         <span>{item.title}</span>
