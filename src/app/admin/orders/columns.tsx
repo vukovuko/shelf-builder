@@ -8,15 +8,9 @@ import { cn } from "@/lib/utils";
 
 export type Order = {
   id: string;
-  userId: string;
-  userName: string | null;
-  userEmail: string | null;
-  wardrobeId: string | null;
-  wardrobeName: string | null;
-  materialId: number;
-  materialName: string | null;
-  area: number;
-  totalPrice: number;
+  orderNumber: number;
+  customerName: string;
+  customerEmail: string | null;
   status: "open" | "archived" | "cancelled";
   paymentStatus:
     | "unpaid"
@@ -33,13 +27,6 @@ export type Order = {
     | "scheduled"
     | "partially_fulfilled"
     | "fulfilled";
-  returnStatus:
-    | "none"
-    | "return_requested"
-    | "return_in_progress"
-    | "returned"
-    | "inspection_complete";
-  notes: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -130,7 +117,22 @@ export const columns: ColumnDef<Order>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "userName",
+    accessorKey: "orderNumber",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          ID
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => `#${row.original.orderNumber}`,
+  },
+  {
+    accessorKey: "customerName",
     header: ({ column }) => {
       return (
         <Button
@@ -144,44 +146,12 @@ export const columns: ColumnDef<Order>[] = [
     },
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.userName || "-"}</div>
+        <div className="font-medium">{row.original.customerName || "-"}</div>
         <div className="text-xs text-muted-foreground">
-          {row.original.userEmail}
+          {row.original.customerEmail}
         </div>
       </div>
     ),
-  },
-  {
-    accessorKey: "materialName",
-    header: "Materijal",
-    cell: ({ row }) => row.original.materialName || "-",
-  },
-  {
-    accessorKey: "area",
-    header: "Kvadratura",
-    cell: ({ row }) => {
-      const areaCm2 = row.getValue("area") as number;
-      const areaM2 = areaCm2 / 10000;
-      return `${areaM2.toFixed(2)} m²`;
-    },
-  },
-  {
-    accessorKey: "totalPrice",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Cena
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const price = row.getValue("totalPrice") as number;
-      return `${price.toLocaleString("sr-RS")} RSD`;
-    },
   },
   {
     accessorKey: "status",

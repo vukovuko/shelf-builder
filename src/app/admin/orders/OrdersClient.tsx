@@ -86,7 +86,7 @@ export function OrdersClient({ orders }: OrdersClientProps) {
       <DataTable
         columns={columns}
         data={orders}
-        searchKey="userName"
+        searchKey="customerName"
         searchPlaceholder="Pretrazi po korisniku..."
         onRowClick={(order) => router.push(`/admin/orders/${order.id}`)}
         enableRowSelection

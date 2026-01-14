@@ -19,6 +19,7 @@ import {
 
 interface Order {
   id: string;
+  orderNumber: number;
   userId: string;
   userName: string | null;
   userEmail: string | null;
@@ -155,7 +156,7 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Porudzbina</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {order.id.slice(0, 8)}...
+            {order.orderNumber}
           </p>
         </div>
       </div>

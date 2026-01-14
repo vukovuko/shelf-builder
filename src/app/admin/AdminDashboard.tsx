@@ -1,9 +1,12 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Shield, Users, FolderOpen, ArrowRight } from "lucide-react";
+import {
+  Shield,
+  Users,
+  FolderOpen,
+  ArrowRight,
+  ShoppingCart,
+  Layers,
+} from "lucide-react";
 import Link from "next/link";
 
 interface AdminDashboardProps {
@@ -13,32 +16,14 @@ interface AdminDashboardProps {
     email: string;
     role: string;
   };
+  stats: {
+    totalUsers: number;
+    totalWardrobes: number;
+    adminCount: number;
+  };
 }
 
-export function AdminDashboard({ user }: AdminDashboardProps) {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalWardrobes: 0,
-    adminCount: 0,
-  });
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch("/api/admin/stats");
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
-        toast.error("Greška pri učitavanju statistike");
-      }
-    }
-
-    fetchStats();
-  }, []);
-
+export function AdminDashboard({ user, stats }: AdminDashboardProps) {
   return (
     <div className="space-y-8">
       <div>
@@ -82,35 +67,77 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link href="/admin/users">
-          <Card className="p-6 hover:bg-accent transition-colors cursor-pointer">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Users className="h-6 w-6 text-muted-foreground" />
+                <Users className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
                 <div>
-                  <p className="font-medium">Korisnici</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium group-hover:text-foreground">
+                    Korisnici
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
                     Upravljanje korisnicima
                   </p>
                 </div>
               </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/orders">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ShoppingCart className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Porudzbine
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Pregled svih porudzbina
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
             </div>
           </Card>
         </Link>
 
         <Link href="/admin/wardrobes">
-          <Card className="p-6 hover:bg-accent transition-colors cursor-pointer">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FolderOpen className="h-6 w-6 text-muted-foreground" />
+                <FolderOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
                 <div>
-                  <p className="font-medium">Ormani</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium group-hover:text-foreground">
+                    Ormani
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
                     Svi ormani korisnika
                   </p>
                 </div>
               </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/materials">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Layers className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Materijali
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Upravljanje materijalima
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
             </div>
           </Card>
         </Link>

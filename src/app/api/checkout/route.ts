@@ -195,7 +195,11 @@ export async function POST(request: Request) {
       throw orderError;
     }
 
-    const result = { orderId: order.id, wardrobeId: wardrobe.id };
+    const result = {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      wardrobeId: wardrobe.id,
+    };
 
     // Send emails (after transaction succeeds)
     try {
@@ -203,7 +207,7 @@ export async function POST(request: Request) {
       if (customerEmail && customerEmail.length > 0) {
         await sendOrderConfirmationEmail({
           to: customerEmail,
-          orderId: result.orderId,
+          orderNumber: result.orderNumber,
           customerName,
           totalPrice: Math.round(totalPrice),
           shippingStreet,
@@ -232,6 +236,7 @@ export async function POST(request: Request) {
       {
         success: true,
         orderId: result.orderId,
+        orderNumber: result.orderNumber,
         wardrobeId: result.wardrobeId,
       },
       { status: 201 },

@@ -138,7 +138,7 @@ export function CheckoutDialog({
 
       const data = await res.json();
       toast.success("Porudžbina uspešno poslata!", {
-        description: `Broj porudžbine: ${data.orderId.slice(0, 8)}...`,
+        description: `Broj porudžbine: #${data.orderNumber}`,
       });
 
       // Reset form and close

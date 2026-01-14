@@ -14,6 +14,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
   const [order] = await db
     .select({
       id: orders.id,
+      orderNumber: orders.orderNumber,
       userId: orders.userId,
       userName: user.name,
       userEmail: user.email,

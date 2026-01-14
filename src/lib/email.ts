@@ -14,7 +14,7 @@ const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
 
 interface OrderConfirmationData {
   to: string;
-  orderId: string;
+  orderNumber: number;
   customerName: string;
   totalPrice: number;
   shippingStreet: string;
@@ -25,7 +25,7 @@ interface OrderConfirmationData {
 export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
   const html = await render(
     OrderConfirmationEmail({
-      orderId: data.orderId,
+      orderNumber: data.orderNumber,
       customerName: data.customerName,
       totalPrice: data.totalPrice,
       shippingStreet: data.shippingStreet,
@@ -34,12 +34,10 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     }),
   );
 
-  const orderIdShort = data.orderId.slice(0, 8).toUpperCase();
-
   await resend.emails.send({
     from: FROM_EMAIL,
     to: data.to,
-    subject: `Potvrda porudžbine #${orderIdShort} - Ormani po meri`,
+    subject: `Potvrda porudžbine #${data.orderNumber} - Ormani po meri`,
     html,
   });
 }

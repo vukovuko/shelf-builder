@@ -14,7 +14,7 @@ import {
 } from "@react-email/components";
 
 interface OrderConfirmationEmailProps {
-  orderId: string;
+  orderNumber: number;
   customerName: string;
   totalPrice: number;
   shippingStreet: string;
@@ -53,7 +53,7 @@ const formatPrice = (n: number) =>
   });
 
 export default function OrderConfirmationEmail({
-  orderId,
+  orderNumber,
   customerName,
   totalPrice,
   shippingStreet,
@@ -61,13 +61,13 @@ export default function OrderConfirmationEmail({
   shippingPostalCode,
   baseUrl = getBaseUrl(),
 }: OrderConfirmationEmailProps) {
-  const orderIdShort = orderId.slice(0, 8).toUpperCase();
+  const orderNumberLabel = `#${orderNumber}`;
 
   return (
     <Html>
       <Head />
       <Preview>
-        Vaša porudžbina #{orderIdShort} je primljena - Ormani po meri
+        Vaša porudžbina {orderNumberLabel} je primljena - Ormani po meri
       </Preview>
       <Body style={main}>
         <Container style={container}>
@@ -102,7 +102,7 @@ export default function OrderConfirmationEmail({
 
             <Row style={detailRow}>
               <Column style={detailLabel}>Broj porudžbine:</Column>
-              <Column style={detailValue}>#{orderIdShort}</Column>
+              <Column style={detailValue}>{orderNumberLabel}</Column>
             </Row>
 
             <Row style={detailRow}>
