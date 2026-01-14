@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, ShoppingCart, FolderOpen } from "lucide-react";
+import { Home, Users, ShoppingCart, FolderOpen, Package } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +37,11 @@ const navItems = [
     title: "Ormani",
     href: "/admin/wardrobes",
     icon: FolderOpen,
+  },
+  {
+    title: "Materijali",
+    href: "/admin/materials",
+    icon: Package,
   },
 ];
 

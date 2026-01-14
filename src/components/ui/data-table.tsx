@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,6 +32,9 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   searchPlaceholder?: string;
   onRowClick?: (row: TData) => void;
+  getRowId?: (row: TData) => string;
+  enableRowSelection?: boolean;
+  bulkActions?: (selectedRows: TData[]) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -38,11 +43,15 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Pretrazi...",
   onRowClick,
+  getRowId,
+  enableRowSelection = false,
+  bulkActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const table = useReactTable({
     data,
@@ -53,16 +62,22 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection,
+    getRowId,
     state: {
       sorting,
       columnFilters,
+      rowSelection,
     },
   });
 
+  const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
+
   return (
     <div className="space-y-4">
-      {searchKey && (
-        <div className="flex items-center">
+      <div className="flex items-center justify-between gap-2">
+        {searchKey && (
           <Input
             placeholder={searchPlaceholder}
             value={
@@ -73,16 +88,23 @@ export function DataTable<TData, TValue>({
             }
             className="max-w-sm"
           />
-        </div>
-      )}
-      <div className="overflow-hidden rounded-md border">
-        <Table>
+        )}
+        {!searchKey && <div />}
+        {bulkActions && bulkActions(selectedRows)}
+      </div>
+      <div className="overflow-x-auto rounded-md border">
+        <Table className="min-w-[600px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        index === 1 && "sticky left-0 bg-background z-10"
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -104,8 +126,13 @@ export function DataTable<TData, TValue>({
                   onClick={() => onRowClick?.(row.original)}
                   className={onRowClick ? "cursor-pointer" : ""}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                  {row.getVisibleCells().map((cell, index) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        index === 1 && "sticky left-0 bg-background z-10"
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -127,9 +154,11 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between px-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} ukupno
+          {enableRowSelection && selectedRows.length > 0
+            ? `${selectedRows.length} od ${table.getFilteredRowModel().rows.length} izabrano`
+            : `${table.getFilteredRowModel().rows.length} ukupno`}
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -146,7 +175,7 @@ export function DataTable<TData, TValue>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Sledeca
+            Sledeća
           </Button>
         </div>
       </div>

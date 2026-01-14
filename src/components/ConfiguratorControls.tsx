@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import {
@@ -56,11 +57,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import materials from "@/data/materials.json";
 import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type Material } from "@/lib/store";
 import { AuthForms } from "./AuthForms";
 import { DimensionControl } from "./DimensionControl";
 import { Button } from "./ui/button";
@@ -89,14 +89,17 @@ interface InitialSession {
 export function ConfiguratorControls({
   wardrobeRef,
   initialSession,
+  materials,
 }: {
   wardrobeRef: React.RefObject<any>;
   initialSession?: InitialSession | null;
+  materials: Material[];
 }) {
   // Auth state - use initialSession from server, useSession for reactivity after login/logout
   const { data: clientSession, isPending } = useSession();
   // Use initialSession while client is loading, then switch to client session (even if null after logout)
   const session = isPending ? initialSession : clientSession;
+  const router = useRouter();
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
@@ -161,7 +164,12 @@ export function ConfiguratorControls({
         return;
       }
 
-      toast.success(`Orman "${wardrobeName}" je sačuvan!`);
+      toast.success(`"${wardrobeName}" je sačuvan`, {
+        action: {
+          label: "Pogledaj",
+          onClick: () => router.push("/wardrobes"),
+        },
+      });
       setSaveDialogOpen(false);
     } catch (e) {
       console.error("[performSave] exception", e);
@@ -300,8 +308,8 @@ export function ConfiguratorControls({
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(() => {
     try {
-      const mat = (materials as any[]).find(
-        (m) => String(m.id) === String(selectedMaterialId as number),
+      const mat = materials.find(
+        (m) => String(m.id) === String(selectedMaterialId),
       );
       const pricePerM2 = Number(mat?.price ?? 0);
       const t = (Number(mat?.thickness ?? 18) / 1000) as number; // m
@@ -310,10 +318,13 @@ export function ConfiguratorControls({
       const doubleGap = 3 / 1000; // 3mm between double leaves
 
       // Back material price and thickness (5mm)
-      const backId = (useShelfStore.getState().selectedBackMaterialId ??
-        null) as any;
-      const backMat = (materials as any[]).find((m) =>
-        backId ? String(m.id) === String(backId) : m.thickness === 5,
+      const backId = useShelfStore.getState().selectedBackMaterialId ?? null;
+      // Find back material - by ID if selected, otherwise first material with "led" in category
+      const backMat = materials.find((m) =>
+        backId
+          ? String(m.id) === String(backId)
+          : m.category.toLowerCase().includes("led") ||
+            m.category.toLowerCase().includes("leđ"),
       );
       const backPricePerM2 = Number(backMat?.price ?? 0);
       const backT = (Number(backMat?.thickness ?? 5) / 1000) as number;
@@ -924,9 +935,9 @@ export function ConfiguratorControls({
         const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
         const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
         // Material thickness in cm from selected material
-        const selectedMaterialId = useShelfStore.getState().selectedMaterialId;
-        const mat = (materials as any[]).find(
-          (m) => String(m.id) === String(selectedMaterialId),
+        const currentMaterialId = useShelfStore.getState().selectedMaterialId;
+        const mat = materials.find(
+          (m) => String(m.id) === String(currentMaterialId),
         );
         const tCm = Number(mat?.thickness ?? 18) / 10; // cm
         const tOffsetXmm = tCm / cmPerMmX;
@@ -1608,71 +1619,62 @@ export function ConfiguratorControls({
               3. Izbor materijala
             </AccordionTrigger>
             <AccordionContent className="space-y-6 pt-4">
-              {/* Materijal Korpusa */}
-              <div>
-                <h4 className="text-sm font-semibold mb-2">
-                  Materijal Korpusa (10–25mm)
-                </h4>
-                <div className="grid grid-cols-3 gap-4">
-                  {materials
-                    .filter((m) => m.thickness >= 10 && m.thickness <= 25)
-                    .map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex flex-col items-center"
-                      >
-                        <button
-                          className={`rounded-lg border-2 ${
-                            selectedMaterialId === material.id
-                              ? "border-primary"
-                              : "border-transparent"
-                          } hover:border-primary h-24 w-full bg-cover bg-center`}
-                          style={{ backgroundImage: `url(${material.img})` }}
-                          onClick={() => setSelectedMaterialId(material.id)}
-                          title={material.name}
-                        >
-                          <span className="sr-only">{material.name}</span>
-                        </button>
-                        <span className="text-sm mt-1 text-center">
-                          {material.name}
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </div>
+              {/* Group materials by category */}
+              {(() => {
+                const categories = [
+                  ...new Set(materials.map((m) => m.category)),
+                ];
+                return categories.map((category) => {
+                  const categoryMaterials = materials.filter(
+                    (m) => m.category === category,
+                  );
+                  // Determine if this is a "back" category (ledja)
+                  const isBackCategory =
+                    category.toLowerCase().includes("led") ||
+                    category.toLowerCase().includes("leđ");
+                  const selectedId = isBackCategory
+                    ? selectedBackMaterialId
+                    : selectedMaterialId;
+                  const setSelectedId = isBackCategory
+                    ? setSelectedBackMaterialId
+                    : setSelectedMaterialId;
 
-              {/* Materijal Leđa */}
-              <div>
-                <h4 className="text-sm font-semibold mb-2">
-                  Materijal Leđa (5mm)
-                </h4>
-                <div className="grid grid-cols-3 gap-4">
-                  {materials
-                    .filter((m) => m.thickness === 5) // for 5mm
-                    .map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex flex-col items-center"
-                      >
-                        <button
-                          className={`rounded-lg border-2 ${
-                            selectedBackMaterialId === material.id
-                              ? "border-primary"
-                              : "border-transparent"
-                          } hover:border-primary h-24 w-full bg-cover bg-center`}
-                          style={{ backgroundImage: `url(${material.img})` }}
-                          onClick={() => setSelectedBackMaterialId(material.id)}
-                          title={material.name}
-                        >
-                          <span className="sr-only">{material.name}</span>
-                        </button>
-                        <span className="text-sm mt-1 text-center">
-                          {material.name}
-                        </span>
+                  return (
+                    <div key={category}>
+                      <h4 className="text-sm font-semibold mb-2">{category}</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        {categoryMaterials.map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex flex-col items-center"
+                          >
+                            <button
+                              type="button"
+                              className={`rounded-lg border-2 ${
+                                selectedId === material.id
+                                  ? "border-primary"
+                                  : "border-transparent"
+                              } hover:border-primary h-24 w-full bg-cover bg-center bg-muted`}
+                              style={{
+                                backgroundImage: material.img
+                                  ? `url(${material.img})`
+                                  : undefined,
+                              }}
+                              onClick={() => setSelectedId(material.id)}
+                              title={material.name}
+                            >
+                              <span className="sr-only">{material.name}</span>
+                            </button>
+                            <span className="text-sm mt-1 text-center">
+                              {material.name}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                </div>
-              </div>
+                    </div>
+                  );
+                });
+              })()}
             </AccordionContent>
           </AccordionItem>
           {/* 5. Extras */}
@@ -1821,7 +1823,7 @@ export function ConfiguratorControls({
                                   const selectedMaterialId =
                                     useShelfStore.getState()
                                       .selectedMaterialId as number;
-                                  const mat = (materials as any[]).find(
+                                  const mat = materials.find(
                                     (m) =>
                                       String(m.id) ===
                                       String(selectedMaterialId),

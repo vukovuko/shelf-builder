@@ -15,6 +15,7 @@ import {
 
 interface VerificationEmailProps {
   url: string;
+  baseUrl?: string;
 }
 
 // Brand colors (converted from globals.css dark theme)
@@ -28,7 +29,21 @@ const colors = {
   border: "#3d3960", // --border: oklch(0.324 0.0319 281.9784)
 };
 
-export default function VerificationEmail({ url }: VerificationEmailProps) {
+const getBaseUrl = () => {
+  try {
+    if (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_APP_URL) {
+      return process.env.NEXT_PUBLIC_APP_URL;
+    }
+  } catch {
+    // Ignore - process not available in preview
+  }
+  return "https://ormanipomeri.com";
+};
+
+export default function VerificationEmail({
+  url,
+  baseUrl = getBaseUrl(),
+}: VerificationEmailProps) {
   return (
     <Html>
       <Head />
@@ -38,7 +53,7 @@ export default function VerificationEmail({ url }: VerificationEmailProps) {
           {/* Logo/Brand Header */}
           <Section style={header}>
             <Img
-              src={`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/ormani-po-meri-logo.webp`}
+              src={`${baseUrl}/ormani-po-meri-logo.webp`}
               width="120"
               height="120"
               alt="Ormani po meri"

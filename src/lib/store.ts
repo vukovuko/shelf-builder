@@ -3,6 +3,17 @@ import { create } from "zustand";
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
 
+// Material type for database materials
+export interface Material {
+  id: number;
+  name: string;
+  price: number;
+  img: string | null;
+  thickness: number | null;
+  stock: number | null;
+  category: string;
+}
+
 // Door configuration options per element (UI only for now)
 export type DoorOption =
   | "none"
@@ -40,6 +51,9 @@ interface ShelfState {
   selectedMaterialId: number;
   selectedBackMaterialId?: number;
   showDimensions: boolean;
+  // Materials from database
+  materials: Material[];
+  setMaterials: (materials: Material[]) => void;
   setWidth: (width: number) => void;
   setHeight: (height: number) => void;
   setDepth: (depth: number) => void;
@@ -99,6 +113,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
   selectedMaterialId: 1, // default to first material
   selectedBackMaterialId: undefined,
   showDimensions: false,
+  // Materials from database
+  materials: [],
+  setMaterials: (materials) => set({ materials }),
   setWidth: (width) => set({ width }),
   setHeight: (height) => set({ height }),
   setDepth: (depth) => set({ depth }),

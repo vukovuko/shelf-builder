@@ -1,15 +1,18 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  integer,
   json,
   pgEnum,
   pgTable,
+  serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
 
 // Role enum - expandable for future roles
 export const roleEnum = pgEnum("user_role", ["user", "admin"]);
+
 
 // Better Auth Tables
 export const user = pgTable("user", {
@@ -108,3 +111,16 @@ export const wardrobeRelations = relations(wardrobes, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Materials table
+export const materials = pgTable("material", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  price: integer("price").notNull(),
+  img: text("img"),
+  thickness: integer("thickness"),
+  stock: integer("stock").default(0),
+  category: text("category").notNull(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});

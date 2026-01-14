@@ -20,7 +20,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Mail, Calendar, FolderOpen } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Mail, Calendar, FolderOpen, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface Wardrobe {
@@ -49,6 +60,29 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDelete() {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("Korisnik je obrisan");
+        router.push("/admin/users");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Greška pri brisanju korisnika");
+      }
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      toast.error("Greška pri brisanju korisnika");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   async function handleRoleChange(newRole: string) {
     setIsUpdating(true);
@@ -76,16 +110,42 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/users">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">{user.name}</h1>
-          <p className="text-muted-foreground">Detalji korisnika</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/admin/users">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">{user.name}</h1>
         </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={isDeleting} className="w-full sm:w-auto">
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isDeleting ? "Brisanje..." : "Obriši korisnika"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Obrisati korisnika?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ova akcija je nepovratna. Korisnik "{user.name}" i svi njegovi
+                ormani će biti trajno obrisani.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Otkaži</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Obriši
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

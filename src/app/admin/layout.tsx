@@ -27,11 +27,13 @@ export default async function AdminLayout({
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
           <SidebarTrigger />
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-auto">
+          <div className="max-w-6xl">{children}</div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

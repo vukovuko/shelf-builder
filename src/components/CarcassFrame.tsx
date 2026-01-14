@@ -76,11 +76,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
     const doorSelections = useShelfStore((s) => s.doorSelections);
 
+    // Guard against empty materials array (before DB data loads)
+    if (materials.length === 0) {
+      return null;
+    }
+
     const material =
       materials.find(
         (m: Material) => String(m.id) === String(selectedMaterialId),
       ) || materials[0];
-    const t = (material.thickness ?? 18000) / 1000;
+    const t = (material.thickness ?? 18) / 1000;
 
     const w = width / 100;
     const h = height / 100;

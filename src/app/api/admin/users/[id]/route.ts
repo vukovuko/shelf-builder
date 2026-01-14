@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { user, wardrobes } from "@/db/schema";
+import { user, wardrobes, account, session, verification } from "@/db/schema";
 import { eq, count } from "drizzle-orm";
-import { requireAdmin } from "@/lib/roles";
+import { requireAdmin, getCurrentUser } from "@/lib/roles";
 import { userIdSchema } from "@/lib/validation";
 
 export async function GET(
@@ -71,6 +71,79 @@ export async function GET(
       }
     }
     console.error("Failed to fetch user:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireAdmin();
+    const currentUser = await getCurrentUser();
+
+    const { id } = await params;
+
+    const validatedId = userIdSchema.safeParse(id);
+    if (!validatedId.success) {
+      return NextResponse.json(
+        { error: validatedId.error.issues[0].message },
+        { status: 400 },
+      );
+    }
+
+    // Prevent self-deletion
+    if (currentUser?.id === validatedId.data) {
+      return NextResponse.json(
+        { error: "Ne možete obrisati sami sebe" },
+        { status: 400 },
+      );
+    }
+
+    // Check if user exists
+    const [existingUser] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, validatedId.data));
+
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: "Korisnik nije pronađen" },
+        { status: 404 },
+      );
+    }
+
+    // Delete related data in order (foreign key constraints)
+    // 1. Delete sessions
+    await db.delete(session).where(eq(session.userId, validatedId.data));
+
+    // 2. Delete verifications
+    await db.delete(verification).where(eq(verification.identifier, validatedId.data));
+
+    // 3. Delete accounts
+    await db.delete(account).where(eq(account.userId, validatedId.data));
+
+    // 4. Delete wardrobes
+    await db.delete(wardrobes).where(eq(wardrobes.userId, validatedId.data));
+
+    // 5. Delete user
+    await db.delete(user).where(eq(user.id, validatedId.data));
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHORIZED") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (error.message === "FORBIDDEN") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+    console.error("Failed to delete user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

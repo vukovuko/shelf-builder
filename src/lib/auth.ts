@@ -9,6 +9,7 @@ import { render } from "@react-email/components";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
 import VerificationEmail from "./emails/verification-email";
+import ResetPasswordEmail from "./emails/reset-password-email";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,6 +22,16 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true, // Auto-login after registration
     requireEmailVerification: false, // Let users login without verification
+    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+      const html = await render(ResetPasswordEmail({ url }));
+
+      await resend.emails.send({
+        from: "Ormani po meri <noreply@ormanipomeri.com>",
+        to: user.email,
+        subject: "Postavite vasu lozinku",
+        html,
+      });
+    },
   },
   emailVerification: {
     sendOnSignUp: true,
