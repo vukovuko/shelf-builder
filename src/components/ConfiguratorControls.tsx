@@ -1220,18 +1220,19 @@ export function ConfiguratorControls({
             <AccordionContent className="space-y-6 pt-4">
               {/* Group materials by category */}
               {(() => {
-                const categories = [
-                  ...new Set(materials.map((m) => m.category)),
+                // Get all unique categories from materials (flatten arrays)
+                const allCategories = [
+                  ...new Set(materials.flatMap((m) => m.categories)),
                 ];
-                return categories.map((category) => {
-                  const categoryMaterials = materials.filter(
-                    (m) => m.category === category,
+                return allCategories.map((category) => {
+                  // Filter materials that have this category
+                  const categoryMaterials = materials.filter((m) =>
+                    m.categories.includes(category),
                   );
-                  // Determine if this is a "back" category (ledja)
-                  // TODO: WHAT IS THIS?
+                  // Determine if this is a "back" category (Leđa)
                   const isBackCategory =
-                    category.toLowerCase().includes("led") ||
-                    category.toLowerCase().includes("leđ");
+                    category.toLowerCase().includes("leđa") ||
+                    category.toLowerCase().includes("ledja");
                   const selectedId = isBackCategory
                     ? selectedBackMaterialId
                     : selectedMaterialId;

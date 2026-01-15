@@ -13,9 +13,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:set-order-seq": "npx tsx src/db/set-order-sequence.ts",
+    "db:seed-materials": "npx tsx src/db/seed-materials.ts",
+    "r2:upload": "npx tsx src/db/upload-to-r2.ts",
     "email:dev": "npx react-email dev --dir src/lib/emails --port 3001"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.969.0",
     "@better-fetch/fetch": "^1.1.21",
     "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-accordion": "^1.2.12",

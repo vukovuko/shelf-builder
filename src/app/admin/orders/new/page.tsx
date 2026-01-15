@@ -10,10 +10,10 @@ export default async function NewOrderPage() {
       .select({
         id: materials.id,
         name: materials.name,
-        category: materials.category,
+        categories: materials.categories,
       })
       .from(materials)
-      .orderBy(materials.category, materials.name),
+      .orderBy(materials.name),
     db
       .select({
         id: wardrobes.id,

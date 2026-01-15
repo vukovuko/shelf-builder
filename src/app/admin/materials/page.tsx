@@ -1,14 +1,14 @@
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
-import { count, desc } from "drizzle-orm";
+import { count, desc, ilike } from "drizzle-orm";
 import { MaterialsClient } from "./MaterialsClient";
 
 const PAGE_SIZE = 20;
 
 interface MaterialsPageProps {
   searchParams?:
-    | Promise<{ page?: string | string[] }>
-    | { page?: string | string[] };
+    | Promise<{ page?: string | string[]; search?: string | string[] }>
+    | { page?: string | string[]; search?: string | string[] };
 }
 
 export default async function MaterialsPage({
@@ -18,17 +18,29 @@ export default async function MaterialsPage({
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]
     : resolvedSearchParams.page;
+  const searchParam = Array.isArray(resolvedSearchParams.search)
+    ? resolvedSearchParams.search[0]
+    : resolvedSearchParams.search;
+
   const page = Math.max(Number(pageParam) || 1, 1);
   const offset = (page - 1) * PAGE_SIZE;
+  const search = searchParam?.trim() || "";
+
+  // Build where clause for search
+  const whereClause = search ? ilike(materials.name, `%${search}%`) : undefined;
 
   const [allMaterials, totalResult] = await Promise.all([
     db
       .select()
       .from(materials)
+      .where(whereClause)
       .orderBy(desc(materials.createdAt))
       .limit(PAGE_SIZE)
       .offset(offset),
-    db.select({ count: count() }).from(materials),
+    db
+      .select({ count: count() })
+      .from(materials)
+      .where(whereClause),
   ]);
 
   const totalCount = Number(totalResult[0]?.count ?? 0);
@@ -45,6 +57,7 @@ export default async function MaterialsPage({
       page={page}
       pageSize={PAGE_SIZE}
       totalCount={totalCount}
+      search={search}
     />
   );
 }

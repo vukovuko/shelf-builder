@@ -49,7 +49,8 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
     img: m.img,
     thickness: m.thickness,
     stock: m.stock,
-    category: m.category,
+    categories: m.categories,
+    published: m.published,
   }));
 
   return (

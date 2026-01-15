@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Search, X } from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -32,6 +33,9 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  // Controlled search for server-side search
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   onRowClick?: (row: TData) => void;
   getRowId?: (row: TData) => string;
   enableRowSelection?: boolean;
@@ -48,6 +52,8 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Pretrazi...",
+  searchValue,
+  onSearchChange,
   onRowClick,
   getRowId,
   enableRowSelection = false,
@@ -123,24 +129,50 @@ export function DataTable<TData, TValue>({
     .getFilteredSelectedRowModel()
     .rows.map((row) => row.original);
 
+  const hasSearch = searchKey || onSearchChange;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        {searchKey && (
-          <Input
-            placeholder={searchPlaceholder}
-            value={
-              (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-        )}
-        {!searchKey && <div />}
-        {bulkActions && bulkActions(selectedRows)}
-      </div>
+      {(hasSearch || bulkActions) && (
+        <div className="flex items-center justify-between gap-2">
+          {/* Server-side search (controlled) */}
+          {onSearchChange && (
+            <div className="relative max-w-sm flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchValue ?? ""}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {/* Client-side search (uncontrolled) */}
+          {searchKey && !onSearchChange && (
+            <Input
+              placeholder={searchPlaceholder}
+              value={
+                (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
+              }
+              onChange={(event) =>
+                table.getColumn(searchKey)?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
+            />
+          )}
+          {!hasSearch && <div />}
+          {bulkActions && bulkActions(selectedRows)}
+        </div>
+      )}
       <div className="overflow-x-auto rounded-md border">
         <Table className="min-w-[600px]">
           <TableHeader>

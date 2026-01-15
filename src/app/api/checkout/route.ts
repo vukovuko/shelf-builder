@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         id: materials.id,
         price: materials.price,
         thickness: materials.thickness,
-        category: materials.category,
+        categories: materials.categories,
       })
       .from(materials);
 

@@ -42,3 +42,5 @@ docs/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+material-images/

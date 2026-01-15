@@ -13,10 +13,11 @@ const materialIdSchema = z.coerce
 const updateMaterialSchema = z.object({
   name: z.string().min(1).optional(),
   price: z.number().int().positive().optional(),
-  category: z.string().min(1).optional(),
+  categories: z.array(z.string()).min(1).optional(),
   img: z.string().nullable().optional(),
   thickness: z.number().int().positive().nullable().optional(),
   stock: z.number().int().min(0).optional(),
+  published: z.boolean().optional(),
 });
 
 export async function PATCH(

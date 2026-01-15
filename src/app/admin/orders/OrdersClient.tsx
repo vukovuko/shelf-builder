@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
@@ -31,6 +31,7 @@ interface OrdersClientProps {
   page: number;
   pageSize: number;
   totalCount: number;
+  search: string;
 }
 
 export function OrdersClient({
@@ -38,6 +39,7 @@ export function OrdersClient({
   page,
   pageSize,
   totalCount,
+  search,
 }: OrdersClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,8 +47,38 @@ export function OrdersClient({
   const [isArchiving, setIsArchiving] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
+  const [searchInput, setSearchInput] = useState(search);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Debounced search - updates URL after 300ms of no typing
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("page");
+      if (searchInput.trim()) {
+        params.set("search", searchInput.trim());
+      } else {
+        params.delete("search");
+      }
+      const query = params.toString();
+      const newUrl = query ? `${pathname}?${query}` : pathname;
+      if (searchInput !== search) {
+        router.push(newUrl);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchInput, pathname, router, searchParams, search]);
 
   const handlePageChange = (pageIndex: number) => {
     const nextPage = pageIndex + 1;
@@ -110,8 +142,9 @@ export function OrdersClient({
       <DataTable
         columns={columns}
         data={orders}
-        searchKey="customerName"
-        searchPlaceholder="Pretrazi po korisniku..."
+        searchPlaceholder="Pretrazi po korisniku ili broju..."
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
         pageIndex={Math.max(page - 1, 0)}
         pageSize={pageSize}
         pageCount={pageCount}

@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-import materials from "@/data/materials.json";
 import { useShelfStore } from "@/lib/store";
 
 export function BlueprintView() {
@@ -15,6 +14,7 @@ export function BlueprintView() {
     selectedMaterialId,
     compartmentExtras,
     doorSelections,
+    materials,
   } = useShelfStore();
 
   const fmt2 = (n: number) =>
@@ -24,9 +24,7 @@ export function BlueprintView() {
     });
 
   // Material thickness (cm)
-  const mat = (materials as any[]).find(
-    (m) => String(m.id) === String(selectedMaterialId),
-  );
+  const mat = materials.find((m) => m.id === selectedMaterialId);
   const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
   const _backTCm = 0.5; // assume 5mm backs for hatch if needed
 

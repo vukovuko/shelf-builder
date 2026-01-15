@@ -1,14 +1,14 @@
 import { db } from "@/db/db";
 import { orders } from "@/db/schema";
-import { count, desc } from "drizzle-orm";
+import { count, desc, ilike, or } from "drizzle-orm";
 import { OrdersClient } from "./OrdersClient";
 
 const PAGE_SIZE = 20;
 
 interface OrdersPageProps {
   searchParams?:
-    | Promise<{ page?: string | string[] }>
-    | { page?: string | string[] };
+    | Promise<{ page?: string | string[]; search?: string | string[] }>
+    | { page?: string | string[]; search?: string | string[] };
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
@@ -16,8 +16,22 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]
     : resolvedSearchParams.page;
+  const searchParam = Array.isArray(resolvedSearchParams.search)
+    ? resolvedSearchParams.search[0]
+    : resolvedSearchParams.search;
+
   const page = Math.max(Number(pageParam) || 1, 1);
   const offset = (page - 1) * PAGE_SIZE;
+  const search = searchParam?.trim() || "";
+
+  // Search by customer name, email, or order number
+  const whereClause = search
+    ? or(
+        ilike(orders.customerName, `%${search}%`),
+        ilike(orders.customerEmail, `%${search}%`),
+        ilike(orders.orderNumber, `%${search}%`),
+      )
+    : undefined;
 
   const [allOrders, totalResult] = await Promise.all([
     db
@@ -33,10 +47,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         updatedAt: orders.updatedAt,
       })
       .from(orders)
+      .where(whereClause)
       .orderBy(desc(orders.createdAt))
       .limit(PAGE_SIZE)
       .offset(offset),
-    db.select({ count: count() }).from(orders),
+    db.select({ count: count() }).from(orders).where(whereClause),
   ]);
 
   const totalCount = Number(totalResult[0]?.count ?? 0);
@@ -53,6 +68,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       page={page}
       pageSize={PAGE_SIZE}
       totalCount={totalCount}
+      search={search}
     />
   );
 }

@@ -34,7 +34,7 @@ interface User {
 interface Material {
   id: number;
   name: string;
-  category: string;
+  categories: string[];
 }
 
 interface Wardrobe {
@@ -77,14 +77,18 @@ export function OrderNewClient({
     return wardrobes.filter((w) => w.userId === selectedUserId);
   }, [selectedUserId, wardrobes]);
 
-  // Group materials by category
+  // Group materials by category (flatten categories arrays)
   const materialsByCategory = useMemo(() => {
     const grouped: Record<string, Material[]> = {};
     materials.forEach((m) => {
-      if (!grouped[m.category]) {
-        grouped[m.category] = [];
-      }
-      grouped[m.category].push(m);
+      m.categories.forEach((cat) => {
+        if (!grouped[cat]) {
+          grouped[cat] = [];
+        }
+        if (!grouped[cat].some((existing) => existing.id === m.id)) {
+          grouped[cat].push(m);
+        }
+      });
     });
     return grouped;
   }, [materials]);

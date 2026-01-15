@@ -7,15 +7,14 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    // Get distinct categories
-    const result = await db
-      .selectDistinct({ category: materials.category })
-      .from(materials)
-      .orderBy(materials.category);
+    // Get all materials and extract unique categories from arrays
+    const allMaterials = await db.select({ categories: materials.categories }).from(materials);
 
-    const categories = result.map((r) => r.category);
+    // Flatten all categories arrays and get unique values
+    const allCategories = allMaterials.flatMap((m) => m.categories);
+    const uniqueCategories = [...new Set(allCategories)].sort();
 
-    return NextResponse.json(categories);
+    return NextResponse.json(uniqueCategories);
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") {

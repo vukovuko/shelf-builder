@@ -4,7 +4,7 @@ type PricingMaterial = {
   id: number;
   price: number;
   thickness: number | null;
-  category: string;
+  categories: string[];
 };
 
 type ElementConfig = {
@@ -90,12 +90,13 @@ export function calculateCutList(
 
     // Back material price and thickness (5mm)
     const backId = snapshot.selectedBackMaterialId ?? null;
-    // Find back material - by ID if selected, otherwise first material with "led" in category
+    // Find back material - by ID if selected, otherwise first material with "Leđa" in categories
     const backMat = materials.find((m) =>
       backId
         ? String(m.id) === String(backId)
-        : m.category.toLowerCase().includes("led") ||
-          m.category.toLowerCase().includes("leđ"),
+        : m.categories.some(
+            (c) => c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
+          ),
     );
     const backPricePerM2 = Number(backMat?.price ?? 0);
     const backT = (Number(backMat?.thickness ?? 5) / 1000) as number;

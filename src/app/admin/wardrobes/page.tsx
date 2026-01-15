@@ -1,14 +1,14 @@
 import { db } from "@/db/db";
 import { user, wardrobes } from "@/db/schema";
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, ilike, or } from "drizzle-orm";
 import { WardrobesClient } from "./WardrobesClient";
 
 const PAGE_SIZE = 20;
 
 interface WardrobesPageProps {
   searchParams?:
-    | Promise<{ page?: string | string[] }>
-    | { page?: string | string[] };
+    | Promise<{ page?: string | string[]; search?: string | string[] }>
+    | { page?: string | string[]; search?: string | string[] };
 }
 
 export default async function WardrobesPage({
@@ -19,8 +19,22 @@ export default async function WardrobesPage({
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]
     : resolvedSearchParams.page;
+  const searchParam = Array.isArray(resolvedSearchParams.search)
+    ? resolvedSearchParams.search[0]
+    : resolvedSearchParams.search;
+
   const page = Math.max(Number(pageParam) || 1, 1);
   const offset = (page - 1) * PAGE_SIZE;
+  const search = searchParam?.trim() || "";
+
+  // Search by wardrobe name or user name/email
+  const whereClause = search
+    ? or(
+        ilike(wardrobes.name, `%${search}%`),
+        ilike(user.name, `%${search}%`),
+        ilike(user.email, `%${search}%`),
+      )
+    : undefined;
 
   const [allWardrobes, totalResult] = await Promise.all([
     db
@@ -36,10 +50,15 @@ export default async function WardrobesPage({
       })
       .from(wardrobes)
       .leftJoin(user, eq(wardrobes.userId, user.id))
+      .where(whereClause)
       .orderBy(desc(wardrobes.createdAt))
       .limit(PAGE_SIZE)
       .offset(offset),
-    db.select({ count: count() }).from(wardrobes),
+    db
+      .select({ count: count() })
+      .from(wardrobes)
+      .leftJoin(user, eq(wardrobes.userId, user.id))
+      .where(whereClause),
   ]);
 
   const totalCount = Number(totalResult[0]?.count ?? 0);
@@ -57,6 +76,7 @@ export default async function WardrobesPage({
       page={page}
       pageSize={PAGE_SIZE}
       totalCount={totalCount}
+      search={search}
     />
   );
 }

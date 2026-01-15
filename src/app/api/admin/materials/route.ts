@@ -8,10 +8,11 @@ import { z } from "zod";
 const createMaterialSchema = z.object({
   name: z.string().min(1, "Naziv je obavezan"),
   price: z.number().int().positive("Cena mora biti pozitivan broj"),
-  category: z.string().min(1, "Kategorija je obavezna"),
+  categories: z.array(z.string()).min(1, "Kategorija je obavezna"),
   img: z.string().optional(),
   thickness: z.number().int().positive().optional(),
   stock: z.number().int().min(0).optional(),
+  published: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -55,17 +56,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, price, category, img, thickness, stock } = validation.data;
+    const { name, price, categories, img, thickness, stock, published } =
+      validation.data;
 
     const [created] = await db
       .insert(materials)
       .values({
         name,
         price,
-        category,
+        categories,
         img: img || null,
         thickness: thickness || null,
         stock: stock ?? 0,
+        published: published ?? false,
       })
       .returning();
 

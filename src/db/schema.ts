@@ -177,7 +177,8 @@ export const materials = pgTable("material", {
   img: text("img"),
   thickness: integer("thickness"),
   stock: integer("stock").default(0),
-  category: text("category").notNull(),
+  categories: text("categories").array().notNull(), // ["Materijal za Korpus (18mm)", "Materijal za Lica/Vrata (18mm)"]
+  published: boolean("published").notNull().default(false),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });

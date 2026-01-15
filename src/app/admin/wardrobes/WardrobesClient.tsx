@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ interface WardrobesClientProps {
   page: number;
   pageSize: number;
   totalCount: number;
+  search: string;
 }
 
 export function WardrobesClient({
@@ -37,6 +38,7 @@ export function WardrobesClient({
   page,
   pageSize,
   totalCount,
+  search,
 }: WardrobesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -44,8 +46,38 @@ export function WardrobesClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedWardrobes, setSelectedWardrobes] = useState<Wardrobe[]>([]);
+  const [searchInput, setSearchInput] = useState(search);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Debounced search - updates URL after 300ms of no typing
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("page");
+      if (searchInput.trim()) {
+        params.set("search", searchInput.trim());
+      } else {
+        params.delete("search");
+      }
+      const query = params.toString();
+      const newUrl = query ? `${pathname}?${query}` : pathname;
+      if (searchInput !== search) {
+        router.push(newUrl);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [searchInput, pathname, router, searchParams, search]);
 
   const handlePageChange = (pageIndex: number) => {
     const nextPage = pageIndex + 1;
@@ -96,8 +128,9 @@ export function WardrobesClient({
       <DataTable
         columns={columns}
         data={wardrobes}
-        searchKey="name"
-        searchPlaceholder="Pretrazi po nazivu..."
+        searchPlaceholder="Pretrazi po nazivu ili korisniku..."
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
         pageIndex={Math.max(page - 1, 0)}
         pageSize={pageSize}
         pageCount={pageCount}

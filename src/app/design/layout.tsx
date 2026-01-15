@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
@@ -9,12 +10,12 @@ export default async function DesignLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch session and materials in parallel
+  // Fetch session and materials in parallel (only published materials for design page)
   const [session, dbMaterials] = await Promise.all([
     auth.api.getSession({
       headers: await headers(),
     }),
-    db.select().from(materials),
+    db.select().from(materials).where(eq(materials.published, true)),
   ]);
 
   // Serialize session for client (only pass what's needed)
@@ -37,7 +38,8 @@ export default async function DesignLayout({
     img: m.img,
     thickness: m.thickness,
     stock: m.stock,
-    category: m.category,
+    categories: m.categories,
+    published: m.published,
   }));
 
   return (

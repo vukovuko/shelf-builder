@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +22,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CategoryCombobox } from "@/components/CategoryCombobox";
+
+const AVAILABLE_CATEGORIES = [
+  "Materijal za Korpus (18mm)",
+  "Materijal za Lica/Vrata (18mm)",
+  "Materijal za Leđa (3mm)",
+];
 
 interface Material {
   id: number;
@@ -29,7 +36,8 @@ interface Material {
   img: string | null;
   thickness: number | null;
   stock: number | null;
-  category: string;
+  categories: string[];
+  published: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,15 +54,24 @@ export function MaterialDetailClient({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [category, setCategory] = useState(initialMaterial.category);
+  const [categories, setCategories] = useState<string[]>(
+    initialMaterial.categories,
+  );
+  const [published, setPublished] = useState(initialMaterial.published);
+
+  const toggleCategory = (cat: string) => {
+    setCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
-    if (!category.trim()) {
-      setError("Kategorija je obavezna");
+    if (categories.length === 0) {
+      setError("Izaberi barem jednu kategoriju");
       setSaving(false);
       return;
     }
@@ -63,7 +80,8 @@ export function MaterialDetailClient({
     const data = {
       name: formData.get("name") as string,
       price: Number(formData.get("price")),
-      category: category.trim(),
+      categories,
+      published,
       img: (formData.get("img") as string) || null,
       thickness: formData.get("thickness")
         ? Number(formData.get("thickness"))
@@ -131,6 +149,9 @@ export function MaterialDetailClient({
             <h1 className="text-2xl sm:text-3xl font-bold truncate">
               {material.name}
             </h1>
+            <p className="text-sm text-muted-foreground">
+              {material.published ? "Objavljeno" : "Draft"}
+            </p>
           </div>
         </div>
 
@@ -184,15 +205,6 @@ export function MaterialDetailClient({
             </div>
 
             <div className="space-y-2">
-              <Label>Kategorija *</Label>
-              <CategoryCombobox
-                value={category}
-                onChange={setCategory}
-                placeholder="Izaberi ili unesi kategoriju..."
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="price">Cena (RSD/m2) *</Label>
               <Input
                 id="price"
@@ -229,7 +241,7 @@ export function MaterialDetailClient({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="img">URL slike</Label>
               <Input
                 id="img"
@@ -238,6 +250,38 @@ export function MaterialDetailClient({
                 placeholder="npr. /img/slika1.jpg"
               />
             </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Label>Kategorije *</Label>
+            <div className="space-y-2">
+              {AVAILABLE_CATEGORIES.map((cat) => (
+                <div key={cat} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={cat}
+                    checked={categories.includes(cat)}
+                    onCheckedChange={() => toggleCategory(cat)}
+                  />
+                  <label
+                    htmlFor={cat}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {cat}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id="published"
+              checked={published}
+              onCheckedChange={setPublished}
+            />
+            <Label htmlFor="published">
+              Objavljeno (vidljivo korisnicima na /design)
+            </Label>
           </div>
 
           {error && (

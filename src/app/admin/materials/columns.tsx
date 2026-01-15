@@ -12,7 +12,8 @@ export type Material = {
   img: string | null;
   thickness: number | null;
   stock: number | null;
-  category: string;
+  categories: string[];
+  published: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -63,23 +64,38 @@ export const columns: ColumnDef<Material>[] = [
     ),
   },
   {
-    accessorKey: "category",
-    header: ({ column }) => {
+    accessorKey: "published",
+    header: "Status",
+    cell: ({ row }) => {
+      const published = row.getValue("published") as boolean;
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        <div
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            published
+              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+          }`}
         >
-          Kategorija
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+          {published ? "Objavljeno" : "Draft"}
+        </div>
       );
     },
+  },
+  {
+    accessorKey: "categories",
+    header: "Kategorije",
     cell: ({ row }) => {
-      const category = row.getValue("category") as string;
+      const categories = row.getValue("categories") as string[];
       return (
-        <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-          {category}
+        <div className="flex flex-wrap gap-1">
+          {categories.map((cat) => (
+            <span
+              key={cat}
+              className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+            >
+              {cat.replace("Materijal za ", "").replace(" (18mm)", "").replace(" (3mm)", "")}
+            </span>
+          ))}
         </div>
       );
     },

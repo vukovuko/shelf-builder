@@ -11,7 +11,8 @@ export interface Material {
   img: string | null;
   thickness: number | null;
   stock: number | null;
-  category: string;
+  categories: string[];
+  published: boolean;
 }
 
 // Door configuration options per element (UI only for now)
