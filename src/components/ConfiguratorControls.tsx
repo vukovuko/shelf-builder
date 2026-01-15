@@ -368,6 +368,68 @@ export function ConfiguratorControls({
     (state) => state.setSelectedBackMaterialId,
   );
 
+  // Auto-select first material for each category type if current selection is invalid
+  React.useEffect(() => {
+    // Group materials by category type
+    const korpusMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) =>
+          !c.toLowerCase().includes("leđa") &&
+          !c.toLowerCase().includes("ledja") &&
+          !c.toLowerCase().includes("lica") &&
+          !c.toLowerCase().includes("vrata"),
+      ),
+    );
+    const frontMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) => c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
+      ),
+    );
+    const backMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) => c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
+      ),
+    );
+
+    // Validate korpus selection
+    if (
+      !selectedMaterialId ||
+      !korpusMaterials.some((m) => m.id === selectedMaterialId)
+    ) {
+      if (korpusMaterials.length > 0) {
+        setSelectedMaterialId(korpusMaterials[0].id);
+      }
+    }
+
+    // Validate front selection
+    if (
+      !selectedFrontMaterialId ||
+      !frontMaterials.some((m) => m.id === selectedFrontMaterialId)
+    ) {
+      if (frontMaterials.length > 0) {
+        setSelectedFrontMaterialId(frontMaterials[0].id);
+      }
+    }
+
+    // Validate back selection
+    if (
+      !selectedBackMaterialId ||
+      !backMaterials.some((m) => m.id === selectedBackMaterialId)
+    ) {
+      if (backMaterials.length > 0) {
+        setSelectedBackMaterialId(backMaterials[0].id);
+      }
+    }
+  }, [
+    materials,
+    selectedMaterialId,
+    selectedFrontMaterialId,
+    selectedBackMaterialId,
+    setSelectedMaterialId,
+    setSelectedFrontMaterialId,
+    setSelectedBackMaterialId,
+  ]);
+
   const showDimensions = useShelfStore((state) => state.showDimensions);
   const setShowDimensions = useShelfStore((state) => state.setShowDimensions);
   // Base (baza) state
