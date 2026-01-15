@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,16 +104,43 @@ export const columns: ColumnDef<Order>[] = [
         />
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center w-12">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Izaberi red"
-        />
-      </div>
-    ),
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as
+        | { lastClickedIndexRef: React.MutableRefObject<number | null> }
+        | undefined;
+
+      const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (e.shiftKey && meta && meta.lastClickedIndexRef.current !== null) {
+          // Shift+click: select range
+          const start = Math.min(meta.lastClickedIndexRef.current, row.index);
+          const end = Math.max(meta.lastClickedIndexRef.current, row.index);
+          const rows = table.getRowModel().rows;
+
+          for (let i = start; i <= end; i++) {
+            rows[i].toggleSelected(true);
+          }
+        } else {
+          // Normal click: toggle single row
+          row.toggleSelected(!row.getIsSelected());
+        }
+
+        if (meta) {
+          meta.lastClickedIndexRef.current = row.index;
+        }
+      };
+
+      return (
+        <div className="flex items-center justify-center w-12">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onClick={handleClick}
+            aria-label="Izaberi red"
+          />
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },

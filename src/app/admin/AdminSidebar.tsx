@@ -28,7 +28,7 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "Porudzbine",
+    title: "Porudžbine",
     href: "/admin/orders",
     icon: ShoppingCart,
   },
@@ -54,7 +54,7 @@ export function AdminSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-4 py-3">
+      <SidebarHeader className="border-b px-4 h-14 justify-center">
         <Link
           href="/admin"
           className="flex items-center gap-2"

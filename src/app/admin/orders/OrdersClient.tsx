@@ -107,14 +107,14 @@ export function OrdersClient({
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${selectedOrders.length} porudzbina arhivirano`);
+        toast.success(`${selectedOrders.length} porudžbina arhivirano`);
         router.refresh();
       } else {
-        toast.error("Greska pri arhiviranju nekih porudzbina");
+        toast.error("Greška pri arhiviranju nekih porudžbina");
       }
     } catch (error) {
       console.error("Failed to archive orders:", error);
-      toast.error("Greska pri arhiviranju porudzbina");
+      toast.error("Greška pri arhiviranju porudžbina");
     } finally {
       setIsArchiving(false);
       setShowArchiveDialog(false);
@@ -126,9 +126,9 @@ export function OrdersClient({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Porudzbine</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Porudžbine</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Upravljanje porudzbinama
+            Upravljanje porudžbinama
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
@@ -189,9 +189,9 @@ export function OrdersClient({
       <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Arhivirati porudzbine?</AlertDialogTitle>
+            <AlertDialogTitle>Arhivirati porudžbine?</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedOrders.length} porudzbina ce biti arhivirano. Mozete ih
+              {selectedOrders.length} porudžbina će biti arhivirano. Možete ih
               kasnije vratiti.
             </AlertDialogDescription>
           </AlertDialogHeader>

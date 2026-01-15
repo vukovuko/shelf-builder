@@ -233,7 +233,7 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Status porudzbine</Label>
+              <Label>Status porudžbine</Label>
               <Select
                 value={status}
                 onValueChange={(v) => setStatus(v as Order["status"])}

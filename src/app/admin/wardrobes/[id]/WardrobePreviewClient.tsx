@@ -5,6 +5,11 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, User, Ruler, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useShelfStore, type Material } from "@/lib/store";
@@ -80,8 +85,17 @@ export function WardrobePreviewClient({
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{wardrobe.name}</h1>
+          <div className="min-w-0">
+            <Popover>
+              <PopoverTrigger asChild>
+                <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+                  {wardrobe.name}
+                </h1>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" className="w-auto max-w-xs p-2 text-sm">
+                {wardrobe.name}
+              </PopoverContent>
+            </Popover>
             <p className="text-sm text-muted-foreground">Pregled ormana</p>
           </div>
         </div>

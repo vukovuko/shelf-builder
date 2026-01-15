@@ -38,6 +38,11 @@ import { ArrowLeft, Trash2, Pencil, X, Check, Plus, Copy } from "lucide-react";
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Wardrobe {
   id: string;
@@ -309,9 +314,16 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-2xl sm:text-3xl font-bold truncate">
-            {user.name}
-          </h1>
+          <Popover>
+            <PopoverTrigger asChild>
+              <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+                {user.name}
+              </h1>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" className="w-auto max-w-xs p-2 text-sm">
+              {user.name}
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Mobile delete button - icon only */}

@@ -70,6 +70,9 @@ export function DataTable<TData, TValue>({
   );
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+  // Track last clicked row index for shift-click range selection
+  const lastClickedIndexRef = React.useRef<number | null>(null);
+
   const manualPagination =
     pageIndex !== undefined &&
     pageSize !== undefined &&
@@ -122,6 +125,9 @@ export function DataTable<TData, TValue>({
       columnFilters,
       rowSelection,
       pagination: paginationState,
+    },
+    meta: {
+      lastClickedIndexRef,
     },
   });
 
@@ -177,13 +183,14 @@ export function DataTable<TData, TValue>({
         <Table className="min-w-[600px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="group/header">
                 {headerGroup.headers.map((header, index) => {
                   return (
                     <TableHead
                       key={header.id}
                       className={cn(
-                        index === 1 && "sticky left-0 bg-background z-10",
+                        index === 1 &&
+                          "sticky left-0 bg-background z-10 before:absolute before:inset-0 before:-z-10 before:bg-muted/50 before:opacity-0 group-hover/header:before:opacity-100 before:transition-opacity",
                       )}
                     >
                       {header.isPlaceholder

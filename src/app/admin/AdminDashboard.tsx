@@ -92,10 +92,10 @@ export function AdminDashboard({ user, stats }: AdminDashboardProps) {
                 <ShoppingCart className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
-                    Porudzbine
+                    Porudžbine
                   </p>
                   <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
-                    Pregled svih porudzbina
+                    Pregled svih porudžbina
                   </p>
                 </div>
               </div>

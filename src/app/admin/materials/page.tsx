@@ -1,6 +1,6 @@
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
-import { count, desc, ilike } from "drizzle-orm";
+import { asc, count, ilike } from "drizzle-orm";
 import { MaterialsClient } from "./MaterialsClient";
 
 const PAGE_SIZE = 20;
@@ -34,7 +34,7 @@ export default async function MaterialsPage({
       .select()
       .from(materials)
       .where(whereClause)
-      .orderBy(desc(materials.createdAt))
+      .orderBy(asc(materials.name))
       .limit(PAGE_SIZE)
       .offset(offset),
     db

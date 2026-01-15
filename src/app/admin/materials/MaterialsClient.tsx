@@ -45,6 +45,7 @@ export function MaterialsClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -120,6 +121,74 @@ export function MaterialsClient({
     }
   }
 
+  async function handleBulkPublish(selected: Material[]) {
+    const toPublish = selected.filter((m) => !m.published);
+    if (toPublish.length === 0) {
+      toast.info("Svi izabrani materijali su već objavljeni");
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      const results = await Promise.all(
+        toPublish.map((material) =>
+          fetch(`/api/admin/materials/${material.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ published: true }),
+          }),
+        ),
+      );
+
+      const allSuccessful = results.every((r) => r.ok);
+      if (allSuccessful) {
+        toast.success(`${toPublish.length} materijala objavljeno`);
+        router.refresh();
+      } else {
+        toast.error("Greška pri objavljivanju nekih materijala");
+      }
+    } catch (error) {
+      console.error("Failed to publish materials:", error);
+      toast.error("Greška pri objavljivanju materijala");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
+  async function handleBulkDraft(selected: Material[]) {
+    const toDraft = selected.filter((m) => m.published);
+    if (toDraft.length === 0) {
+      toast.info("Svi izabrani materijali su već u draft-u");
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      const results = await Promise.all(
+        toDraft.map((material) =>
+          fetch(`/api/admin/materials/${material.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ published: false }),
+          }),
+        ),
+      );
+
+      const allSuccessful = results.every((r) => r.ok);
+      if (allSuccessful) {
+        toast.success(`${toDraft.length} materijala vraćeno u draft`);
+        router.refresh();
+      } else {
+        toast.error("Greška pri vraćanju nekih materijala u draft");
+      }
+    } catch (error) {
+      console.error("Failed to draft materials:", error);
+      toast.error("Greška pri vraćanju materijala u draft");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -167,11 +236,23 @@ export function MaterialsClient({
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" disabled={isUpdatingStatus}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleBulkPublish(selected)}
+                  disabled={isUpdatingStatus}
+                >
+                  Objavi izabrane
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleBulkDraft(selected)}
+                  disabled={isUpdatingStatus}
+                >
+                  Vrati u draft
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => {

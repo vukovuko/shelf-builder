@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,16 +34,43 @@ export const columns: ColumnDef<Material>[] = [
         />
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center w-12">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Izaberi red"
-        />
-      </div>
-    ),
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as
+        | { lastClickedIndexRef: React.MutableRefObject<number | null> }
+        | undefined;
+
+      const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (e.shiftKey && meta && meta.lastClickedIndexRef.current !== null) {
+          // Shift+click: select range
+          const start = Math.min(meta.lastClickedIndexRef.current, row.index);
+          const end = Math.max(meta.lastClickedIndexRef.current, row.index);
+          const rows = table.getRowModel().rows;
+
+          for (let i = start; i <= end; i++) {
+            rows[i].toggleSelected(true);
+          }
+        } else {
+          // Normal click: toggle single row
+          row.toggleSelected(!row.getIsSelected());
+        }
+
+        if (meta) {
+          meta.lastClickedIndexRef.current = row.index;
+        }
+      };
+
+      return (
+        <div className="flex items-center justify-center w-12">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onClick={handleClick}
+            aria-label="Izaberi red"
+          />
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -65,7 +93,17 @@ export const columns: ColumnDef<Material>[] = [
   },
   {
     accessorKey: "published",
-    header: "Status",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
     cell: ({ row }) => {
       const published = row.getValue("published") as boolean;
       return (
@@ -77,25 +115,6 @@ export const columns: ColumnDef<Material>[] = [
           }`}
         >
           {published ? "Objavljeno" : "Draft"}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "categories",
-    header: "Kategorije",
-    cell: ({ row }) => {
-      const categories = row.getValue("categories") as string[];
-      return (
-        <div className="flex flex-wrap gap-1">
-          {categories.map((cat) => (
-            <span
-              key={cat}
-              className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-            >
-              {cat.replace("Materijal za ", "").replace(" (18mm)", "").replace(" (3mm)", "")}
-            </span>
-          ))}
         </div>
       );
     },
@@ -124,14 +143,6 @@ export const columns: ColumnDef<Material>[] = [
     cell: ({ row }) => {
       const price = row.getValue("price") as number;
       return `${price.toLocaleString("sr-RS")} RSD/m²`;
-    },
-  },
-  {
-    accessorKey: "stock",
-    header: "Zaliha",
-    cell: ({ row }) => {
-      const stock = row.getValue("stock") as number | null;
-      return stock ?? 0;
     },
   },
 ];

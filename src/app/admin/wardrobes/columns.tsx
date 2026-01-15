@@ -1,6 +1,7 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
+import type React from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,42 +33,45 @@ export const columns: ColumnDef<Wardrobe>[] = [
         />
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center w-12">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Izaberi red"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "thumbnail",
-    header: "",
-    cell: ({ row }) => {
-      const thumbnail = row.getValue("thumbnail") as string | null;
-      if (!thumbnail) {
-        return (
-          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-            <span className="text-xs text-muted-foreground">-</span>
-          </div>
-        );
-      }
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as
+        | { lastClickedIndexRef: React.MutableRefObject<number | null> }
+        | undefined;
+
+      const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (e.shiftKey && meta && meta.lastClickedIndexRef.current !== null) {
+          // Shift+click: select range
+          const start = Math.min(meta.lastClickedIndexRef.current, row.index);
+          const end = Math.max(meta.lastClickedIndexRef.current, row.index);
+          const rows = table.getRowModel().rows;
+
+          for (let i = start; i <= end; i++) {
+            rows[i].toggleSelected(true);
+          }
+        } else {
+          // Normal click: toggle single row
+          row.toggleSelected(!row.getIsSelected());
+        }
+
+        if (meta) {
+          meta.lastClickedIndexRef.current = row.index;
+        }
+      };
+
       return (
-        <div className="w-12 h-12 relative rounded overflow-hidden">
-          <Image
-            src={thumbnail}
-            alt="Thumbnail"
-            fill
-            className="object-cover"
+        <div className="flex items-center justify-center w-12">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onClick={handleClick}
+            aria-label="Izaberi red"
           />
         </div>
       );
     },
+    enableSorting: false,
+    enableHiding: false,
   },
   {
     accessorKey: "name",
@@ -83,7 +87,26 @@ export const columns: ColumnDef<Wardrobe>[] = [
       );
     },
     cell: ({ row }) => {
-      return <span className="font-medium">{row.getValue("name")}</span>;
+      const thumbnail = row.original.thumbnail;
+      return (
+        <div className="flex items-center gap-3">
+          {thumbnail ? (
+            <div className="w-10 h-10 relative rounded overflow-hidden flex-shrink-0">
+              <Image
+                src={thumbnail}
+                alt="Thumbnail"
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center flex-shrink-0">
+              <span className="text-xs text-muted-foreground">-</span>
+            </div>
+          )}
+          <span className="font-medium">{row.getValue("name")}</span>
+        </div>
+      );
     },
   },
   {
