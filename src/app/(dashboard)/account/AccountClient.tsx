@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Pencil, X, Check, Loader2, Mail } from "lucide-react";
+import { Pencil, X, Check, Loader2, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
+
+interface PlaceSuggestion {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}
 
 const nameSchema = z
   .string()
@@ -32,6 +41,10 @@ interface AccountClientProps {
     phone?: string | null;
     createdAt?: Date;
     emailVerified?: boolean;
+    shippingStreet?: string | null;
+    shippingApartment?: string | null;
+    shippingCity?: string | null;
+    shippingPostalCode?: string | null;
   };
 }
 
@@ -41,11 +54,27 @@ export function AccountClient({ user }: AccountClientProps) {
   const router = useRouter();
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Address state
+  const [addressData, setAddressData] = useState({
+    shippingStreet: user.shippingStreet || "",
+    shippingApartment: user.shippingApartment || "",
+    shippingCity: user.shippingCity || "",
+    shippingPostalCode: user.shippingPostalCode || "",
+  });
+
+  // Address autocomplete state
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load cooldown from localStorage on mount
   useEffect(() => {
@@ -71,6 +100,141 @@ export function AccountClient({ user }: AccountClientProps) {
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionRef.current &&
+        !suggestionRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch address suggestions
+  const fetchSuggestions = async (query: string) => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(
+        `/api/places/autocomplete?q=${encodeURIComponent(query)}`,
+      );
+      const data = await res.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions(true);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Handle street input with debounce
+  const handleStreetChange = (value: string) => {
+    setAddressData((prev) => ({ ...prev, shippingStreet: value }));
+
+    // Debounce API calls
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  };
+
+  // Select suggestion and fetch details
+  const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
+    setShowSuggestions(false);
+    setLoadingSuggestions(true);
+
+    try {
+      const res = await fetch(
+        `/api/places/details?placeId=${suggestion.placeId}`,
+      );
+      const data = await res.json();
+
+      // Combine city and municipality if both exist
+      let cityValue = data.city || "";
+      if (data.city && data.municipality) {
+        cityValue = `${data.city}, ${data.municipality}`;
+      }
+
+      setAddressData((prev) => ({
+        ...prev,
+        shippingStreet:
+          data.street || suggestion.mainText || prev.shippingStreet,
+        shippingCity: cityValue || prev.shippingCity,
+        shippingPostalCode: data.postalCode || prev.shippingPostalCode,
+      }));
+    } catch {
+      // Fallback: just use the main text
+      setAddressData((prev) => ({
+        ...prev,
+        shippingStreet: suggestion.mainText || prev.shippingStreet,
+      }));
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Save address
+  const handleSaveAddress = async () => {
+    if (!addressData.shippingStreet.trim()) {
+      toast.error("Ulica je obavezna");
+      return;
+    }
+    if (!addressData.shippingCity.trim()) {
+      toast.error("Grad je obavezan");
+      return;
+    }
+    if (!addressData.shippingPostalCode.trim()) {
+      toast.error("Poštanski broj je obavezan");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/user/address", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Greška pri čuvanju adrese");
+      }
+
+      toast.success("Adresa je uspešno sačuvana");
+      router.refresh();
+      setIsEditingAddress(false);
+    } catch (error) {
+      console.error("Failed to save address:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Greška pri čuvanju adrese",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelEditAddress = () => {
+    setAddressData({
+      shippingStreet: user.shippingStreet || "",
+      shippingApartment: user.shippingApartment || "",
+      shippingCity: user.shippingCity || "",
+      shippingPostalCode: user.shippingPostalCode || "",
+    });
+    setIsEditingAddress(false);
+    setShowSuggestions(false);
+  };
+
+  const hasAddress =
+    user.shippingStreet || user.shippingCity || user.shippingPostalCode;
 
   const handleResendVerification = async () => {
     if (resendCooldown > 0 || isResending) return;
@@ -371,6 +535,158 @@ export function AccountClient({ user }: AccountClientProps) {
           </div>
         )}
       </div>
+
+      {/* Shipping Address Section */}
+      <Card className="mt-8 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Adresa za dostavu</h2>
+          </div>
+          {!isEditingAddress && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditingAddress(true)}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              {hasAddress ? "Izmeni" : "Dodaj"}
+            </Button>
+          )}
+        </div>
+
+        {isEditingAddress ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-4">
+              <div className="relative" ref={suggestionRef}>
+                <Label htmlFor="shippingStreet">Ulica i broj *</Label>
+                <div className="relative">
+                  <Input
+                    id="shippingStreet"
+                    value={addressData.shippingStreet}
+                    onChange={(e) => handleStreetChange(e.target.value)}
+                    onFocus={() =>
+                      suggestions.length > 0 && setShowSuggestions(true)
+                    }
+                    placeholder="Bulevar Kralja Aleksandra 123"
+                    className="mt-1"
+                    autoComplete="off"
+                  />
+                  {loadingSuggestions && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.placeId}
+                          type="button"
+                          className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
+                          onClick={() => handleSelectSuggestion(s)}
+                        >
+                          <div className="font-medium text-sm">
+                            {s.mainText}
+                          </div>
+                          {s.secondaryText && (
+                            <div className="text-xs text-muted-foreground">
+                              {s.secondaryText}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="shippingApartment">Sprat/Stan</Label>
+                <Input
+                  id="shippingApartment"
+                  value={addressData.shippingApartment}
+                  onChange={(e) =>
+                    setAddressData((prev) => ({
+                      ...prev,
+                      shippingApartment: e.target.value,
+                    }))
+                  }
+                  placeholder="3/12"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
+              <div>
+                <Label htmlFor="shippingCity">Grad/Opština *</Label>
+                <Input
+                  id="shippingCity"
+                  value={addressData.shippingCity}
+                  onChange={(e) =>
+                    setAddressData((prev) => ({
+                      ...prev,
+                      shippingCity: e.target.value,
+                    }))
+                  }
+                  placeholder="Beograd"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="shippingPostalCode">Poštanski broj *</Label>
+                <Input
+                  id="shippingPostalCode"
+                  value={addressData.shippingPostalCode}
+                  onChange={(e) =>
+                    setAddressData((prev) => ({
+                      ...prev,
+                      shippingPostalCode: e.target.value,
+                    }))
+                  }
+                  placeholder="11000"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={handleCancelEditAddress}
+                disabled={isLoading}
+              >
+                Otkaži
+              </Button>
+              <Button onClick={handleSaveAddress} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Čuvanje...
+                  </>
+                ) : (
+                  "Sačuvaj adresu"
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : hasAddress ? (
+          <div className="text-sm space-y-1">
+            <p className="font-medium">{user.shippingStreet}</p>
+            {user.shippingApartment && (
+              <p className="text-muted-foreground">{user.shippingApartment}</p>
+            )}
+            <p className="text-muted-foreground">
+              {user.shippingPostalCode} {user.shippingCity}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Niste dodali adresu za dostavu. Dodajte adresu da biste ubrzali
+            proces naručivanja.
+          </p>
+        )}
+      </Card>
     </div>
   );
 }

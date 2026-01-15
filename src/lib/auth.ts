@@ -4,14 +4,12 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
-import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
 import VerificationEmail from "./emails/verification-email";
 import ResetPasswordEmail from "./emails/reset-password-email";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "./email-rate-limiter";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -31,8 +29,7 @@ export const auth = betterAuth({
     }) => {
       const html = await render(ResetPasswordEmail({ url }));
 
-      await resend.emails.send({
-        from: "Ormani po meri <noreply@ormanipomeri.com>",
+      await sendEmail({
         to: user.email,
         subject: "Postavite vasu lozinku",
         html,
@@ -56,8 +53,7 @@ export const auth = betterAuth({
 
       const html = await render(VerificationEmail({ url: finalUrl }));
 
-      await resend.emails.send({
-        from: "Ormani po meri <noreply@ormanipomeri.com>",
+      await sendEmail({
         to: user.email,
         subject: "Verifikujte vašu email adresu",
         html,
@@ -68,6 +64,12 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"], // Auto-link Google accounts to existing users with same email
     },
   },
   user: {

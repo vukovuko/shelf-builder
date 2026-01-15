@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signIn, signUp, authClient } from "@/lib/auth-client";
+import { signIn, authClient } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
 
 interface AuthFormsProps {
@@ -63,37 +63,43 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
 
     try {
       if (mode === "register") {
-        const result = await signUp.email({
-          email,
-          password,
-          name: name || email.split("@")[0],
+        // Use custom signup endpoint that handles account linking for existing users
+        const response = await fetch("/api/auth/signup-with-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password,
+            name: name || email.split("@")[0],
+          }),
         });
 
-        if (result.error) {
-          // Check if user already exists - tell them to login instead
-          const errorCode = result.error.code?.toLowerCase() || "";
-          if (
-            errorCode.includes("user_already_exists") ||
-            result.error.message?.toLowerCase().includes("already exists")
-          ) {
-            setError(
-              "Ako već imate nalog, pokušajte da se prijavite. Ako niste verifikovali email, poslaćemo vam novi link.",
-            );
-          } else {
-            setError(result.error.message || "Registracija nije uspela");
-          }
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || "Registracija nije uspela");
           return;
         }
 
-        // Check email verification from response data (not server action - cookies not set yet)
-        const emailVerified = result.data?.user?.emailVerified;
-        if (!emailVerified) {
-          toast("Proverite inbox za verifikacioni email", {
-            duration: 5000,
-          });
+        // Show appropriate message based on whether account was linked
+        if (result.linked) {
+          toast.success(
+            "Nalog povezan! Sada možete pristupiti vašim porudžbinama.",
+            {
+              duration: 5000,
+            },
+          );
+        } else {
+          // New user - check email verification
+          const emailVerified = result.user?.emailVerified;
+          if (!emailVerified) {
+            toast("Proverite inbox za verifikacioni email", {
+              duration: 5000,
+            });
+          }
         }
 
-        // Auto-login is enabled, so just call onSuccess
+        // User is signed in, call onSuccess
         onSuccess?.();
       } else {
         const result = await signIn.email({

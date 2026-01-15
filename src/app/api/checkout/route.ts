@@ -318,6 +318,7 @@ export async function POST(request: Request) {
     };
 
     // Send emails (after transaction succeeds)
+    // Rate limiter in email-rate-limiter.ts handles delays automatically
     try {
       // Send customer confirmation if they provided email
       if (customerEmail && customerEmail.length > 0) {
@@ -330,8 +331,6 @@ export async function POST(request: Request) {
           shippingCity,
           shippingPostalCode,
         });
-        // Wait 1 second to avoid Resend rate limit (2 req/sec)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       // Send notification to all admins with receiveOrderEmails enabled

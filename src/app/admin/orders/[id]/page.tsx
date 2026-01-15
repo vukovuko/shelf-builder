@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
-import { orders, user, materials, wardrobes } from "@/db/schema";
+import { orders, materials, wardrobes } from "@/db/schema";
 import { OrderDetailClient } from "./OrderDetailClient";
 
 interface PageProps {
@@ -16,8 +16,15 @@ export default async function OrderDetailPage({ params }: PageProps) {
       id: orders.id,
       orderNumber: orders.orderNumber,
       userId: orders.userId,
-      userName: user.name,
-      userEmail: user.email,
+      // Customer info from the order (what was entered during checkout)
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      customerPhone: orders.customerPhone,
+      // Shipping address
+      shippingStreet: orders.shippingStreet,
+      shippingApartment: orders.shippingApartment,
+      shippingCity: orders.shippingCity,
+      shippingPostalCode: orders.shippingPostalCode,
       wardrobeId: orders.wardrobeId,
       wardrobeName: wardrobes.name,
       materialId: orders.materialId,
@@ -36,7 +43,6 @@ export default async function OrderDetailPage({ params }: PageProps) {
       updatedAt: orders.updatedAt,
     })
     .from(orders)
-    .leftJoin(user, eq(orders.userId, user.id))
     .leftJoin(wardrobes, eq(orders.wardrobeId, wardrobes.id))
     .leftJoin(materials, eq(orders.materialId, materials.id))
     .where(eq(orders.id, id))

@@ -27,8 +27,15 @@ interface Order {
   id: string;
   orderNumber: number;
   userId: string;
-  userName: string | null;
-  userEmail: string | null;
+  // Customer info from order
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  // Shipping address
+  shippingStreet: string;
+  shippingApartment: string | null;
+  shippingCity: string;
+  shippingPostalCode: string;
   wardrobeId: string | null;
   wardrobeName: string | null;
   materialId: number;
@@ -177,9 +184,29 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-muted-foreground">Korisnik</Label>
-              <p className="font-medium">{order.userName || "-"}</p>
-              <p className="text-sm text-muted-foreground">{order.userEmail}</p>
+              <Label className="text-muted-foreground">Kupac</Label>
+              <p className="font-medium">{order.customerName}</p>
+              {order.customerEmail && (
+                <p className="text-sm text-muted-foreground">
+                  {order.customerEmail}
+                </p>
+              )}
+              {order.customerPhone && (
+                <p className="text-sm text-muted-foreground">
+                  {order.customerPhone}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Adresa za dostavu</Label>
+              <p className="font-medium">{order.shippingStreet}</p>
+              {order.shippingApartment && (
+                <p className="text-sm">{order.shippingApartment}</p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {order.shippingPostalCode} {order.shippingCity}
+              </p>
             </div>
 
             <div>
@@ -194,16 +221,16 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
             <div className="sm:col-span-2 space-y-3 min-w-0">
               <Label className="text-muted-foreground">Materijali i cene</Label>
               <div className="rounded-lg border bg-muted/30 overflow-x-auto w-full min-w-0">
-                <table className="w-full table-auto text-sm">
+                <table className="w-full table-fixed text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50 text-muted-foreground">
-                      <th className="text-left py-2.5 px-3 font-medium">
+                      <th className="w-[54%] sm:w-[60%] text-left py-2.5 px-3 font-medium">
                         Materijal
                       </th>
-                      <th className="text-right py-2.5 px-3 font-medium whitespace-nowrap">
+                      <th className="w-[20%] text-right py-2.5 pl-3 pr-4 font-medium whitespace-nowrap">
                         m²
                       </th>
-                      <th className="text-right py-2.5 px-3 font-medium">
+                      <th className="w-[26%] sm:w-[20%] text-right py-2.5 pl-4 font-medium">
                         Cena
                       </th>
                     </tr>
@@ -219,12 +246,12 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                           {order.materialName || "-"}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                      <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
                         {order.priceBreakdown
                           ? order.priceBreakdown.korpus.areaM2.toFixed(2)
                           : "-"}
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                      <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
                         {order.priceBreakdown
                           ? `${order.priceBreakdown.korpus.price.toLocaleString("sr-RS")} RSD`
                           : "-"}
@@ -240,12 +267,12 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                           {order.frontMaterialName || "-"}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                      <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
                         {order.priceBreakdown
                           ? order.priceBreakdown.front.areaM2.toFixed(2)
                           : "-"}
                       </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                      <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
                         {order.priceBreakdown
                           ? `${order.priceBreakdown.front.price.toLocaleString("sr-RS")} RSD`
                           : "-"}
@@ -262,12 +289,12 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                             {order.backMaterialName || "-"}
                           </div>
                         </td>
-                        <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                        <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
                           {order.priceBreakdown
                             ? order.priceBreakdown.back.areaM2.toFixed(2)
                             : "-"}
                         </td>
-                        <td className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
+                        <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
                           {order.priceBreakdown
                             ? `${order.priceBreakdown.back.price.toLocaleString("sr-RS")} RSD`
                             : "-"}
@@ -278,10 +305,10 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                   <tfoot>
                     <tr className="border-t-2 border-border bg-muted/30">
                       <td className="py-3 px-3 font-semibold">Ukupno</td>
-                      <td className="py-3 px-3 text-right tabular-nums font-medium whitespace-nowrap">
+                      <td className="py-3 pl-3 pr-4 text-right tabular-nums font-medium whitespace-nowrap">
                         {areaM2.toFixed(2)} m²
                       </td>
-                      <td className="py-3 px-3 text-right font-bold tabular-nums whitespace-nowrap">
+                      <td className="py-3 pl-4 text-right font-bold tabular-nums whitespace-nowrap">
                         {order.totalPrice.toLocaleString("sr-RS")} RSD
                       </td>
                     </tr>

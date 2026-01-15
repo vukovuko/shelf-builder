@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PenTool, FolderOpen, User } from "lucide-react";
+import { PenTool, FolderOpen, User, ShoppingBag } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,11 @@ const navItems = [
     title: "Moji ormani",
     href: "/wardrobes",
     icon: FolderOpen,
+  },
+  {
+    title: "Porudžbine",
+    href: "/orders",
+    icon: ShoppingBag,
   },
   {
     title: "Nalog",

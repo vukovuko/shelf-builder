@@ -193,7 +193,7 @@ export function ConfiguratorControls({
     // Validate that korpus material is selected and exists
     if (!selectedMaterialId) {
       toast.error(
-        "Materijal za korpus nije izabran. Proverite korak 3 (Materijali) i izaberite materijal za korpus.",
+        "Molimo izaberite materijal za korpus u sekciji 'Materijali'",
       );
       return;
     }
@@ -202,7 +202,7 @@ export function ConfiguratorControls({
     );
     if (!korpusMaterial) {
       toast.error(
-        "Izabrani materijal za korpus nije dostupan. Proverite korak 3 (Materijali) i izaberite ponovo.",
+        "Izabrani materijal za korpus nije pronađen. Molimo izaberite ponovo.",
       );
       return;
     }
@@ -210,7 +210,7 @@ export function ConfiguratorControls({
     // Validate that front material is selected and exists
     if (!selectedFrontMaterialId) {
       toast.error(
-        "Materijal za lica/vrata nije izabran. Proverite korak 3 (Materijali) i izaberite materijal za lica/vrata.",
+        "Molimo izaberite materijal za lica/vrata u sekciji 'Materijali'",
       );
       return;
     }
@@ -219,7 +219,7 @@ export function ConfiguratorControls({
     );
     if (!frontMaterial) {
       toast.error(
-        "Izabrani materijal za lica/vrata nije dostupan. Proverite korak 3 (Materijali) i izaberite ponovo.",
+        "Izabrani materijal za lica/vrata nije pronađen. Molimo izaberite ponovo.",
       );
       return;
     }
@@ -902,6 +902,14 @@ export function ConfiguratorControls({
                   Moji Ormani
                 </Link>
               </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+                <Link href="/orders" className="flex items-center">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Porudžbine
+                </Link>
+              </DropdownMenuItem>
+
               <DropdownMenuItem asChild>
                 <Link href="/account" className="flex items-center">
                   <Settings className="h-4 w-4 mr-2" />
@@ -2099,7 +2107,59 @@ export function ConfiguratorControls({
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,
-          priceBreakdown: cutList.priceBreakdown,
+          priceBreakdown: (() => {
+            const korpusItems = cutList.items.filter(
+              (item: any) =>
+                !item.code.includes("V.") &&
+                !item.code.includes("F.") &&
+                !item.code.includes("LED"),
+            );
+            const frontItems = cutList.items.filter(
+              (item: any) =>
+                item.code.includes("V.") || item.code.includes("F."),
+            );
+            const backItems = cutList.items.filter((item: any) =>
+              item.code.includes("LED"),
+            );
+            return {
+              korpus: {
+                areaM2: korpusItems.reduce(
+                  (sum: number, item: any) => sum + item.areaM2,
+                  0,
+                ),
+                price: Math.round(
+                  korpusItems.reduce(
+                    (sum: number, item: any) => sum + item.cost,
+                    0,
+                  ),
+                ),
+              },
+              front: {
+                areaM2: frontItems.reduce(
+                  (sum: number, item: any) => sum + item.areaM2,
+                  0,
+                ),
+                price: Math.round(
+                  frontItems.reduce(
+                    (sum: number, item: any) => sum + item.cost,
+                    0,
+                  ),
+                ),
+              },
+              back: {
+                areaM2: backItems.reduce(
+                  (sum: number, item: any) => sum + item.areaM2,
+                  0,
+                ),
+                price: Math.round(
+                  backItems.reduce(
+                    (sum: number, item: any) => sum + item.cost,
+                    0,
+                  ),
+                ),
+              },
+            };
+          })(),
           dimensions: {
             width,
             height,

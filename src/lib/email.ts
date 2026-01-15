@@ -1,16 +1,12 @@
 import "server-only";
 
-import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { db } from "@/db/db";
 import { user } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import OrderConfirmationEmail from "./emails/order-confirmation-email";
 import AdminNewOrderEmail from "./emails/admin-new-order-email";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
+import { sendEmail } from "./email-rate-limiter";
 
 interface OrderConfirmationData {
   to: string;
@@ -34,8 +30,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     }),
   );
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
+  await sendEmail({
     to: data.to,
     subject: `Potvrda porudžbine #${data.orderNumber} - Ormani po meri`,
     html,
@@ -85,20 +80,13 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
 
   const orderIdShort = data.orderId.slice(0, 8).toUpperCase();
 
-  // Send to all opted-in admins with delay to avoid rate limiting (2 req/sec on Resend)
-  let sentCount = 0;
+  // Send to all opted-in admins (rate limiter handles delays automatically)
   for (const admin of admins) {
-    if (sentCount > 0) {
-      // Wait 1 second between emails to stay under rate limit
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-    await resend.emails.send({
-      from: FROM_EMAIL,
+    await sendEmail({
       to: admin.email,
       subject: `Nova porudžbina #${orderIdShort} - ${data.totalPrice.toLocaleString("sr-RS")} RSD`,
       html,
     });
-    sentCount++;
   }
-  console.log(`[Admin Email] Sent ${sentCount} admin notification emails`);
+  console.log(`[Admin Email] Sent ${admins.length} admin notification emails`);
 }
