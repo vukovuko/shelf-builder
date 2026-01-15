@@ -2,8 +2,10 @@
 import { Html, Text } from "@react-three/drei";
 import React from "react";
 import * as THREE from "three";
-import { useShelfStore } from "../lib/store";
-import { Panel } from "./Panel";
+import { useShelfStore } from "../../lib/store";
+import { Panel } from "../Panel";
+import { toLetters, buildBlocksX, buildModulesY } from "./utils";
+import { DRAWER_HEIGHT, DRAWER_GAP, MIN_DRAG_GAP } from "./constants";
 
 type Material = {
   id: string;
@@ -154,35 +156,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     }[] = [];
     // Support both single and split modules (bottom-to-top, left-to-right)
     {
-      const maxSegX = 100 / 100;
-      const _nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-      // Y modules: split if height > 200cm
-      const modulesY: { yStart: number; yEnd: number }[] = [];
-      if (h > 200 / 100) {
-        const yStartBottom = -h / 2;
-        const targetBottomH = 200 / 100;
-        const minTopH = 10 / 100;
-        const bottomH =
-          h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-        const yEndBottom = yStartBottom + bottomH;
-        const yStartTop = yEndBottom;
-        const yEndTop = h / 2;
-        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-        modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-      } else {
-        modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-      }
-      // Helper to map index -> A, B, ..., Z, AA, AB, ...
-      const toLetters = (num: number) => {
-        let n = num + 1;
-        let s = "";
-        while (n > 0) {
-          const rem = (n - 1) % 26;
-          s = String.fromCharCode(65 + rem) + s;
-          n = Math.floor((n - 1) / 26);
-        }
-        return s;
-      };
+      const modulesY = buildModulesY(h);
       let idx = 0;
       modulesY.forEach((mod) => {
         for (let i = 0; i < numberOfColumns; i++) {
@@ -243,56 +217,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       const list: PanelDef[] = [];
 
       // X blocks: equalize external width, max 100cm per block
-      const maxSegX = 100 / 100; // 1.0 world units
-      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-      const segWX = w / nBlocksX;
-      const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-        const start = -w / 2 + i * segWX;
-        const end = start + segWX;
-        return { start, end, width: segWX };
-      });
+      const blocksX = buildBlocksX(w);
+      const segWX = blocksX[0]?.width ?? w;
       const boundariesX = Array.from(
-        { length: nBlocksX + 1 },
+        { length: blocksX.length + 1 },
         (_, i) => -w / 2 + i * segWX,
       );
 
-      // Y modules: split if height > 200cm. Bottom is 200cm only if total > 210cm; otherwise shrink bottom so top is at least 10cm
-      const targetBottomH = 200 / 100; // 2.0 world units
-      const minTopH = 10 / 100; // 0.1 world units
-      const modulesY: {
-        yStart: number;
-        yEnd: number;
-        height: number;
-        label: string;
-      }[] = [];
-      if (h > 200 / 100) {
-        const yStartBottom = -h / 2;
-        // Ensure top >= 10cm: if remaining height < 10cm, shrink bottom accordingly
-        const bottomH =
-          h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-        const yEndBottom = yStartBottom + bottomH;
-        const yStartTop = yEndBottom;
-        const yEndTop = h / 2;
-        modulesY.push({
-          yStart: yStartBottom,
-          yEnd: yEndBottom,
-          height: bottomH,
-          label: "BottomModule",
-        });
-        modulesY.push({
-          yStart: yStartTop,
-          yEnd: yEndTop,
-          height: yEndTop - yStartTop,
-          label: "TopModule",
-        });
-      } else {
-        modulesY.push({
-          yStart: -h / 2,
-          yEnd: h / 2,
-          height: h,
-          label: "SingleModule",
-        });
-      }
+      // Y modules: split if height > 200cm
+      const modulesY = buildModulesY(h, true);
 
       // Side panels at each X boundary, per Y module
       boundariesX.forEach((x, idx) => {
@@ -356,43 +289,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Element letter labels (A, B, C, ...) at each element's center on the back side
     const elementLabels = React.useMemo(() => {
-      // Helper to map index -> A, B, ..., Z, AA, AB, ...
-      const toLetters = (num: number) => {
-        let n = num + 1; // 1-based
-        let s = "";
-        while (n > 0) {
-          const rem = (n - 1) % 26;
-          s = String.fromCharCode(65 + rem) + s;
-          n = Math.floor((n - 1) / 26);
-        }
-        return s;
-      };
-
       // Recompute blocks and modules to get their centers (keep logic in sync with panels)
-      const maxSegX = 100 / 100;
-      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-      const segWX = w / nBlocksX;
-      const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-        const start = -w / 2 + i * segWX;
-        const end = start + segWX;
-        return { start, end };
-      });
-
-      const targetBottomH = 200 / 100;
-      const minTopH = 10 / 100;
-      const modulesY: { yStart: number; yEnd: number }[] = [];
-      if (h > 200 / 100) {
-        const yStartBottom = -h / 2;
-        const bottomH =
-          h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-        const yEndBottom = yStartBottom + bottomH;
-        const yStartTop = yEndBottom;
-        const yEndTop = h / 2;
-        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-        modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-      } else {
-        modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-      }
+      const blocksX = buildBlocksX(w);
+      const modulesY = buildModulesY(h);
 
       const labels: {
         key: string;
@@ -419,44 +318,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Per-element dividers and shelves based on elementConfigs
     const elementStructures = React.useMemo(() => {
-      // Helper
-      const toLetters = (num: number) => {
-        let n = num + 1;
-        let s = "";
-        while (n > 0) {
-          const rem = (n - 1) % 26;
-          s = String.fromCharCode(65 + rem) + s;
-          n = Math.floor((n - 1) / 26);
-        }
-        return s;
-      };
-
       // Blocks X
-      const maxSegX = 100 / 100;
-      const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-      const segWX = w / nBlocksX;
-      const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-        const start = -w / 2 + i * segWX;
-        const end = start + segWX;
-        return { start, end };
-      });
+      const blocksX = buildBlocksX(w);
 
       // Modules Y
-      const targetBottomH = 200 / 100;
-      const minTopH = 10 / 100;
-      const modulesY: { yStart: number; yEnd: number }[] = [];
-      if (h > 200 / 100) {
-        const yStartBottom = -h / 2;
-        const bottomH =
-          h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-        const yEndBottom = yStartBottom + bottomH;
-        const yStartTop = yEndBottom;
-        const yEndTop = h / 2;
-        modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-        modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-      } else {
-        modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-      }
+      const modulesY = buildModulesY(h);
 
       type MeshDef = {
         key: string;
@@ -487,16 +353,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           let yDivFromLocal = yStartInner; // bottom for internal vertical dividers
           let autoShelfExists = false;
           if (extras?.drawers) {
-            const drawerH = 10 / 100;
-            const gap = 1 / 100;
-            const per = drawerH + gap;
+            const per = DRAWER_HEIGHT + DRAWER_GAP;
             const raiseByBase =
               hasBase && (modulesY.length === 1 || mIdx === 0) ? baseH : 0;
             const drawersYStart = yStartInner + raiseByBase;
             const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
             const maxAuto = Math.max(
               0,
-              Math.floor((innerHForDrawers + gap) / per),
+              Math.floor((innerHForDrawers + DRAWER_GAP) / per),
             );
             const countFromState = Math.max(
               0,
@@ -505,9 +369,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const used =
               countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
             if (used > 0) {
-              const drawersTopY = drawersYStart + drawerH + (used - 1) * per; // top face of last drawer
+              const drawersTopY =
+                drawersYStart + DRAWER_HEIGHT + (used - 1) * per; // top face of last drawer
               const baseMin = Math.min(
-                Math.max(drawersTopY + gap, yStartInner),
+                Math.max(drawersTopY + DRAWER_GAP, yStartInner),
                 yEndInner,
               );
               autoShelfExists = used < maxAuto && yEndInner - baseMin >= t;
@@ -593,12 +458,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const idx = sortedShelves.findIndex(
               (s) => s.key === draggedShelfKey,
             );
-            const minGap = 10 / 100;
             const yAbove = idx > 0 ? sortedShelves[idx - 1].y : t;
             const yBelow =
               idx < sortedShelves.length - 1 ? sortedShelves[idx + 1].y : h - t;
-            const minY = yAbove + minGap;
-            const maxY = yBelow - minGap;
+            const minY = yAbove + MIN_DRAG_GAP;
+            const maxY = yBelow - MIN_DRAG_GAP;
             newY = Math.max(minY, Math.min(newY, maxY));
           }
 
@@ -624,9 +488,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               ? innerWidth / 2
               : (customDividerPositions[`divider-${dividerIndex + 1}`] ??
                 dividers[dividerIndex + 1].position[0]);
-          const minGap = 10 / 100;
-          const minX = prevX + minGap;
-          const maxX = nextX - minGap;
+          const minX = prevX + MIN_DRAG_GAP;
+          const maxX = nextX - MIN_DRAG_GAP;
           newX = Math.max(minX, Math.min(newX, maxX));
 
           setCustomDividerPositions((pos) => ({
@@ -1046,43 +909,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
         {/* Render extras for all elements that have them toggled (persist across selection) */}
         {(() => {
-          // Helper to map index -> A, B, ..., Z, AA, AB, ...
-          const toLetters = (num: number) => {
-            let n = num + 1;
-            let s = "";
-            while (n > 0) {
-              const rem = (n - 1) % 26;
-              s = String.fromCharCode(65 + rem) + s;
-              n = Math.floor((n - 1) / 26);
-            }
-            return s;
-          };
-
           // Build element regions exactly like elementLabels
-          const maxSegX = 100 / 100; // 1.0
-          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-          const segWX = w / nBlocksX;
-          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-            const start = -w / 2 + i * segWX;
-            const end = start + segWX;
-            return { start, end };
-          });
-
-          const targetBottomH = 200 / 100;
-          const minTopH = 10 / 100;
-          const modulesY: { yStart: number; yEnd: number }[] = [];
-          if (h > 200 / 100) {
-            const yStartBottom = -h / 2;
-            const bottomH =
-              h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-            const yEndBottom = yStartBottom + bottomH;
-            const yStartTop = yEndBottom;
-            const yEndTop = h / 2;
-            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-            modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-          } else {
-            modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-          }
+          const blocksX = buildBlocksX(w);
+          const modulesY = buildModulesY(h);
 
           const nodes: React.ReactNode[] = [];
           let idx = 0;
@@ -1105,16 +934,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const _cy = (yStartInner + yEndInner) / 2;
 
                 // Compute drawers region for this element to constrain vertical divider height
-                const drawerH = 10 / 100; // 10cm
-                const gap = 1 / 100; // 1cm
-                const per = drawerH + gap;
+                const per = DRAWER_HEIGHT + DRAWER_GAP;
                 const raiseByBase =
                   hasBase && (modulesY.length === 1 || mIdx === 0) ? baseH : 0;
                 const drawersYStart = yStartInner + raiseByBase;
                 const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
                 const maxAuto = Math.max(
                   0,
-                  Math.floor((innerHForDrawers + gap) / per),
+                  Math.floor((innerHForDrawers + DRAWER_GAP) / per),
                 );
                 const countFromState = Math.max(
                   0,
@@ -1127,18 +954,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   : 0;
                 const drawersTopY =
                   usedDrawerCount > 0
-                    ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
+                    ? drawersYStart +
+                      DRAWER_HEIGHT +
+                      (usedDrawerCount - 1) * per
                     : 0;
                 const autoShelfExists =
                   usedDrawerCount > 0 &&
                   usedDrawerCount < maxAuto &&
-                  yEndInner - (drawersTopY + gap) >= t;
+                  yEndInner - (drawersTopY + DRAWER_GAP) >= t;
 
                 // Vertical divider at center, shortened to end at top of drawers (and above auto shelf if present)
                 let yDivFrom = yStartInner;
                 if (usedDrawerCount > 0) {
                   const baseFrom =
-                    drawersTopY + gap + (autoShelfExists ? t : 0);
+                    drawersTopY + DRAWER_GAP + (autoShelfExists ? t : 0);
                   yDivFrom = Math.min(
                     Math.max(baseFrom, yStartInner),
                     yEndInner,
@@ -1158,12 +987,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 // Drawers stack (respect base height in bottom or single module)
                 if (extras.drawers) {
                   for (let didx = 0; didx < usedDrawerCount; didx++) {
-                    const y = drawersYStart + drawerH / 2 + didx * per;
+                    const y = drawersYStart + DRAWER_HEIGHT / 2 + didx * per;
                     nodes.push(
                       <Panel
                         key={`${letter}-drawer-${didx}`}
                         position={[cx, y, 0]}
-                        size={[innerW, drawerH, d]}
+                        size={[innerW, DRAWER_HEIGHT, d]}
                       />,
                     );
                   }
@@ -1171,8 +1000,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   // Auto-shelf directly above drawers if they don't fill the full available height
                   if (usedDrawerCount > 0 && usedDrawerCount < maxAuto) {
                     const drawersTopY =
-                      drawersYStart + drawerH + (usedDrawerCount - 1) * per;
-                    const shelfPlaneY = drawersTopY + gap; // bottom plane of the shelf
+                      drawersYStart +
+                      DRAWER_HEIGHT +
+                      (usedDrawerCount - 1) * per;
+                    const shelfPlaneY = drawersTopY + DRAWER_GAP; // bottom plane of the shelf
                     const remaining = yEndInner - shelfPlaneY;
                     if (remaining >= t) {
                       const yShelfCenter = shelfPlaneY + t / 2;
@@ -1214,29 +1045,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {/* Back panels per element (5mm), with 2mm clearance in width and height, centered */}
         {(() => {
           const clearance = 2 / 1000; // 2mm in world units
-          const maxSegX = 100 / 100; // element width segmentation
-          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-          const segWX = w / nBlocksX;
-          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-            const start = -w / 2 + i * segWX;
-            const end = start + segWX;
-            return { start, end };
-          });
-          const targetBottomH = 200 / 100;
-          const minTopH = 10 / 100;
-          const modulesY: { yStart: number; yEnd: number }[] = [];
-          if (h > 200 / 100) {
-            const yStartBottom = -h / 2;
-            const bottomH =
-              h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-            const yEndBottom = yStartBottom + bottomH;
-            const yStartTop = yEndBottom;
-            const yEndTop = h / 2;
-            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-            modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-          } else {
-            modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-          }
+          const blocksX = buildBlocksX(w);
+          const modulesY = buildModulesY(h);
           const nodes: React.ReactNode[] = [];
           let idx = 0;
           modulesY.forEach((m) => {
@@ -1269,41 +1079,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           if (!doorSelections || Object.keys(doorSelections).length === 0)
             return null;
           // Rebuild element grid (same mapping as labels and menus)
-          const maxSegX = 100 / 100;
-          const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-          const segWX = w / nBlocksX;
-          const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-            const start = -w / 2 + i * segWX;
-            const end = start + segWX;
-            return { start, end };
-          });
-
-          const targetBottomH = 200 / 100;
-          const minTopH = 10 / 100;
-          const modulesY: { yStart: number; yEnd: number }[] = [];
-          if (h > 200 / 100) {
-            const yStartBottom = -h / 2;
-            const bottomH =
-              h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-            const yEndBottom = yStartBottom + bottomH;
-            const yStartTop = yEndBottom;
-            const yEndTop = h / 2;
-            modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-            modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-          } else {
-            modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-          }
-
-          const toLetters = (num: number) => {
-            let n = num + 1;
-            let s = "";
-            while (n > 0) {
-              const rem = (n - 1) % 26;
-              s = String.fromCharCode(65 + rem) + s;
-              n = Math.floor((n - 1) / 26);
-            }
-            return s;
-          };
+          const blocksX = buildBlocksX(w);
+          const modulesY = buildModulesY(h);
 
           const nodes: React.ReactNode[] = [];
           const doorT = 18 / 1000; // 1.8 cm
@@ -1439,14 +1216,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
               // Bottom chain dimensions per element-width (blocks of max 100cm)
               const offsetY = yMin - 0.06; // 6cm below
-              const maxSegX = 100 / 100;
-              const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-              const segWX = w / nBlocksX;
+              const blocksX = buildBlocksX(w);
+              const segWX = blocksX[0]?.width ?? w;
               const margin = ah * Math.cos(theta);
 
-              for (let i = 0; i < nBlocksX; i++) {
-                const start = xMin + i * segWX;
-                const end = start + segWX;
+              for (let i = 0; i < blocksX.length; i++) {
+                const start = blocksX[i].start;
+                const end = blocksX[i].end;
                 const mid = (start + end) / 2;
                 const widthCm = Math.round((end - start) * 100);
 
@@ -1492,21 +1268,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const rightX = xMax + xOff;
 
               // Build Y-modules (same logic used elsewhere)
-              const targetBottomH = 200 / 100;
-              const minTopH = 10 / 100;
-              const modulesY: { yStart: number; yEnd: number }[] = [];
-              if (h > 200 / 100) {
-                const yStartBottom = -h / 2;
-                const bottomH =
-                  h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
-                const yEndBottom = yStartBottom + bottomH;
-                const yStartTop = yEndBottom;
-                const yEndTop = h / 2;
-                modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-                modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-              } else {
-                modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
-              }
+              const modulesY = buildModulesY(h);
 
               const vMargin = ah * Math.cos(theta);
 

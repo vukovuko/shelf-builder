@@ -211,6 +211,13 @@ export async function POST(request: Request) {
         ? Number(resolvedBackMaterialIdRaw)
         : null;
 
+    if (resolvedBackMaterialId === null) {
+      return NextResponse.json(
+        { error: "Materijal za leđa je obavezan" },
+        { status: 400 },
+      );
+    }
+
     const pricingSnapshot = {
       width: Number(snapshot?.width ?? 0),
       height: Number(snapshot?.height ?? 0),

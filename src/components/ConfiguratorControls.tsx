@@ -1329,6 +1329,11 @@ export function ConfiguratorControls({
                   );
                 });
               })()}
+              {selectedBackMaterialId == null && (
+                <p className="text-destructive text-sm mt-4">
+                  Izaberite materijal za leđa
+                </p>
+              )}
             </AccordionContent>
           </AccordionItem>
 

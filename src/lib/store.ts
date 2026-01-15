@@ -164,7 +164,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         state.selectedBackMaterialId &&
         validIds.has(state.selectedBackMaterialId)
           ? state.selectedBackMaterialId
-          : (firstBackMaterial?.id ?? fallbackId);
+          : firstBackMaterial?.id;
 
       return {
         materials,
