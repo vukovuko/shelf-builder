@@ -6,7 +6,9 @@ import { MaterialsClient } from "./MaterialsClient";
 const PAGE_SIZE = 20;
 
 interface MaterialsPageProps {
-  searchParams?: Promise<{ page?: string | string[] }> | { page?: string | string[] };
+  searchParams?:
+    | Promise<{ page?: string | string[] }>
+    | { page?: string | string[] };
 }
 
 export default async function MaterialsPage({

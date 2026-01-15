@@ -128,8 +128,7 @@ export function calculateCutList(
     const modulesY: { yStart: number; yEnd: number }[] = [];
     if (h > 200 / 100) {
       const yStartBottom = -h / 2;
-      const bottomH =
-        h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+      const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
       const yEndBottom = yStartBottom + bottomH;
       const yStartTop = yEndBottom;
       const yEndTop = h / 2;

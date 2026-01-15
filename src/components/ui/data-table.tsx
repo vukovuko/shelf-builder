@@ -81,9 +81,7 @@ export function DataTable<TData, TValue>({
 
   const handlePaginationChange = React.useCallback(
     (
-      updater:
-        | PaginationState
-        | ((old: PaginationState) => PaginationState),
+      updater: PaginationState | ((old: PaginationState) => PaginationState),
     ) => {
       const next =
         typeof updater === "function" ? updater(paginationState) : updater;

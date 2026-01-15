@@ -6,7 +6,9 @@ import { UsersClient } from "./UsersClient";
 const PAGE_SIZE = 20;
 
 interface UsersPageProps {
-  searchParams?: Promise<{ page?: string | string[] }> | { page?: string | string[] };
+  searchParams?:
+    | Promise<{ page?: string | string[] }>
+    | { page?: string | string[] };
 }
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {

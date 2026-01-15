@@ -155,7 +155,9 @@ export async function POST(request: Request) {
       .from(materials);
 
     const snapshot = wardrobeSnapshot as Record<string, any>;
-    const resolvedMaterialId = Number(snapshot?.selectedMaterialId ?? materialId);
+    const resolvedMaterialId = Number(
+      snapshot?.selectedMaterialId ?? materialId,
+    );
     const resolvedBackMaterialIdRaw =
       snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
 
@@ -178,7 +180,9 @@ export async function POST(request: Request) {
 
     const resolvedBackMaterialId =
       resolvedBackMaterialIdRaw != null &&
-      pricingMaterials.some((m) => Number(m.id) === Number(resolvedBackMaterialIdRaw))
+      pricingMaterials.some(
+        (m) => Number(m.id) === Number(resolvedBackMaterialIdRaw),
+      )
         ? Number(resolvedBackMaterialIdRaw)
         : null;
 

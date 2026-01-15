@@ -6,7 +6,9 @@ import { WardrobesClient } from "./WardrobesClient";
 const PAGE_SIZE = 20;
 
 interface WardrobesPageProps {
-  searchParams?: Promise<{ page?: string | string[] }> | { page?: string | string[] };
+  searchParams?:
+    | Promise<{ page?: string | string[] }>
+    | { page?: string | string[] };
 }
 
 export default async function WardrobesPage({
