@@ -444,18 +444,18 @@ export function CheckoutDialog({
 
                 {/* Material breakdown table */}
                 <div className="overflow-x-auto w-full min-w-0">
-              <table className="w-full min-w-[400px] table-fixed text-sm">
+                  <table className="w-full min-w-[400px] table-fixed text-sm">
                     <thead>
                       <tr className="border-b text-muted-foreground">
-                    <th className="w-[50%] sm:w-[60%] text-left py-2 pr-2 font-medium">
-                      Materijal
-                    </th>
-                    <th className="w-[18%] sm:w-[20%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
-                      m²
-                    </th>
-                    <th className="w-[32%] sm:w-[20%] text-right py-2 pl-3 font-medium">
-                      Cena
-                    </th>
+                        <th className="w-[50%] sm:w-[60%] text-left py-2 pr-2 font-medium">
+                          Materijal
+                        </th>
+                        <th className="w-[18%] sm:w-[20%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
+                          m²
+                        </th>
+                        <th className="w-[32%] sm:w-[20%] text-right py-2 pl-3 font-medium">
+                          Cena
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
@@ -528,16 +528,16 @@ export function CheckoutDialog({
                         <td className="py-3 pl-2 pr-3 text-right tabular-nums font-medium whitespace-nowrap">
                           {areaM2.toFixed(2)} m²
                         </td>
-                    <td className="py-3 pl-3 text-right">
-                      <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
-                        <span className="text-base sm:text-lg font-bold tabular-nums">
-                          {formatPrice(orderData.totalPrice)}
-                        </span>
-                        <span className="text-xs sm:text-sm font-medium">
-                          RSD
-                        </span>
-                      </div>
-                    </td>
+                        <td className="py-3 pl-3 text-right">
+                          <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
+                            <span className="text-base sm:text-lg font-bold tabular-nums">
+                              {formatPrice(orderData.totalPrice)}
+                            </span>
+                            <span className="text-xs sm:text-sm font-medium">
+                              RSD
+                            </span>
+                          </div>
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
