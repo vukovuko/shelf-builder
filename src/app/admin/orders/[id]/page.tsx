@@ -34,6 +34,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
       area: orders.area,
       totalPrice: orders.totalPrice,
       priceBreakdown: orders.priceBreakdown,
+      cutList: orders.cutList,
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       fulfillmentStatus: orders.fulfillmentStatus,
@@ -74,6 +75,30 @@ export default async function OrderDetailPage({ params }: PageProps) {
     backMaterialName = backMat?.name ?? null;
   }
 
+  // Fetch wardrobe data for 3D preview
+  let wardrobeData: Record<string, unknown> | null = null;
+  if (order.wardrobeId) {
+    const [wardrobeRecord] = await db
+      .select({ data: wardrobes.data })
+      .from(wardrobes)
+      .where(eq(wardrobes.id, order.wardrobeId))
+      .limit(1);
+    wardrobeData = wardrobeRecord?.data ?? null;
+  }
+
+  // Fetch all materials for 3D scene
+  const dbMaterials = await db.select().from(materials);
+  const serializedMaterials = dbMaterials.map((m) => ({
+    id: m.id,
+    name: m.name,
+    price: m.price,
+    img: m.img,
+    thickness: m.thickness,
+    stock: m.stock,
+    categories: m.categories,
+    published: m.published,
+  }));
+
   return (
     <OrderDetailClient
       order={{
@@ -83,6 +108,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
       }}
+      wardrobeData={wardrobeData}
+      materials={serializedMaterials}
     />
   );
 }

@@ -957,6 +957,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                   onChange={(e) => setTagsInput(e.target.value)}
                   placeholder="vip, loyal, wholesale"
                   className="text-sm"
+                  autoFocus
                 />
                 <div className="flex gap-2">
                   <Button
@@ -1017,6 +1018,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                   onChange={(e) => setNotesInput(e.target.value)}
                   placeholder="Interne beleške o korisniku..."
                   className="text-sm min-h-[80px]"
+                  autoFocus
                 />
                 <div className="flex gap-2">
                   <Button

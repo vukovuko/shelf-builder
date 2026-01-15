@@ -2,9 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { wardrobes } from "@/db/schema";
+import { wardrobes, materials } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { createWardrobeSchema } from "@/lib/validation";
+import { calculateCutList, type WardrobeSnapshot } from "@/lib/calcCutList";
 
 export async function GET() {
   try {
@@ -62,12 +63,76 @@ export async function POST(req: Request) {
 
     const { name, data, thumbnail } = validationResult.data;
 
+    // Calculate cut list if wardrobe data has required fields
+    let cutListData = null;
+    if (
+      data &&
+      data.width &&
+      data.height &&
+      data.depth &&
+      data.selectedMaterialId
+    ) {
+      // Fetch all materials for pricing
+      const allMaterials = await db
+        .select({
+          id: materials.id,
+          price: materials.price,
+          thickness: materials.thickness,
+          categories: materials.categories,
+        })
+        .from(materials);
+
+      const snapshot: WardrobeSnapshot = {
+        width: Number(data.width),
+        height: Number(data.height),
+        depth: Number(data.depth),
+        selectedMaterialId: Number(data.selectedMaterialId),
+        selectedFrontMaterialId: data.selectedFrontMaterialId
+          ? Number(data.selectedFrontMaterialId)
+          : null,
+        selectedBackMaterialId: data.selectedBackMaterialId
+          ? Number(data.selectedBackMaterialId)
+          : null,
+        elementConfigs:
+          data.elementConfigs as WardrobeSnapshot["elementConfigs"],
+        compartmentExtras:
+          data.compartmentExtras as WardrobeSnapshot["compartmentExtras"],
+        doorSelections:
+          data.doorSelections as WardrobeSnapshot["doorSelections"],
+        hasBase: Boolean(data.hasBase),
+        baseHeight: Number(data.baseHeight ?? 0),
+      };
+
+      const pricing = calculateCutList(snapshot, allMaterials);
+
+      // Get material prices for historical record
+      const korpusMat = allMaterials.find(
+        (m) => m.id === snapshot.selectedMaterialId,
+      );
+      const frontMat = allMaterials.find(
+        (m) => m.id === snapshot.selectedFrontMaterialId,
+      );
+      const backMat = allMaterials.find(
+        (m) => m.id === snapshot.selectedBackMaterialId,
+      );
+
+      cutListData = {
+        items: pricing.items,
+        pricePerM2: korpusMat?.price ?? 0,
+        frontPricePerM2: frontMat?.price ?? 0,
+        backPricePerM2: backMat?.price ?? 0,
+        totalArea: pricing.totalArea,
+        totalCost: pricing.totalCost,
+      };
+    }
+
     const [created] = await db
       .insert(wardrobes)
       .values({
         name: name || "Orman",
         data: data || {},
         thumbnail: thumbnail || null,
+        cutList: cutListData,
         userId: session.user.id,
       })
       .returning({ id: wardrobes.id });

@@ -32,31 +32,29 @@ export function ViewModeToggle() {
   const CurrentIcon = currentConfig.icon;
 
   return (
-    <div className="absolute top-4 right-4 z-10">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary" className="gap-2">
-            <CurrentIcon className="h-4 w-4" />
-            {currentConfig.label}
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          {Object.entries(viewModeConfig).map(([mode, config]) => {
-            const Icon = config.icon;
-            return (
-              <DropdownMenuItem
-                key={mode}
-                onClick={() => setViewMode(mode as ViewMode)}
-                className="gap-2"
-              >
-                <Icon className="h-4 w-4" />
-                {config.label}
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="secondary" className="gap-2">
+          <CurrentIcon className="h-4 w-4" />
+          {currentConfig.label}
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        {Object.entries(viewModeConfig).map(([mode, config]) => {
+          const Icon = config.icon;
+          return (
+            <DropdownMenuItem
+              key={mode}
+              onClick={() => setViewMode(mode as ViewMode)}
+              className="gap-2"
+            >
+              <Icon className="h-4 w-4" />
+              {config.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

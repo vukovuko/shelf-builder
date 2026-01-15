@@ -443,7 +443,7 @@ export function CheckoutDialog({
                 </div>
 
                 {/* Material breakdown table */}
-                <div className="overflow-x-auto w-full min-w-0">
+                <div className="overflow-x-auto w-full min-w-0 -mx-4 px-4">
                   <table className="w-full min-w-[400px] table-fixed text-sm">
                     <thead>
                       <tr className="border-b text-muted-foreground">

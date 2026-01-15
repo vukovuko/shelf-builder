@@ -270,8 +270,10 @@ export function ConfiguratorControls({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise((resolve) => setTimeout(resolve, 300));
     }
+    // Wait for scene to fully re-render with edges-only mode
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
     const canvas = document.querySelector("canvas");
     if (!canvas) {
@@ -318,8 +320,10 @@ export function ConfiguratorControls({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise((resolve) => setTimeout(resolve, 300));
     }
+    // Wait for scene to fully re-render with edges-only mode
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
     const canvas = document.querySelector("canvas");
     if (!canvas) {

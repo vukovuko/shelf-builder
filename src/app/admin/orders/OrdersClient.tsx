@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -44,11 +45,61 @@ export function OrdersClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isArchiving, setIsArchiving] = useState(false);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
   const [searchInput, setSearchInput] = useState(search);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Generic bulk update handler
+  const handleBulkUpdate = useCallback(
+    async (
+      orders: Order[],
+      updates: Partial<
+        Pick<Order, "status" | "paymentStatus" | "fulfillmentStatus">
+      >,
+      filterFn: (order: Order) => boolean,
+      successMessage: string,
+    ) => {
+      const ordersToUpdate = orders.filter(filterFn);
+      if (ordersToUpdate.length === 0) {
+        toast.info("Sve izabrane porudžbine su već u tom statusu");
+        return;
+      }
+
+      setIsBulkUpdating(true);
+      try {
+        const results = await Promise.all(
+          ordersToUpdate.map((order) =>
+            fetch(`/api/admin/orders/${order.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updates),
+            }),
+          ),
+        );
+
+        const successCount = results.filter((r) => r.ok).length;
+        if (successCount === ordersToUpdate.length) {
+          toast.success(`${successCount} ${successMessage}`);
+        } else if (successCount > 0) {
+          toast.warning(
+            `${successCount}/${ordersToUpdate.length} ${successMessage}`,
+          );
+        } else {
+          toast.error("Greška pri ažuriranju porudžbina");
+        }
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to update orders:", error);
+        toast.error("Greška pri ažuriranju porudžbina");
+      } finally {
+        setIsBulkUpdating(false);
+        setSelectedOrders([]);
+      }
+    },
+    [router],
+  );
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -93,34 +144,52 @@ export function OrdersClient({
   };
 
   async function handleBulkArchive() {
-    setIsArchiving(true);
-    try {
-      const results = await Promise.all(
-        selectedOrders.map((order) =>
-          fetch(`/api/admin/orders/${order.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "archived" }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedOrders.length} porudžbina arhivirano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri arhiviranju nekih porudžbina");
-      }
-    } catch (error) {
-      console.error("Failed to archive orders:", error);
-      toast.error("Greška pri arhiviranju porudžbina");
-    } finally {
-      setIsArchiving(false);
-      setShowArchiveDialog(false);
-      setSelectedOrders([]);
-    }
+    await handleBulkUpdate(
+      selectedOrders,
+      { status: "archived" },
+      (order) => order.status !== "archived",
+      "porudžbina arhivirano",
+    );
+    setShowArchiveDialog(false);
   }
+
+  // Bulk payment status handlers
+  const handleMarkAsPaid = (selected: Order[]) => {
+    handleBulkUpdate(
+      selected,
+      { paymentStatus: "paid" },
+      (order) => order.paymentStatus !== "paid",
+      "porudžbina označeno kao plaćeno",
+    );
+  };
+
+  const handleMarkAsUnpaid = (selected: Order[]) => {
+    handleBulkUpdate(
+      selected,
+      { paymentStatus: "unpaid" },
+      (order) => order.paymentStatus !== "unpaid",
+      "porudžbina označeno kao neplaćeno",
+    );
+  };
+
+  // Bulk fulfillment status handlers
+  const handleMarkAsFulfilled = (selected: Order[]) => {
+    handleBulkUpdate(
+      selected,
+      { fulfillmentStatus: "fulfilled" },
+      (order) => order.fulfillmentStatus !== "fulfilled",
+      "porudžbina označeno kao izvršeno",
+    );
+  };
+
+  const handleMarkAsUnfulfilled = (selected: Order[]) => {
+    handleBulkUpdate(
+      selected,
+      { fulfillmentStatus: "unfulfilled" },
+      (order) => order.fulfillmentStatus !== "unfulfilled",
+      "porudžbina označeno kao neizvršeno",
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -167,16 +236,43 @@ export function OrdersClient({
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" disabled={isBulkUpdating}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsPaid(selected)}
+                  disabled={isBulkUpdating}
+                >
+                  Označi kao plaćeno
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsUnpaid(selected)}
+                  disabled={isBulkUpdating}
+                >
+                  Označi kao neplaćeno
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsFulfilled(selected)}
+                  disabled={isBulkUpdating}
+                >
+                  Označi kao izvršeno
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsUnfulfilled(selected)}
+                  disabled={isBulkUpdating}
+                >
+                  Označi kao neizvršeno
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => {
                     setSelectedOrders(selected);
                     setShowArchiveDialog(true);
                   }}
+                  disabled={isBulkUpdating}
                 >
                   Arhiviraj izabrane
                 </DropdownMenuItem>
@@ -196,12 +292,14 @@ export function OrdersClient({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isArchiving}>Otkazi</AlertDialogCancel>
+            <AlertDialogCancel disabled={isBulkUpdating}>
+              Otkaži
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkArchive}
-              disabled={isArchiving}
+              disabled={isBulkUpdating}
             >
-              {isArchiving ? "Arhiviranje..." : "Arhiviraj"}
+              {isBulkUpdating ? "Arhiviranje..." : "Arhiviraj"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -56,11 +56,6 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
     .from(user)
     .where(and(eq(user.role, "admin"), eq(user.receiveOrderEmails, true)));
 
-  console.log(
-    `[Admin Email] Found ${admins.length} admins with notifications enabled:`,
-    admins.map((a) => a.email),
-  );
-
   if (admins.length === 0) {
     // No admins opted in, skip
     return;
@@ -87,5 +82,4 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
       html,
     });
   }
-  console.log(`[Admin Email] Sent ${admins.length} admin notification emails`);
 }

@@ -267,6 +267,21 @@ export async function POST(request: Request) {
       },
     };
 
+    // Build cut list data for storage (preserves prices at order time)
+    const cutListData = {
+      items: pricing.items,
+      pricePerM2: selectedMaterial.price,
+      frontPricePerM2: selectedFrontMaterial.price,
+      backPricePerM2: selectedBackMaterial?.price ?? 0,
+    };
+
+    // Cut list for wardrobe includes totals for quick display
+    const wardrobeCutList = {
+      ...cutListData,
+      totalArea: pricing.totalArea,
+      totalCost: pricing.totalCost,
+    };
+
     // Create wardrobe and order (manual rollback if order fails)
     const now = new Date();
     const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
@@ -277,6 +292,7 @@ export async function POST(request: Request) {
         name: wardrobeName,
         data: wardrobeSnapshot,
         thumbnail,
+        cutList: wardrobeCutList,
         userId,
         createdAt: now,
         updatedAt: now,
@@ -297,6 +313,7 @@ export async function POST(request: Request) {
           area,
           totalPrice,
           priceBreakdown,
+          cutList: cutListData,
           customerName,
           customerEmail: customerEmail || null,
           customerPhone: customerPhone || null,
@@ -317,6 +334,19 @@ export async function POST(request: Request) {
       await db.delete(wardrobes).where(eq(wardrobes.id, wardrobe.id));
       throw orderError;
     }
+
+    // Update user's default shipping address (for future orders)
+    await db
+      .update(user)
+      .set({
+        shippingStreet,
+        shippingApartment: shippingApartment || null,
+        shippingCity,
+        shippingPostalCode,
+        phone: customerPhone || undefined, // Also update phone if provided
+        updatedAt: now,
+      })
+      .where(eq(user.id, userId));
 
     const result = {
       orderId: order.id,

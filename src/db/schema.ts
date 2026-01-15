@@ -133,6 +133,25 @@ export const wardrobes = pgTable(
     name: text("name").notNull(),
     data: json("data").notNull().$type<Record<string, any>>(),
     thumbnail: text("thumbnail"), // Base64 data URL of canvas screenshot
+    // Full cut list with CNC dimensions (stored at save time for historical accuracy)
+    cutList: json("cutList").$type<{
+      items: Array<{
+        code: string;
+        desc: string;
+        widthCm: number;
+        heightCm: number;
+        thicknessMm: number;
+        areaM2: number;
+        cost: number;
+        element: string;
+        materialType: "korpus" | "front" | "back";
+      }>;
+      pricePerM2: number;
+      frontPricePerM2: number;
+      backPricePerM2: number;
+      totalArea: number;
+      totalCost: number;
+    }>(),
     userId: text("userId")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -221,6 +240,23 @@ export const orders = pgTable(
       korpus: { areaM2: number; price: number; materialName: string };
       front: { areaM2: number; price: number; materialName: string };
       back: { areaM2: number; price: number; materialName: string };
+    }>(),
+    // Full cut list with CNC dimensions (stored at order time for historical accuracy)
+    cutList: json("cutList").$type<{
+      items: Array<{
+        code: string;
+        desc: string;
+        widthCm: number;
+        heightCm: number;
+        thicknessMm: number;
+        areaM2: number;
+        cost: number;
+        element: string;
+        materialType: "korpus" | "front" | "back";
+      }>;
+      pricePerM2: number;
+      frontPricePerM2: number;
+      backPricePerM2: number;
     }>(),
     // Customer contact (stored on order for guest checkout)
     customerName: text("customerName").notNull(),
