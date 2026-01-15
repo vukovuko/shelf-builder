@@ -156,7 +156,7 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Porudzbina</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {order.orderNumber}
+            #{order.orderNumber}
           </p>
         </div>
       </div>

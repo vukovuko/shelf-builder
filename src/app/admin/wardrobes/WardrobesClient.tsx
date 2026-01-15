@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -27,13 +27,37 @@ import { columns, type Wardrobe } from "./columns";
 
 interface WardrobesClientProps {
   wardrobes: Wardrobe[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
 }
 
-export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
+export function WardrobesClient({
+  wardrobes,
+  page,
+  pageSize,
+  totalCount,
+}: WardrobesClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedWardrobes, setSelectedWardrobes] = useState<Wardrobe[]>([]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const handlePageChange = (pageIndex: number) => {
+    const nextPage = pageIndex + 1;
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(nextPage));
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
 
   async function handleBulkDelete() {
     setIsDeleting(true);
@@ -74,6 +98,11 @@ export function WardrobesClient({ wardrobes }: WardrobesClientProps) {
         data={wardrobes}
         searchKey="name"
         searchPlaceholder="Pretrazi po nazivu..."
+        pageIndex={Math.max(page - 1, 0)}
+        pageSize={pageSize}
+        pageCount={pageCount}
+        totalCount={totalCount}
+        onPageChange={handlePageChange}
         onRowClick={(wardrobe) =>
           router.push(`/admin/wardrobes/${wardrobe.id}`)
         }

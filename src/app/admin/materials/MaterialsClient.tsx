@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,13 +28,37 @@ import { columns, type Material } from "./columns";
 
 interface MaterialsClientProps {
   materials: Material[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
 }
 
-export function MaterialsClient({ materials }: MaterialsClientProps) {
+export function MaterialsClient({
+  materials,
+  page,
+  pageSize,
+  totalCount,
+}: MaterialsClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const handlePageChange = (pageIndex: number) => {
+    const nextPage = pageIndex + 1;
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(nextPage));
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
 
   async function handleBulkDelete() {
     setIsDeleting(true);
@@ -84,6 +108,11 @@ export function MaterialsClient({ materials }: MaterialsClientProps) {
         data={materials}
         searchKey="name"
         searchPlaceholder="Pretrazi po nazivu..."
+        pageIndex={Math.max(page - 1, 0)}
+        pageSize={pageSize}
+        pageCount={pageCount}
+        totalCount={totalCount}
+        onPageChange={handlePageChange}
         onRowClick={(material) =>
           router.push(`/admin/materials/${material.id}`)
         }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
-import { user, wardrobes, orders } from "@/db/schema";
+import { user, wardrobes, orders, materials } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -9,6 +9,7 @@ import {
   sendOrderConfirmationEmail,
   sendAdminNewOrderEmail,
 } from "@/lib/email";
+import { calculateCutList } from "@/lib/calcCutList";
 
 const checkoutSchema = z
   .object({
@@ -25,8 +26,7 @@ const checkoutSchema = z
     thumbnail: z.string().nullable(),
     materialId: z.number(),
     backMaterialId: z.number().nullable(),
-    area: z.number(), // in cm²
-    totalPrice: z.number(),
+    // area and totalPrice are computed server-side, ignored if sent
   })
   .refine((data) => data.customerEmail || data.customerPhone, {
     message: "Morate uneti email ili telefon",
@@ -55,8 +55,6 @@ export async function POST(request: Request) {
       thumbnail,
       materialId,
       backMaterialId,
-      area,
-      totalPrice,
     } = validation.data;
 
     // Check if user is logged in
@@ -147,6 +145,67 @@ export async function POST(request: Request) {
       }
     }
 
+    const pricingMaterials = await db
+      .select({
+        id: materials.id,
+        price: materials.price,
+        thickness: materials.thickness,
+        category: materials.category,
+      })
+      .from(materials);
+
+    const snapshot = wardrobeSnapshot as Record<string, any>;
+    const resolvedMaterialId = Number(snapshot?.selectedMaterialId ?? materialId);
+    const resolvedBackMaterialIdRaw =
+      snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
+
+    if (!Number.isFinite(resolvedMaterialId)) {
+      return NextResponse.json(
+        { error: "Nevažeći materijal" },
+        { status: 400 },
+      );
+    }
+
+    const selectedMaterial = pricingMaterials.find(
+      (m) => Number(m.id) === resolvedMaterialId,
+    );
+    if (!selectedMaterial) {
+      return NextResponse.json(
+        { error: "Nevažeći materijal" },
+        { status: 400 },
+      );
+    }
+
+    const resolvedBackMaterialId =
+      resolvedBackMaterialIdRaw != null &&
+      pricingMaterials.some((m) => Number(m.id) === Number(resolvedBackMaterialIdRaw))
+        ? Number(resolvedBackMaterialIdRaw)
+        : null;
+
+    const pricingSnapshot = {
+      width: Number(snapshot?.width ?? 0),
+      height: Number(snapshot?.height ?? 0),
+      depth: Number(snapshot?.depth ?? 0),
+      selectedMaterialId: resolvedMaterialId,
+      selectedBackMaterialId: resolvedBackMaterialId,
+      elementConfigs: snapshot?.elementConfigs ?? {},
+      compartmentExtras: snapshot?.compartmentExtras ?? {},
+      doorSelections: snapshot?.doorSelections ?? {},
+      hasBase: Boolean(snapshot?.hasBase),
+      baseHeight: Number(snapshot?.baseHeight ?? 0),
+    };
+
+    const pricing = calculateCutList(pricingSnapshot, pricingMaterials);
+    const totalPrice = Math.round(pricing.totalCost);
+    const area = Math.round(pricing.totalArea * 10000);
+
+    if (!Number.isFinite(totalPrice) || totalPrice <= 0 || area <= 0) {
+      return NextResponse.json(
+        { error: "Greška pri kalkulaciji cene" },
+        { status: 400 },
+      );
+    }
+
     // Create wardrobe and order (manual rollback if order fails)
     const now = new Date();
     const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
@@ -171,10 +230,10 @@ export async function POST(request: Request) {
         .values({
           userId,
           wardrobeId: wardrobe.id,
-          materialId,
-          backMaterialId,
-          area: Math.round(area),
-          totalPrice: Math.round(totalPrice),
+          materialId: resolvedMaterialId,
+          backMaterialId: resolvedBackMaterialId,
+          area,
+          totalPrice,
           customerName,
           customerEmail: customerEmail || null,
           customerPhone: customerPhone || null,
@@ -209,11 +268,13 @@ export async function POST(request: Request) {
           to: customerEmail,
           orderNumber: result.orderNumber,
           customerName,
-          totalPrice: Math.round(totalPrice),
+          totalPrice,
           shippingStreet,
           shippingCity,
           shippingPostalCode,
         });
+        // Wait 1 second to avoid Resend rate limit (2 req/sec)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       // Send notification to all admins with receiveOrderEmails enabled
@@ -222,7 +283,7 @@ export async function POST(request: Request) {
         customerName,
         customerEmail: customerEmail || null,
         customerPhone: customerPhone || null,
-        totalPrice: Math.round(totalPrice),
+        totalPrice,
         shippingStreet,
         shippingCity,
         shippingPostalCode,

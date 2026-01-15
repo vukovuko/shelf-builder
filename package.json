@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "db:set-order-seq": "npx tsx src/db/set-order-sequence.ts",
     "email:dev": "npx react-email dev --dir src/lib/emails --port 3001"
   },
   "dependencies": {

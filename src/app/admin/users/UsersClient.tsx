@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -28,13 +28,37 @@ import { columns, type User } from "./columns";
 
 interface UsersClientProps {
   users: User[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
 }
 
-export function UsersClient({ users }: UsersClientProps) {
+export function UsersClient({
+  users,
+  page,
+  pageSize,
+  totalCount,
+}: UsersClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const handlePageChange = (pageIndex: number) => {
+    const nextPage = pageIndex + 1;
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(nextPage));
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
 
   async function handleBulkDelete() {
     setIsDeleting(true);
@@ -83,6 +107,11 @@ export function UsersClient({ users }: UsersClientProps) {
         data={users}
         searchKey="email"
         searchPlaceholder="Pretrazi po emailu..."
+        pageIndex={Math.max(page - 1, 0)}
+        pageSize={pageSize}
+        pageCount={pageCount}
+        totalCount={totalCount}
+        onPageChange={handlePageChange}
         onRowClick={(user) => router.push(`/admin/users/${user.id}`)}
         enableRowSelection
         getRowId={(user) => user.id}

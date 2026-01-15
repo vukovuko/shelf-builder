@@ -60,6 +60,8 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
     .from(user)
     .where(and(eq(user.role, "admin"), eq(user.receiveOrderEmails, true)));
 
+  console.log(`[Admin Email] Found ${admins.length} admins with notifications enabled:`, admins.map(a => a.email));
+
   if (admins.length === 0) {
     // No admins opted in, skip
     return;
@@ -80,15 +82,20 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
 
   const orderIdShort = data.orderId.slice(0, 8).toUpperCase();
 
-  // Send to all opted-in admins
-  const emailPromises = admins.map((admin) =>
-    resend.emails.send({
+  // Send to all opted-in admins with delay to avoid rate limiting (2 req/sec on Resend)
+  let sentCount = 0;
+  for (const admin of admins) {
+    if (sentCount > 0) {
+      // Wait 1 second between emails to stay under rate limit
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    await resend.emails.send({
       from: FROM_EMAIL,
       to: admin.email,
       subject: `Nova porudžbina #${orderIdShort} - ${data.totalPrice.toLocaleString("sr-RS")} RSD`,
       html,
-    }),
-  );
-
-  await Promise.all(emailPromises);
+    });
+    sentCount++;
+  }
+  console.log(`[Admin Email] Sent ${sentCount} admin notification emails`);
 }

@@ -6,6 +6,7 @@ import {
   ColumnFiltersState,
   RowSelectionState,
   SortingState,
+  type PaginationState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -35,6 +36,11 @@ interface DataTableProps<TData, TValue> {
   getRowId?: (row: TData) => string;
   enableRowSelection?: boolean;
   bulkActions?: (selectedRows: TData[]) => React.ReactNode;
+  pageIndex?: number;
+  pageSize?: number;
+  pageCount?: number;
+  totalCount?: number;
+  onPageChange?: (pageIndex: number) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -46,6 +52,11 @@ export function DataTable<TData, TValue>({
   getRowId,
   enableRowSelection = false,
   bulkActions,
+  pageIndex,
+  pageSize,
+  pageCount,
+  totalCount,
+  onPageChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -53,22 +64,60 @@ export function DataTable<TData, TValue>({
   );
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+  const manualPagination =
+    pageIndex !== undefined &&
+    pageSize !== undefined &&
+    pageCount !== undefined &&
+    !!onPageChange;
+
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const paginationState = manualPagination
+    ? { pageIndex, pageSize }
+    : pagination;
+
+  const handlePaginationChange = React.useCallback(
+    (
+      updater:
+        | PaginationState
+        | ((old: PaginationState) => PaginationState),
+    ) => {
+      const next =
+        typeof updater === "function" ? updater(paginationState) : updater;
+      if (manualPagination && onPageChange) {
+        onPageChange(next.pageIndex);
+      } else {
+        setPagination(next);
+      }
+    },
+    [manualPagination, onPageChange, paginationState],
+  );
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: manualPagination
+      ? undefined
+      : getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: handlePaginationChange,
+    manualPagination,
+    pageCount: manualPagination ? pageCount : undefined,
     enableRowSelection,
     getRowId,
     state: {
       sorting,
       columnFilters,
       rowSelection,
+      pagination: paginationState,
     },
   });
 
@@ -160,8 +209,12 @@ export function DataTable<TData, TValue>({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2">
         <div className="text-sm text-muted-foreground">
           {enableRowSelection && selectedRows.length > 0
-            ? `${selectedRows.length} od ${table.getFilteredRowModel().rows.length} izabrano`
-            : `${table.getFilteredRowModel().rows.length} ukupno`}
+            ? `${selectedRows.length} od ${
+                manualPagination && totalCount !== undefined
+                  ? totalCount
+                  : table.getFilteredRowModel().rows.length
+              } izabrano`
+            : `${manualPagination && totalCount !== undefined ? totalCount : table.getFilteredRowModel().rows.length} ukupno`}
         </div>
         <div className="flex items-center space-x-2">
           <Button

@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   json,
   pgEnum,
@@ -65,36 +66,48 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updatedAt").notNull(),
 });
 
-export const session = pgTable("session", {
-  id: text("id").primaryKey(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
-  ipAddress: text("ipAddress"),
-  userAgent: text("userAgent"),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
-});
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+    ipAddress: text("ipAddress"),
+    userAgent: text("userAgent"),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id),
+  },
+  (table) => ({
+    userIdIdx: index("session_user_id_idx").on(table.userId),
+  }),
+);
 
-export const account = pgTable("account", {
-  id: text("id").primaryKey(),
-  accountId: text("accountId").notNull(),
-  providerId: text("providerId").notNull(),
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id),
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  idToken: text("idToken"),
-  accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
-  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
-});
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("accountId").notNull(),
+    providerId: text("providerId").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id),
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    idToken: text("idToken"),
+    accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
+    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("account_user_id_idx").on(table.userId),
+  }),
+);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -106,19 +119,25 @@ export const verification = pgTable("verification", {
 });
 
 // App-specific tables
-export const wardrobes = pgTable("wardrobe", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  data: json("data").notNull().$type<Record<string, any>>(),
-  thumbnail: text("thumbnail"), // Base64 data URL of canvas screenshot
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+export const wardrobes = pgTable(
+  "wardrobe",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    data: json("data").notNull().$type<Record<string, any>>(),
+    thumbnail: text("thumbnail"), // Base64 data URL of canvas screenshot
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("wardrobe_user_id_idx").on(table.userId),
+  }),
+);
 
 // Relations
 export const userRelations = relations(user, ({ many }) => ({
@@ -164,49 +183,62 @@ export const materials = pgTable("material", {
 });
 
 // Orders table
-export const orders = pgTable("order", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  // Human-readable order number (like Shopify #1001, #1002)
-  orderNumber: serial("orderNumber").notNull(),
-  // User (guest users created without account/session)
-  userId: text("userId")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  // Optional linked wardrobe
-  wardrobeId: text("wardrobeId").references(() => wardrobes.id, {
-    onDelete: "set null",
+export const orders = pgTable(
+  "order",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // Human-readable order number (like Shopify #1001, #1002)
+    orderNumber: serial("orderNumber").notNull().unique(),
+    // User (guest users created without account/session)
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // Optional linked wardrobe
+    wardrobeId: text("wardrobeId").references(() => wardrobes.id, {
+      onDelete: "set null",
+    }),
+    // Materials
+    materialId: integer("materialId")
+      .notNull()
+      .references(() => materials.id),
+    backMaterialId: integer("backMaterialId").references(() => materials.id),
+    // Dimensions and pricing
+    area: integer("area").notNull(), // Area in cm² for precision
+    totalPrice: integer("totalPrice").notNull(), // Price in RSD
+    // Customer contact (stored on order for guest checkout)
+    customerName: text("customerName").notNull(),
+    customerEmail: text("customerEmail"), // Optional if phone provided
+    customerPhone: text("customerPhone"), // Optional if email provided
+    // Shipping address
+    shippingStreet: text("shippingStreet").notNull(),
+    shippingCity: text("shippingCity").notNull(),
+    shippingPostalCode: text("shippingPostalCode").notNull(),
+    // Statuses
+    status: orderStatusEnum("status").notNull().default("open"),
+    paymentStatus: paymentStatusEnum("paymentStatus")
+      .notNull()
+      .default("unpaid"),
+    fulfillmentStatus: fulfillmentStatusEnum("fulfillmentStatus")
+      .notNull()
+      .default("unfulfilled"),
+    returnStatus: returnStatusEnum("returnStatus").notNull().default("none"),
+    // Notes
+    notes: text("notes"),
+    // Timestamps
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("order_user_id_idx").on(table.userId),
+    wardrobeIdIdx: index("order_wardrobe_id_idx").on(table.wardrobeId),
+    materialIdIdx: index("order_material_id_idx").on(table.materialId),
+    backMaterialIdIdx: index("order_back_material_id_idx").on(
+      table.backMaterialId,
+    ),
   }),
-  // Materials
-  materialId: integer("materialId")
-    .notNull()
-    .references(() => materials.id),
-  backMaterialId: integer("backMaterialId").references(() => materials.id),
-  // Dimensions and pricing
-  area: integer("area").notNull(), // Area in cm² for precision
-  totalPrice: integer("totalPrice").notNull(), // Price in RSD
-  // Customer contact (stored on order for guest checkout)
-  customerName: text("customerName").notNull(),
-  customerEmail: text("customerEmail"), // Optional if phone provided
-  customerPhone: text("customerPhone"), // Optional if email provided
-  // Shipping address
-  shippingStreet: text("shippingStreet").notNull(),
-  shippingCity: text("shippingCity").notNull(),
-  shippingPostalCode: text("shippingPostalCode").notNull(),
-  // Statuses
-  status: orderStatusEnum("status").notNull().default("open"),
-  paymentStatus: paymentStatusEnum("paymentStatus").notNull().default("unpaid"),
-  fulfillmentStatus: fulfillmentStatusEnum("fulfillmentStatus")
-    .notNull()
-    .default("unfulfilled"),
-  returnStatus: returnStatusEnum("returnStatus").notNull().default("none"),
-  // Notes
-  notes: text("notes"),
-  // Timestamps
-  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+);
 
 // Order relations
 export const orderRelations = relations(orders, ({ one }) => ({
