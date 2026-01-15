@@ -221,16 +221,16 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
             <div className="sm:col-span-2 space-y-3 min-w-0">
               <Label className="text-muted-foreground">Materijali i cene</Label>
               <div className="rounded-lg border bg-muted/30 overflow-x-auto w-full min-w-0">
-                <table className="w-full table-fixed text-sm">
+                <table className="w-full min-w-[400px] table-fixed text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50 text-muted-foreground">
-                      <th className="w-[54%] sm:w-[60%] text-left py-2.5 px-3 font-medium">
+                      <th className="w-[50%] sm:w-[60%] text-left py-2.5 px-3 font-medium">
                         Materijal
                       </th>
-                      <th className="w-[20%] text-right py-2.5 pl-3 pr-4 font-medium whitespace-nowrap">
+                      <th className="w-[18%] sm:w-[20%] text-right py-2.5 pl-3 pr-4 font-medium whitespace-nowrap">
                         m²
                       </th>
-                      <th className="w-[26%] sm:w-[20%] text-right py-2.5 pl-4 font-medium">
+                      <th className="w-[32%] sm:w-[20%] text-right py-2.5 pl-4 font-medium">
                         Cena
                       </th>
                     </tr>
@@ -308,8 +308,15 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                       <td className="py-3 pl-3 pr-4 text-right tabular-nums font-medium whitespace-nowrap">
                         {areaM2.toFixed(2)} m²
                       </td>
-                      <td className="py-3 pl-4 text-right font-bold tabular-nums whitespace-nowrap">
-                        {order.totalPrice.toLocaleString("sr-RS")} RSD
+                      <td className="py-3 pl-4 text-right">
+                        <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
+                          <span className="text-base sm:text-lg font-bold tabular-nums">
+                            {order.totalPrice.toLocaleString("sr-RS")}
+                          </span>
+                          <span className="text-xs sm:text-sm font-medium">
+                            RSD
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   </tfoot>

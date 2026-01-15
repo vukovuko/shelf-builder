@@ -2107,59 +2107,7 @@ export function ConfiguratorControls({
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,
-          priceBreakdown: (() => {
-            const korpusItems = cutList.items.filter(
-              (item: any) =>
-                !item.code.includes("V.") &&
-                !item.code.includes("F.") &&
-                !item.code.includes("LED"),
-            );
-            const frontItems = cutList.items.filter(
-              (item: any) =>
-                item.code.includes("V.") || item.code.includes("F."),
-            );
-            const backItems = cutList.items.filter((item: any) =>
-              item.code.includes("LED"),
-            );
-            return {
-              korpus: {
-                areaM2: korpusItems.reduce(
-                  (sum: number, item: any) => sum + item.areaM2,
-                  0,
-                ),
-                price: Math.round(
-                  korpusItems.reduce(
-                    (sum: number, item: any) => sum + item.cost,
-                    0,
-                  ),
-                ),
-              },
-              front: {
-                areaM2: frontItems.reduce(
-                  (sum: number, item: any) => sum + item.areaM2,
-                  0,
-                ),
-                price: Math.round(
-                  frontItems.reduce(
-                    (sum: number, item: any) => sum + item.cost,
-                    0,
-                  ),
-                ),
-              },
-              back: {
-                areaM2: backItems.reduce(
-                  (sum: number, item: any) => sum + item.areaM2,
-                  0,
-                ),
-                price: Math.round(
-                  backItems.reduce(
-                    (sum: number, item: any) => sum + item.cost,
-                    0,
-                  ),
-                ),
-              },
-            };
-          })(),
+          priceBreakdown: cutList.priceBreakdown,
           dimensions: {
             width,
             height,
