@@ -270,9 +270,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
     }),
   // Base defaults
   hasBase: false,
-  baseHeight: 0,
+  baseHeight: 3,
   setHasBase: (val) => set({ hasBase: val }),
-  setBaseHeight: (val) => set({ baseHeight: Math.max(0, val) }),
+  setBaseHeight: (val) => set({ baseHeight: Math.max(3, val) }),
   // Extras defaults
   extrasMode: false,
   setExtrasMode: (val) => set({ extrasMode: val }),
