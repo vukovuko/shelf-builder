@@ -1369,6 +1369,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             number,
           ];
           const size = [comp.width, h - 2 * t, d];
+          // Skip rendering if position has NaN values (can happen when center divider is skipped)
+          if (position.some((n) => !Number.isFinite(n))) return null;
           return (
             showDimensions && (
               <Html
@@ -1376,6 +1378,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 position={position}
                 center
                 distanceFactor={8}
+                zIndexRange={[0, 0]}
                 style={{
                   background: "rgba(255,255,255,0.85)",
                   padding: "4px 8px",

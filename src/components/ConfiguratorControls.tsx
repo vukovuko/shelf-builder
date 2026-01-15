@@ -369,6 +369,14 @@ export function ConfiguratorControls({
   const [allInfoShown, setAllInfoShown] = React.useState(false);
   const [showCutList, setShowCutList] = React.useState(false);
 
+  // Track which material should be pinned to first position per category type
+  // Only updated when selecting from popup, not when clicking preview images
+  const [pinnedMaterialIds, setPinnedMaterialIds] = React.useState<{
+    korpus?: number;
+    front?: number;
+    back?: number;
+  }>({});
+
   // Additional store reads needed for cut list (top-level to respect Rules of Hooks)
   const elementConfigs = useShelfStore((state) => state.elementConfigs);
   const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
@@ -1226,6 +1234,11 @@ export function ConfiguratorControls({
                     category.toLowerCase().includes("vrata");
 
                   // Get the correct selected ID and setter for each category
+                  const categoryType = isBackCategory
+                    ? "back"
+                    : isFrontCategory
+                      ? "front"
+                      : "korpus";
                   const selectedId = isBackCategory
                     ? selectedBackMaterialId
                     : isFrontCategory
@@ -1237,10 +1250,15 @@ export function ConfiguratorControls({
                       ? setSelectedFrontMaterialId
                       : setSelectedMaterialId;
 
-                  // Sort so selected material is first
+                  // Get pinned material ID for this category (only set when selecting from popup)
+                  const pinnedId = pinnedMaterialIds[categoryType];
+
+                  // Sort so pinned material is first (not selected, to avoid reordering on preview click)
                   const sorted = [...categoryMaterials].sort((a, b) => {
-                    if (a.id === selectedId) return -1;
-                    if (b.id === selectedId) return 1;
+                    if (pinnedId !== undefined) {
+                      if (a.id === pinnedId) return -1;
+                      if (b.id === pinnedId) return 1;
+                    }
                     return 0;
                   });
 
@@ -1298,7 +1316,14 @@ export function ConfiguratorControls({
                         category={category}
                         materials={categoryMaterials}
                         selectedId={selectedId}
-                        onSelect={(id) => setSelectedId(id)}
+                        onSelect={(id) => {
+                          setSelectedId(id);
+                          // Pin this material to first position when selected from popup
+                          setPinnedMaterialIds((prev) => ({
+                            ...prev,
+                            [categoryType]: id,
+                          }));
+                        }}
                       />
                     </div>
                   );
@@ -1810,16 +1835,7 @@ export function ConfiguratorControls({
                 size="lg"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Sačuvaj
-              </Button>
-              <Button
-                variant="default"
-                onClick={handleOrderClick}
-                className="flex-1"
-                size="lg"
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Poruči
+                Sačuvaj dizajn
               </Button>
             </div>
 
@@ -1876,11 +1892,14 @@ export function ConfiguratorControls({
                 <Button
                   variant="secondary"
                   onClick={handleExportElementSpecs}
-                  className="w-full justify-start"
+                  className="w-full justify-between"
                   size="sm"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Specifikacija elemenata
+                  <span className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Specifikacija elemenata
+                  </span>
+                  <Download className="h-3 w-3 opacity-50" />
                 </Button>
               </div>
             </div>
@@ -1941,7 +1960,7 @@ export function ConfiguratorControls({
           onClick={handleOrderClick}
           className="w-full flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors cursor-pointer"
         >
-          <span className="text-base font-bold">Poruči</span>
+          <span className="text-base font-bold uppercase">Poruči</span>
           <span className="text-xl font-bold">
             {fmt2(cutList.totalCost)} RSD
           </span>

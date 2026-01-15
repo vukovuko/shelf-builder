@@ -38,6 +38,7 @@ function ContextMonitor() {
     store.rowCounts,
     store.selectedMaterialId,
     store.viewMode,
+    store.showDimensions,
     store.elementConfigs,
     store.compartmentExtras,
     store.doorSelections,
