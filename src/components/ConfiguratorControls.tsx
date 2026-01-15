@@ -66,6 +66,7 @@ import { useShelfStore, type Material } from "@/lib/store";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { DimensionControl } from "./DimensionControl";
+import { MaterialPickerModal } from "./MaterialPickerModal";
 import { Button } from "./ui/button";
 
 // Helper function to get initials from name/email
@@ -108,6 +109,9 @@ export function ConfiguratorControls({
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = React.useState(false);
   const [wardrobeName, setWardrobeName] = React.useState("Orman");
+  const [openMaterialCategory, setOpenMaterialCategory] = React.useState<
+    string | null
+  >(null);
 
   // Handle login click - save state before opening auth
   const handleLoginClick = () => {
@@ -312,6 +316,12 @@ export function ConfiguratorControls({
   const setSelectedMaterialId = useShelfStore(
     (state) => state.setSelectedMaterialId,
   );
+  const selectedFrontMaterialId = useShelfStore(
+    (state) => state.selectedFrontMaterialId,
+  );
+  const setSelectedFrontMaterialId = useShelfStore(
+    (state) => state.setSelectedFrontMaterialId,
+  );
   const selectedBackMaterialId = useShelfStore(
     (state) => state.selectedBackMaterialId,
   );
@@ -345,6 +355,7 @@ export function ConfiguratorControls({
           height,
           depth,
           selectedMaterialId,
+          selectedFrontMaterialId,
           selectedBackMaterialId,
           elementConfigs,
           compartmentExtras,
@@ -359,6 +370,7 @@ export function ConfiguratorControls({
       height,
       depth,
       selectedMaterialId,
+      selectedFrontMaterialId,
       selectedBackMaterialId,
       elementConfigs,
       compartmentExtras,
@@ -1153,6 +1165,112 @@ export function ConfiguratorControls({
             </AccordionContent>
           </AccordionItem>
 
+          <AccordionItem value="item-3" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              3. Izbor materijala
+            </AccordionTrigger>
+            <AccordionContent className="space-y-6 pt-4">
+              {/* Group materials by category */}
+              {(() => {
+                // Get all unique categories from materials (flatten arrays)
+                const allCategories = [
+                  ...new Set(materials.flatMap((m) => m.categories)),
+                ];
+                return allCategories.map((category) => {
+                  // Filter materials that have this category
+                  const categoryMaterials = materials.filter((m) =>
+                    m.categories.includes(category),
+                  );
+                  // Determine category type
+                  const isBackCategory =
+                    category.toLowerCase().includes("leđa") ||
+                    category.toLowerCase().includes("ledja");
+                  const isFrontCategory =
+                    category.toLowerCase().includes("lica") ||
+                    category.toLowerCase().includes("vrata");
+
+                  // Get the correct selected ID and setter for each category
+                  const selectedId = isBackCategory
+                    ? selectedBackMaterialId
+                    : isFrontCategory
+                      ? selectedFrontMaterialId
+                      : selectedMaterialId;
+                  const setSelectedId = isBackCategory
+                    ? setSelectedBackMaterialId
+                    : isFrontCategory
+                      ? setSelectedFrontMaterialId
+                      : setSelectedMaterialId;
+
+                  // Sort so selected material is first
+                  const sorted = [...categoryMaterials].sort((a, b) => {
+                    if (a.id === selectedId) return -1;
+                    if (b.id === selectedId) return 1;
+                    return 0;
+                  });
+
+                  // Show only 3 materials in preview
+                  const preview = sorted.slice(0, 3);
+                  const remaining = categoryMaterials.length - 3;
+
+                  return (
+                    <div key={category} className="space-y-3">
+                      <h4 className="text-sm font-semibold">{category}</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {preview.map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex flex-col items-center"
+                          >
+                            <button
+                              type="button"
+                              className={`rounded-lg border-2 ${
+                                selectedId === material.id
+                                  ? "border-primary"
+                                  : "border-transparent"
+                              } hover:border-primary h-20 w-full bg-cover bg-center bg-muted`}
+                              style={{
+                                backgroundImage: material.img
+                                  ? `url(${material.img})`
+                                  : undefined,
+                              }}
+                              onClick={() => setSelectedId(material.id)}
+                              title={material.name}
+                            >
+                              <span className="sr-only">{material.name}</span>
+                            </button>
+                            <span className="text-xs mt-1 text-center truncate w-full">
+                              {material.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {remaining > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setOpenMaterialCategory(category)}
+                        >
+                          Prikaži više ({remaining})
+                        </Button>
+                      )}
+                      <MaterialPickerModal
+                        open={openMaterialCategory === category}
+                        onOpenChange={(open) =>
+                          setOpenMaterialCategory(open ? category : null)
+                        }
+                        category={category}
+                        materials={categoryMaterials}
+                        selectedId={selectedId}
+                        onSelect={(id) => setSelectedId(id)}
+                      />
+                    </div>
+                  );
+                });
+              })()}
+            </AccordionContent>
+          </AccordionItem>
+
           {/* 4. Base (Baza) */}
           <AccordionItem value="item-4" className="border-border">
             <AccordionTrigger className="text-base font-bold hover:no-underline">
@@ -1213,71 +1331,6 @@ export function ConfiguratorControls({
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-3" className="border-border">
-            <AccordionTrigger className="text-base font-bold hover:no-underline">
-              3. Izbor materijala
-            </AccordionTrigger>
-            <AccordionContent className="space-y-6 pt-4">
-              {/* Group materials by category */}
-              {(() => {
-                // Get all unique categories from materials (flatten arrays)
-                const allCategories = [
-                  ...new Set(materials.flatMap((m) => m.categories)),
-                ];
-                return allCategories.map((category) => {
-                  // Filter materials that have this category
-                  const categoryMaterials = materials.filter((m) =>
-                    m.categories.includes(category),
-                  );
-                  // Determine if this is a "back" category (Leđa)
-                  const isBackCategory =
-                    category.toLowerCase().includes("leđa") ||
-                    category.toLowerCase().includes("ledja");
-                  const selectedId = isBackCategory
-                    ? selectedBackMaterialId
-                    : selectedMaterialId;
-                  const setSelectedId = isBackCategory
-                    ? setSelectedBackMaterialId
-                    : setSelectedMaterialId;
-
-                  return (
-                    <div key={category}>
-                      <h4 className="text-sm font-semibold mb-2">{category}</h4>
-                      <div className="grid grid-cols-3 gap-4">
-                        {categoryMaterials.map((material) => (
-                          <div
-                            key={material.id}
-                            className="flex flex-col items-center"
-                          >
-                            <button
-                              type="button"
-                              className={`rounded-lg border-2 ${
-                                selectedId === material.id
-                                  ? "border-primary"
-                                  : "border-transparent"
-                              } hover:border-primary h-24 w-full bg-cover bg-center bg-muted`}
-                              style={{
-                                backgroundImage: material.img
-                                  ? `url(${material.img})`
-                                  : undefined,
-                              }}
-                              onClick={() => setSelectedId(material.id)}
-                              title={material.name}
-                            >
-                              <span className="sr-only">{material.name}</span>
-                            </button>
-                            <span className="text-sm mt-1 text-center">
-                              {material.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </AccordionContent>
-          </AccordionItem>
           {/* 5. Extras */}
           <AccordionItem value="item-5" className="border-border">
             <AccordionTrigger className="text-base font-bold hover:no-underline">

@@ -50,6 +50,7 @@ interface ShelfState {
   rowCounts: number[]; // New: number of shelves per column
   selectedMaterial: string;
   selectedMaterialId: number;
+  selectedFrontMaterialId?: number;
   selectedBackMaterialId?: number;
   showDimensions: boolean;
   // Materials from database
@@ -65,6 +66,7 @@ interface ShelfState {
   setRowCount: (index: number, count: number) => void;
   setSelectedMaterial: (material: string) => void;
   setSelectedMaterialId: (id: number) => void;
+  setSelectedFrontMaterialId: (id: number) => void;
   setSelectedBackMaterialId: (id: number) => void;
   setShowDimensions: (show: boolean) => void;
   showEdgesOnly: boolean;
@@ -112,6 +114,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
   rowCounts: [0, 0], // Default 0 shelf per column
   selectedMaterial: "default", // or your default material key
   selectedMaterialId: 1, // default to first material
+  selectedFrontMaterialId: undefined, // front/door material (Lica/Vrata)
   selectedBackMaterialId: undefined,
   showDimensions: false,
   // Materials from database
@@ -155,6 +158,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
     }),
   setSelectedMaterial: (material) => set({ selectedMaterial: material }),
   setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
+  setSelectedFrontMaterialId: (id) => set({ selectedFrontMaterialId: id }),
   setSelectedBackMaterialId: (id) => set({ selectedBackMaterialId: id }),
   setShowDimensions: (show) => set({ showDimensions: show }),
   showEdgesOnly: false,

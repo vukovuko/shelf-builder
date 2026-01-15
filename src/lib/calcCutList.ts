@@ -25,6 +25,7 @@ export type WardrobeSnapshot = {
   height: number;
   depth: number;
   selectedMaterialId: number;
+  selectedFrontMaterialId?: number | null;
   selectedBackMaterialId?: number | null;
   elementConfigs?: Record<string, ElementConfig>;
   compartmentExtras?: Record<string, CompartmentExtras>;
@@ -87,6 +88,15 @@ export function calculateCutList(
     const doorT = 18 / 1000; // m
     const clearance = 1 / 1000; // 1mm
     const doubleGap = 3 / 1000; // 3mm between double leaves
+
+    // Front material price (Lica/Vrata) - for doors and drawer fronts
+    const frontId = snapshot.selectedFrontMaterialId ?? null;
+    // Use front material if selected, otherwise fall back to main material
+    const frontMat = frontId
+      ? materials.find((m) => String(m.id) === String(frontId))
+      : mat;
+    const frontPricePerM2 = Number(frontMat?.price ?? pricePerM2);
+    const frontT = (Number(frontMat?.thickness ?? 18) / 1000) as number;
 
     // Back material price and thickness (5mm)
     const backId = snapshot.selectedBackMaterialId ?? null;
@@ -325,9 +335,9 @@ export function calculateCutList(
               desc: `Vrata leva ${letter}${suffix}`,
               widthCm: leafW * 100,
               heightCm: doorH * 100,
-              thicknessMm: doorT * 1000,
+              thicknessMm: frontT * 1000,
               areaM2: area,
-              cost: area * pricePerM2,
+              cost: area * frontPricePerM2,
               element: letter,
             });
             items.push({
@@ -335,9 +345,9 @@ export function calculateCutList(
               desc: `Vrata desna ${letter}${suffix}`,
               widthCm: leafW * 100,
               heightCm: doorH * 100,
-              thicknessMm: doorT * 1000,
+              thicknessMm: frontT * 1000,
               areaM2: area,
-              cost: area * pricePerM2,
+              cost: area * frontPricePerM2,
               element: letter,
             });
           } else {
@@ -354,9 +364,9 @@ export function calculateCutList(
               desc: `Vrata ${isLeft ? "leva" : codeSuffix === "D" ? "desna" : "jednokrilna"} ${letter}${suffix}`,
               widthCm: leafW * 100,
               heightCm: doorH * 100,
-              thicknessMm: doorT * 1000,
+              thicknessMm: frontT * 1000,
               areaM2: area,
-              cost: area * pricePerM2,
+              cost: area * frontPricePerM2,
               element: letter,
             });
           }
@@ -453,9 +463,9 @@ export function calculateCutList(
               desc: `Fioka ${letter}${suffix}`,
               widthCm: innerW * 100,
               heightCm: drawerH * 100,
-              thicknessMm: t * 1000,
+              thicknessMm: frontT * 1000,
               areaM2: area,
-              cost: area * pricePerM2,
+              cost: area * frontPricePerM2,
               element: letter,
             });
           }

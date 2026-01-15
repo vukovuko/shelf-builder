@@ -90,25 +90,12 @@ export function DesignLayoutClient({
             onClick={() => setDrawerOpen(false)}
             onKeyDown={(e) => e.key === "Escape" && setDrawerOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-[85vw] max-w-xs bg-sidebar border-r border-sidebar-border p-4 overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Podešavanje</h2>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(false)}
-                className="inline-flex items-center justify-center rounded-md border px-2 py-1 text-sm hover:bg-accent"
-                aria-label="Close menu"
-              >
-                Zatvori
-              </button>
-            </div>
-            <div className="-mx-1 flex-1">
-              <ConfiguratorControls
-                wardrobeRef={wardrobeRef}
-                initialSession={initialSession}
-                materials={initialMaterials}
-              />
-            </div>
+          <div className="absolute inset-y-0 left-0 w-[85vw] max-w-xs bg-sidebar border-r border-sidebar-border overflow-y-auto flex flex-col">
+            <ConfiguratorControls
+              wardrobeRef={wardrobeRef}
+              initialSession={initialSession}
+              materials={initialMaterials}
+            />
           </div>
         </div>
       )}

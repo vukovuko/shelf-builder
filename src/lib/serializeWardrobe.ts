@@ -8,6 +8,7 @@ export function getWardrobeSnapshot() {
     depth: s.depth,
     panelThickness: s.panelThickness,
     selectedMaterialId: s.selectedMaterialId,
+    selectedFrontMaterialId: s.selectedFrontMaterialId,
     selectedBackMaterialId: s.selectedBackMaterialId,
     elementConfigs: s.elementConfigs,
     compartmentExtras: s.compartmentExtras,
@@ -26,6 +27,8 @@ export function applyWardrobeSnapshot(data: any) {
   if (data.panelThickness) st.setPanelThickness(data.panelThickness);
   if (data.selectedMaterialId)
     st.setSelectedMaterialId(data.selectedMaterialId);
+  if (data.selectedFrontMaterialId)
+    st.setSelectedFrontMaterialId(data.selectedFrontMaterialId);
   if (data.selectedBackMaterialId)
     st.setSelectedBackMaterialId(data.selectedBackMaterialId);
   Object.entries(data.elementConfigs || {}).forEach(([key, cfg]: any) => {
