@@ -37,10 +37,7 @@ export default async function MaterialsPage({
       .orderBy(asc(materials.name))
       .limit(PAGE_SIZE)
       .offset(offset),
-    db
-      .select({ count: count() })
-      .from(materials)
-      .where(whereClause),
+    db.select({ count: count() }).from(materials).where(whereClause),
   ]);
 
   const totalCount = Number(totalResult[0]?.count ?? 0);

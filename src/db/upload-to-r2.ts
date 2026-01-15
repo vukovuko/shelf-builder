@@ -20,14 +20,18 @@ async function uploadToR2() {
     !R2_BUCKET_NAME
   ) {
     console.error("Missing R2 credentials in .env");
-    console.error("Required: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME");
+    console.error(
+      "Required: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME",
+    );
     process.exit(1);
   }
 
   // Check if images directory exists
   if (!fs.existsSync(IMAGES_DIR)) {
     console.error(`Images directory not found: ${IMAGES_DIR}`);
-    console.error("Make sure the 'material-images' folder exists in the project root");
+    console.error(
+      "Make sure the 'material-images' folder exists in the project root",
+    );
     process.exit(1);
   }
 
@@ -62,7 +66,7 @@ async function uploadToR2() {
           Key: `materials/${file}`,
           Body: fileContent,
           ContentType: "image/jpeg",
-        })
+        }),
       );
 
       uploaded++;

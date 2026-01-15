@@ -1,3 +1,8 @@
+## Workflow Preferences
+
+- **Don't run `npm run build`** - Let me run it since it's faster and I can tell you to do other stuff while it's running.
+- **Never run database commands** - Don't run any database commands (migrations, seeds, drizzle-kit, etc.) on your own. Just tell me what to run. If commands need to be sequential, tell me the order and I'll run them and paste errors or success from the terminal.
+
 ---
 title: Minimize Serialization at RSC Boundaries
 impact: HIGH
@@ -222,3 +227,59 @@ export async function GET(request: Request) {
 ```
 
 For operations with more complex dependency chains, use `better-all` to automatically maximize parallelism (see Dependency-Based Parallelization).
+
+---
+title: Fix overflow-x-auto in Flexbox/Grid with min-w-0
+impact: HIGH
+impactDescription: enables horizontal scroll in flex children
+tags: css, flexbox, grid, overflow, responsive
+---
+
+## Fix overflow-x-auto in Flexbox/Grid with min-w-0
+
+In Flexbox and Grid, children have implicit `min-width: auto` which prevents them from shrinking below their content's intrinsic width. This breaks `overflow-x-auto` because the container expands to fit content instead of scrolling.
+
+**Incorrect (table expands dialog beyond viewport):**
+
+```tsx
+<DialogContent>
+  <form>
+    <div className="overflow-x-auto">
+      <table className="min-w-[520px]">  {/* Wide table */}
+        ...
+      </table>
+    </div>
+  </form>
+</DialogContent>
+```
+
+The table's width propagates up through all flex parents, expanding the dialog.
+
+**Correct (add min-w-0 to flex children):**
+
+```tsx
+<DialogContent>
+  <form className="min-w-0">                      {/* Can shrink */}
+    <div className="min-w-0">                     {/* Can shrink */}
+      <div className="overflow-x-auto min-w-0">   {/* Can shrink, scrolls */}
+        <table className="min-w-[520px]">         {/* Forces scroll trigger */}
+          ...
+        </table>
+      </div>
+    </div>
+  </form>
+</DialogContent>
+```
+
+**Why it works:**
+
+1. `min-w-0` sets `min-width: 0`, allowing flex children to shrink below content width
+2. This breaks the chain of content-width propagation
+3. `overflow-x-auto` wrapper is now constrained by its parent, not its children
+4. When table > container width, horizontal scroll appears
+
+**Additional tips:**
+
+- Use `table-fixed` + width percentages on `<th>` for predictable column sizing
+- Use `sm:min-w-full` to disable scroll on larger screens
+- Add `break-words` to text cells that should wrap

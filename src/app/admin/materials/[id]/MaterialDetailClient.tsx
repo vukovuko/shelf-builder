@@ -67,14 +67,14 @@ export function MaterialDetailClient({
   const [name, setName] = useState(initialMaterial.name);
   const [price, setPrice] = useState(String(initialMaterial.price));
   const [thickness, setThickness] = useState(
-    initialMaterial.thickness ? String(initialMaterial.thickness) : ""
+    initialMaterial.thickness ? String(initialMaterial.thickness) : "",
   );
   const [stock, setStock] = useState(
-    initialMaterial.stock ? String(initialMaterial.stock) : ""
+    initialMaterial.stock ? String(initialMaterial.stock) : "",
   );
   const [img, setImg] = useState(initialMaterial.img ?? "");
   const [categories, setCategories] = useState<Option[]>(
-    initialMaterial.categories.map((c) => ({ value: c, label: c }))
+    initialMaterial.categories.map((c) => ({ value: c, label: c })),
   );
   const [published, setPublished] = useState(initialMaterial.published);
 
@@ -82,9 +82,7 @@ export function MaterialDetailClient({
   const hasChanges = useMemo(() => {
     if (name !== material.name) return true;
     if (Number(price) !== material.price) return true;
-    if (
-      (thickness === "" ? null : Number(thickness)) !== material.thickness
-    )
+    if ((thickness === "" ? null : Number(thickness)) !== material.thickness)
       return true;
     if ((stock === "" ? null : Number(stock)) !== material.stock) return true;
     if ((img || null) !== material.img) return true;
@@ -93,9 +91,7 @@ export function MaterialDetailClient({
     const currentCategories = categories.map((c) => c.value).sort();
     const materialCategories = [...material.categories].sort();
     if (currentCategories.length !== materialCategories.length) return true;
-    if (
-      currentCategories.some((c, i) => c !== materialCategories[i])
-    )
+    if (currentCategories.some((c, i) => c !== materialCategories[i]))
       return true;
 
     return false;
@@ -147,7 +143,9 @@ export function MaterialDetailClient({
       setStock(updated.stock ? String(updated.stock) : "");
       setImg(updated.img ?? "");
       setPublished(updated.published);
-      setCategories(updated.categories.map((c: string) => ({ value: c, label: c })));
+      setCategories(
+        updated.categories.map((c: string) => ({ value: c, label: c })),
+      );
       toast.success("Materijal sacuvan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greska pri cuvanju");
@@ -193,7 +191,10 @@ export function MaterialDetailClient({
                   {material.name}
                 </h1>
               </PopoverTrigger>
-              <PopoverContent side="bottom" className="w-auto max-w-xs p-2 text-sm">
+              <PopoverContent
+                side="bottom"
+                className="w-auto max-w-xs p-2 text-sm"
+              >
                 {material.name}
               </PopoverContent>
             </Popover>

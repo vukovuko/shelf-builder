@@ -1,9 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { ShoppingCart, Loader2 } from "lucide-react";
+
+interface PlaceSuggestion {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}
 import {
   Dialog,
   DialogContent,
@@ -24,10 +31,17 @@ interface CheckoutDialogProps {
     thumbnail: string | null;
     materialId: number;
     materialName: string;
+    frontMaterialId: number;
+    frontMaterialName: string;
     backMaterialId: number | null;
     backMaterialName: string | null;
     totalArea: number; // in cm²
     totalPrice: number; // in RSD
+    priceBreakdown: {
+      korpus: { areaM2: number; price: number };
+      front: { areaM2: number; price: number };
+      back: { areaM2: number; price: number };
+    };
     dimensions: {
       width: number;
       height: number;
@@ -60,10 +74,110 @@ export function CheckoutDialog({
     customerEmail: "",
     customerPhone: "",
     shippingStreet: "",
+    shippingApartment: "",
     shippingCity: "",
     shippingPostalCode: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Address autocomplete state
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionRef.current &&
+        !suggestionRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch suggestions when street input changes
+  const fetchSuggestions = async (query: string) => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(
+        `/api/places/autocomplete?q=${encodeURIComponent(query)}`,
+      );
+      const data = await res.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions(true);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Handle street input with debounce
+  const handleStreetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setFormData((prev) => ({ ...prev, shippingStreet: value }));
+    if (errors.shippingStreet) {
+      setErrors((prev) => ({ ...prev, shippingStreet: "" }));
+    }
+
+    // Debounce API calls
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  };
+
+  // Select suggestion and fetch details
+  const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
+    setShowSuggestions(false);
+    setLoadingSuggestions(true);
+
+    try {
+      const res = await fetch(
+        `/api/places/details?placeId=${suggestion.placeId}`,
+      );
+      const data = await res.json();
+
+      // Combine city and municipality if both exist (e.g., "Beograd, Vračar")
+      let cityValue = data.city || "";
+      if (data.city && data.municipality) {
+        cityValue = `${data.city}, ${data.municipality}`;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        shippingStreet:
+          data.street || suggestion.mainText || prev.shippingStreet,
+        shippingCity: cityValue || prev.shippingCity,
+        shippingPostalCode: data.postalCode || prev.shippingPostalCode,
+      }));
+
+      // Clear any errors on auto-filled fields
+      setErrors((prev) => ({
+        ...prev,
+        shippingStreet: "",
+        shippingCity: "",
+        shippingPostalCode: "",
+      }));
+    } catch {
+      // Fallback: just use the main text
+      setFormData((prev) => ({
+        ...prev,
+        shippingStreet: suggestion.mainText || prev.shippingStreet,
+      }));
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -125,6 +239,7 @@ export function CheckoutDialog({
           wardrobeSnapshot: orderData.wardrobeSnapshot,
           thumbnail: orderData.thumbnail,
           materialId: orderData.materialId,
+          frontMaterialId: orderData.frontMaterialId,
           backMaterialId: orderData.backMaterialId,
           area: orderData.totalArea,
           totalPrice: Math.round(orderData.totalPrice),
@@ -147,6 +262,7 @@ export function CheckoutDialog({
         customerEmail: "",
         customerPhone: "",
         shippingStreet: "",
+        shippingApartment: "",
         shippingCity: "",
         shippingPostalCode: "",
       });
@@ -170,7 +286,7 @@ export function CheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5" />
@@ -181,38 +297,118 @@ export function CheckoutDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
           {/* Order Summary */}
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-            <h3 className="font-medium text-sm">Rezime porudžbine</h3>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <span className="text-muted-foreground">Dimenzije:</span>
-              <span>
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-4 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm">Rezime porudžbine</h3>
+              <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
                 {orderData.dimensions.width} × {orderData.dimensions.height} ×{" "}
                 {orderData.dimensions.depth} cm
               </span>
-
-              <span className="text-muted-foreground">Materijal:</span>
-              <span>{orderData.materialName}</span>
-
-              <span className="text-muted-foreground">Površina:</span>
-              <span>{areaM2.toFixed(2)} m²</span>
             </div>
-            <div className="pt-2 border-t mt-2">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Ukupno:</span>
-                <span className="text-lg font-bold">
-                  {formatPrice(orderData.totalPrice)} RSD
-                </span>
-              </div>
+
+            {/* Material breakdown table */}
+            <div className="overflow-x-auto w-full min-w-0">
+              <table className="w-full table-auto text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground">
+                    <th className="text-left py-2 pr-2 font-medium">
+                      Materijal
+                    </th>
+                    <th className="text-right py-2 px-2 font-medium whitespace-nowrap">
+                      m²
+                    </th>
+                    <th className="text-right py-2 pl-2 font-medium">Cena</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {/* Korpus */}
+                  <tr>
+                    <td className="py-2.5 pr-2">
+                      <div className="text-muted-foreground text-xs">
+                        Korpus
+                      </div>
+                      <div
+                        className="font-medium truncate max-w-[180px] sm:max-w-full"
+                        title={orderData.materialName}
+                      >
+                        {orderData.materialName}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                      {orderData.priceBreakdown.korpus.areaM2.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 pl-2 text-right tabular-nums whitespace-nowrap">
+                      {formatPrice(orderData.priceBreakdown.korpus.price)}
+                    </td>
+                  </tr>
+                  {/* Lica/Vrata */}
+                  <tr>
+                    <td className="py-2.5 pr-2">
+                      <div className="text-muted-foreground text-xs">
+                        Lica/Vrata
+                      </div>
+                      <div
+                        className="font-medium truncate max-w-[180px] sm:max-w-full"
+                        title={orderData.frontMaterialName}
+                      >
+                        {orderData.frontMaterialName}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                      {orderData.priceBreakdown.front.areaM2.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 pl-2 text-right tabular-nums whitespace-nowrap">
+                      {formatPrice(orderData.priceBreakdown.front.price)}
+                    </td>
+                  </tr>
+                  {/* Leđa */}
+                  {orderData.backMaterialId && (
+                    <tr>
+                      <td className="py-2.5 pr-2">
+                        <div className="text-muted-foreground text-xs">
+                          Leđa
+                        </div>
+                        <div
+                          className="font-medium truncate max-w-[180px] sm:max-w-full"
+                          title={orderData.backMaterialName || ""}
+                        >
+                          {orderData.backMaterialName}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                        {orderData.priceBreakdown.back.areaM2.toFixed(2)}
+                      </td>
+                      <td className="py-2.5 pl-2 text-right tabular-nums whitespace-nowrap">
+                        {formatPrice(orderData.priceBreakdown.back.price)}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border">
+                    <td className="py-3 pr-2 font-semibold">Ukupno</td>
+                    <td className="py-3 px-2 text-right tabular-nums font-medium whitespace-nowrap">
+                      {areaM2.toFixed(2)} m²
+                    </td>
+                    <td className="py-3 pl-2 text-right">
+                      <span className="text-lg font-bold tabular-nums">
+                        {formatPrice(orderData.totalPrice)}
+                      </span>
+                      <span className="text-sm font-medium ml-1">RSD</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
 
           {/* Customer Info */}
-          <div className="space-y-3">
-            <h3 className="font-medium text-sm">Kontakt podaci</h3>
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm mb-2">Kontakt podaci</h3>
 
-            <div className="space-y-2">
+            <div className="relative pb-5">
               <Label htmlFor="customerName">Ime i prezime *</Label>
               <Input
                 id="customerName"
@@ -220,17 +416,17 @@ export function CheckoutDialog({
                 value={formData.customerName}
                 onChange={handleChange}
                 placeholder="Petar Petrović"
-                className={errors.customerName ? "border-destructive" : ""}
+                className={`mt-2 ${errors.customerName ? "border-destructive" : ""}`}
               />
               {errors.customerName && (
-                <p className="text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {errors.customerName}
                 </p>
               )}
             </div>
 
             {/* Email with I/ILI Phone */}
-            <div className="space-y-2">
+            <div className="relative pb-5">
               <Label htmlFor="customerEmail">Email</Label>
               <Input
                 id="customerEmail"
@@ -239,10 +435,10 @@ export function CheckoutDialog({
                 value={formData.customerEmail}
                 onChange={handleChange}
                 placeholder="petar@example.com"
-                className={errors.customerEmail ? "border-destructive" : ""}
+                className={`mt-2 ${errors.customerEmail ? "border-destructive" : ""}`}
               />
               {errors.customerEmail && (
-                <p className="text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {errors.customerEmail}
                 </p>
               )}
@@ -250,7 +446,7 @@ export function CheckoutDialog({
 
             <OrDivider />
 
-            <div className="space-y-2">
+            <div className="relative pb-5">
               <Label htmlFor="customerPhone">Telefon</Label>
               <Input
                 id="customerPhone"
@@ -259,10 +455,10 @@ export function CheckoutDialog({
                 value={formData.customerPhone}
                 onChange={handleChange}
                 placeholder="+381 64 123 4567"
-                className={errors.customerPhone ? "border-destructive" : ""}
+                className={`mt-2 ${errors.customerPhone ? "border-destructive" : ""}`}
               />
               {errors.customerPhone && (
-                <p className="text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {errors.customerPhone}
                 </p>
               )}
@@ -270,45 +466,89 @@ export function CheckoutDialog({
           </div>
 
           {/* Shipping Address */}
-          <div className="space-y-3">
-            <h3 className="font-medium text-sm">Adresa za dostavu</h3>
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm mb-2">Adresa za dostavu</h3>
 
-            <div className="space-y-2">
-              <Label htmlFor="shippingStreet">Ulica i broj *</Label>
-              <Input
-                id="shippingStreet"
-                name="shippingStreet"
-                value={formData.shippingStreet}
-                onChange={handleChange}
-                placeholder="Bulevar Kralja Aleksandra 123"
-                className={errors.shippingStreet ? "border-destructive" : ""}
-              />
-              {errors.shippingStreet && (
-                <p className="text-xs text-destructive">
-                  {errors.shippingStreet}
-                </p>
-              )}
+            <div className="grid grid-cols-[1fr_80px] gap-3">
+              <div className="relative pb-5" ref={suggestionRef}>
+                <Label htmlFor="shippingStreet">Ulica i broj *</Label>
+                <div className="relative">
+                  <Input
+                    id="shippingStreet"
+                    name="shippingStreet"
+                    value={formData.shippingStreet}
+                    onChange={handleStreetChange}
+                    onFocus={() =>
+                      suggestions.length > 0 && setShowSuggestions(true)
+                    }
+                    placeholder="Bulevar Kralja Aleksandra 123"
+                    className={`mt-2 ${errors.shippingStreet ? "border-destructive" : ""}`}
+                    autoComplete="off"
+                  />
+                  {loadingSuggestions && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-1 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+                      {suggestions.map((s) => (
+                        <button
+                          key={s.placeId}
+                          type="button"
+                          className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
+                          onClick={() => handleSelectSuggestion(s)}
+                        >
+                          <div className="font-medium text-sm">
+                            {s.mainText}
+                          </div>
+                          {s.secondaryText && (
+                            <div className="text-xs text-muted-foreground">
+                              {s.secondaryText}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {errors.shippingStreet && (
+                  <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                    {errors.shippingStreet}
+                  </p>
+                )}
+              </div>
+
+              <div className="relative pb-5">
+                <Label htmlFor="shippingApartment">Sprat/Stan</Label>
+                <Input
+                  id="shippingApartment"
+                  name="shippingApartment"
+                  value={formData.shippingApartment}
+                  onChange={handleChange}
+                  placeholder="3/12"
+                  className="mt-2"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="shippingCity">Grad *</Label>
+              <div className="relative pb-5">
+                <Label htmlFor="shippingCity">Grad/Opština *</Label>
                 <Input
                   id="shippingCity"
                   name="shippingCity"
                   value={formData.shippingCity}
                   onChange={handleChange}
                   placeholder="Beograd"
-                  className={errors.shippingCity ? "border-destructive" : ""}
+                  className={`mt-2 ${errors.shippingCity ? "border-destructive" : ""}`}
                 />
                 {errors.shippingCity && (
-                  <p className="text-xs text-destructive">
+                  <p className="absolute bottom-0 left-0 text-xs text-destructive">
                     {errors.shippingCity}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="relative pb-5">
                 <Label htmlFor="shippingPostalCode">Poštanski broj *</Label>
                 <Input
                   id="shippingPostalCode"
@@ -316,12 +556,10 @@ export function CheckoutDialog({
                   value={formData.shippingPostalCode}
                   onChange={handleChange}
                   placeholder="11000"
-                  className={
-                    errors.shippingPostalCode ? "border-destructive" : ""
-                  }
+                  className={`mt-2 ${errors.shippingPostalCode ? "border-destructive" : ""}`}
                 />
                 {errors.shippingPostalCode && (
-                  <p className="text-xs text-destructive">
+                  <p className="absolute bottom-0 left-0 text-xs text-destructive">
                     {errors.shippingPostalCode}
                   </p>
                 )}

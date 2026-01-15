@@ -34,6 +34,8 @@ export type WardrobeSnapshot = {
   baseHeight?: number;
 };
 
+export type MaterialType = "korpus" | "front" | "back";
+
 export type CutListItem = {
   code: string;
   desc: string;
@@ -43,6 +45,13 @@ export type CutListItem = {
   areaM2: number;
   cost: number;
   element: string;
+  materialType: MaterialType; // Which material category this part uses
+};
+
+export type PriceBreakdown = {
+  korpus: { areaM2: number; price: number };
+  front: { areaM2: number; price: number };
+  back: { areaM2: number; price: number };
 };
 
 export type CutList = {
@@ -51,6 +60,7 @@ export type CutList = {
   totalArea: number;
   totalCost: number;
   pricePerM2: number;
+  priceBreakdown: PriceBreakdown;
 };
 
 const emptyCutList: CutList = {
@@ -59,6 +69,11 @@ const emptyCutList: CutList = {
   totalArea: 0,
   totalCost: 0,
   pricePerM2: 0,
+  priceBreakdown: {
+    korpus: { areaM2: 0, price: 0 },
+    front: { areaM2: 0, price: 0 },
+    back: { areaM2: 0, price: 0 },
+  },
 };
 
 export function calculateCutList(
@@ -105,7 +120,9 @@ export function calculateCutList(
       backId
         ? String(m.id) === String(backId)
         : m.categories.some(
-            (c) => c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
+            (c) =>
+              c.toLowerCase().includes("leđa") ||
+              c.toLowerCase().includes("ledja"),
           ),
     );
     const backPricePerM2 = Number(backMat?.price ?? 0);
@@ -175,7 +192,7 @@ export function calculateCutList(
         const yStartInner = m.yStart + t;
         const yEndInner = m.yEnd - t;
 
-        // Sides
+        // Sides - use korpus material
         const sideW = d;
         const sideH = moduleH;
         const sideArea = sideW * sideH;
@@ -188,6 +205,7 @@ export function calculateCutList(
           areaM2: sideArea,
           cost: sideArea * pricePerM2,
           element: letter,
+          materialType: "korpus",
         });
         items.push({
           code: `A${letter}D${suffix}`,
@@ -198,6 +216,7 @@ export function calculateCutList(
           areaM2: sideArea,
           cost: sideArea * pricePerM2,
           element: letter,
+          materialType: "korpus",
         });
 
         // Shelves per compartment
@@ -231,11 +250,12 @@ export function calculateCutList(
               areaM2: area,
               cost: area * pricePerM2,
               element: letter,
+              materialType: "korpus",
             });
           }
         });
 
-        // Top and Bottom panels per element (like CarcassFrame)
+        // Top and Bottom panels per element (like CarcassFrame) - use korpus material
         const innerLenX = Math.max(elemW - 2 * t, 0);
         if (innerLenX > 0) {
           const areaBot = innerLenX * d;
@@ -248,6 +268,7 @@ export function calculateCutList(
             areaM2: areaBot,
             cost: areaBot * pricePerM2,
             element: letter,
+            materialType: "korpus",
           });
           const areaTop = innerLenX * d;
           items.push({
@@ -259,6 +280,7 @@ export function calculateCutList(
             areaM2: areaTop,
             cost: areaTop * pricePerM2,
             element: letter,
+            materialType: "korpus",
           });
         }
 
@@ -316,12 +338,13 @@ export function calculateCutList(
                 areaM2: area,
                 cost: area * pricePerM2,
                 element: letter,
+                materialType: "korpus",
               });
             }
           }
         }
 
-        // Doors
+        // Doors - use front material (Lica/Vrata)
         const sel = doorSelections[
           letter as keyof typeof doorSelections
         ] as any;
@@ -339,6 +362,7 @@ export function calculateCutList(
               areaM2: area,
               cost: area * frontPricePerM2,
               element: letter,
+              materialType: "front",
             });
             items.push({
               code: `A${letter}V.D${suffix}`,
@@ -349,6 +373,7 @@ export function calculateCutList(
               areaM2: area,
               cost: area * frontPricePerM2,
               element: letter,
+              materialType: "front",
             });
           } else {
             const leafW = totalAvailW;
@@ -368,6 +393,7 @@ export function calculateCutList(
               areaM2: area,
               cost: area * frontPricePerM2,
               element: letter,
+              materialType: "front",
             });
           }
         }
@@ -425,12 +451,13 @@ export function calculateCutList(
                 areaM2: area,
                 cost: area * pricePerM2,
                 element: letter,
+                materialType: "korpus",
               });
             }
           }
         }
 
-        // Drawers
+        // Drawers - use front material (Lica/Vrata)
         const extras = compartmentExtras[
           letter as keyof typeof compartmentExtras
         ] as any;
@@ -467,10 +494,11 @@ export function calculateCutList(
               areaM2: area,
               cost: area * frontPricePerM2,
               element: letter,
+              materialType: "front",
             });
           }
 
-          // Auto-shelf directly above drawers if they don't fill full available height
+          // Auto-shelf directly above drawers if they don't fill full available height - use korpus material
           if (used > 0 && used < maxAuto) {
             const drawersTopY = drawersYStart + drawerH + (used - 1) * per;
             const shelfPlaneY = drawersTopY + gap; // bottom plane of the shelf
@@ -486,12 +514,13 @@ export function calculateCutList(
                 areaM2: area,
                 cost: area * pricePerM2,
                 element: letter,
+                materialType: "korpus",
               });
             }
           }
         }
 
-        // Back panel per element: use FULL element size (elemW/moduleH), minus 2mm total clearance
+        // Back panel per element - use back material (Leđa)
         {
           const clearanceBack = 2 / 1000; // 2mm
           const backW = Math.max(elemW - clearanceBack, 0);
@@ -507,6 +536,7 @@ export function calculateCutList(
               areaM2: area,
               cost: area * backPricePerM2,
               element: letter,
+              materialType: "back",
             });
           }
         }
@@ -522,7 +552,41 @@ export function calculateCutList(
       return acc;
     }, {});
 
-    return { items, grouped, totalArea, totalCost, pricePerM2 };
+    // Calculate price breakdown by material type
+    const priceBreakdown: PriceBreakdown = {
+      korpus: {
+        areaM2: items
+          .filter((it) => it.materialType === "korpus")
+          .reduce((sum, it) => sum + it.areaM2, 0),
+        price: Math.round(
+          items
+            .filter((it) => it.materialType === "korpus")
+            .reduce((sum, it) => sum + it.cost, 0),
+        ),
+      },
+      front: {
+        areaM2: items
+          .filter((it) => it.materialType === "front")
+          .reduce((sum, it) => sum + it.areaM2, 0),
+        price: Math.round(
+          items
+            .filter((it) => it.materialType === "front")
+            .reduce((sum, it) => sum + it.cost, 0),
+        ),
+      },
+      back: {
+        areaM2: items
+          .filter((it) => it.materialType === "back")
+          .reduce((sum, it) => sum + it.areaM2, 0),
+        price: Math.round(
+          items
+            .filter((it) => it.materialType === "back")
+            .reduce((sum, it) => sum + it.cost, 0),
+        ),
+      },
+    };
+
+    return { items, grouped, totalArea, totalCost, pricePerM2, priceBreakdown };
   } catch {
     return emptyCutList;
   }

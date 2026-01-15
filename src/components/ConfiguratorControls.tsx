@@ -190,9 +190,37 @@ export function ConfiguratorControls({
     string | null
   >(null);
   const handleOrderClick = async () => {
-    // Validate that we have materials selected
+    // Validate that korpus material is selected and exists
     if (!selectedMaterialId) {
-      toast.error("Molimo izaberite materijal");
+      toast.error(
+        "Materijal za korpus nije izabran. Proverite korak 3 (Materijali) i izaberite materijal za korpus.",
+      );
+      return;
+    }
+    const korpusMaterial = materials.find(
+      (m) => String(m.id) === String(selectedMaterialId),
+    );
+    if (!korpusMaterial) {
+      toast.error(
+        "Izabrani materijal za korpus nije dostupan. Proverite korak 3 (Materijali) i izaberite ponovo.",
+      );
+      return;
+    }
+
+    // Validate that front material is selected and exists
+    if (!selectedFrontMaterialId) {
+      toast.error(
+        "Materijal za lica/vrata nije izabran. Proverite korak 3 (Materijali) i izaberite materijal za lica/vrata.",
+      );
+      return;
+    }
+    const frontMaterial = materials.find(
+      (m) => String(m.id) === String(selectedFrontMaterialId),
+    );
+    if (!frontMaterial) {
+      toast.error(
+        "Izabrani materijal za lica/vrata nije dostupan. Proverite korak 3 (Materijali) i izaberite ponovo.",
+      );
       return;
     }
 
@@ -2057,7 +2085,12 @@ export function ConfiguratorControls({
           materialId: selectedMaterialId,
           materialName:
             materials.find((m) => String(m.id) === String(selectedMaterialId))
-              ?.name ?? "Nepoznat materijal",
+              ?.name ?? "",
+          frontMaterialId: selectedFrontMaterialId!,
+          frontMaterialName:
+            materials.find(
+              (m) => String(m.id) === String(selectedFrontMaterialId),
+            )?.name ?? "",
           backMaterialId: selectedBackMaterialId ?? null,
           backMaterialName: selectedBackMaterialId
             ? (materials.find(
@@ -2066,6 +2099,7 @@ export function ConfiguratorControls({
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,
+          priceBreakdown: cutList.priceBreakdown,
           dimensions: {
             width,
             height,

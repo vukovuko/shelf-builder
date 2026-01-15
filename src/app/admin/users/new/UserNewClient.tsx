@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,11 +39,24 @@ export function UserNewClient() {
       return;
     }
 
+    const shippingStreet = (formData.get("shippingStreet") as string).trim();
+    const shippingApartment = (
+      formData.get("shippingApartment") as string
+    ).trim();
+    const shippingCity = (formData.get("shippingCity") as string).trim();
+    const shippingPostalCode = (
+      formData.get("shippingPostalCode") as string
+    ).trim();
+
     const data = {
       name: formData.get("name") as string,
       email: email || undefined,
       phone: phone || undefined,
       role,
+      shippingStreet: shippingStreet || undefined,
+      shippingApartment: shippingApartment || undefined,
+      shippingCity: shippingCity || undefined,
+      shippingPostalCode: shippingPostalCode || undefined,
     };
 
     try {
@@ -130,6 +143,48 @@ export function UserNewClient() {
                 type="tel"
                 placeholder="npr. 0641234567"
               />
+            </div>
+          </div>
+
+          {/* Address Section */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium">Adresa (opciono)</h3>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="shippingStreet">Ulica i broj</Label>
+                <Input
+                  id="shippingStreet"
+                  name="shippingStreet"
+                  placeholder="npr. Knez Mihailova 15"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shippingApartment">Stan/Sprat</Label>
+                <Input
+                  id="shippingApartment"
+                  name="shippingApartment"
+                  placeholder="npr. Stan 5, 3. sprat"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shippingCity">Grad</Label>
+                <Input
+                  id="shippingCity"
+                  name="shippingCity"
+                  placeholder="npr. Beograd"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shippingPostalCode">Poštanski broj</Label>
+                <Input
+                  id="shippingPostalCode"
+                  name="shippingPostalCode"
+                  placeholder="npr. 11000"
+                />
+              </div>
             </div>
           </div>
 

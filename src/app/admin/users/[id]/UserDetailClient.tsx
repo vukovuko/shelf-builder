@@ -34,7 +34,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Trash2, Pencil, X, Check, Plus, Copy } from "lucide-react";
+import {
+  ArrowLeft,
+  Trash2,
+  Pencil,
+  X,
+  Check,
+  Plus,
+  Copy,
+  MapPin,
+} from "lucide-react";
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -72,6 +81,11 @@ interface UserData {
   receiveOrderEmails: boolean | null;
   tags: string | null;
   notes: string | null;
+  // Address fields
+  shippingStreet: string | null;
+  shippingApartment: string | null;
+  shippingCity: string | null;
+  shippingPostalCode: string | null;
   createdAt: string;
   updatedAt: string;
   wardrobes: Wardrobe[];
@@ -155,6 +169,22 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   // Notes editing
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesInput, setNotesInput] = useState(user.notes || "");
+
+  // Contact info editing (name, phone)
+  const [editingContact, setEditingContact] = useState(false);
+  const [nameInput, setNameInput] = useState(user.name);
+  const [phoneInput, setPhoneInput] = useState(user.phone || "");
+
+  // Address editing
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [streetInput, setStreetInput] = useState(user.shippingStreet || "");
+  const [apartmentInput, setApartmentInput] = useState(
+    user.shippingApartment || "",
+  );
+  const [cityInput, setCityInput] = useState(user.shippingCity || "");
+  const [postalCodeInput, setPostalCodeInput] = useState(
+    user.shippingPostalCode || "",
+  );
 
   // Parse tags from JSON string
   const tags: string[] = user.tags ? JSON.parse(user.tags) : [];
@@ -304,6 +334,98 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
     setEditingTags(true);
   }
 
+  async function handleSaveContact() {
+    if (nameInput === user.name && phoneInput === (user.phone || "")) {
+      setEditingContact(false);
+      return;
+    }
+
+    if (!nameInput.trim()) {
+      toast.error("Ime je obavezno");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nameInput.trim(),
+          phone: phoneInput.trim() || null,
+        }),
+      });
+
+      if (res.ok) {
+        setUser((prev) => ({
+          ...prev,
+          name: nameInput.trim(),
+          phone: phoneInput.trim() || null,
+        }));
+        setEditingContact(false);
+        toast.success("Kontakt podaci sačuvani");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Greška pri čuvanju");
+      }
+    } catch (error) {
+      console.error("Failed to update contact:", error);
+      toast.error("Greška pri čuvanju kontakt podataka");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleSaveAddress() {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shippingStreet: streetInput.trim() || null,
+          shippingApartment: apartmentInput.trim() || null,
+          shippingCity: cityInput.trim() || null,
+          shippingPostalCode: postalCodeInput.trim() || null,
+        }),
+      });
+
+      if (res.ok) {
+        setUser((prev) => ({
+          ...prev,
+          shippingStreet: streetInput.trim() || null,
+          shippingApartment: apartmentInput.trim() || null,
+          shippingCity: cityInput.trim() || null,
+          shippingPostalCode: postalCodeInput.trim() || null,
+        }));
+        setEditingAddress(false);
+        toast.success("Adresa sačuvana");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Greška pri čuvanju adrese");
+      }
+    } catch (error) {
+      console.error("Failed to update address:", error);
+      toast.error("Greška pri čuvanju adrese");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  function startEditContact() {
+    setNameInput(user.name);
+    setPhoneInput(user.phone || "");
+    setEditingContact(true);
+  }
+
+  function startEditAddress() {
+    setStreetInput(user.shippingStreet || "");
+    setApartmentInput(user.shippingApartment || "");
+    setCityInput(user.shippingCity || "");
+    setPostalCodeInput(user.shippingPostalCode || "");
+    setEditingAddress(true);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -320,7 +442,10 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                 {user.name}
               </h1>
             </PopoverTrigger>
-            <PopoverContent side="bottom" className="w-auto max-w-xs p-2 text-sm">
+            <PopoverContent
+              side="bottom"
+              className="w-auto max-w-xs p-2 text-sm"
+            >
               {user.name}
             </PopoverContent>
           </Popover>
@@ -555,57 +680,219 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
         <div className="space-y-4">
           {/* Customer Info */}
           <Card className="p-4 space-y-4">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Korisnik
-            </h2>
-
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                Kontakt
-              </p>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm truncate">{user.email}</p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Korisnik
+              </h2>
+              {!editingContact && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 shrink-0"
-                  onClick={() => copyToClipboard(user.email)}
+                  className="h-6 w-6"
+                  onClick={startEditContact}
                 >
-                  <Copy className="h-3 w-3" />
+                  <Pencil className="h-3 w-3" />
                 </Button>
-              </div>
-              {user.phone && (
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm">{user.phone}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => copyToClipboard(user.phone!)}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
               )}
             </div>
 
-            {lastAddress && (
+            {editingContact ? (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Ime</Label>
+                  <Input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Ime i prezime"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Telefon</Label>
+                  <Input
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="Telefon"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input
+                    value={user.email}
+                    disabled
+                    className="text-sm bg-muted"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveContact}
+                    disabled={isUpdating}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Sačuvaj
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingContact(false)}
+                    disabled={isUpdating}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                  Poslednja adresa
+                  Kontakt
                 </p>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm">{lastAddress}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{user.name}</p>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm truncate">{user.email}</p>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 shrink-0"
-                    onClick={() => copyToClipboard(lastAddress)}
+                    onClick={() => copyToClipboard(user.email)}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
+                {user.phone && (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm">{user.phone}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => copyToClipboard(user.phone!)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
+            )}
+          </Card>
+
+          {/* Address Card */}
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Adresa
+                </p>
+              </div>
+              {!editingAddress && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={startEditAddress}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {editingAddress ? (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Ulica i broj</Label>
+                  <Input
+                    value={streetInput}
+                    onChange={(e) => setStreetInput(e.target.value)}
+                    placeholder="npr. Knez Mihailova 15"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Stan/Sprat</Label>
+                  <Input
+                    value={apartmentInput}
+                    onChange={(e) => setApartmentInput(e.target.value)}
+                    placeholder="npr. Stan 5, 3. sprat"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Grad</Label>
+                  <Input
+                    value={cityInput}
+                    onChange={(e) => setCityInput(e.target.value)}
+                    placeholder="npr. Beograd"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Poštanski broj</Label>
+                  <Input
+                    value={postalCodeInput}
+                    onChange={(e) => setPostalCodeInput(e.target.value)}
+                    placeholder="npr. 11000"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAddress}
+                    disabled={isUpdating}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Sačuvaj
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingAddress(false)}
+                    disabled={isUpdating}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : user.shippingStreet || user.shippingCity ? (
+              <div className="space-y-1">
+                {user.shippingStreet && (
+                  <p className="text-sm">{user.shippingStreet}</p>
+                )}
+                {user.shippingApartment && (
+                  <p className="text-sm text-muted-foreground">
+                    {user.shippingApartment}
+                  </p>
+                )}
+                {(user.shippingPostalCode || user.shippingCity) && (
+                  <p className="text-sm">
+                    {user.shippingPostalCode} {user.shippingCity}
+                  </p>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs mt-1"
+                  onClick={() => {
+                    const addr = [
+                      user.shippingStreet,
+                      user.shippingApartment,
+                      `${user.shippingPostalCode || ""} ${user.shippingCity || ""}`.trim(),
+                    ]
+                      .filter(Boolean)
+                      .join(", ");
+                    copyToClipboard(addr);
+                  }}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Kopiraj
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nema adrese</p>
             )}
           </Card>
 

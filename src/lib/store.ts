@@ -119,7 +119,60 @@ export const useShelfStore = create<ShelfState>((set) => ({
   showDimensions: false,
   // Materials from database
   materials: [],
-  setMaterials: (materials) => set({ materials }),
+  setMaterials: (materials) =>
+    set((state) => {
+      // Auto-select first material for each category type if not already set or invalid
+      const validIds = new Set(materials.map((m) => m.id));
+
+      // Find first material for each category type
+      const firstKorpusMaterial = materials.find((m) =>
+        m.categories.some(
+          (c) =>
+            c.toLowerCase().includes("korpus") ||
+            c.toLowerCase().includes("18mm"),
+        ),
+      );
+      const firstFrontMaterial = materials.find((m) =>
+        m.categories.some(
+          (c) =>
+            c.toLowerCase().includes("lica") ||
+            c.toLowerCase().includes("vrata"),
+        ),
+      );
+      const firstBackMaterial = materials.find((m) =>
+        m.categories.some(
+          (c) =>
+            c.toLowerCase().includes("leđa") ||
+            c.toLowerCase().includes("ledja"),
+        ),
+      );
+
+      // Fallback to first material if category not found
+      const fallbackId = materials.length > 0 ? materials[0].id : 1;
+
+      const selectedMaterialId = validIds.has(state.selectedMaterialId)
+        ? state.selectedMaterialId
+        : (firstKorpusMaterial?.id ?? fallbackId);
+
+      const selectedFrontMaterialId =
+        state.selectedFrontMaterialId &&
+        validIds.has(state.selectedFrontMaterialId)
+          ? state.selectedFrontMaterialId
+          : (firstFrontMaterial?.id ?? fallbackId);
+
+      const selectedBackMaterialId =
+        state.selectedBackMaterialId &&
+        validIds.has(state.selectedBackMaterialId)
+          ? state.selectedBackMaterialId
+          : (firstBackMaterial?.id ?? fallbackId);
+
+      return {
+        materials,
+        selectedMaterialId,
+        selectedFrontMaterialId,
+        selectedBackMaterialId,
+      };
+    }),
   setWidth: (width) => set({ width }),
   setHeight: (height) => set({ height }),
   setDepth: (depth) => set({ depth }),

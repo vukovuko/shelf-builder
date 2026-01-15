@@ -22,9 +22,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
       wardrobeName: wardrobes.name,
       materialId: orders.materialId,
       materialName: materials.name,
+      frontMaterialId: orders.frontMaterialId,
       backMaterialId: orders.backMaterialId,
       area: orders.area,
       totalPrice: orders.totalPrice,
+      priceBreakdown: orders.priceBreakdown,
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       fulfillmentStatus: orders.fulfillmentStatus,
@@ -44,8 +46,19 @@ export default async function OrderDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get back material name if exists
+  // Get front and back material names
+  let frontMaterialName: string | null = null;
   let backMaterialName: string | null = null;
+
+  if (order.frontMaterialId) {
+    const [frontMat] = await db
+      .select({ name: materials.name })
+      .from(materials)
+      .where(eq(materials.id, order.frontMaterialId))
+      .limit(1);
+    frontMaterialName = frontMat?.name ?? null;
+  }
+
   if (order.backMaterialId) {
     const [backMat] = await db
       .select({ name: materials.name })
@@ -59,6 +72,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
     <OrderDetailClient
       order={{
         ...order,
+        frontMaterialName,
         backMaterialName,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),

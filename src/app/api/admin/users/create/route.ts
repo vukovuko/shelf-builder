@@ -20,6 +20,11 @@ const createUserSchema = z
       .optional()
       .or(z.literal("")),
     role: z.enum(["user", "admin"]).default("user"),
+    // Address fields
+    shippingStreet: z.string().optional().or(z.literal("")),
+    shippingApartment: z.string().optional().or(z.literal("")),
+    shippingCity: z.string().optional().or(z.literal("")),
+    shippingPostalCode: z.string().optional().or(z.literal("")),
   })
   .refine((data) => data.email || data.phone, {
     message: "Morate uneti email ili telefon",
@@ -39,7 +44,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, phone, role } = validation.data;
+    const {
+      name,
+      email,
+      phone,
+      role,
+      shippingStreet,
+      shippingApartment,
+      shippingCity,
+      shippingPostalCode,
+    } = validation.data;
     const hasRealEmail = email && email.length > 0;
 
     if (hasRealEmail) {
@@ -69,7 +83,13 @@ export async function POST(request: Request) {
           email,
           password: tempPassword,
           role,
-          data: phone ? { phone } : undefined,
+          data: {
+            ...(phone && { phone }),
+            ...(shippingStreet && { shippingStreet }),
+            ...(shippingApartment && { shippingApartment }),
+            ...(shippingCity && { shippingCity }),
+            ...(shippingPostalCode && { shippingPostalCode }),
+          },
         },
       });
 
@@ -144,6 +164,10 @@ export async function POST(request: Request) {
         phone: phone!,
         emailVerified: false,
         role,
+        shippingStreet: shippingStreet || null,
+        shippingApartment: shippingApartment || null,
+        shippingCity: shippingCity || null,
+        shippingPostalCode: shippingPostalCode || null,
         createdAt: now,
         updatedAt: now,
       });

@@ -92,7 +92,10 @@ export function WardrobePreviewClient({
                   {wardrobe.name}
                 </h1>
               </PopoverTrigger>
-              <PopoverContent side="bottom" className="w-auto max-w-xs p-2 text-sm">
+              <PopoverContent
+                side="bottom"
+                className="w-auto max-w-xs p-2 text-sm"
+              >
                 {wardrobe.name}
               </PopoverContent>
             </Popover>

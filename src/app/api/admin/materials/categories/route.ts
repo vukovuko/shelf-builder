@@ -8,7 +8,9 @@ export async function GET() {
     await requireAdmin();
 
     // Get all materials and extract unique categories from arrays
-    const allMaterials = await db.select({ categories: materials.categories }).from(materials);
+    const allMaterials = await db
+      .select({ categories: materials.categories })
+      .from(materials);
 
     // Flatten all categories arrays and get unique values
     const allCategories = allMaterials.flatMap((m) => m.categories);

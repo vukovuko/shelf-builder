@@ -19,12 +19,14 @@ const checkoutSchema = z
     customerPhone: z.string().min(6).optional().or(z.literal("")),
     // Shipping address
     shippingStreet: z.string().min(1, "Ulica je obavezna"),
+    shippingApartment: z.string().optional().or(z.literal("")),
     shippingCity: z.string().min(1, "Grad je obavezan"),
     shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
     // Wardrobe data
     wardrobeSnapshot: z.record(z.string(), z.any()),
     thumbnail: z.string().nullable(),
     materialId: z.number(),
+    frontMaterialId: z.number(),
     backMaterialId: z.number().nullable(),
     // area and totalPrice are computed server-side, ignored if sent
   })
@@ -49,11 +51,13 @@ export async function POST(request: Request) {
       customerEmail,
       customerPhone,
       shippingStreet,
+      shippingApartment,
       shippingCity,
       shippingPostalCode,
       wardrobeSnapshot,
       thumbnail,
       materialId,
+      frontMaterialId,
       backMaterialId,
     } = validation.data;
 
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
     const pricingMaterials = await db
       .select({
         id: materials.id,
+        name: materials.name,
         price: materials.price,
         thickness: materials.thickness,
         categories: materials.categories,
@@ -158,12 +163,22 @@ export async function POST(request: Request) {
     const resolvedMaterialId = Number(
       snapshot?.selectedMaterialId ?? materialId,
     );
+    const resolvedFrontMaterialId = Number(
+      snapshot?.selectedFrontMaterialId ?? frontMaterialId,
+    );
     const resolvedBackMaterialIdRaw =
       snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
 
     if (!Number.isFinite(resolvedMaterialId)) {
       return NextResponse.json(
-        { error: "Nevažeći materijal" },
+        { error: "Nevažeći materijal za korpus" },
+        { status: 400 },
+      );
+    }
+
+    if (!Number.isFinite(resolvedFrontMaterialId)) {
+      return NextResponse.json(
+        { error: "Nevažeći materijal za lica/vrata" },
         { status: 400 },
       );
     }
@@ -173,7 +188,17 @@ export async function POST(request: Request) {
     );
     if (!selectedMaterial) {
       return NextResponse.json(
-        { error: "Nevažeći materijal" },
+        { error: "Nevažeći materijal za korpus" },
+        { status: 400 },
+      );
+    }
+
+    const selectedFrontMaterial = pricingMaterials.find(
+      (m) => Number(m.id) === resolvedFrontMaterialId,
+    );
+    if (!selectedFrontMaterial) {
+      return NextResponse.json(
+        { error: "Nevažeći materijal za lica/vrata" },
         { status: 400 },
       );
     }
@@ -191,6 +216,7 @@ export async function POST(request: Request) {
       height: Number(snapshot?.height ?? 0),
       depth: Number(snapshot?.depth ?? 0),
       selectedMaterialId: resolvedMaterialId,
+      selectedFrontMaterialId: resolvedFrontMaterialId,
       selectedBackMaterialId: resolvedBackMaterialId,
       elementConfigs: snapshot?.elementConfigs ?? {},
       compartmentExtras: snapshot?.compartmentExtras ?? {},
@@ -209,6 +235,30 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // Get back material info for storing name
+    const selectedBackMaterial = resolvedBackMaterialId
+      ? pricingMaterials.find((m) => Number(m.id) === resolvedBackMaterialId)
+      : null;
+
+    // Use price breakdown calculated by calcCutList (based on materialType field)
+    const priceBreakdown = {
+      korpus: {
+        areaM2: pricing.priceBreakdown.korpus.areaM2,
+        price: pricing.priceBreakdown.korpus.price,
+        materialName: selectedMaterial.name,
+      },
+      front: {
+        areaM2: pricing.priceBreakdown.front.areaM2,
+        price: pricing.priceBreakdown.front.price,
+        materialName: selectedFrontMaterial.name,
+      },
+      back: {
+        areaM2: pricing.priceBreakdown.back.areaM2,
+        price: pricing.priceBreakdown.back.price,
+        materialName: selectedBackMaterial?.name ?? "Nije izabrano",
+      },
+    };
 
     // Create wardrobe and order (manual rollback if order fails)
     const now = new Date();
@@ -235,13 +285,16 @@ export async function POST(request: Request) {
           userId,
           wardrobeId: wardrobe.id,
           materialId: resolvedMaterialId,
+          frontMaterialId: resolvedFrontMaterialId,
           backMaterialId: resolvedBackMaterialId,
           area,
           totalPrice,
+          priceBreakdown,
           customerName,
           customerEmail: customerEmail || null,
           customerPhone: customerPhone || null,
           shippingStreet,
+          shippingApartment: shippingApartment || null,
           shippingCity,
           shippingPostalCode,
           status: "open",

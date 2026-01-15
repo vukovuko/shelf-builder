@@ -9,6 +9,10 @@ const createOrderSchema = z.object({
   userId: z.string().min(1, "Korisnik je obavezan"),
   wardrobeId: z.string().nullable().optional(),
   materialId: z.number().int().positive("Materijal je obavezan"),
+  frontMaterialId: z
+    .number()
+    .int()
+    .positive("Materijal za lica/vrata je obavezan"),
   backMaterialId: z.number().int().positive().nullable().optional(),
   area: z.number().int().positive("Kvadratura mora biti pozitivan broj"),
   totalPrice: z.number().int().positive("Cena mora biti pozitivan broj"),
@@ -17,6 +21,7 @@ const createOrderSchema = z.object({
   customerEmail: z.string().email().nullable().optional(),
   customerPhone: z.string().nullable().optional(),
   shippingStreet: z.string().min(1, "Ulica je obavezna"),
+  shippingApartment: z.string().nullable().optional(),
   shippingCity: z.string().min(1, "Grad je obavezan"),
   shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
 });
@@ -87,6 +92,7 @@ export async function POST(request: Request) {
       userId,
       wardrobeId,
       materialId,
+      frontMaterialId,
       backMaterialId,
       area,
       totalPrice,
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
       customerEmail,
       customerPhone,
       shippingStreet,
+      shippingApartment,
       shippingCity,
       shippingPostalCode,
     } = validation.data;
@@ -105,6 +112,7 @@ export async function POST(request: Request) {
         userId,
         wardrobeId: wardrobeId || null,
         materialId,
+        frontMaterialId,
         backMaterialId: backMaterialId || null,
         area,
         totalPrice,
@@ -113,6 +121,7 @@ export async function POST(request: Request) {
         customerEmail: customerEmail || null,
         customerPhone: customerPhone || null,
         shippingStreet,
+        shippingApartment: shippingApartment || null,
         shippingCity,
         shippingPostalCode,
       })

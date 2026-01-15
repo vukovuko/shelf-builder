@@ -7,9 +7,16 @@ import { requireAdmin, getCurrentUser } from "@/lib/roles";
 import { userIdSchema } from "@/lib/validation";
 
 const userUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  phone: z.string().nullable().optional(),
   receiveOrderEmails: z.boolean().optional(),
   tags: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  // Address fields
+  shippingStreet: z.string().nullable().optional(),
+  shippingApartment: z.string().nullable().optional(),
+  shippingCity: z.string().nullable().optional(),
+  shippingPostalCode: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -35,7 +42,15 @@ export async function GET(
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
+        receiveOrderEmails: user.receiveOrderEmails,
+        tags: user.tags,
+        notes: user.notes,
+        shippingStreet: user.shippingStreet,
+        shippingApartment: user.shippingApartment,
+        shippingCity: user.shippingCity,
+        shippingPostalCode: user.shippingPostalCode,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })
@@ -112,7 +127,17 @@ export async function PATCH(
       );
     }
 
-    const { receiveOrderEmails, tags, notes } = validation.data;
+    const {
+      name,
+      phone,
+      receiveOrderEmails,
+      tags,
+      notes,
+      shippingStreet,
+      shippingApartment,
+      shippingCity,
+      shippingPostalCode,
+    } = validation.data;
 
     // Check if user exists
     const [existingUser] = await db
@@ -131,9 +156,15 @@ export async function PATCH(
     await db
       .update(user)
       .set({
+        ...(name !== undefined && { name }),
+        ...(phone !== undefined && { phone }),
         ...(receiveOrderEmails !== undefined && { receiveOrderEmails }),
         ...(tags !== undefined && { tags }),
         ...(notes !== undefined && { notes }),
+        ...(shippingStreet !== undefined && { shippingStreet }),
+        ...(shippingApartment !== undefined && { shippingApartment }),
+        ...(shippingCity !== undefined && { shippingCity }),
+        ...(shippingPostalCode !== undefined && { shippingPostalCode }),
         updatedAt: new Date(),
       })
       .where(eq(user.id, validatedId.data));

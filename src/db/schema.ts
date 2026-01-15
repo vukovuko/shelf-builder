@@ -62,6 +62,11 @@ export const user = pgTable("user", {
   receiveOrderEmails: boolean("receiveOrderEmails").default(false),
   tags: text("tags"), // JSON array: '["vip","loyal"]'
   notes: text("notes"), // Internal admin notes
+  // Default shipping address
+  shippingStreet: text("shippingStreet"),
+  shippingApartment: text("shippingApartment"),
+  shippingCity: text("shippingCity"),
+  shippingPostalCode: text("shippingPostalCode"),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
 });
@@ -204,16 +209,26 @@ export const orders = pgTable(
     materialId: integer("materialId")
       .notNull()
       .references(() => materials.id),
+    frontMaterialId: integer("frontMaterialId")
+      .notNull()
+      .references(() => materials.id),
     backMaterialId: integer("backMaterialId").references(() => materials.id),
     // Dimensions and pricing
     area: integer("area").notNull(), // Area in cm² for precision
     totalPrice: integer("totalPrice").notNull(), // Price in RSD
+    // Price breakdown per material type (stored at order time)
+    priceBreakdown: json("priceBreakdown").$type<{
+      korpus: { areaM2: number; price: number; materialName: string };
+      front: { areaM2: number; price: number; materialName: string };
+      back: { areaM2: number; price: number; materialName: string };
+    }>(),
     // Customer contact (stored on order for guest checkout)
     customerName: text("customerName").notNull(),
     customerEmail: text("customerEmail"), // Optional if phone provided
     customerPhone: text("customerPhone"), // Optional if email provided
     // Shipping address
     shippingStreet: text("shippingStreet").notNull(),
+    shippingApartment: text("shippingApartment"), // Optional apartment number
     shippingCity: text("shippingCity").notNull(),
     shippingPostalCode: text("shippingPostalCode").notNull(),
     // Statuses
@@ -235,6 +250,9 @@ export const orders = pgTable(
     userIdIdx: index("order_user_id_idx").on(table.userId),
     wardrobeIdIdx: index("order_wardrobe_id_idx").on(table.wardrobeId),
     materialIdIdx: index("order_material_id_idx").on(table.materialId),
+    frontMaterialIdIdx: index("order_front_material_id_idx").on(
+      table.frontMaterialId,
+    ),
     backMaterialIdIdx: index("order_back_material_id_idx").on(
       table.backMaterialId,
     ),
@@ -253,6 +271,10 @@ export const orderRelations = relations(orders, ({ one }) => ({
   }),
   material: one(materials, {
     fields: [orders.materialId],
+    references: [materials.id],
+  }),
+  frontMaterial: one(materials, {
+    fields: [orders.frontMaterialId],
     references: [materials.id],
   }),
   backMaterial: one(materials, {

@@ -22,6 +22,10 @@ export default async function UserDetailPage({ params }: PageProps) {
       receiveOrderEmails: user.receiveOrderEmails,
       tags: user.tags,
       notes: user.notes,
+      shippingStreet: user.shippingStreet,
+      shippingApartment: user.shippingApartment,
+      shippingCity: user.shippingCity,
+      shippingPostalCode: user.shippingPostalCode,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     })
