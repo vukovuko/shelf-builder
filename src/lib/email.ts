@@ -39,6 +39,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
 
 interface AdminOrderNotificationData {
   orderId: string;
+  orderNumber: number;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -78,13 +79,11 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
     }),
   );
 
-  const orderIdShort = data.orderId.slice(0, 8).toUpperCase();
-
   // Send to all opted-in admins (rate limiter handles delays automatically)
   for (const admin of admins) {
     await sendEmail({
       to: admin.email,
-      subject: `Nova porudžbina #${orderIdShort} - ${data.totalPrice.toLocaleString("sr-RS")} RSD`,
+      subject: `Nova porudžbina #${data.orderNumber} - ${data.totalPrice.toLocaleString("sr-RS")} RSD`,
       html,
     });
   }

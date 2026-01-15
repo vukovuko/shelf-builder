@@ -343,6 +343,7 @@ export async function POST(request: Request) {
       // Send notification to all admins with receiveOrderEmails enabled
       await sendAdminNewOrderEmail({
         orderId: result.orderId,
+        orderNumber: result.orderNumber,
         customerName,
         customerEmail: customerEmail || null,
         customerPhone: customerPhone || null,

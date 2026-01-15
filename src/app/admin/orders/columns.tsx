@@ -45,13 +45,13 @@ const statusColors: Record<Order["status"], string> = {
 };
 
 const paymentLabels: Record<Order["paymentStatus"], string> = {
-  unpaid: "Neplaceno",
-  pending: "Na cekanju",
-  partially_paid: "Delim. placeno",
-  paid: "Placeno",
+  unpaid: "Neplaćeno",
+  pending: "Na čekanju",
+  partially_paid: "Delim. plaćeno",
+  paid: "Plaćeno",
   partially_refunded: "Delim. refundirano",
   refunded: "Refundirano",
-  voided: "Ponisteno",
+  voided: "Poništeno",
 };
 
 const paymentColors: Record<Order["paymentStatus"], string> = {
@@ -68,12 +68,12 @@ const paymentColors: Record<Order["paymentStatus"], string> = {
 };
 
 const fulfillmentLabels: Record<Order["fulfillmentStatus"], string> = {
-  unfulfilled: "Neizvrseno",
+  unfulfilled: "Neizvršeno",
   in_progress: "U toku",
-  on_hold: "Na cekanju",
+  on_hold: "Na čekanju",
   scheduled: "Zakazano",
-  partially_fulfilled: "Delim. izvrseno",
-  fulfilled: "Izvrseno",
+  partially_fulfilled: "Delim. izvršeno",
+  fulfilled: "Izvršeno",
 };
 
 const fulfillmentColors: Record<Order["fulfillmentStatus"], string> = {
@@ -200,7 +200,7 @@ export const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: "paymentStatus",
-    header: "Placanje",
+    header: "Plaćanje",
     cell: ({ row }) => {
       const status = row.getValue("paymentStatus") as Order["paymentStatus"];
       return (

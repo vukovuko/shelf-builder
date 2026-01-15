@@ -85,30 +85,30 @@ const statusLabels: Record<Order["status"], string> = {
 };
 
 const paymentLabels: Record<Order["paymentStatus"], string> = {
-  unpaid: "Neplaceno",
-  pending: "Na cekanju",
-  partially_paid: "Delimicno placeno",
-  paid: "Placeno",
-  partially_refunded: "Delimicno refundirano",
+  unpaid: "Neplaćeno",
+  pending: "Na čekanju",
+  partially_paid: "Delimično plaćeno",
+  paid: "Plaćeno",
+  partially_refunded: "Delimično refundirano",
   refunded: "Refundirano",
-  voided: "Ponisteno",
+  voided: "Poništeno",
 };
 
 const fulfillmentLabels: Record<Order["fulfillmentStatus"], string> = {
-  unfulfilled: "Neizvrseno",
+  unfulfilled: "Neizvršeno",
   in_progress: "U toku",
-  on_hold: "Na cekanju",
+  on_hold: "Na čekanju",
   scheduled: "Zakazano",
-  partially_fulfilled: "Delimicno izvrseno",
-  fulfilled: "Izvrseno",
+  partially_fulfilled: "Delimično izvršeno",
+  fulfilled: "Izvršeno",
 };
 
 const returnLabels: Record<Order["returnStatus"], string> = {
   none: "Nema",
-  return_requested: "Zatrazeno",
+  return_requested: "Zatraženo",
   return_in_progress: "U toku",
-  returned: "Vraceno",
-  inspection_complete: "Inspekcija zavrsena",
+  returned: "Vraćeno",
+  inspection_complete: "Inspekcija završena",
 };
 
 export function OrderDetailClient({ order }: OrderDetailClientProps) {
@@ -220,107 +220,118 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
 
             <div className="sm:col-span-2 space-y-3 min-w-0">
               <Label className="text-muted-foreground">Materijali i cene</Label>
-              <div className="rounded-lg border bg-muted/30 overflow-x-auto w-full min-w-0">
-                <table className="w-full min-w-[400px] table-fixed text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50 text-muted-foreground">
-                      <th className="w-[50%] sm:w-[60%] text-left py-2.5 px-3 font-medium">
-                        Materijal
-                      </th>
-                      <th className="w-[18%] sm:w-[20%] text-right py-2.5 pl-3 pr-4 font-medium whitespace-nowrap">
-                        m²
-                      </th>
-                      <th className="w-[32%] sm:w-[20%] text-right py-2.5 pl-4 font-medium">
-                        Cena
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {/* Korpus */}
-                    <tr>
-                      <td className="py-2.5 px-3">
-                        <div className="text-muted-foreground text-xs">
-                          Korpus
-                        </div>
-                        <div className="font-medium break-words">
-                          {order.materialName || "-"}
-                        </div>
-                      </td>
-                      <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
-                        {order.priceBreakdown
-                          ? order.priceBreakdown.korpus.areaM2.toFixed(2)
-                          : "-"}
-                      </td>
-                      <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
-                        {order.priceBreakdown
-                          ? `${order.priceBreakdown.korpus.price.toLocaleString("sr-RS")} RSD`
-                          : "-"}
-                      </td>
-                    </tr>
-                    {/* Lica/Vrata */}
-                    <tr>
-                      <td className="py-2.5 px-3">
-                        <div className="text-muted-foreground text-xs">
-                          Lica/Vrata
-                        </div>
-                        <div className="font-medium break-words">
-                          {order.frontMaterialName || "-"}
-                        </div>
-                      </td>
-                      <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
-                        {order.priceBreakdown
-                          ? order.priceBreakdown.front.areaM2.toFixed(2)
-                          : "-"}
-                      </td>
-                      <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
-                        {order.priceBreakdown
-                          ? `${order.priceBreakdown.front.price.toLocaleString("sr-RS")} RSD`
-                          : "-"}
-                      </td>
-                    </tr>
-                    {/* Leđa */}
-                    {order.backMaterialId && (
+              <div className="rounded-lg border bg-muted/30 p-4 min-w-0">
+                <div className="overflow-x-auto w-full min-w-0">
+                  <table className="w-full min-w-[400px] table-fixed text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="w-[50%] sm:w-[60%] text-left py-2 pr-2 font-medium">
+                          Materijal
+                        </th>
+                        <th className="w-[18%] sm:w-[20%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
+                          m²
+                        </th>
+                        <th className="w-[32%] sm:w-[20%] text-right py-2 pl-3 font-medium">
+                          Cena
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {/* Korpus */}
                       <tr>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2.5 pr-2">
                           <div className="text-muted-foreground text-xs">
-                            Leđa
+                            Korpus
                           </div>
-                          <div className="font-medium break-words">
-                            {order.backMaterialName || "-"}
+                          <div
+                            className="font-medium max-w-[180px] sm:max-w-full"
+                            title={order.materialName || ""}
+                          >
+                            {order.materialName || "-"}
                           </div>
                         </td>
-                        <td className="py-2.5 pl-3 pr-4 text-right tabular-nums whitespace-nowrap">
+                        <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
                           {order.priceBreakdown
-                            ? order.priceBreakdown.back.areaM2.toFixed(2)
+                            ? order.priceBreakdown.korpus.areaM2.toFixed(2)
                             : "-"}
                         </td>
-                        <td className="py-2.5 pl-4 text-right tabular-nums whitespace-nowrap">
+                        <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
                           {order.priceBreakdown
-                            ? `${order.priceBreakdown.back.price.toLocaleString("sr-RS")} RSD`
+                            ? `${order.priceBreakdown.korpus.price.toLocaleString("sr-RS")} RSD`
                             : "-"}
                         </td>
                       </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-border bg-muted/30">
-                      <td className="py-3 px-3 font-semibold">Ukupno</td>
-                      <td className="py-3 pl-3 pr-4 text-right tabular-nums font-medium whitespace-nowrap">
-                        {areaM2.toFixed(2)} m²
-                      </td>
-                      <td className="py-3 pl-4 text-right">
-                        <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
-                          <span className="text-base sm:text-lg font-bold tabular-nums">
-                            {order.totalPrice.toLocaleString("sr-RS")}
-                          </span>
-                          <span className="text-xs sm:text-sm font-medium">
-                            RSD
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                      {/* Lica/Vrata */}
+                      <tr>
+                        <td className="py-2.5 pr-2">
+                          <div className="text-muted-foreground text-xs">
+                            Lica/Vrata
+                          </div>
+                          <div
+                            className="font-medium max-w-[180px] sm:max-w-full"
+                            title={order.frontMaterialName || ""}
+                          >
+                            {order.frontMaterialName || "-"}
+                          </div>
+                        </td>
+                        <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                          {order.priceBreakdown
+                            ? order.priceBreakdown.front.areaM2.toFixed(2)
+                            : "-"}
+                        </td>
+                        <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                          {order.priceBreakdown
+                            ? `${order.priceBreakdown.front.price.toLocaleString("sr-RS")} RSD`
+                            : "-"}
+                        </td>
+                      </tr>
+                      {/* Leđa */}
+                      {order.backMaterialId && (
+                        <tr>
+                          <td className="py-2.5 pr-2">
+                            <div className="text-muted-foreground text-xs">
+                              Leđa
+                            </div>
+                            <div
+                              className="font-medium max-w-[180px] sm:max-w-full"
+                              title={order.backMaterialName || ""}
+                            >
+                              {order.backMaterialName || "-"}
+                            </div>
+                          </td>
+                          <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                            {order.priceBreakdown
+                              ? order.priceBreakdown.back.areaM2.toFixed(2)
+                              : "-"}
+                          </td>
+                          <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                            {order.priceBreakdown
+                              ? `${order.priceBreakdown.back.price.toLocaleString("sr-RS")} RSD`
+                              : "-"}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-border">
+                        <td className="py-3 pr-2 font-semibold">Ukupno</td>
+                        <td className="py-3 pl-2 pr-3 text-right tabular-nums font-medium whitespace-nowrap">
+                          {areaM2.toFixed(2)} m²
+                        </td>
+                        <td className="py-3 pl-3 text-right">
+                          <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
+                            <span className="text-base sm:text-lg font-bold tabular-nums">
+                              {order.totalPrice.toLocaleString("sr-RS")}
+                            </span>
+                            <span className="text-xs sm:text-sm font-medium">
+                              RSD
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             </div>
 
