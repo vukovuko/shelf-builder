@@ -1417,15 +1417,15 @@ export function ConfiguratorControls({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setBaseHeight(Math.max(baseHeight - 1, 0))}
+                    onClick={() => setBaseHeight(Math.max(baseHeight - 1, 3))}
                     disabled={!hasBase}
                     className="px-2"
                   >
                     –
                   </Button>
                   <Slider
-                    min={0}
-                    max={15}
+                    min={3}
+                    max={10}
                     step={1}
                     value={[baseHeight]}
                     onValueChange={([val]) => setBaseHeight(val)}
@@ -1435,7 +1435,7 @@ export function ConfiguratorControls({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setBaseHeight(Math.min(baseHeight + 1, 20))}
+                    onClick={() => setBaseHeight(Math.min(baseHeight + 1, 10))}
                     disabled={!hasBase}
                     className="px-2"
                   >
