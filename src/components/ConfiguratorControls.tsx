@@ -63,6 +63,13 @@ import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type Material } from "@/lib/store";
+import {
+  toLetters,
+  buildBlocksX,
+  buildModulesY,
+  getElementKeys,
+} from "@/lib/wardrobe-utils";
+import { DRAWER_HEIGHT, DRAWER_GAP } from "@/lib/wardrobe-constants";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { DimensionControl } from "./DimensionControl";
@@ -1010,31 +1017,7 @@ export function ConfiguratorControls({
                 // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
                 const w = useShelfStore.getState().width / 100;
                 const h = useShelfStore.getState().height / 100;
-                const maxSegX = 100 / 100;
-                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-                const letters: string[] = [];
-                const toLetters = (num: number) => {
-                  let n = num + 1;
-                  let s = "";
-                  while (n > 0) {
-                    const rem = (n - 1) % 26;
-                    s = String.fromCharCode(65 + rem) + s;
-                    n = Math.floor((n - 1) / 26);
-                  }
-                  return s;
-                };
-                const minTopH = 10 / 100;
-                const targetBottomH = 200 / 100;
-                const hasSplitY = h > 200 / 100; // split when > 200cm
-                const _topH = hasSplitY
-                  ? h - targetBottomH < minTopH
-                    ? minTopH
-                    : h - targetBottomH
-                  : 0;
-                const nModulesY = hasSplitY ? 2 : 1;
-                const totalElements = nBlocksX * nModulesY;
-                for (let i = 0; i < totalElements; i++)
-                  letters.push(toLetters(i));
+                const letters = getElementKeys(w, h);
 
                 const selectedElementKey = useShelfStore(
                   (state) => state.selectedElementKey,
@@ -1432,29 +1415,9 @@ export function ConfiguratorControls({
                 );
 
                 // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
-                // Identicno kao u CarcassFrame elementLabels: blokovi po 100cm (X) i moduli po visini (Y)
                 const width = useShelfStore((state) => state.width);
                 const height = useShelfStore((state) => state.height);
-                const w = width / 100;
-                const h = height / 100;
-                const maxSegX = 100 / 100;
-                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-                const hasSplitY = h > 200 / 100;
-                const nModulesY = hasSplitY ? 2 : 1;
-                const toLetters = (num: number) => {
-                  let n = num + 1;
-                  let s = "";
-                  while (n > 0) {
-                    const rem = (n - 1) % 26;
-                    s = String.fromCharCode(65 + rem) + s;
-                    n = Math.floor((n - 1) / 26);
-                  }
-                  return s;
-                };
-                const allKeys = Array.from(
-                  { length: nBlocksX * nModulesY },
-                  (_, i) => toLetters(i),
-                );
+                const allKeys = getElementKeys(width / 100, height / 100);
 
                 // Prikaz stanja za selektovani element
                 const extras = selectedCompartmentKey
@@ -1552,64 +1515,13 @@ export function ConfiguratorControls({
                                   const t = thicknessMm / 1000; // world units (m)
                                   const w = width / 100;
                                   const h = height / 100;
-                                  const maxSegX = 100 / 100;
-                                  const nBlocksX = Math.max(
-                                    1,
-                                    Math.ceil(w / maxSegX),
-                                  );
-                                  const segWX = w / nBlocksX;
-                                  const targetBottomH = 200 / 100;
-                                  const minTopH = 10 / 100;
-                                  const modulesY: {
-                                    yStart: number;
-                                    yEnd: number;
-                                  }[] = [];
-                                  if (h > 200 / 100) {
-                                    const yStartBottom = -h / 2;
-                                    const bottomH =
-                                      h - targetBottomH < minTopH
-                                        ? h - minTopH
-                                        : targetBottomH;
-                                    const yEndBottom = yStartBottom + bottomH;
-                                    const yStartTop = yEndBottom;
-                                    const yEndTop = h / 2;
-                                    modulesY.push({
-                                      yStart: yStartBottom,
-                                      yEnd: yEndBottom,
-                                    });
-                                    modulesY.push({
-                                      yStart: yStartTop,
-                                      yEnd: yEndTop,
-                                    });
-                                  } else {
-                                    modulesY.push({
-                                      yStart: -h / 2,
-                                      yEnd: h / 2,
-                                    });
-                                  }
-                                  const toLetters = (num: number) => {
-                                    let n = num + 1;
-                                    let s = "";
-                                    while (n > 0) {
-                                      const rem = (n - 1) % 26;
-                                      s = String.fromCharCode(65 + rem) + s;
-                                      n = Math.floor((n - 1) / 26);
-                                    }
-                                    return s;
-                                  };
-                                  const blocksX = Array.from(
-                                    { length: nBlocksX },
-                                    (_, i) => {
-                                      const start = -w / 2 + i * segWX;
-                                      const end = start + segWX;
-                                      return { start, end };
-                                    },
-                                  );
+                                  const blocksX = buildBlocksX(w);
+                                  const modulesY = buildModulesY(h);
                                   let idx = 0;
                                   let innerHForDrawers = 0;
                                   let found = false;
                                   modulesY.forEach((m, mIdx) => {
-                                    blocksX.forEach((_bx) => {
+                                    blocksX.forEach(() => {
                                       const letter = toLetters(idx);
                                       if (
                                         !found &&
@@ -1633,13 +1545,11 @@ export function ConfiguratorControls({
                                       idx += 1;
                                     });
                                   });
-                                  const drawerH = 10 / 100; // 10cm
-                                  const gap = 1 / 100; // 1cm
                                   const maxCount = Math.max(
                                     0,
                                     Math.floor(
-                                      (innerHForDrawers + gap) /
-                                        (drawerH + gap),
+                                      (innerHForDrawers + DRAWER_GAP) /
+                                        (DRAWER_HEIGHT + DRAWER_GAP),
                                     ),
                                   );
                                   const current = extras.drawersCount ?? 0;
@@ -1720,26 +1630,7 @@ export function ConfiguratorControls({
               {(() => {
                 const width = useShelfStore((state) => state.width);
                 const height = useShelfStore((state) => state.height);
-                const w = width / 100;
-                const h = height / 100;
-                const maxSegX = 100 / 100;
-                const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
-                const hasSplitY = h > 200 / 100;
-                const nModulesY = hasSplitY ? 2 : 1;
-                const toLetters = (num: number) => {
-                  let n = num + 1;
-                  let s = "";
-                  while (n > 0) {
-                    const rem = (n - 1) % 26;
-                    s = String.fromCharCode(65 + rem) + s;
-                    n = Math.floor((n - 1) / 26);
-                  }
-                  return s;
-                };
-                const allKeys = Array.from(
-                  { length: nBlocksX * nModulesY },
-                  (_, i) => toLetters(i),
-                );
+                const allKeys = getElementKeys(width / 100, height / 100);
 
                 const selectedDoorElementKey = useShelfStore(
                   (state) => state.selectedDoorElementKey,
