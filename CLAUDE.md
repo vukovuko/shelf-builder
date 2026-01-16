@@ -4,6 +4,117 @@
 - **Never run database commands** - Don't run any database commands (migrations, seeds, drizzle-kit, etc.) on your own. Just tell me what to run. If commands need to be sequential, tell me the order and I'll run them and paste errors or success from the terminal.
 
 ---
+
+## CarcassFrame Panel Architecture (3D Wardrobe Rendering)
+
+The wardrobe 3D scene is rendered in `src/components/CarcassFrame/CarcassFrame.tsx`. Understanding the panel system is critical for any modifications.
+
+### Key Concepts
+
+**Coordinate System:**
+- Origin (0, 0, 0) is at the CENTER of the wardrobe
+- X axis: left (-) to right (+)
+- Y axis: bottom (0) to top (h)
+- Z axis: back (-) to front (+)
+- All dimensions are in METERS (cm / 100)
+
+**Module System:**
+- Wardrobes > 200cm tall are split into "BottomModule" and "TopModule"
+- Wardrobes ≤ 200cm have a single "SingleModule"
+- The base (Baza) only applies to BottomModule or SingleModule
+
+### The `panels` useMemo (lines ~214-292)
+
+This is where ALL structural panels are calculated and rendered. There are several types:
+
+```
+┌─────────────────────────────────────┐
+│           Top Panel                 │
+├───────┬───────────────┬─────────────┤
+│       │               │             │
+│ Side  │  Side Seam    │  Side Seam  │  Side
+│  L    │     A         │     B       │   R
+│       │               │             │
+├───────┴───────────────┴─────────────┤
+│          Bottom Panel               │
+├─────────────────────────────────────┤
+│              BASE                   │  (empty space when hasBase=true)
+└─────────────────────────────────────┘
+```
+
+**Panel Types:**
+1. **Side L / Side R** - Outer left and right panels (full height, go to floor)
+2. **Side seam** - Internal dividers between columns A, B, C (should STOP at base)
+3. **Top / Bottom** - Horizontal panels (Bottom is raised by baseH when base enabled)
+
+### How Base (Baza) Works
+
+When `hasBase = true`:
+- `baseH = baseHeightCm / 100` (convert cm to meters)
+- **Bottom panel**: Y position raised by `baseH` (line ~276: `yBottom = m.yStart + raise + t / 2`)
+- **Side seam panels**: Height reduced by `baseH`, Y position shifted up
+
+**The Fix for Side Seams (lines 250-267):**
+```typescript
+} else {
+  // Internal seam: two touching panels - stop at base, don't go through it
+  const raiseForSeam =
+    hasBase && (m.label === "BottomModule" || m.label === "SingleModule")
+      ? baseH
+      : 0;
+  const seamHeight = m.height - raiseForSeam;  // Shorter by base amount
+  const seamCy = (m.yStart + raiseForSeam + m.yEnd) / 2;  // Centered in remaining space
+  list.push({
+    label: `Side seam ${idx}A (${m.label})`,
+    position: [x - t / 2, seamCy, 0],
+    size: [t, seamHeight, d],
+  });
+  // ... same for Side seam B
+}
+```
+
+### The `dividers` Array (lines ~136-146)
+
+**IMPORTANT:** This is NOT for rendering panels! It's only for:
+- Interactive drag handles (the buttons you can click to move dividers)
+- Label positioning
+
+The actual visual panels come from the `panels` useMemo above.
+
+### BlueprintView (2D Technical Drawing)
+
+`src/components/BlueprintView.tsx` renders the 2D technical drawing (SVG).
+
+**Coordinate System:**
+- SVG has Y increasing DOWNWARD (opposite of 3D)
+- `frontViewY` = top of wardrobe
+- `frontViewY + scaledHeight` = bottom of wardrobe
+- `mapYFront(yFromBottomCm)` converts from bottom-up cm to SVG Y
+
+**Dividers in BlueprintView (line ~296):**
+```typescript
+y2={frontViewY + scaledHeight - scaledBaseHeight}  // Stop at top of base
+```
+
+### Scene Invalidation
+
+When store values change, the 3D scene needs to re-render. This is handled in `src/components/Scene.tsx` by the `ContextMonitor` component:
+
+```typescript
+useEffect(() => {
+  invalidate();
+}, [
+  store.width,
+  store.height,
+  // ... other store values
+  store.showDoors,  // Don't forget to add new store values here!
+  invalidate,
+]);
+```
+
+**If you add a new store value that affects rendering, add it to this dependency array!**
+
+---
 title: Minimize Serialization at RSC Boundaries
 impact: HIGH
 impactDescription: reduces data transfer size

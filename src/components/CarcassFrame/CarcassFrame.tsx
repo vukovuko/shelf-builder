@@ -77,6 +77,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     );
     const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
     const doorSelections = useShelfStore((s) => s.doorSelections);
+    const showDoors = useShelfStore((s) => s.showDoors);
 
     // Guard against empty materials array (before DB data loads)
     if (materials.length === 0) {
@@ -132,12 +133,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     }
 
     // Update divider positions to use customDividerPositions
+    // Account for base: dividers should stop at the base, not go through it
     const dividers = dividerPositions.map((xPos, i) => {
       const customX = customDividerPositions[`divider-${i}`] ?? xPos;
+      const dividerHeight = h - 2 * t - baseH; // Subtract base height
+      const dividerY = (h + baseH) / 2; // Shift up by half of baseH
       return {
         id: `divider-${i}`,
-        position: [customX, h / 2, 0] as [number, number, number],
-        size: [t, h - 2 * t, d] as [number, number, number],
+        position: [customX, dividerY, 0] as [number, number, number],
+        size: [t, dividerHeight, d] as [number, number, number],
       };
     });
 
@@ -244,16 +248,23 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               size: [t, m.height, d],
             });
           } else {
-            // Internal seam: two touching panels
+            // Internal seam: two touching panels - stop at base, don't go through it
+            const raiseForSeam =
+              hasBase &&
+              (m.label === "BottomModule" || m.label === "SingleModule")
+                ? baseH
+                : 0;
+            const seamHeight = m.height - raiseForSeam;
+            const seamCy = (m.yStart + raiseForSeam + m.yEnd) / 2;
             list.push({
               label: `Side seam ${idx}A (${m.label})`,
-              position: [x - t / 2, cy, 0],
-              size: [t, m.height, d],
+              position: [x - t / 2, seamCy, 0],
+              size: [t, seamHeight, d],
             });
             list.push({
               label: `Side seam ${idx}B (${m.label})`,
-              position: [x + t / 2, cy, 0],
-              size: [t, m.height, d],
+              position: [x + t / 2, seamCy, 0],
+              size: [t, seamHeight, d],
             });
           }
         });
@@ -1076,6 +1087,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
         {/* Doors rendering per element selection */}
         {(() => {
+          if (!showDoors) return null;
           if (!doorSelections || Object.keys(doorSelections).length === 0)
             return null;
           // Rebuild element grid (same mapping as labels and menus)

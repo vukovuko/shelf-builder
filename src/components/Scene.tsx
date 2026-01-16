@@ -42,6 +42,7 @@ function ContextMonitor() {
     store.elementConfigs,
     store.compartmentExtras,
     store.doorSelections,
+    store.showDoors,
     invalidate,
   ]);
 

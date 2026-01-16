@@ -1712,6 +1712,10 @@ export function ConfiguratorControls({
                 const setDoorOption = useShelfStore(
                   (state) => state.setDoorOption,
                 );
+                const showDoors = useShelfStore((state) => state.showDoors);
+                const setShowDoors = useShelfStore(
+                  (state) => state.setShowDoors,
+                );
 
                 const options: { key: string; label: string }[] = [
                   { key: "none", label: "Bez vrata" },
@@ -1726,6 +1730,14 @@ export function ConfiguratorControls({
 
                 return (
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Prikaži vrata</span>
+                      <Switch
+                        checked={showDoors}
+                        onCheckedChange={setShowDoors}
+                      />
+                    </div>
+
                     <div className="flex flex-wrap gap-2 items-center mb-1">
                       <span className="text-sm text-muted-foreground">
                         Element:

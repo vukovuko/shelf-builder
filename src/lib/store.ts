@@ -101,6 +101,8 @@ interface ShelfState {
   setSelectedDoorElementKey: (key: string | null) => void;
   doorSelections: Record<string, DoorOption>;
   setDoorOption: (key: string, option: DoorOption) => void;
+  showDoors: boolean;
+  setShowDoors: (show: boolean) => void;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -337,4 +339,6 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => ({
       doorSelections: { ...state.doorSelections, [key]: option },
     })),
+  showDoors: true,
+  setShowDoors: (show) => set({ showDoors: show }),
 }));

@@ -284,7 +284,7 @@ export function BlueprintView() {
             />
           )}
 
-          {/* Vertical dividers for blocks */}
+          {/* Vertical dividers for blocks - stop at base, don't go through it */}
           {Array.from({ length: nBlocksX - 1 }, (_, i) => {
             const dividerX = frontViewX + (i + 1) * blockWidth * scale;
             return (
@@ -293,7 +293,7 @@ export function BlueprintView() {
                 x1={dividerX}
                 y1={frontViewY}
                 x2={dividerX}
-                y2={frontViewY + scaledHeight}
+                y2={frontViewY + scaledHeight - scaledBaseHeight}
                 stroke="#000"
                 strokeWidth="1"
               />
