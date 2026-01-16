@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { calculateCutList } from "@/lib/calcCutList";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
 import {
@@ -70,6 +71,7 @@ interface WardrobePreviewClientProps {
     updatedAt: string;
     userName: string | null;
     userEmail: string | null;
+    isModel: boolean | null;
   };
   materials: Material[];
 }
@@ -530,19 +532,22 @@ export function WardrobePreviewClient({
             </Link>
           </Button>
           <div className="min-w-0">
-            <Popover>
-              <PopoverTrigger asChild>
-                <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+                    {wardrobe.name}
+                  </h1>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="bottom"
+                  className="w-auto max-w-xs p-2 text-sm"
+                >
                   {wardrobe.name}
-                </h1>
-              </PopoverTrigger>
-              <PopoverContent
-                side="bottom"
-                className="w-auto max-w-xs p-2 text-sm"
-              >
-                {wardrobe.name}
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+              {wardrobe.isModel && <Badge variant="secondary">Model</Badge>}
+            </div>
             <p className="text-sm text-muted-foreground">Pregled ormana</p>
           </div>
         </div>

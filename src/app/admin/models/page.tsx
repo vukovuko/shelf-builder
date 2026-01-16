@@ -1,20 +1,17 @@
 import { db } from "@/db/db";
 import { user, wardrobes } from "@/db/schema";
-import { count, desc, eq, ilike, or } from "drizzle-orm";
-import { WardrobesClient } from "./WardrobesClient";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { ModelsClient } from "./ModelsClient";
 
 const PAGE_SIZE = 20;
 
-interface WardrobesPageProps {
+interface ModelsPageProps {
   searchParams?:
     | Promise<{ page?: string | string[]; search?: string | string[] }>
     | { page?: string | string[]; search?: string | string[] };
 }
 
-export default async function WardrobesPage({
-  searchParams,
-}: WardrobesPageProps) {
-  // Layout already checks admin access
+export default async function ModelsPage({ searchParams }: ModelsPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]
@@ -27,8 +24,9 @@ export default async function WardrobesPage({
   const offset = (page - 1) * PAGE_SIZE;
   const search = searchParam?.trim() || "";
 
-  // Search by wardrobe name or user name/email
-  const whereClause = search
+  // Filter: isModel=true, and optionally search by name or user
+  const baseCondition = eq(wardrobes.isModel, true);
+  const searchCondition = search
     ? or(
         ilike(wardrobes.name, `%${search}%`),
         ilike(user.name, `%${search}%`),
@@ -36,7 +34,11 @@ export default async function WardrobesPage({
       )
     : undefined;
 
-  const [allWardrobes, totalResult] = await Promise.all([
+  const whereClause = searchCondition
+    ? and(baseCondition, searchCondition)
+    : baseCondition;
+
+  const [allModels, totalResult] = await Promise.all([
     db
       .select({
         id: wardrobes.id,
@@ -47,7 +49,7 @@ export default async function WardrobesPage({
         userId: wardrobes.userId,
         userName: user.name,
         userEmail: user.email,
-        isModel: wardrobes.isModel,
+        publishedModel: wardrobes.publishedModel,
       })
       .from(wardrobes)
       .leftJoin(user, eq(wardrobes.userId, user.id))
@@ -64,16 +66,15 @@ export default async function WardrobesPage({
 
   const totalCount = Number(totalResult[0]?.count ?? 0);
 
-  // Convert dates to strings for serialization
-  const serializedWardrobes = allWardrobes.map((w) => ({
-    ...w,
-    createdAt: w.createdAt.toISOString(),
-    updatedAt: w.updatedAt.toISOString(),
+  const serializedModels = allModels.map((m) => ({
+    ...m,
+    createdAt: m.createdAt.toISOString(),
+    updatedAt: m.updatedAt.toISOString(),
   }));
 
   return (
-    <WardrobesClient
-      wardrobes={serializedWardrobes}
+    <ModelsClient
+      models={serializedModels}
       page={page}
       pageSize={PAGE_SIZE}
       totalCount={totalCount}

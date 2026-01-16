@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db/db";
 import { wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { isCurrentUserAdmin } from "@/lib/roles";
 import { updateWardrobeSchema, wardrobeIdSchema } from "@/lib/validation";
 
 export async function GET(
@@ -28,16 +29,18 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [w] = await db
-      .select()
-      .from(wardrobes)
-      .where(
-        and(
+    // Check if user is admin - admins can fetch any wardrobe
+    const userIsAdmin = await isCurrentUserAdmin();
+
+    // Build where clause - admin can fetch any wardrobe, user only their own
+    const whereClause = userIsAdmin
+      ? eq(wardrobes.id, idValidation.data)
+      : and(
           eq(wardrobes.id, idValidation.data),
           eq(wardrobes.userId, session.user.id),
-        ),
-      )
-      .limit(1);
+        );
+
+    const [w] = await db.select().from(wardrobes).where(whereClause).limit(1);
 
     if (!w) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -91,6 +94,17 @@ export async function PUT(
 
     const { name, data, thumbnail } = validationResult.data;
 
+    // Check if user is admin - admins can update any wardrobe
+    const userIsAdmin = await isCurrentUserAdmin();
+
+    // Build where clause - admin can update any wardrobe, user only their own
+    const whereClause = userIsAdmin
+      ? eq(wardrobes.id, idValidation.data)
+      : and(
+          eq(wardrobes.id, idValidation.data),
+          eq(wardrobes.userId, session.user.id),
+        );
+
     await db
       .update(wardrobes)
       .set({
@@ -99,12 +113,7 @@ export async function PUT(
         ...(thumbnail !== undefined && { thumbnail }),
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(wardrobes.id, idValidation.data),
-          eq(wardrobes.userId, session.user.id),
-        ),
-      );
+      .where(whereClause);
 
     return NextResponse.json({ ok: true });
   } catch (e) {

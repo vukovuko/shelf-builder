@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
@@ -6,6 +6,7 @@ import { wardrobes, materials } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { createWardrobeSchema } from "@/lib/validation";
 import { calculateCutList, type WardrobeSnapshot } from "@/lib/calcCutList";
+import { isCurrentUserAdmin } from "@/lib/roles";
 
 export async function GET() {
   try {
@@ -24,7 +25,12 @@ export async function GET() {
         updatedAt: wardrobes.updatedAt,
       })
       .from(wardrobes)
-      .where(eq(wardrobes.userId, session.user.id))
+      .where(
+        and(
+          eq(wardrobes.userId, session.user.id),
+          eq(wardrobes.isModel, false),
+        ),
+      )
       .orderBy(desc(wardrobes.updatedAt));
 
     return NextResponse.json(list);
@@ -61,7 +67,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, data, thumbnail } = validationResult.data;
+    const { name, data, thumbnail, isModel } = validationResult.data;
+
+    // Only admins can save as model
+    if (isModel) {
+      const userIsAdmin = await isCurrentUserAdmin();
+      if (!userIsAdmin) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
 
     // Calculate cut list if wardrobe data has required fields
     let cutListData = null;
@@ -134,6 +148,7 @@ export async function POST(req: Request) {
         thumbnail: thumbnail || null,
         cutList: cutListData,
         userId: session.user.id,
+        isModel: isModel || false,
       })
       .returning({ id: wardrobes.id });
 

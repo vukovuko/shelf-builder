@@ -339,6 +339,13 @@ export async function POST(request: Request) {
       throw orderError;
     }
 
+    // Update wardrobe name to include order number
+    const finalWardrobeName = `Porudžbina #${order.orderNumber}`;
+    await db
+      .update(wardrobes)
+      .set({ name: finalWardrobeName })
+      .where(eq(wardrobes.id, wardrobe.id));
+
     // Update user's default shipping address (for future orders)
     await db
       .update(user)

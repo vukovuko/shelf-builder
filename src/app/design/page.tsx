@@ -6,11 +6,16 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { useShelfStore } from "@/lib/store";
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
   const searchParams = useSearchParams();
   const loadId = searchParams.get("load");
+  const fromOrderId = searchParams.get("fromOrder");
+  const orderNum = searchParams.get("orderNum");
+  const setLoadedWardrobe = useShelfStore((s) => s.setLoadedWardrobe);
+  const setFromOrder = useShelfStore((s) => s.setFromOrder);
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 
@@ -31,6 +36,15 @@ function LoadFromUrl() {
 
         const wardrobe = await res.json();
         applyWardrobeSnapshot(wardrobe.data);
+
+        // Track loaded wardrobe for update functionality
+        setLoadedWardrobe(wardrobe.id, wardrobe.isModel ?? false);
+
+        // Track order context if coming from order detail page
+        if (fromOrderId && orderNum) {
+          setFromOrder(fromOrderId, parseInt(orderNum, 10));
+        }
+
         toast.success(`Učitano: ${wardrobe.name}`);
 
         window.history.replaceState({}, "", "/design");
@@ -42,7 +56,7 @@ function LoadFromUrl() {
     }
 
     loadWardrobe();
-  }, [loadId]);
+  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder]);
 
   return null;
 }

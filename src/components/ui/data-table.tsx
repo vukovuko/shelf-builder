@@ -45,6 +45,8 @@ interface DataTableProps<TData, TValue> {
   pageCount?: number;
   totalCount?: number;
   onPageChange?: (pageIndex: number) => void;
+  // Custom meta to pass to table
+  meta?: Record<string, unknown>;
 }
 
 export function DataTable<TData, TValue>({
@@ -63,6 +65,7 @@ export function DataTable<TData, TValue>({
   pageCount,
   totalCount,
   onPageChange,
+  meta: customMeta,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -128,6 +131,7 @@ export function DataTable<TData, TValue>({
     },
     meta: {
       lastClickedIndexRef,
+      ...customMeta,
     },
   });
 

@@ -4,6 +4,9 @@ import { db } from "@/db/db";
 import { orders, materials, wardrobes } from "@/db/schema";
 import { OrderDetailClient } from "./OrderDetailClient";
 
+// Disable caching to always show fresh wardrobe data
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

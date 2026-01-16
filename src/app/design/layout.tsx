@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
-import { materials } from "@/db/schema";
+import { materials, user } from "@/db/schema";
 import { DesignLayoutClient } from "./DesignLayoutClient";
 
 export default async function DesignLayout({
@@ -44,10 +44,22 @@ export default async function DesignLayout({
     published: m.published,
   }));
 
+  // Check if user is admin
+  let isAdmin = false;
+  if (session?.user?.id) {
+    const dbUser = await db
+      .select({ role: user.role })
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1);
+    isAdmin = dbUser[0]?.role === "admin";
+  }
+
   return (
     <DesignLayoutClient
       initialSession={initialSession}
       initialMaterials={serializedMaterials}
+      isAdmin={isAdmin}
     >
       {children}
     </DesignLayoutClient>

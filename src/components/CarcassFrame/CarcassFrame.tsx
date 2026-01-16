@@ -78,6 +78,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
     const doorSelections = useShelfStore((s) => s.doorSelections);
     const showDoors = useShelfStore((s) => s.showDoors);
+    const showInfoButtons = useShelfStore((s) => s.showInfoButtons);
 
     // Guard against empty materials array (before DB data loads)
     if (materials.length === 0) {
@@ -588,26 +589,28 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 zIndexRange={[0, 0]}
               >
                 <div style={{ position: "relative" }}>
-                  <button
-                    style={{
-                      fontSize: "4px",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      border: "1px solid #888",
-                      background: "#fff",
-                      cursor: "pointer",
-                      minWidth: "28px",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowPanelLabels((prev) => ({
-                        ...prev,
-                        [panel.label]: !prev[panel.label],
-                      }));
-                    }}
-                  >
-                    {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
-                  </button>
+                  {showInfoButtons && (
+                    <button
+                      style={{
+                        fontSize: "4px",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        border: "1px solid #888",
+                        background: "#fff",
+                        cursor: "pointer",
+                        minWidth: "28px",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPanelLabels((prev) => ({
+                          ...prev,
+                          [panel.label]: !prev[panel.label],
+                        }));
+                      }}
+                    >
+                      {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
+                    </button>
+                  )}
                   {showPanelLabels[panel.label] && (
                     <div
                       style={{
@@ -702,26 +705,28 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
                       {/* Show Info Button */}
-                      <button
-                        style={{
-                          fontSize: "4px",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          border: "1px solid #888",
-                          background: "#fff",
-                          cursor: "pointer",
-                          minWidth: "28px",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDividerLabels((prev) => ({
-                            ...prev,
-                            [divider.id]: !prev[divider.id],
-                          }));
-                        }}
-                      >
-                        {showDividerLabels[divider.id] ? "Sakrij" : "Prikaži"}
-                      </button>
+                      {showInfoButtons && (
+                        <button
+                          style={{
+                            fontSize: "4px",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            border: "1px solid #888",
+                            background: "#fff",
+                            cursor: "pointer",
+                            minWidth: "28px",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDividerLabels((prev) => ({
+                              ...prev,
+                              [divider.id]: !prev[divider.id],
+                            }));
+                          }}
+                        >
+                          {showDividerLabels[divider.id] ? "Sakrij" : "Prikaži"}
+                        </button>
+                      )}
                       {/* Drag Button */}
                       <button
                         style={{
@@ -826,26 +831,28 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
                       {/* Show Info Button */}
-                      <button
-                        style={{
-                          fontSize: "4px",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          border: "1px solid #888",
-                          background: "#fff",
-                          cursor: "pointer",
-                          minWidth: "28px",
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowShelfLabels((prev) => ({
-                            ...prev,
-                            [shelf.key]: !prev[shelf.key],
-                          }));
-                        }}
-                      >
-                        {showShelfLabels[shelf.key] ? "Sakrij" : "Prikaži"}
-                      </button>
+                      {showInfoButtons && (
+                        <button
+                          style={{
+                            fontSize: "4px",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            border: "1px solid #888",
+                            background: "#fff",
+                            cursor: "pointer",
+                            minWidth: "28px",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowShelfLabels((prev) => ({
+                              ...prev,
+                              [shelf.key]: !prev[shelf.key],
+                            }));
+                          }}
+                        >
+                          {showShelfLabels[shelf.key] ? "Sakrij" : "Prikaži"}
+                        </button>
+                      )}
                       {/* Drag Button */}
                       <button
                         style={{

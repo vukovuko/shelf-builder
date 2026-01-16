@@ -23,35 +23,34 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { columns, type Wardrobe } from "./columns";
+import { columns, type Model } from "./columns";
 
-interface WardrobesClientProps {
-  wardrobes: Wardrobe[];
+interface ModelsClientProps {
+  models: Model[];
   page: number;
   pageSize: number;
   totalCount: number;
   search: string;
 }
 
-export function WardrobesClient({
-  wardrobes,
+export function ModelsClient({
+  models,
   page,
   pageSize,
   totalCount,
   search,
-}: WardrobesClientProps) {
+}: ModelsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedWardrobes, setSelectedWardrobes] = useState<Wardrobe[]>([]);
+  const [selectedModels, setSelectedModels] = useState<Model[]>([]);
   const [searchInput, setSearchInput] = useState(search);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  // Debounced search - updates URL after 300ms of no typing
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -95,40 +94,60 @@ export function WardrobesClient({
     setIsDeleting(true);
     try {
       const results = await Promise.all(
-        selectedWardrobes.map((wardrobe) =>
-          fetch(`/api/admin/wardrobes/${wardrobe.id}`, { method: "DELETE" }),
+        selectedModels.map((model) =>
+          fetch(`/api/admin/wardrobes/${model.id}`, { method: "DELETE" }),
         ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${selectedWardrobes.length} ormana obrisano`);
+        toast.success(`${selectedModels.length} modela obrisano`);
         router.refresh();
       } else {
-        toast.error("Greška pri brisanju nekih ormana");
+        toast.error("Greška pri brisanju nekih modela");
       }
     } catch (error) {
-      console.error("Failed to delete wardrobes:", error);
-      toast.error("Greška pri brisanju ormana");
+      console.error("Failed to delete models:", error);
+      toast.error("Greška pri brisanju modela");
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
-      setSelectedWardrobes([]);
+      setSelectedModels([]);
+    }
+  }
+
+  async function handleTogglePublish(id: string, value: boolean) {
+    try {
+      const res = await fetch(`/api/admin/wardrobes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publishedModel: value }),
+      });
+
+      if (res.ok) {
+        toast.success(value ? "Model objavljen" : "Model sakriven");
+        router.refresh();
+      } else {
+        toast.error("Greška pri ažuriranju modela");
+      }
+    } catch (error) {
+      console.error("Failed to toggle publish:", error);
+      toast.error("Greška pri ažuriranju modela");
     }
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Ormani</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Modeli</h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Sačuvani ormani svih korisnika
+          Predlošci ormana za korisnike
         </p>
       </div>
       <DataTable
         columns={columns}
-        data={wardrobes}
-        searchPlaceholder="Pretrazi po nazivu ili korisniku..."
+        data={models}
+        searchPlaceholder="Pretraži po nazivu..."
         searchValue={searchInput}
         onSearchChange={setSearchInput}
         pageIndex={Math.max(page - 1, 0)}
@@ -136,11 +155,10 @@ export function WardrobesClient({
         pageCount={pageCount}
         totalCount={totalCount}
         onPageChange={handlePageChange}
-        onRowClick={(wardrobe) =>
-          router.push(`/admin/wardrobes/${wardrobe.id}`)
-        }
+        onRowClick={(model) => router.push(`/design?load=${model.id}`)}
         enableRowSelection
-        getRowId={(wardrobe) => wardrobe.id}
+        getRowId={(model) => model.id}
+        meta={{ onTogglePublish: handleTogglePublish }}
         bulkActions={(selected) => (
           <div
             className={cn(
@@ -163,7 +181,7 @@ export function WardrobesClient({
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => {
-                    setSelectedWardrobes(selected);
+                    setSelectedModels(selected);
                     setShowDeleteDialog(true);
                   }}
                 >
@@ -178,10 +196,10 @@ export function WardrobesClient({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Obrisati ormane?</AlertDialogTitle>
+            <AlertDialogTitle>Obrisati modele?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ova akcija je nepovratna. {selectedWardrobes.length} ormana će
-              biti trajno obrisano.
+              Ova akcija je nepovratna. {selectedModels.length} modela će biti
+              trajno obrisano.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

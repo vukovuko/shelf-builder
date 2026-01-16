@@ -30,6 +30,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
       userId: wardrobes.userId,
       userName: user.name,
       userEmail: user.email,
+      isModel: wardrobes.isModel,
     })
     .from(wardrobes)
     .leftJoin(user, eq(wardrobes.userId, user.id))
@@ -85,6 +86,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
         updatedAt: wardrobe.updatedAt.toISOString(),
         userName: wardrobe.userName,
         userEmail: wardrobe.userEmail,
+        isModel: wardrobe.isModel,
       }}
       materials={serializedMaterials}
     />

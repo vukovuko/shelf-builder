@@ -5,10 +5,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 
-export type Wardrobe = {
+export type Model = {
   id: string;
   name: string;
   thumbnail: string | null;
@@ -17,10 +17,10 @@ export type Wardrobe = {
   userId: string;
   userName: string | null;
   userEmail: string | null;
-  isModel: boolean | null;
+  publishedModel: boolean | null;
 };
 
-export const columns: ColumnDef<Wardrobe>[] = [
+export const columns: ColumnDef<Model>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -44,7 +44,6 @@ export const columns: ColumnDef<Wardrobe>[] = [
         e.stopPropagation();
 
         if (e.shiftKey && meta && meta.lastClickedIndexRef.current !== null) {
-          // Shift+click: select range
           const start = Math.min(meta.lastClickedIndexRef.current, row.index);
           const end = Math.max(meta.lastClickedIndexRef.current, row.index);
           const rows = table.getRowModel().rows;
@@ -53,7 +52,6 @@ export const columns: ColumnDef<Wardrobe>[] = [
             rows[i].toggleSelected(true);
           }
         } else {
-          // Normal click: toggle single row
           row.toggleSelected(!row.getIsSelected());
         }
 
@@ -90,7 +88,6 @@ export const columns: ColumnDef<Wardrobe>[] = [
     },
     cell: ({ row }) => {
       const thumbnail = row.original.thumbnail;
-      const isModel = row.original.isModel;
       return (
         <div className="flex items-center gap-3">
           {thumbnail ? (
@@ -107,14 +104,7 @@ export const columns: ColumnDef<Wardrobe>[] = [
               <span className="text-xs text-muted-foreground">-</span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{row.getValue("name")}</span>
-            {isModel && (
-              <Badge variant="secondary" className="text-xs">
-                Model
-              </Badge>
-            )}
-          </div>
+          <span className="font-medium">{row.getValue("name")}</span>
         </div>
       );
     },
@@ -127,7 +117,7 @@ export const columns: ColumnDef<Wardrobe>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Vlasnik
+          Kreirao
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -160,5 +150,31 @@ export const columns: ColumnDef<Wardrobe>[] = [
       const date = new Date(row.getValue("createdAt"));
       return date.toLocaleDateString("sr-RS");
     },
+  },
+  {
+    accessorKey: "publishedModel",
+    header: () => <div className="text-center">Objavljen</div>,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as
+        | { onTogglePublish?: (id: string, value: boolean) => void }
+        | undefined;
+
+      const handleChange = (checked: boolean) => {
+        meta?.onTogglePublish?.(row.original.id, checked);
+      };
+
+      return (
+        <div
+          className="flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Switch
+            checked={row.original.publishedModel ?? false}
+            onCheckedChange={handleChange}
+          />
+        </div>
+      );
+    },
+    enableSorting: false,
   },
 ];

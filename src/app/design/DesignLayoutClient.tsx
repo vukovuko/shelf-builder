@@ -1,8 +1,11 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { Button } from "@/components/ui/button";
 import { useShelfStore, type Material } from "@/lib/store";
 
 function useLockBodyScroll(locked: boolean) {
@@ -27,12 +30,14 @@ interface DesignLayoutClientProps {
     };
   } | null;
   initialMaterials: Material[];
+  isAdmin?: boolean;
 }
 
 export function DesignLayoutClient({
   children,
   initialSession,
   initialMaterials,
+  isAdmin = false,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -43,6 +48,10 @@ export function DesignLayoutClient({
   React.useEffect(() => {
     setMaterials(initialMaterials);
   }, [initialMaterials, setMaterials]);
+
+  // Track order context for "back to order" button
+  const fromOrderId = useShelfStore((state) => state.fromOrderId);
+  const fromOrderNumber = useShelfStore((state) => state.fromOrderNumber);
 
   // Clone children and inject wardrobeRef and isLoggedIn as props
   const childrenWithProps = React.Children.map(children, (child) => {
@@ -63,19 +72,31 @@ export function DesignLayoutClient({
           wardrobeRef={wardrobeRef}
           initialSession={initialSession}
           materials={initialMaterials}
+          isAdmin={isAdmin}
         />
       </aside>
 
       {/* Mobile header */}
       <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-14 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
-          aria-label="Open configurator menu"
-        >
-          Meni
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Back to order button (mobile) */}
+          {fromOrderId && fromOrderNumber && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/admin/orders/${fromOrderId}`}>
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Nazad na #{fromOrderNumber}</span>
+              </Link>
+            </Button>
+          )}
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+            aria-label="Open configurator menu"
+          >
+            Meni
+          </button>
+        </div>
         <div className="flex-1" />
         <div className="flex justify-end">
           <ViewModeToggle />
@@ -95,12 +116,24 @@ export function DesignLayoutClient({
               wardrobeRef={wardrobeRef}
               initialSession={initialSession}
               materials={initialMaterials}
+              isAdmin={isAdmin}
             />
           </div>
         </div>
       )}
 
       <main className="flex-1 relative overflow-hidden h-screen pt-14 md:pt-0">
+        {/* Back to order button (desktop) */}
+        {fromOrderId && fromOrderNumber && (
+          <div className="absolute top-2 left-2 hidden md:block z-20">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/admin/orders/${fromOrderId}`}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Nazad na #{fromOrderNumber}
+              </Link>
+            </Button>
+          </div>
+        )}
         <div className="absolute top-2 right-2 hidden md:block z-20">
           <ViewModeToggle />
         </div>

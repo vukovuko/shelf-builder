@@ -33,6 +33,8 @@ export const createWardrobeSchema = z.object({
       (val) => !val || val.startsWith("data:image/"),
       "Slika mora biti data URL",
     ),
+
+  isModel: z.boolean().optional().default(false),
 });
 
 export const updateWardrobeSchema = z.object({

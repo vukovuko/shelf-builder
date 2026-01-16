@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { signOut, useSession } from "@/lib/auth-client";
@@ -101,10 +102,12 @@ export function ConfiguratorControls({
   wardrobeRef,
   initialSession,
   materials,
+  isAdmin = false,
 }: {
   wardrobeRef: React.RefObject<any>;
   initialSession?: InitialSession | null;
   materials: Material[];
+  isAdmin?: boolean;
 }) {
   // Auth state - use initialSession from server, useSession for reactivity after login/logout
   const { data: clientSession, isPending } = useSession();
@@ -116,6 +119,8 @@ export function ConfiguratorControls({
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = React.useState(false);
   const [wardrobeName, setWardrobeName] = React.useState("Orman");
+  const [saveAsModel, setSaveAsModel] = React.useState(false);
+  const [saveMode, setSaveMode] = React.useState<"new" | "update">("new");
   const [openMaterialCategory, setOpenMaterialCategory] = React.useState<
     string | null
   >(null);
@@ -137,6 +142,13 @@ export function ConfiguratorControls({
 
     // Logged in - show save dialog
     setWardrobeName("Orman");
+    setSaveAsModel(false);
+    // Force "update" when editing from order context, otherwise default based on admin/loaded state
+    if (fromOrderId && loadedWardrobeId) {
+      setSaveMode("update");
+    } else {
+      setSaveMode(isAdmin && loadedWardrobeId ? "update" : "new");
+    }
     setSaveDialogOpen(true);
   };
 
@@ -167,10 +179,47 @@ export function ConfiguratorControls({
         }
       }
 
+      // Handle update mode for existing wardrobes/models
+      if (saveMode === "update" && loadedWardrobeId) {
+        const res = await fetch(`/api/wardrobes/${loadedWardrobeId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: wardrobeName,
+            data: snapshot,
+            thumbnail,
+          }),
+        });
+
+        if (!res.ok) {
+          console.error("[performSave] update failed", res.status);
+          toast.error("Greška pri ažuriranju ormana");
+          return;
+        }
+
+        // Show appropriate success message
+        if (fromOrderId && fromOrderNumber) {
+          toast.success(`Orman za porudžbinu #${fromOrderNumber} je ažuriran`);
+          // Don't clear order context - keep "back to order" button visible
+        } else {
+          toast.success(
+            `${loadedWardrobeIsModel ? "Model" : "Orman"} "${wardrobeName}" je ažuriran`,
+          );
+        }
+        setSaveDialogOpen(false);
+        return;
+      }
+
+      // Create new wardrobe/model
       const res = await fetch("/api/wardrobes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: wardrobeName, data: snapshot, thumbnail }),
+        body: JSON.stringify({
+          name: wardrobeName,
+          data: snapshot,
+          thumbnail,
+          isModel: saveAsModel,
+        }),
       });
 
       if (!res.ok) {
@@ -178,6 +227,9 @@ export function ConfiguratorControls({
         toast.error("Greška pri čuvanju ormana");
         return;
       }
+
+      // Clear loaded wardrobe since we created a new one
+      clearLoadedWardrobe();
 
       toast.success(`"${wardrobeName}" je sačuvan`, {
         action: {
@@ -443,6 +495,21 @@ export function ConfiguratorControls({
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
   const [showCutList, setShowCutList] = React.useState(false);
+  const setShowInfoButtons = useShelfStore((state) => state.setShowInfoButtons);
+
+  // Track loaded wardrobe for update functionality
+  const loadedWardrobeId = useShelfStore((state) => state.loadedWardrobeId);
+  const loadedWardrobeIsModel = useShelfStore(
+    (state) => state.loadedWardrobeIsModel,
+  );
+  const clearLoadedWardrobe = useShelfStore(
+    (state) => state.clearLoadedWardrobe,
+  );
+
+  // Track order context when editing from order detail page
+  const fromOrderId = useShelfStore((state) => state.fromOrderId);
+  const fromOrderNumber = useShelfStore((state) => state.fromOrderNumber);
+  const clearFromOrder = useShelfStore((state) => state.clearFromOrder);
 
   // Track which material should be pinned to first position per category type
   // Only updated when selecting from popup, not when clicking preview images
@@ -931,16 +998,19 @@ export function ConfiguratorControls({
   const rowCounts = useShelfStore((state) => state.rowCounts);
   React.useEffect(() => {
     setAllInfoShown(false);
+    setShowInfoButtons(false);
     // Always reset overlays to hidden on structure change
     if (wardrobeRef?.current?.toggleAllInfo) {
       wardrobeRef.current.toggleAllInfo(false);
     }
-  }, [rowCounts, wardrobeRef]);
+  }, [rowCounts, wardrobeRef, setShowInfoButtons]);
 
   const handleToggleAllInfo = () => {
+    const newState = !allInfoShown;
+    setShowInfoButtons(newState);
+    setAllInfoShown(newState);
     if (wardrobeRef?.current?.toggleAllInfo) {
-      wardrobeRef.current.toggleAllInfo(!allInfoShown);
-      setAllInfoShown((prev) => !prev);
+      wardrobeRef.current.toggleAllInfo(newState);
     }
   };
 
@@ -2068,6 +2138,58 @@ export function ConfiguratorControls({
                 }}
               />
             </div>
+            {/* Show save mode options when admin loaded any wardrobe */}
+            {isAdmin && loadedWardrobeId && (
+              <div className="space-y-2">
+                {/* When from order context: no choice, just info message */}
+                {fromOrderId && fromOrderNumber ? (
+                  <p className="text-sm text-muted-foreground">
+                    Izmene će biti sačuvane na postojeći orman za porudžbinu #
+                    {fromOrderNumber}
+                  </p>
+                ) : (
+                  // Normal admin editing: show RadioGroup options
+                  <>
+                    <Label>Opcije čuvanja</Label>
+                    <RadioGroup
+                      value={saveMode}
+                      onValueChange={(value) =>
+                        setSaveMode(value as "update" | "new")
+                      }
+                      className="flex flex-col gap-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="update" id="save-mode-update" />
+                        <Label
+                          htmlFor="save-mode-update"
+                          className="font-normal"
+                        >
+                          Ažuriraj postojeći{" "}
+                          {loadedWardrobeIsModel ? "model" : "orman"}
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="new" id="save-mode-new" />
+                        <Label htmlFor="save-mode-new" className="font-normal">
+                          Sačuvaj kao novi
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </>
+                )}
+              </div>
+            )}
+            {/* Show "Save as model" checkbox only for new saves and NOT from order context */}
+            {isAdmin && saveMode === "new" && !fromOrderId && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="save-as-model"
+                  checked={saveAsModel}
+                  onCheckedChange={(checked) => setSaveAsModel(!!checked)}
+                />
+                <Label htmlFor="save-as-model">Sačuvaj kao model</Label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>

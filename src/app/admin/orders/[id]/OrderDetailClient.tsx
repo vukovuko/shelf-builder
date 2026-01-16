@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Copy,
   Check,
+  Pencil,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -615,13 +616,30 @@ export function OrderDetailClient({
               </div>
             </div>
 
-            <div>
+            <div className="sm:col-span-2">
               <Label className="text-muted-foreground">Orman</Label>
-              <p className="font-medium">
-                {order.wardrobeName || (
-                  <span className="text-muted-foreground">Nije povezan</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p className="font-medium">
+                  {order.wardrobeName || (
+                    <span className="text-muted-foreground">Nije povezan</span>
+                  )}
+                </p>
+                {order.wardrobeId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="w-fit border-accent text-accent hover:bg-accent/90 hover:text-white"
+                  >
+                    <Link
+                      href={`/design?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Izmeni crtež
+                    </Link>
+                  </Button>
                 )}
-              </p>
+              </div>
             </div>
 
             <div className="sm:col-span-2 space-y-3 min-w-0">

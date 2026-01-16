@@ -105,6 +105,18 @@ interface ShelfState {
   setDoorOption: (key: string, option: DoorOption) => void;
   showDoors: boolean;
   setShowDoors: (show: boolean) => void;
+  showInfoButtons: boolean;
+  setShowInfoButtons: (show: boolean) => void;
+  // Track loaded wardrobe for update functionality
+  loadedWardrobeId: string | null;
+  loadedWardrobeIsModel: boolean;
+  setLoadedWardrobe: (id: string | null, isModel: boolean) => void;
+  clearLoadedWardrobe: () => void;
+  // Track order context when editing from order detail page
+  fromOrderId: string | null;
+  fromOrderNumber: number | null;
+  setFromOrder: (orderId: string | null, orderNumber: number | null) => void;
+  clearFromOrder: () => void;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -343,4 +355,19 @@ export const useShelfStore = create<ShelfState>((set) => ({
     })),
   showDoors: true,
   setShowDoors: (show) => set({ showDoors: show }),
+  showInfoButtons: false,
+  setShowInfoButtons: (show) => set({ showInfoButtons: show }),
+  // Track loaded wardrobe for update functionality
+  loadedWardrobeId: null,
+  loadedWardrobeIsModel: false,
+  setLoadedWardrobe: (id, isModel) =>
+    set({ loadedWardrobeId: id, loadedWardrobeIsModel: isModel }),
+  clearLoadedWardrobe: () =>
+    set({ loadedWardrobeId: null, loadedWardrobeIsModel: false }),
+  // Track order context when editing from order detail page
+  fromOrderId: null,
+  fromOrderNumber: null,
+  setFromOrder: (orderId, orderNumber) =>
+    set({ fromOrderId: orderId, fromOrderNumber: orderNumber }),
+  clearFromOrder: () => set({ fromOrderId: null, fromOrderNumber: null }),
 }));
