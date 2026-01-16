@@ -382,12 +382,14 @@ export function ConfiguratorControls({
     );
     const frontMaterials = materials.filter((m) =>
       m.categories.some(
-        (c) => c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
+        (c) =>
+          c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
       ),
     );
     const backMaterials = materials.filter((m) =>
       m.categories.some(
-        (c) => c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
+        (c) =>
+          c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
       ),
     );
 
