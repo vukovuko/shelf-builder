@@ -2089,16 +2089,28 @@ export function ConfiguratorControls({
           materialName:
             materials.find((m) => String(m.id) === String(selectedMaterialId))
               ?.name ?? "",
+          materialProductCode:
+            materials.find((m) => String(m.id) === String(selectedMaterialId))
+              ?.productCode ?? null,
           frontMaterialId: selectedFrontMaterialId!,
           frontMaterialName:
             materials.find(
               (m) => String(m.id) === String(selectedFrontMaterialId),
             )?.name ?? "",
+          frontMaterialProductCode:
+            materials.find(
+              (m) => String(m.id) === String(selectedFrontMaterialId),
+            )?.productCode ?? null,
           backMaterialId: selectedBackMaterialId ?? null,
           backMaterialName: selectedBackMaterialId
             ? (materials.find(
                 (m) => String(m.id) === String(selectedBackMaterialId),
               )?.name ?? null)
+            : null,
+          backMaterialProductCode: selectedBackMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedBackMaterialId),
+              )?.productCode ?? null)
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,

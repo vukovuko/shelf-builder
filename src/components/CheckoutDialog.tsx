@@ -32,10 +32,13 @@ interface CheckoutDialogProps {
     thumbnail: string | null;
     materialId: number;
     materialName: string;
+    materialProductCode: string | null;
     frontMaterialId: number;
     frontMaterialName: string;
+    frontMaterialProductCode: string | null;
     backMaterialId: number | null;
     backMaterialName: string | null;
+    backMaterialProductCode: string | null;
     totalArea: number; // in cm²
     totalPrice: number; // in RSD
     priceBreakdown: {
@@ -447,16 +450,19 @@ export function CheckoutDialog({
 
                 {/* Material breakdown table */}
                 <div className="overflow-x-auto w-full min-w-0 -mx-4 px-4">
-                  <table className="w-full min-w-[400px] table-fixed text-sm">
+                  <table className="w-full min-w-[480px] table-fixed text-sm">
                     <thead>
                       <tr className="border-b text-muted-foreground">
-                        <th className="w-[50%] sm:w-[60%] text-left py-2 pr-2 font-medium">
+                        <th className="w-[40%] sm:w-[45%] text-left py-2 pr-2 font-medium">
                           Materijal
                         </th>
-                        <th className="w-[18%] sm:w-[20%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
+                        <th className="w-[20%] sm:w-[20%] text-left py-2 px-2 font-medium">
+                          Šifra
+                        </th>
+                        <th className="w-[15%] sm:w-[15%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
                           m²
                         </th>
-                        <th className="w-[32%] sm:w-[20%] text-right py-2 pl-3 font-medium">
+                        <th className="w-[25%] sm:w-[20%] text-right py-2 pl-3 font-medium">
                           Cena
                         </th>
                       </tr>
@@ -469,11 +475,14 @@ export function CheckoutDialog({
                             Korpus
                           </div>
                           <div
-                            className="font-medium max-w-[180px] sm:max-w-full"
+                            className="font-medium max-w-[140px] sm:max-w-full truncate"
                             title={orderData.materialName}
                           >
                             {orderData.materialName}
                           </div>
+                        </td>
+                        <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                          {orderData.materialProductCode || "-"}
                         </td>
                         <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
                           {orderData.priceBreakdown.korpus.areaM2.toFixed(2)}
@@ -489,11 +498,14 @@ export function CheckoutDialog({
                             Lica/Vrata
                           </div>
                           <div
-                            className="font-medium max-w-[180px] sm:max-w-full"
+                            className="font-medium max-w-[140px] sm:max-w-full truncate"
                             title={orderData.frontMaterialName}
                           >
                             {orderData.frontMaterialName}
                           </div>
+                        </td>
+                        <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                          {orderData.frontMaterialProductCode || "-"}
                         </td>
                         <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
                           {orderData.priceBreakdown.front.areaM2.toFixed(2)}
@@ -510,11 +522,14 @@ export function CheckoutDialog({
                               Leđa
                             </div>
                             <div
-                              className="font-medium max-w-[180px] sm:max-w-full"
+                              className="font-medium max-w-[140px] sm:max-w-full truncate"
                               title={orderData.backMaterialName || ""}
                             >
                               {orderData.backMaterialName}
                             </div>
+                          </td>
+                          <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                            {orderData.backMaterialProductCode || "-"}
                           </td>
                           <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
                             {orderData.priceBreakdown.back.areaM2.toFixed(2)}

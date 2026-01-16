@@ -46,6 +46,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
   const serializedMaterials = dbMaterials.map((m) => ({
     id: m.id,
     name: m.name,
+    productCode: m.productCode,
     price: m.price,
     costPrice: m.costPrice,
     img: m.img,

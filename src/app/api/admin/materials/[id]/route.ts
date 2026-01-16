@@ -12,6 +12,7 @@ const materialIdSchema = z.coerce
 
 const updateMaterialSchema = z.object({
   name: z.string().min(1).optional(),
+  productCode: z.string().nullable().optional(),
   price: z.number().int().positive().optional(),
   costPrice: z.number().int().nonnegative().optional(),
   categories: z.array(z.string()).min(1).optional(),

@@ -57,12 +57,13 @@ async function seedMaterials() {
 
     const records = batch.map((m) => ({
       name: m.name,
+      productCode: m.productCode,
       price: m.price,
       img: `${R2_BASE_URL}/materials/${m.img}`,
       thickness: Math.round(m.thickness),
       stock: m.stock,
       categories: getCategoriesFromVrsta(m.vrsta),
-      published: true, // All seeded materials are published by default
+      published: true,
     }));
 
     await db.insert(materials).values(records);

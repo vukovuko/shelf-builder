@@ -7,8 +7,9 @@ export type ViewMode = "3D" | "2D" | "Sizing";
 export interface Material {
   id: number;
   name: string;
-  price: number; // Prodajna cena (selling price)
-  costPrice: number; // Nabavna cena (cost price)
+  productCode: string | null;
+  price: number;
+  costPrice: number;
   img: string | null;
   thickness: number | null;
   stock: number | null;

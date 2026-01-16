@@ -45,6 +45,7 @@ export function MaterialNewClient() {
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get("name") as string,
+      productCode: (formData.get("productCode") as string) || undefined,
       price: Number(formData.get("price")),
       costPrice: formData.get("costPrice")
         ? Number(formData.get("costPrice"))
@@ -105,6 +106,15 @@ export function MaterialNewClient() {
                 name="name"
                 required
                 placeholder="npr. Sperploca bukva"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="productCode">Šifra</Label>
+              <Input
+                id="productCode"
+                name="productCode"
+                placeholder="npr. LLESOBHDF"
               />
             </div>
 

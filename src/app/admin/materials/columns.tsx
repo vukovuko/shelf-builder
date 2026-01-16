@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export type Material = {
   id: number;
   name: string;
+  productCode: string | null;
   price: number;
   costPrice: number;
   img: string | null;
@@ -91,6 +92,11 @@ export const columns: ColumnDef<Material>[] = [
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("name")}</div>
     ),
+  },
+  {
+    accessorKey: "productCode",
+    header: "Šifra",
+    cell: ({ row }) => row.getValue("productCode") || "-",
   },
   {
     accessorKey: "published",

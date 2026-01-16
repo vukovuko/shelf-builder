@@ -40,6 +40,7 @@ const AVAILABLE_CATEGORIES: Option[] = [
 interface Material {
   id: number;
   name: string;
+  productCode: string | null;
   price: number;
   costPrice: number;
   img: string | null;
@@ -66,6 +67,9 @@ export function MaterialDetailClient({
 
   // Controlled form state
   const [name, setName] = useState(initialMaterial.name);
+  const [productCode, setProductCode] = useState(
+    initialMaterial.productCode ?? "",
+  );
   const [price, setPrice] = useState(String(initialMaterial.price));
   const [costPrice, setCostPrice] = useState(
     String(initialMaterial.costPrice ?? 0),
@@ -85,6 +89,7 @@ export function MaterialDetailClient({
   // Track if anything changed
   const hasChanges = useMemo(() => {
     if (name !== material.name) return true;
+    if ((productCode || null) !== material.productCode) return true;
     if (Number(price) !== material.price) return true;
     if (Number(costPrice) !== (material.costPrice ?? 0)) return true;
     if ((thickness === "" ? null : Number(thickness)) !== material.thickness)
@@ -102,6 +107,7 @@ export function MaterialDetailClient({
     return false;
   }, [
     name,
+    productCode,
     price,
     costPrice,
     thickness,
@@ -125,6 +131,7 @@ export function MaterialDetailClient({
 
     const data = {
       name,
+      productCode: productCode || null,
       price: Number(price),
       costPrice: Number(costPrice) || 0,
       categories: categories.map((c) => c.value),
@@ -154,6 +161,7 @@ export function MaterialDetailClient({
       });
       // Sync form state with saved values
       setName(updated.name);
+      setProductCode(updated.productCode ?? "");
       setPrice(String(updated.price));
       setCostPrice(String(updated.costPrice ?? 0));
       setThickness(updated.thickness ? String(updated.thickness) : "");
@@ -305,6 +313,16 @@ export function MaterialDetailClient({
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="npr. Sperploca bukva"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="productCode">Šifra</Label>
+              <Input
+                id="productCode"
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value)}
+                placeholder="npr. LLESOBHDF"
               />
             </div>
 

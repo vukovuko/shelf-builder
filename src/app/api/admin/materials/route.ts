@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const createMaterialSchema = z.object({
   name: z.string().min(1, "Naziv je obavezan"),
+  productCode: z.string().optional(),
   price: z.number().int().positive("Cena mora biti pozitivan broj"),
   costPrice: z.number().int().nonnegative().optional().default(0),
   categories: z.array(z.string()).min(1, "Kategorija je obavezna"),
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
 
     const {
       name,
+      productCode,
       price,
       costPrice,
       categories,
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
       .insert(materials)
       .values({
         name,
+        productCode: productCode || null,
         price,
         costPrice,
         categories,
