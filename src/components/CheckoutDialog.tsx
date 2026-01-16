@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -77,6 +78,7 @@ export function CheckoutDialog({
     shippingApartment: "",
     shippingCity: "",
     shippingPostalCode: "",
+    notes: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -323,6 +325,7 @@ export function CheckoutDialog({
       shippingApartment: "",
       shippingCity: "",
       shippingPostalCode: "",
+      notes: "",
     });
     setErrors({});
     setOrderSuccess(null);
@@ -705,6 +708,22 @@ export function CheckoutDialog({
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Napomena (opciono)</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Dodatne informacije ili specijalni zahtevi..."
+                  rows={3}
+                  className="resize-none"
+                />
               </div>
 
               <DialogFooter className="pt-4">

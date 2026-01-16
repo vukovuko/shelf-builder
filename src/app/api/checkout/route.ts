@@ -22,6 +22,8 @@ const checkoutSchema = z
     shippingApartment: z.string().optional().or(z.literal("")),
     shippingCity: z.string().min(1, "Grad je obavezan"),
     shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
+    // Optional customer note
+    notes: z.string().optional().or(z.literal("")),
     // Wardrobe data
     wardrobeSnapshot: z.record(z.string(), z.any()),
     thumbnail: z.string().nullable(),
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
       shippingApartment,
       shippingCity,
       shippingPostalCode,
+      notes,
       wardrobeSnapshot,
       thumbnail,
       materialId,
@@ -321,6 +324,7 @@ export async function POST(request: Request) {
           shippingApartment: shippingApartment || null,
           shippingCity,
           shippingPostalCode,
+          notes: notes || null,
           status: "open",
           paymentStatus: "unpaid",
           fulfillmentStatus: "unfulfilled",
