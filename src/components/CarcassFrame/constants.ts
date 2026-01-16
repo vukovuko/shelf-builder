@@ -6,4 +6,6 @@ export {
   DRAWER_HEIGHT,
   DRAWER_GAP,
   MIN_DRAG_GAP,
+  MIN_SEGMENT,
+  MAX_SEGMENT_Y,
 } from "@/lib/wardrobe-constants";

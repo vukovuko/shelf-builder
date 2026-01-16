@@ -4,8 +4,22 @@ import React from "react";
 import * as THREE from "three";
 import { useShelfStore } from "../../lib/store";
 import { Panel } from "../Panel";
-import { toLetters, buildBlocksX, buildModulesY } from "./utils";
-import { DRAWER_HEIGHT, DRAWER_GAP, MIN_DRAG_GAP } from "./constants";
+import {
+  toLetters,
+  buildBlocksX,
+  buildModulesY,
+  buildModulesYForColumn,
+  getDefaultBoundariesX,
+} from "./utils";
+import {
+  DRAWER_HEIGHT,
+  DRAWER_GAP,
+  MIN_DRAG_GAP,
+  MIN_SEGMENT,
+  MAX_SEGMENT_X,
+  TARGET_BOTTOM_HEIGHT,
+  MIN_TOP_HEIGHT,
+} from "./constants";
 
 type Material = {
   id: string;
@@ -79,6 +93,111 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const doorSelections = useShelfStore((s) => s.doorSelections);
     const showDoors = useShelfStore((s) => s.showDoors);
     const showInfoButtons = useShelfStore((s) => s.showInfoButtons);
+
+    // Vertical structural boundaries (seam positions) - DEPRECATED, kept for backward compatibility fallback
+    const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
+    // Per-module vertical boundaries (NEW: each module has independent boundaries)
+    const moduleVerticalBoundaries = useShelfStore(
+      (s) => s.moduleVerticalBoundaries,
+    );
+    const setModuleVerticalBoundaries = useShelfStore(
+      (s) => s.setModuleVerticalBoundaries,
+    );
+    // Horizontal boundary (module split Y position) - DEPRECATED, use per-column
+    const horizontalBoundary = useShelfStore((s) => s.horizontalBoundary);
+    const setHorizontalBoundary = useShelfStore((s) => s.setHorizontalBoundary);
+    // Per-column horizontal boundaries (NEW: each column has independent horizontal split)
+    const columnHorizontalBoundaries = useShelfStore(
+      (s) => s.columnHorizontalBoundaries,
+    );
+    const setColumnHorizontalBoundary = useShelfStore(
+      (s) => s.setColumnHorizontalBoundary,
+    );
+    const setIsDragging = useShelfStore((s) => s.setIsDragging);
+
+    // Refs for seam dragging - tracks active drag state (now includes moduleKey)
+    const seamDragRef = React.useRef<{
+      index: number | null;
+      moduleKey: string;
+      startMouseX: number;
+      baseBoundaries: number[];
+    }>({ index: null, moduleKey: "", startMouseX: 0, baseBoundaries: [] });
+    // Track if seam drag is active (to trigger useEffect)
+    const [isSeamDragging, setIsSeamDragging] = React.useState<boolean>(false);
+
+    // Refs for horizontal boundary dragging (Top panel drag) - now tracks column index
+    const hBoundaryDragRef = React.useRef<{
+      active: boolean;
+      colIndex: number; // Which column is being dragged
+      startY: number;
+      startMouseY: number;
+    }>({ active: false, colIndex: 0, startY: 0, startMouseY: 0 });
+    // Track if horizontal boundary drag is active (to trigger useEffect)
+    const [isHBoundaryDragging, setIsHBoundaryDragging] =
+      React.useState<boolean>(false);
+
+    // LOCAL drag state for performance - only commit to store on mouseUp
+    // Now tracks which module is being dragged for per-module boundaries
+    // And which column for per-column horizontal boundaries
+    const [localBoundaries, setLocalBoundaries] = React.useState<{
+      moduleKey: string | null;
+      vertical: number[] | null;
+      // Per-column horizontal boundaries during drag
+      columnHorizontal: Record<number, number | null>;
+    }>({ moduleKey: null, vertical: null, columnHorizontal: {} });
+
+    // Ref to track latest localBoundaries for use in event handlers without causing effect re-runs
+    const localBoundariesRef = React.useRef(localBoundaries);
+    React.useEffect(() => {
+      localBoundariesRef.current = localBoundaries;
+    }, [localBoundaries]);
+
+    // Helper to get effective boundaries for a specific module
+    // Uses local state during drag (if dragging this module), otherwise uses store values
+    const getEffectiveBoundariesForModule = React.useCallback(
+      (moduleKey: string): number[] => {
+        // If we're dragging this specific module, use local boundaries
+        if (
+          localBoundaries.moduleKey === moduleKey &&
+          localBoundaries.vertical
+        ) {
+          return localBoundaries.vertical;
+        }
+        // Otherwise use store values - first check new per-module, then fall back to old global
+        const moduleBoundaries = moduleVerticalBoundaries[moduleKey];
+        if (moduleBoundaries && moduleBoundaries.length > 0) {
+          return moduleBoundaries;
+        }
+        // Fall back to deprecated global boundaries for backward compatibility
+        return verticalBoundaries;
+      },
+      [localBoundaries, moduleVerticalBoundaries, verticalBoundaries],
+    );
+
+    // Keep these for backward compatibility with existing code
+    const effectiveVerticalBoundaries =
+      localBoundaries.vertical ?? verticalBoundaries;
+
+    // Helper to get effective horizontal boundary for a specific column
+    // Uses local state during drag (if dragging this column), otherwise uses store values
+    const getEffectiveHorizontalBoundaryForColumn = React.useCallback(
+      (colIndex: number): number | null => {
+        // If we're dragging this specific column, use local boundary
+        if (colIndex in localBoundaries.columnHorizontal) {
+          return localBoundaries.columnHorizontal[colIndex];
+        }
+        // Otherwise check store's per-column boundaries
+        if (colIndex in columnHorizontalBoundaries) {
+          return columnHorizontalBoundaries[colIndex];
+        }
+        // Fall back to global horizontal boundary
+        return horizontalBoundary;
+      },
+      [localBoundaries.columnHorizontal, columnHorizontalBoundaries, horizontalBoundary],
+    );
+
+    // For code that doesn't need per-column (backward compat)
+    const effectiveHorizontalBoundary = horizontalBoundary;
 
     // Guard against empty materials array (before DB data loads)
     if (materials.length === 0) {
@@ -161,7 +280,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     }[] = [];
     // Support both single and split modules (bottom-to-top, left-to-right)
     {
-      const modulesY = buildModulesY(h);
+      const modulesY = buildModulesY(h, false, horizontalBoundary);
       let idx = 0;
       modulesY.forEach((mod) => {
         for (let i = 0; i < numberOfColumns; i++) {
@@ -213,40 +332,53 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     });
 
     // Panel positions and sizes: split horizontally (X) into equal blocks and vertically (Y) into modules
+    // Now supports per-module vertical boundaries AND per-column horizontal boundaries
     const panels = React.useMemo(() => {
       type PanelDef = {
         label: string;
         position: [number, number, number];
         size: [number, number, number];
+        seamIndex?: number; // Index of the seam boundary (for vertical drag functionality)
+        moduleKey?: string; // Which module this panel belongs to (for per-module vertical dragging)
+        colIndex?: number; // Which column this panel belongs to (for per-column horizontal dragging)
       };
       const list: PanelDef[] = [];
 
-      // X blocks: equalize external width, max 100cm per block
-      const blocksX = buildBlocksX(w);
-      const segWX = blocksX[0]?.width ?? w;
-      const boundariesX = Array.from(
-        { length: blocksX.length + 1 },
-        (_, i) => -w / 2 + i * segWX,
-      );
+      // Get reference modules for determining side panel structure
+      // Use global horizontal boundary for consistent side panel heights
+      const referenceModulesY = buildModulesY(h, true, effectiveHorizontalBoundary);
 
-      // Y modules: split if height > 200cm
-      const modulesY = buildModulesY(h, true);
+      // Process each reference module for SIDE panels (L, R, seams)
+      // Side panels span full module height regardless of per-column boundaries
+      referenceModulesY.forEach((m) => {
+        const moduleKey = m.label ?? "SingleModule";
+        const cy = (m.yStart + m.yEnd) / 2;
 
-      // Side panels at each X boundary, per Y module
-      boundariesX.forEach((x, idx) => {
-        modulesY.forEach((m) => {
-          const cy = (m.yStart + m.yEnd) / 2;
+        // Get effective vertical boundaries for THIS module (may differ from other modules)
+        const moduleBoundaries = getEffectiveBoundariesForModule(moduleKey);
+        const blocksX = buildBlocksX(
+          w,
+          moduleBoundaries.length > 0 ? moduleBoundaries : undefined,
+        );
+        const boundariesX = blocksX
+          .map((b) => b.start)
+          .concat([blocksX[blocksX.length - 1]?.end ?? w / 2]);
+
+        // Side panels at each X boundary for this module
+        boundariesX.forEach((x, idx) => {
           if (idx === 0) {
             list.push({
               label: `Side L (${m.label})`,
               position: [x + t / 2, cy, 0],
               size: [t, m.height, d],
+              moduleKey,
             });
           } else if (idx === boundariesX.length - 1) {
             list.push({
               label: `Side R (${m.label})`,
               position: [x - t / 2, cy, 0],
               size: [t, m.height, d],
+              moduleKey,
             });
           } else {
             // Internal seam: two touching panels - stop at base, don't go through it
@@ -257,24 +389,46 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 : 0;
             const seamHeight = m.height - raiseForSeam;
             const seamCy = (m.yStart + raiseForSeam + m.yEnd) / 2;
+            // seamIndex is idx - 1 because idx 0 is left edge, idx 1 is first internal boundary
+            const seamBoundaryIndex = idx - 1;
             list.push({
               label: `Side seam ${idx}A (${m.label})`,
               position: [x - t / 2, seamCy, 0],
               size: [t, seamHeight, d],
+              seamIndex: seamBoundaryIndex,
+              moduleKey,
             });
             list.push({
               label: `Side seam ${idx}B (${m.label})`,
               position: [x + t / 2, seamCy, 0],
               size: [t, seamHeight, d],
+              seamIndex: seamBoundaryIndex,
+              moduleKey,
             });
           }
         });
       });
 
-      // Top and Bottom panels per X block and Y module
-      blocksX.forEach((bx, i) => {
-        modulesY.forEach((m) => {
-          const innerLenX = Math.max(segWX - 2 * t, 0.001);
+      // Generate TOP/BOTTOM panels using PER-COLUMN horizontal boundaries
+      // First, get blocks X from a reference module (typically BottomModule or SingleModule)
+      const refModuleKey =
+        referenceModulesY.find((m) => m.label === "BottomModule")?.label ??
+        referenceModulesY[0]?.label ??
+        "SingleModule";
+      const refBoundaries = getEffectiveBoundariesForModule(refModuleKey);
+      const allBlocksX = buildBlocksX(
+        w,
+        refBoundaries.length > 0 ? refBoundaries : undefined,
+      );
+
+      // For each column, generate top/bottom panels based on that column's specific modules
+      allBlocksX.forEach((bx, colIdx) => {
+        // Get this column's modules using per-column horizontal boundary
+        const colBoundary = getEffectiveHorizontalBoundaryForColumn(colIdx);
+        const colModulesY = buildModulesY(h, true, colBoundary);
+
+        colModulesY.forEach((m) => {
+          const innerLenX = Math.max(bx.width - 2 * t, 0.001);
           const cx = (bx.start + bx.end) / 2;
           const raise =
             hasBase &&
@@ -283,27 +437,42 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               : 0;
           const yBottom = m.yStart + raise + t / 2;
           const yTop = m.yEnd - t / 2;
+
           list.push({
-            label: `Bottom ${i + 1} (${m.label})`,
+            label: `Bottom ${colIdx + 1} (${m.label})`,
             position: [cx, yBottom, 0],
             size: [innerLenX, t, d],
+            moduleKey: m.label,
+            colIndex: colIdx,
           });
           list.push({
-            label: `Top ${i + 1} (${m.label})`,
+            label: `Top ${colIdx + 1} (${m.label})`,
             position: [cx, yTop, 0],
             size: [innerLenX, t, d],
+            moduleKey: m.label,
+            colIndex: colIdx,
           });
         });
       });
 
       return list;
-    }, [w, h, t, d, width, hasBase, baseH]);
+    }, [
+      w,
+      h,
+      t,
+      d,
+      width,
+      hasBase,
+      baseH,
+      effectiveHorizontalBoundary,
+      getEffectiveBoundariesForModule,
+      getEffectiveHorizontalBoundaryForColumn,
+    ]);
 
     // Element letter labels (A, B, C, ...) at each element's center on the back side
+    // Now uses per-module boundaries for accurate positioning
     const elementLabels = React.useMemo(() => {
-      // Recompute blocks and modules to get their centers (keep logic in sync with panels)
-      const blocksX = buildBlocksX(w);
-      const modulesY = buildModulesY(h);
+      const modulesY = buildModulesY(h, true, effectiveHorizontalBoundary);
 
       const labels: {
         key: string;
@@ -313,7 +482,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       let idx = 0;
       // Order: bottom-to-top, left-to-right
       modulesY.forEach((m, mIdx) => {
+        const moduleKey = m.label ?? "SingleModule";
         const cy = (m.yStart + m.yEnd) / 2;
+        // Get blocks for THIS module specifically
+        const moduleBoundaries = getEffectiveBoundariesForModule(moduleKey);
+        const blocksX = buildBlocksX(
+          w,
+          moduleBoundaries.length > 0 ? moduleBoundaries : undefined,
+        );
         blocksX.forEach((bx, bIdx) => {
           const cx = (bx.start + bx.end) / 2;
           const cz = -d / 2 + t + 0.001; // slightly in front of the back panel
@@ -326,15 +502,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         });
       });
       return labels;
-    }, [w, h, d, t]);
+    }, [
+      w,
+      h,
+      d,
+      t,
+      effectiveHorizontalBoundary,
+      getEffectiveBoundariesForModule,
+    ]);
 
     // Per-element dividers and shelves based on elementConfigs
+    // Now uses per-module boundaries
     const elementStructures = React.useMemo(() => {
-      // Blocks X
-      const blocksX = buildBlocksX(w);
-
       // Modules Y
-      const modulesY = buildModulesY(h);
+      const modulesY = buildModulesY(h, true, effectiveHorizontalBoundary);
 
       type MeshDef = {
         key: string;
@@ -346,10 +527,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       let idx = 0;
       modulesY.forEach((m, mIdx) => {
+        const moduleKey = m.label ?? "SingleModule";
         const yStartInner = m.yStart + t;
         const yEndInner = m.yEnd - t;
         const _innerH = Math.max(yEndInner - yStartInner, 0);
         const _cy = (yStartInner + yEndInner) / 2;
+        // Get blocks for THIS module specifically
+        const moduleBoundaries = getEffectiveBoundariesForModule(moduleKey);
+        const blocksX = buildBlocksX(
+          w,
+          moduleBoundaries.length > 0 ? moduleBoundaries : undefined,
+        );
         blocksX.forEach((bx, bIdx) => {
           // Each element has its own side panels at its left and right boundary, so subtract thickness on both sides
           const xStartInner = bx.start + t;
@@ -446,7 +634,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         });
       });
       return { dividers: divs, shelves: shs };
-    }, [w, h, t, d, elementConfigs, compartmentExtras, hasBase, baseH]);
+    }, [
+      w,
+      h,
+      t,
+      d,
+      elementConfigs,
+      compartmentExtras,
+      hasBase,
+      baseH,
+      effectiveHorizontalBoundary,
+      getEffectiveBoundariesForModule,
+    ]);
 
     React.useEffect(() => {
       function onMouseMove(e: MouseEvent) {
@@ -509,33 +708,163 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             [draggedDividerKey!]: newX,
           }));
         }
+
+        // Handle seam dragging - update LOCAL state (fast, only CarcassFrame re-renders)
+        if (seamDragRef.current.index !== null) {
+          const { index, moduleKey, startMouseX, baseBoundaries } =
+            seamDragRef.current;
+          const pixelToWorld = 0.01;
+          const startX = baseBoundaries[index];
+          let delta = (e.clientX - startMouseX) * pixelToWorld;
+
+          // Calculate constraints based on neighboring boundaries
+          const leftEdge = index === 0 ? -w / 2 : baseBoundaries[index - 1];
+          const rightEdge =
+            index === baseBoundaries.length - 1
+              ? w / 2
+              : baseBoundaries[index + 1];
+
+          // Target position
+          let newX = startX + delta;
+
+          // Constraints: min 10cm segment, max 100cm segment
+          const minX = Math.max(
+            leftEdge + MIN_SEGMENT,
+            rightEdge - MAX_SEGMENT_X,
+          );
+          const maxX = Math.min(
+            rightEdge - MIN_SEGMENT,
+            leftEdge + MAX_SEGMENT_X,
+          );
+
+          // Clamp to valid range
+          newX = Math.max(minX, Math.min(newX, maxX));
+
+          // Update LOCAL state with moduleKey - only CarcassFrame re-renders, not global store
+          const newBoundaries = [...baseBoundaries];
+          newBoundaries[index] = newX;
+          setLocalBoundaries((prev) => ({
+            ...prev,
+            moduleKey,
+            vertical: newBoundaries,
+          }));
+        }
+
+        // Handle horizontal boundary dragging (Top panel) - update LOCAL state for specific column
+        if (hBoundaryDragRef.current.active) {
+          const { colIndex, startY, startMouseY } = hBoundaryDragRef.current;
+          const pixelToWorld = 0.01;
+          // Mouse Y is inverted (down = positive pixels, but up = positive Y in world)
+          let delta = (startMouseY - e.clientY) * pixelToWorld;
+
+          // Target Y position
+          let newY = startY + delta;
+
+          // Constraints: min 10cm for each module
+          const minY = -h / 2 + MIN_SEGMENT; // Bottom module at least 10cm
+          const maxY = h / 2 - MIN_SEGMENT; // Top module at least 10cm
+
+          // Clamp to valid range
+          newY = Math.max(minY, Math.min(newY, maxY));
+
+          // Update LOCAL state for this specific column
+          setLocalBoundaries((prev) => ({
+            ...prev,
+            columnHorizontal: {
+              ...prev.columnHorizontal,
+              [colIndex]: newY,
+            },
+          }));
+        }
       }
       function onMouseUp() {
+        // Commit vertical boundaries to store on mouse up (use ref for latest value)
+        if (seamDragRef.current.index !== null) {
+          const { moduleKey } = seamDragRef.current;
+          // Commit local vertical boundaries to PER-MODULE store
+          if (localBoundariesRef.current.vertical && moduleKey) {
+            setModuleVerticalBoundaries(
+              moduleKey,
+              localBoundariesRef.current.vertical,
+            );
+          }
+          seamDragRef.current.index = null;
+          seamDragRef.current.moduleKey = "";
+          setIsSeamDragging(false);
+        }
+        // Commit horizontal boundary to store on mouse up (use ref for latest value)
+        if (hBoundaryDragRef.current.active) {
+          const { colIndex } = hBoundaryDragRef.current;
+          // Commit local horizontal boundary for this specific column to store
+          const colBoundary = localBoundariesRef.current.columnHorizontal[colIndex];
+          if (colBoundary !== undefined && colBoundary !== null) {
+            setColumnHorizontalBoundary(colIndex, colBoundary);
+          }
+          hBoundaryDragRef.current.active = false;
+          hBoundaryDragRef.current.colIndex = 0;
+          setIsHBoundaryDragging(false);
+        }
+        // Clear local boundaries after commit
+        setLocalBoundaries({
+          moduleKey: null,
+          vertical: null,
+          columnHorizontal: {},
+        });
         setDraggedShelfKey(null);
         setDraggedDividerKey(null);
+        setIsDragging(false);
         document.body.style.userSelect = "";
       }
-      if (draggedShelfKey || draggedDividerKey) {
+      function onTouchMove(e: TouchEvent) {
+        const touch = e.touches[0];
+        // Create a synthetic mouse event from touch
+        const syntheticEvent = {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        } as MouseEvent;
+        onMouseMove(syntheticEvent);
+      }
+      function onTouchEnd() {
+        onMouseUp();
+      }
+      // Add event listeners when any drag is active
+      if (
+        draggedShelfKey ||
+        draggedDividerKey ||
+        isSeamDragging ||
+        isHBoundaryDragging
+      ) {
         window.addEventListener("mousemove", onMouseMove);
         window.addEventListener("mouseup", onMouseUp);
+        window.addEventListener("touchmove", onTouchMove, { passive: false });
+        window.addEventListener("touchend", onTouchEnd);
       }
       return () => {
         window.removeEventListener("mousemove", onMouseMove);
         window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("touchmove", onTouchMove);
+        window.removeEventListener("touchend", onTouchEnd);
       };
     }, [
       draggedShelfKey,
       draggedDividerKey,
+      isSeamDragging,
+      isHBoundaryDragging,
       dragOffset,
       initialShelfY,
       initialDividerX,
       innerWidth,
+      w,
       h,
       t,
       dividers,
       customDividerPositions,
       customShelfPositions,
       shelves,
+      setModuleVerticalBoundaries,
+      setColumnHorizontalBoundary,
+      setIsDragging,
+      // Note: localBoundaries accessed via ref to avoid re-creating handlers on every drag update
     ]);
 
     // Handler to show/hide all shelf and divider info overlays (to be called from parent)
@@ -577,10 +906,27 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {panels.map((panel) => {
           const [x, y, z] = panel.position as [number, number, number];
           const yOffset = 0.05;
+          const isSeamPanel = panel.seamIndex !== undefined;
+          // Only show drag button on "A" panel of each seam (not both A and B)
+          const isSeamAPanel = isSeamPanel && panel.label.includes("A (");
+          // Check if this is the Top panel of BottomModule (the split between modules)
+          const isTopOfBottomModule =
+            panel.label.startsWith("Top") &&
+            panel.label.includes("(BottomModule)");
+          // Check if this is the Bottom panel of TopModule (also at the split)
+          const isBottomOfTopModule =
+            panel.label.startsWith("Bottom") &&
+            panel.label.includes("(TopModule)");
+          // Only show Y-drag when there are 2 modules (height > 200cm)
+          const hasMultipleModules = h > TARGET_BOTTOM_HEIGHT;
+
+          // Position comes directly from store via useMemo - no visual delta needed
+          // Store is updated on every mouse move, so all panels stay in sync
+          const visualPosition: [number, number, number] = [x, y, z];
 
           return (
             <group key={panel.label}>
-              <Panel position={panel.position} size={panel.size} />
+              <Panel position={visualPosition} size={panel.size} />
               <Html
                 position={[x, y + yOffset, z]}
                 center
@@ -589,28 +935,155 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 zIndexRange={[0, 0]}
               >
                 <div style={{ position: "relative" }}>
-                  {showInfoButtons && (
-                    <button
-                      style={{
-                        fontSize: "4px",
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        border: "1px solid #888",
-                        background: "#fff",
-                        cursor: "pointer",
-                        minWidth: "28px",
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowPanelLabels((prev) => ({
-                          ...prev,
-                          [panel.label]: !prev[panel.label],
-                        }));
-                      }}
-                    >
-                      {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
-                    </button>
-                  )}
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    {showInfoButtons && (
+                      <button
+                        style={{
+                          fontSize: "4px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          border: "1px solid #888",
+                          background: "#fff",
+                          cursor: "pointer",
+                          minWidth: "28px",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPanelLabels((prev) => ({
+                            ...prev,
+                            [panel.label]: !prev[panel.label],
+                          }));
+                        }}
+                      >
+                        {showPanelLabels[panel.label] ? "Sakrij" : "Prikaži"}
+                      </button>
+                    )}
+                    {/* Drag button for Side seam panels */}
+                    {isSeamAPanel && (
+                      <button
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          border: "1px solid #888",
+                          background:
+                            isSeamDragging &&
+                            seamDragRef.current.index === panel.seamIndex
+                              ? "#eee"
+                              : "#fff",
+                          cursor:
+                            isSeamDragging &&
+                            seamDragRef.current.index === panel.seamIndex
+                              ? "grabbing"
+                              : "grab",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          const moduleKey = panel.moduleKey ?? "SingleModule";
+                          // Get or initialize boundaries for THIS module
+                          let baseBoundaries =
+                            moduleVerticalBoundaries[moduleKey];
+                          if (!baseBoundaries || baseBoundaries.length === 0) {
+                            // Fall back to old global boundaries or compute defaults
+                            baseBoundaries =
+                              verticalBoundaries.length > 0
+                                ? verticalBoundaries
+                                : getDefaultBoundariesX(w);
+                            // Initialize this module's boundaries
+                            setModuleVerticalBoundaries(
+                              moduleKey,
+                              baseBoundaries,
+                            );
+                          }
+                          // Store drag state in ref with moduleKey
+                          seamDragRef.current = {
+                            index: panel.seamIndex!,
+                            moduleKey,
+                            startMouseX: e.clientX,
+                            baseBoundaries: [...baseBoundaries],
+                          };
+                          setIsSeamDragging(true);
+                          setIsDragging(true);
+                          document.body.style.userSelect = "none";
+                        }}
+                      >
+                        <img
+                          src="/up-down-arrow-icon.png"
+                          alt="Drag Seam"
+                          style={{
+                            width: 14,
+                            height: 14,
+                            pointerEvents: "none",
+                          }}
+                        />
+                      </button>
+                    )}
+                    {/* Drag button for Top panel of BottomModule (Y-axis drag) - per column */}
+                    {isTopOfBottomModule && hasMultipleModules && (
+                      <button
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          border: "1px solid #888",
+                          background:
+                            isHBoundaryDragging &&
+                            hBoundaryDragRef.current.colIndex === panel.colIndex
+                              ? "#eee"
+                              : "#fff",
+                          cursor:
+                            isHBoundaryDragging &&
+                            hBoundaryDragRef.current.colIndex === panel.colIndex
+                              ? "grabbing"
+                              : "grab",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          const colIdx = panel.colIndex ?? 0;
+                          // Get current boundary Y for this specific column
+                          let currentY = columnHorizontalBoundaries[colIdx] ?? horizontalBoundary;
+                          if (currentY === null) {
+                            // Compute default: same logic as buildModulesY
+                            const defaultBottomH =
+                              h - TARGET_BOTTOM_HEIGHT < MIN_TOP_HEIGHT
+                                ? h - MIN_TOP_HEIGHT
+                                : TARGET_BOTTOM_HEIGHT;
+                            currentY = -h / 2 + defaultBottomH;
+                          }
+                          // Store drag state in ref with column index
+                          hBoundaryDragRef.current = {
+                            active: true,
+                            colIndex: colIdx,
+                            startY: currentY,
+                            startMouseY: e.clientY,
+                          };
+                          setIsHBoundaryDragging(true);
+                          setIsDragging(true);
+                          document.body.style.userSelect = "none";
+                        }}
+                      >
+                        <img
+                          src="/up-down-arrow-icon.png"
+                          alt="Drag Height"
+                          style={{
+                            width: 14,
+                            height: 14,
+                            pointerEvents: "none",
+                          }}
+                        />
+                      </button>
+                    )}
+                  </div>
                   {showPanelLabels[panel.label] && (
                     <div
                       style={{
@@ -746,12 +1219,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         }}
                         onMouseDown={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           setDraggedDividerKey(divider.id);
                           setDragOffset(e.clientX);
                           setInitialDividerX(
                             customDividerPositions[divider.id] ??
                               divider.position[0],
                           );
+                          setIsDragging(true);
                           document.body.style.userSelect = "none";
                         }}
                       >
@@ -870,12 +1345,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         }}
                         onMouseDown={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           setDraggedShelfKey(shelf.key);
                           setDragOffset(e.clientY);
                           setInitialShelfY(
                             customShelfPositions[shelf.key] ??
                               shelf.position[1],
                           );
+                          setIsDragging(true);
                           document.body.style.userSelect = "none";
                         }}
                       >
@@ -928,8 +1405,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {/* Render extras for all elements that have them toggled (persist across selection) */}
         {(() => {
           // Build element regions exactly like elementLabels
-          const blocksX = buildBlocksX(w);
-          const modulesY = buildModulesY(h);
+          const blocksX = buildBlocksX(
+            w,
+            verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+          );
+          const modulesY = buildModulesY(h, false, horizontalBoundary);
 
           const nodes: React.ReactNode[] = [];
           let idx = 0;
@@ -1063,8 +1543,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {/* Back panels per element (5mm), with 2mm clearance in width and height, centered */}
         {(() => {
           const clearance = 2 / 1000; // 2mm in world units
-          const blocksX = buildBlocksX(w);
-          const modulesY = buildModulesY(h);
+          const blocksX = buildBlocksX(
+            w,
+            verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+          );
+          const modulesY = buildModulesY(h, false, horizontalBoundary);
           const nodes: React.ReactNode[] = [];
           let idx = 0;
           modulesY.forEach((m) => {
@@ -1098,8 +1581,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           if (!doorSelections || Object.keys(doorSelections).length === 0)
             return null;
           // Rebuild element grid (same mapping as labels and menus)
-          const blocksX = buildBlocksX(w);
-          const modulesY = buildModulesY(h);
+          const blocksX = buildBlocksX(
+            w,
+            verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+          );
+          const modulesY = buildModulesY(h, false, horizontalBoundary);
 
           const nodes: React.ReactNode[] = [];
           const doorT = 18 / 1000; // 1.8 cm
@@ -1235,7 +1721,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
               // Bottom chain dimensions per element-width (blocks of max 100cm)
               const offsetY = yMin - 0.06; // 6cm below
-              const blocksX = buildBlocksX(w);
+              const blocksX = buildBlocksX(
+                w,
+                verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+              );
               const segWX = blocksX[0]?.width ?? w;
               const margin = ah * Math.cos(theta);
 
@@ -1287,7 +1776,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const rightX = xMax + xOff;
 
               // Build Y-modules (same logic used elsewhere)
-              const modulesY = buildModulesY(h);
+              const modulesY = buildModulesY(h, false, horizontalBoundary);
 
               const vMargin = ah * Math.cos(theta);
 

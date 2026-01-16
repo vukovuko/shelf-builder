@@ -43,6 +43,10 @@ function ContextMonitor() {
     store.compartmentExtras,
     store.doorSelections,
     store.showDoors,
+    store.verticalBoundaries,
+    store.moduleVerticalBoundaries, // Per-module vertical boundaries
+    store.horizontalBoundary,
+    store.columnHorizontalBoundaries, // NEW: Per-column horizontal boundaries
     invalidate,
   ]);
 
@@ -55,6 +59,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
   const _fitRequestId = useShelfStore((state) => state.fitRequestId);
   const materials = useShelfStore((state) => state.materials);
+  const isDragging = useShelfStore((state) => state.isDragging);
 
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const sceneGroupRef = useRef<THREE.Group>(null);
@@ -214,7 +219,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
       <OrbitControls
         ref={controlsRef}
-        enabled={areControlsEnabled}
+        enabled={areControlsEnabled && !isDragging}
         makeDefault
         minPolarAngle={areControlsEnabled ? 0 : Math.PI / 2}
         maxPolarAngle={areControlsEnabled ? Math.PI : Math.PI / 2}

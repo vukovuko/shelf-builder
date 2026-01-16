@@ -115,6 +115,66 @@ useEffect(() => {
 **If you add a new store value that affects rendering, add it to this dependency array!**
 
 ---
+
+## Boundary Drag Implementation (IMPLEMENTED)
+
+**Date:** January 2026
+**Status:** ✅ WORKING - using "commit on every mouse move" approach
+
+### Features
+
+BOTH drag functionalities are implemented:
+1. **LEFT-RIGHT** drag for vertical seams (Side seam panels) - to resize column widths
+2. **UP-DOWN** drag for horizontal boundary - to resize module heights (BottomModule/TopModule split)
+
+### Implementation: Commit on Every Mouse Move
+
+The correct approach that works:
+- **Commit to store on EVERY mouse move** (not just mouse up)
+- All useMemos recalculate together atomically
+- All panels, back panels, doors, labels, etc. update in sync
+- No holes/gaps because everything updates together
+
+```typescript
+// In onMouseMove handler:
+// Directly update store, not local visual delta state
+const newBoundaries = [...baseBoundaries];
+newBoundaries[index] = newX;
+setVerticalBoundaries(newBoundaries);  // Commit directly to store
+
+// For horizontal boundary:
+setHorizontalBoundary(newY);  // Commit directly to store
+```
+
+### ⚠️ FAILED APPROACH: Visual Delta (DO NOT USE)
+
+Previously tried using visual delta state (`seamDragDelta`, `hBoundaryDragDelta`) to preview during drag, then commit on mouse up.
+
+**Why it failed:** Too many interdependent elements:
+- `panels` useMemo - structural panels
+- Back panels (separate IIFE)
+- Doors (separate IIFE)
+- Element labels
+- Element structures (shelves/dividers)
+- Compartment extras (drawers, rods)
+
+When you move SOME elements with visual delta but not ALL, holes appear.
+
+### Files Involved
+
+- `src/components/CarcassFrame/CarcassFrame.tsx` - drag handlers
+- `src/lib/store.ts` - `verticalBoundaries`, `horizontalBoundary`, `isDragging`
+- `src/lib/wardrobe-utils.ts` - `buildBlocksX()`, `buildModulesY()`
+- `src/components/Scene.tsx` - disables OrbitControls when `isDragging` is true
+
+### Constraints
+
+- **Vertical seams:** MIN_SEGMENT (10cm) to MAX_SEGMENT_X (100cm) per segment
+- **Horizontal boundary:** MIN_SEGMENT (10cm) minimum for each module
+
+---
+
+---
 title: Minimize Serialization at RSC Boundaries
 impact: HIGH
 impactDescription: reduces data transfer size
@@ -396,77 +456,6 @@ The table's width propagates up through all flex parents, expanding the dialog.
 - Add `break-words` to text cells that should wrap
 
 ---
-title: Dynamic Imports for Heavy Components
-impact: CRITICAL
-impactDescription: directly affects TTI and LCP
-tags: bundle, dynamic-import, code-splitting, next-dynamic
----
-
-## Dynamic Imports for Heavy Components
-
-Use `next/dynamic` to lazy-load large components that aren't required during initial page render. This is especially important for heavy libraries like Three.js, Monaco Editor, or chart libraries.
-
-**Incorrect (bundles 300KB+ with main chunk):**
-
-```tsx
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-
-export function Scene() {
-  return (
-    <Canvas>
-      <OrbitControls />
-      {/* ... */}
-    </Canvas>
-  )
-}
-```
-
-**Correct (loads on demand):**
-
-```tsx
-import dynamic from 'next/dynamic'
-
-const Scene = dynamic(() => import('./Scene'), {
-  ssr: false,
-  loading: () => <div className="h-full flex items-center justify-center">Loading 3D view...</div>
-})
-
-export function Page() {
-  return <Scene />
-}
-```
-
-Use `{ ssr: false }` for browser-only components (WebGL, canvas, etc.).
-
----
-title: Per-Request Deduplication with React.cache()
-impact: MEDIUM
-impactDescription: deduplicates within request
-tags: server, cache, react-cache, deduplication
----
-
-## Per-Request Deduplication with React.cache()
-
-Wrap async functions with `cache()` to deduplicate calls within a single request. Multiple components calling the same cached function will only execute the query once.
-
-```typescript
-import { cache } from 'react'
-import { auth } from '@/lib/auth'
-import { db } from '@/db/db'
-
-export const getCurrentUser = cache(async () => {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user?.id) return null
-  return await db.query.user.findFirst({
-    where: eq(user.id, session.user.id)
-  })
-})
-```
-
-Now multiple server components can call `getCurrentUser()` and the database query runs only once per request.
-
----
 title: Narrow Effect Dependencies
 impact: LOW
 impactDescription: minimizes effect re-runs
@@ -507,44 +496,6 @@ useEffect(() => {
   if (isMobile) enableMobileMode()
 }, [isMobile])
 ```
-
----
-title: Extract to Memoized Components
-impact: MEDIUM
-impactDescription: enables early returns before computation
-tags: rerender, memo, useMemo, optimization
----
-
-## Extract to Memoized Components
-
-Extract expensive work into memoized components to enable early returns before computation.
-
-**Incorrect (computation runs even during loading):**
-
-```tsx
-function Profile({ userId, isLoading }) {
-  const avatarId = useMemo(() => computeAvatarId(userId), [userId])
-
-  if (isLoading) return <Skeleton />
-  return <Avatar id={avatarId} />
-}
-```
-
-**Correct (early return prevents child computation):**
-
-```tsx
-const UserAvatar = memo(function UserAvatar({ userId }) {
-  const avatarId = useMemo(() => computeAvatarId(userId), [userId])
-  return <Avatar id={avatarId} />
-})
-
-function Profile({ userId, isLoading }) {
-  if (isLoading) return <Skeleton />
-  return <UserAvatar userId={userId} />
-}
-```
-
-**Note:** If React Compiler is enabled, manual memoization with `memo()` and `useMemo()` is not necessary.
 
 ---
 title: Subscribe to Derived State

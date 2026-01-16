@@ -9,3 +9,5 @@ export const DRAWER_GAP = 1 / 100; // 1cm
 
 // Drag constraints
 export const MIN_DRAG_GAP = 10 / 100; // 10cm minimum between shelves/dividers
+export const MIN_SEGMENT = 10 / 100; // 10cm minimum segment size (same as MIN_DRAG_GAP)
+export const MAX_SEGMENT_Y = 200 / 100; // 2.0m - max vertical segment (same as TARGET_BOTTOM_HEIGHT)
