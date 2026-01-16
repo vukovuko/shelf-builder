@@ -92,6 +92,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
     id: m.id,
     name: m.name,
     price: m.price,
+    costPrice: m.costPrice,
     img: m.img,
     thickness: m.thickness,
     stock: m.stock,

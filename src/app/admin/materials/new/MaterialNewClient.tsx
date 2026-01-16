@@ -46,6 +46,9 @@ export function MaterialNewClient() {
     const data = {
       name: formData.get("name") as string,
       price: Number(formData.get("price")),
+      costPrice: formData.get("costPrice")
+        ? Number(formData.get("costPrice"))
+        : 0,
       categories,
       published,
       img: (formData.get("img") as string) || undefined,
@@ -106,7 +109,7 @@ export function MaterialNewClient() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Cena (RSD/m2) *</Label>
+              <Label htmlFor="price">Prodajna cena (RSD/m²) *</Label>
               <Input
                 id="price"
                 name="price"
@@ -114,6 +117,17 @@ export function MaterialNewClient() {
                 min={1}
                 required
                 placeholder="npr. 2500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="costPrice">Nabavna cena (RSD/m²)</Label>
+              <Input
+                id="costPrice"
+                name="costPrice"
+                type="number"
+                min={0}
+                placeholder="npr. 1800"
               />
             </div>
 

@@ -197,7 +197,8 @@ export const wardrobeRelations = relations(wardrobes, ({ one, many }) => ({
 export const materials = pgTable("material", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  price: integer("price").notNull(),
+  price: integer("price").notNull(), // Prodajna cena (selling price)
+  costPrice: integer("costPrice").notNull().default(0), // Nabavna cena (cost price)
   img: text("img"),
   thickness: integer("thickness"),
   stock: integer("stock").default(0),

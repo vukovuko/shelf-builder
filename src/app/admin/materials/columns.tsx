@@ -10,6 +10,7 @@ export type Material = {
   id: number;
   name: string;
   price: number;
+  costPrice: number;
   img: string | null;
   thickness: number | null;
   stock: number | null;
@@ -135,7 +136,7 @@ export const columns: ColumnDef<Material>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Cena
+          Prodajna
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -143,6 +144,24 @@ export const columns: ColumnDef<Material>[] = [
     cell: ({ row }) => {
       const price = row.getValue("price") as number;
       return `${price.toLocaleString("sr-RS")} RSD/m²`;
+    },
+  },
+  {
+    accessorKey: "costPrice",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Nabavna
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const costPrice = row.getValue("costPrice") as number;
+      return `${costPrice.toLocaleString("sr-RS")} RSD/m²`;
     },
   },
 ];

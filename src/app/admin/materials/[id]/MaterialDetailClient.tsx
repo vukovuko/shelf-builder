@@ -41,6 +41,7 @@ interface Material {
   id: number;
   name: string;
   price: number;
+  costPrice: number;
   img: string | null;
   thickness: number | null;
   stock: number | null;
@@ -66,6 +67,9 @@ export function MaterialDetailClient({
   // Controlled form state
   const [name, setName] = useState(initialMaterial.name);
   const [price, setPrice] = useState(String(initialMaterial.price));
+  const [costPrice, setCostPrice] = useState(
+    String(initialMaterial.costPrice ?? 0),
+  );
   const [thickness, setThickness] = useState(
     initialMaterial.thickness ? String(initialMaterial.thickness) : "",
   );
@@ -82,6 +86,7 @@ export function MaterialDetailClient({
   const hasChanges = useMemo(() => {
     if (name !== material.name) return true;
     if (Number(price) !== material.price) return true;
+    if (Number(costPrice) !== (material.costPrice ?? 0)) return true;
     if ((thickness === "" ? null : Number(thickness)) !== material.thickness)
       return true;
     if ((stock === "" ? null : Number(stock)) !== material.stock) return true;
@@ -95,7 +100,17 @@ export function MaterialDetailClient({
       return true;
 
     return false;
-  }, [name, price, thickness, stock, img, published, categories, material]);
+  }, [
+    name,
+    price,
+    costPrice,
+    thickness,
+    stock,
+    img,
+    published,
+    categories,
+    material,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -111,6 +126,7 @@ export function MaterialDetailClient({
     const data = {
       name,
       price: Number(price),
+      costPrice: Number(costPrice) || 0,
       categories: categories.map((c) => c.value),
       published,
       img: img || null,
@@ -139,6 +155,7 @@ export function MaterialDetailClient({
       // Sync form state with saved values
       setName(updated.name);
       setPrice(String(updated.price));
+      setCostPrice(String(updated.costPrice ?? 0));
       setThickness(updated.thickness ? String(updated.thickness) : "");
       setStock(updated.stock ? String(updated.stock) : "");
       setImg(updated.img ?? "");
@@ -292,7 +309,7 @@ export function MaterialDetailClient({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Cena (RSD/m2) *</Label>
+              <Label htmlFor="price">Prodajna cena (RSD/m²) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -301,6 +318,18 @@ export function MaterialDetailClient({
                 onChange={(e) => setPrice(e.target.value)}
                 required
                 placeholder="npr. 2500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="costPrice">Nabavna cena (RSD/m²)</Label>
+              <Input
+                id="costPrice"
+                type="number"
+                min={0}
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                placeholder="npr. 1800"
               />
             </div>
 
