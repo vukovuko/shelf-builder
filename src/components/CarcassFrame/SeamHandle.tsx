@@ -2,7 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
 
@@ -13,8 +13,8 @@ interface SeamHandleProps {
   depth: number;
   minX: number;
   maxX: number;
-  leftColStart: number;  // Left edge of left column (for width indicator)
-  rightColEnd: number;   // Right edge of right column (for width indicator)
+  leftColStart: number;
+  rightColEnd: number;
 }
 
 /**
@@ -39,6 +39,11 @@ export function SeamHandle({
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const isDraggingRef = useRef(false);
+  const currentDragXRef = useRef(x);
+
+  // Direct DOM refs for instant updates (bypass React)
+  const leftWidthSpanRef = useRef<HTMLSpanElement>(null);
+  const rightWidthSpanRef = useRef<HTMLSpanElement>(null);
 
   // Drag plane for raycasting
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
@@ -49,11 +54,11 @@ export function SeamHandle({
     (e: React.PointerEvent | THREE.Event) => {
       if ("stopPropagation" in e) e.stopPropagation();
       isDraggingRef.current = true;
+      currentDragXRef.current = x;
       setIsDraggingLocal(true);
       setIsDragging(true);
       gl.domElement.style.cursor = "grabbing";
 
-      // Set up drag plane
       dragPlane.current.setFromNormalAndCoplanarPoint(
         new THREE.Vector3(0, 0, 1),
         new THREE.Vector3(x, 0, depth / 2),
@@ -63,7 +68,7 @@ export function SeamHandle({
   );
 
   // Global event listeners for drag
-  React.useEffect(() => {
+  useEffect(() => {
     const handleGlobalMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
 
@@ -82,6 +87,17 @@ export function SeamHandle({
         )
       ) {
         const newX = Math.max(minX, Math.min(maxX, intersection.current.x));
+        currentDragXRef.current = newX;
+
+        // Direct DOM manipulation - instant, no React overhead
+        if (leftWidthSpanRef.current) {
+          leftWidthSpanRef.current.textContent = `${Math.round((newX - leftColStart) * 100)} cm`;
+        }
+        if (rightWidthSpanRef.current) {
+          rightWidthSpanRef.current.textContent = `${Math.round((rightColEnd - newX) * 100)} cm`;
+        }
+
+        // Update store (this can be slightly delayed, that's fine)
         setVerticalBoundary(seamIndex, newX);
       }
     };
@@ -102,9 +118,7 @@ export function SeamHandle({
       window.removeEventListener("pointermove", handleGlobalMove);
       window.removeEventListener("pointerup", handleGlobalUp);
     };
-  }, [camera, gl, minX, maxX, seamIndex, setVerticalBoundary, setIsDragging]);
-
-  const handleSize = 0.06; // 6cm circle
+  }, [camera, gl, minX, maxX, seamIndex, setVerticalBoundary, setIsDragging, leftColStart, rightColEnd]);
 
   return (
     <group position={[x, height / 2, depth / 2 + 0.01]}>
@@ -173,7 +187,7 @@ export function SeamHandle({
         <>
           {/* Left column width indicator */}
           <Html
-            position={[(leftColStart - x) / 2, -height / 2 - 0.15, 0]}
+            position={[(leftColStart + x) / 2 - x, -height / 2 - 0.15, 0]}
             center
             style={{ pointerEvents: "none" }}
           >
@@ -199,7 +213,10 @@ export function SeamHandle({
                   marginTop: -12,
                 }}
               />
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#000" }}>
+              <span
+                ref={leftWidthSpanRef}
+                style={{ fontSize: 13, fontWeight: 500, color: "#000" }}
+              >
                 {Math.round((x - leftColStart) * 100)} cm
               </span>
             </div>
@@ -207,7 +224,7 @@ export function SeamHandle({
 
           {/* Right column width indicator */}
           <Html
-            position={[(rightColEnd - x) / 2, -height / 2 - 0.15, 0]}
+            position={[(x + rightColEnd) / 2 - x, -height / 2 - 0.15, 0]}
             center
             style={{ pointerEvents: "none" }}
           >
@@ -233,7 +250,10 @@ export function SeamHandle({
                   marginTop: -12,
                 }}
               />
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#000" }}>
+              <span
+                ref={rightWidthSpanRef}
+                style={{ fontSize: 13, fontWeight: 500, color: "#000" }}
+              >
                 {Math.round((rightColEnd - x) * 100)} cm
               </span>
             </div>

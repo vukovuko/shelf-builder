@@ -98,6 +98,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Min column width (20cm = 0.2m)
     const minColWidth = 0.2;
+    // Max column width (100cm = 1.0m)
+    const maxColWidth = 1.0;
     // Min compartment height for drag constraints (5cm = 0.05m)
     // Reduced from 20cm to allow fine-grained dragging with many shelves
     const minCompHeight = 0.05;
@@ -205,12 +207,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             return (bottomY + topY) / 2;
           };
 
-          // Calculate compartment inner height (excluding panel thickness)
+          // Calculate compartment height (heights add up to column height exactly)
           const getCompartmentHeightCm = (compIdx: number): number => {
-            const bottomY = compIdx === 0 ? t : shelves[compIdx - 1] + t / 2;
-            const topY =
-              compIdx === shelves.length ? colH - t : shelves[compIdx] - t / 2;
-            return Math.round((topY - bottomY) * 100); // meters to cm, rounded
+            const colHCm = Math.round(colH * 100);
+
+            // For last compartment, calculate as remainder to ensure exact sum
+            if (compIdx === shelves.length) {
+              let sumPrevious = 0;
+              for (let i = 0; i < compIdx; i++) {
+                const prevBottomY = i === 0 ? 0 : shelves[i - 1];
+                const prevTopY = shelves[i];
+                sumPrevious += Math.floor((prevTopY - prevBottomY) * 100);
+              }
+              return colHCm - sumPrevious;
+            }
+
+            // For non-last compartments, use floor (whole cm)
+            const bottomY = compIdx === 0 ? 0 : shelves[compIdx - 1];
+            const topY = shelves[compIdx];
+            return Math.floor((topY - bottomY) * 100);
           };
 
           // Get compartment bounds for hit area
@@ -338,8 +353,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Calculate min/max X for this seam based on adjacent columns
           const leftCol = columns[idx];
           const rightCol = columns[idx + 1];
-          const minX = leftCol.start + minColWidth + t;
-          const maxX = rightCol.end - minColWidth - t;
+          // Width displayed = seamX - leftCol.start (or rightCol.end - seamX)
+          // So constraints are directly on seamX position without thickness adjustment
+          // minX: left column at minimum width (20cm) OR right column at maximum width (100cm)
+          const minX = Math.max(
+            leftCol.start + minColWidth,
+            rightCol.end - maxColWidth,
+          );
+          // maxX: left column at maximum width (100cm) OR right column at minimum width (20cm)
+          const maxX = Math.min(
+            leftCol.start + maxColWidth,
+            rightCol.end - minColWidth,
+          );
 
           return (
             <React.Fragment key={`seam-${idx}`}>
