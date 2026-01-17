@@ -11,3 +11,55 @@ export const DRAWER_GAP = 1 / 100; // 1cm
 export const MIN_DRAG_GAP = 10 / 100; // 10cm minimum between shelves/dividers
 export const MIN_SEGMENT = 10 / 100; // 10cm minimum segment size (same as MIN_DRAG_GAP)
 export const MAX_SEGMENT_Y = 200 / 100; // 2.0m - max vertical segment (same as TARGET_BOTTOM_HEIGHT)
+
+// ============================================
+// SHELF CONSTRAINTS CONFIG
+// Edit these values to change shelf constraints
+// ============================================
+
+// Maximum number of horizontal shelves per column
+export const MAX_SHELVES_PER_COLUMN = 14;
+
+// Maximum column height (cm) - also max compartment height
+export const MAX_COLUMN_HEIGHT_CM = 275;
+
+// Minimum column height per number of shelves (in cm)
+// Key = number of shelves, Value = minimum column height in cm
+// Values not defined here use formula: 21 + (n * 12)
+export const MIN_HEIGHT_BY_SHELVES: Record<number, number> = {
+  1: 29,
+  2: 45,
+  3: 57,
+  4: 69,
+  5: 81,
+  6: 93,
+  // 7-14 use formula: 21 + (n * 12)
+};
+
+/**
+ * Get minimum column height for given number of shelves
+ * @param numShelves Number of horizontal shelves (0 = no shelves, 1 compartment)
+ * @returns Minimum column height in cm
+ */
+export function getMinColumnHeightCm(numShelves: number): number {
+  if (numShelves === 0) return 29; // No shelves = 1 compartment
+  if (MIN_HEIGHT_BY_SHELVES[numShelves] !== undefined) {
+    return MIN_HEIGHT_BY_SHELVES[numShelves];
+  }
+  // Formula for values not explicitly defined (7-14)
+  return 21 + numShelves * 12;
+}
+
+/**
+ * Get maximum number of shelves that can fit in given column height
+ * @param columnHeightCm Column height in cm
+ * @returns Maximum number of shelves
+ */
+export function getMaxShelvesForHeight(columnHeightCm: number): number {
+  for (let n = MAX_SHELVES_PER_COLUMN; n >= 1; n--) {
+    if (columnHeightCm >= getMinColumnHeightCm(n)) {
+      return n;
+    }
+  }
+  return 0;
+}

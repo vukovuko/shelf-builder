@@ -4,6 +4,10 @@ import { Html } from "@react-three/drei";
 import React from "react";
 import { useShelfStore } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
+import {
+  getMinColumnHeightCm,
+  MAX_COLUMN_HEIGHT_CM,
+} from "@/lib/wardrobe-constants";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
@@ -94,17 +98,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const minCompHeight = 0.2;
     // Height threshold for horizontal splits (200cm = 2m)
     const splitThreshold = 2.0;
-    // Column height constraints
-    const maxColumnHeight = 3.0; // 300cm
+    // Column height constraints (from wardrobe-constants.ts)
+    const maxColumnHeight = MAX_COLUMN_HEIGHT_CM / 100; // 275cm -> meters
 
     // Dynamic min height based on number of shelves in column
-    // Uses formula: n === 1 shelf → 29cm, n > 1 → 21 + (n * 12) cm
+    // Uses config from wardrobe-constants.ts
     const getMinColumnHeight = (colIdx: number): number => {
       const shelves = columnHorizontalBoundaries[colIdx] || [];
-      const n = shelves.length; // number of shelves
-      if (n === 0) return 0.29; // 29cm for 1 compartment (no shelves)
-      const minCm = 21 + (n + 1) * 12; // n+1 because n shelves = n+1 compartments
-      return minCm / 100; // convert to meters
+      return getMinColumnHeightCm(shelves.length) / 100; // convert to meters
     };
 
     // Track which columns we've initialized to avoid re-running
@@ -199,6 +200,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             return (bottomY + topY) / 2;
           };
 
+          // Calculate compartment inner height (excluding panel thickness)
+          const getCompartmentHeightCm = (compIdx: number): number => {
+            const bottomY = compIdx === 0 ? t : shelves[compIdx - 1] + t / 2;
+            const topY =
+              compIdx === shelves.length ? colH - t : shelves[compIdx] - t / 2;
+            return Math.round((topY - bottomY) * 100); // meters to cm, rounded
+          };
+
           return (
             <React.Fragment key={`col-${colIdx}`}>
               {/* Top panel of column */}
@@ -244,7 +253,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 currentHeightM={colH}
               />
 
-              {/* Labels for each compartment (A1, A2, B1, B2...) */}
+              {/* Labels for each compartment (A1, A2, B1, B2...) with height */}
               {Array.from({ length: numCompartments }).map((_, compIdx) => (
                 <Html
                   key={`label-${compIdx}`}
@@ -256,9 +265,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   center
                 >
                   <div
-                    style={{ fontSize: 24, fontWeight: "bold", color: "#333" }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
                   >
-                    {`${colLetter}${compIdx + 1}`}
+                    <span
+                      style={{
+                        fontSize: 24,
+                        fontWeight: "bold",
+                        color: "#333",
+                      }}
+                    >
+                      {`${colLetter}${compIdx + 1}`}
+                    </span>
+                    <span style={{ fontSize: 14, color: "#666" }}>
+                      {`${getCompartmentHeightCm(compIdx)}cm`}
+                    </span>
                   </div>
                 </Html>
               ))}

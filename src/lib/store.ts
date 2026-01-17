@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { MAX_SHELVES_PER_COLUMN } from "./wardrobe-constants";
 
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
@@ -126,7 +127,7 @@ interface ShelfState {
   resetVerticalBoundaries: () => void;
   // Per-column horizontal boundaries (Y positions of horizontal shelves in meters)
   // Key: column index (0, 1, 2...), Value: array of Y positions (sorted bottom to top)
-  // Supports 0-6 shelves per column (0 shelves = 1 compartment, 6 shelves = 7 compartments)
+  // Max shelves per column defined in wardrobe-constants.ts (MAX_SHELVES_PER_COLUMN)
   columnHorizontalBoundaries: Record<number, number[]>;
   setColumnHorizontalBoundaries: (
     colIndex: number,
@@ -421,7 +422,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
   addColumnShelf: (colIndex, y) =>
     set((state) => {
       const existing = state.columnHorizontalBoundaries[colIndex] || [];
-      if (existing.length >= 6) return state; // max 6 shelves
+      if (existing.length >= MAX_SHELVES_PER_COLUMN) return state;
       const newBoundaries = [...existing, y].sort((a, b) => a - b);
       return {
         columnHorizontalBoundaries: {
