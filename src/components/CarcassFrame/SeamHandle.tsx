@@ -13,6 +13,8 @@ interface SeamHandleProps {
   depth: number;
   minX: number;
   maxX: number;
+  leftColStart: number;  // Left edge of left column (for width indicator)
+  rightColEnd: number;   // Right edge of right column (for width indicator)
 }
 
 /**
@@ -25,6 +27,8 @@ export function SeamHandle({
   depth,
   minX,
   maxX,
+  leftColStart,
+  rightColEnd,
 }: SeamHandleProps) {
   const setVerticalBoundary = useShelfStore(
     (state) => state.setVerticalBoundary,
@@ -163,6 +167,79 @@ export function SeamHandle({
           </span>
         </div>
       </Html>
+
+      {/* Width indicators - shown only while dragging */}
+      {isDraggingLocal && (
+        <>
+          {/* Left column width indicator */}
+          <Html
+            position={[(leftColStart - x) / 2, -height / 2 - 0.15, 0]}
+            center
+            style={{ pointerEvents: "none" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                background: "rgba(255, 255, 255, 0.95)",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                padding: "4px 12px 8px 12px",
+                color: "#000",
+              }}
+            >
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderBottom: "8px solid rgba(255, 255, 255, 0.95)",
+                  marginTop: -12,
+                }}
+              />
+              <span style={{ fontSize: 13, fontWeight: 500, color: "#000" }}>
+                {Math.round((x - leftColStart) * 100)} cm
+              </span>
+            </div>
+          </Html>
+
+          {/* Right column width indicator */}
+          <Html
+            position={[(rightColEnd - x) / 2, -height / 2 - 0.15, 0]}
+            center
+            style={{ pointerEvents: "none" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                background: "rgba(255, 255, 255, 0.95)",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                padding: "4px 12px 8px 12px",
+                color: "#000",
+              }}
+            >
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderBottom: "8px solid rgba(255, 255, 255, 0.95)",
+                  marginTop: -12,
+                }}
+              />
+              <span style={{ fontSize: 13, fontWeight: 500, color: "#000" }}>
+                {Math.round((rightColEnd - x) * 100)} cm
+              </span>
+            </div>
+          </Html>
+        </>
+      )}
     </group>
   );
 }

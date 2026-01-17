@@ -361,6 +361,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 depth={d}
                 minX={minX}
                 maxX={maxX}
+                leftColStart={leftCol.start}
+                rightColEnd={rightCol.end}
               />
             </React.Fragment>
           );
