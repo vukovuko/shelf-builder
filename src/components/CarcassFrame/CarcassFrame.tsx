@@ -98,8 +98,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Min column width (20cm = 0.2m)
     const minColWidth = 0.2;
-    // Min compartment height (20cm = 0.2m)
-    const minCompHeight = 0.2;
+    // Min compartment height for drag constraints (5cm = 0.05m)
+    // Reduced from 20cm to allow fine-grained dragging with many shelves
+    const minCompHeight = 0.05;
     // Height threshold for horizontal splits (200cm = 2m)
     const splitThreshold = 2.0;
     // Column height constraints (from wardrobe-constants.ts)
