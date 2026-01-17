@@ -124,15 +124,25 @@ interface ShelfState {
   setVerticalBoundary: (index: number, x: number) => void;
   setVerticalBoundaries: (boundaries: number[]) => void;
   resetVerticalBoundaries: () => void;
-  // Per-column horizontal boundaries (Y position of horizontal split in meters)
-  // Key: column index (0, 1, 2...), Value: Y position or null for auto/no-split
-  // Only relevant when h > TARGET_BOTTOM_HEIGHT (200cm)
-  columnHorizontalBoundaries: Record<number, number | null>;
-  setColumnHorizontalBoundary: (colIndex: number, y: number | null) => void;
+  // Per-column horizontal boundaries (Y positions of horizontal shelves in meters)
+  // Key: column index (0, 1, 2...), Value: array of Y positions (sorted bottom to top)
+  // Supports 0-6 shelves per column (0 shelves = 1 compartment, 6 shelves = 7 compartments)
+  columnHorizontalBoundaries: Record<number, number[]>;
+  setColumnHorizontalBoundaries: (
+    colIndex: number,
+    boundaries: number[],
+  ) => void;
+  addColumnShelf: (colIndex: number, y: number) => void;
+  removeColumnShelf: (colIndex: number, shelfIndex: number) => void;
+  moveColumnShelf: (colIndex: number, shelfIndex: number, newY: number) => void;
   resetColumnHorizontalBoundaries: () => void;
   // Track if dragging is in progress (to disable OrbitControls)
   isDragging: boolean;
   setIsDragging: (val: boolean) => void;
+  // Per-column heights (in CM, default = global height)
+  columnHeights: Record<number, number>;
+  setColumnHeight: (colIdx: number, heightCm: number) => void;
+  resetColumnHeights: () => void;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -399,19 +409,81 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setVerticalBoundaries: (boundaries) =>
     set({ verticalBoundaries: boundaries }),
   resetVerticalBoundaries: () => set({ verticalBoundaries: [] }),
-  // Per-column horizontal boundaries (Y position of horizontal split in meters)
-  // Key: column index (0, 1, 2...), Value: Y position or null for auto/no-split
+  // Per-column horizontal boundaries (array of Y positions, sorted bottom to top)
   columnHorizontalBoundaries: {},
-  setColumnHorizontalBoundary: (colIndex, y) =>
+  setColumnHorizontalBoundaries: (colIndex, boundaries) =>
     set((state) => ({
       columnHorizontalBoundaries: {
         ...state.columnHorizontalBoundaries,
-        [colIndex]: y,
+        [colIndex]: [...boundaries].sort((a, b) => a - b), // ensure sorted
       },
     })),
+  addColumnShelf: (colIndex, y) =>
+    set((state) => {
+      const existing = state.columnHorizontalBoundaries[colIndex] || [];
+      if (existing.length >= 6) return state; // max 6 shelves
+      const newBoundaries = [...existing, y].sort((a, b) => a - b);
+      return {
+        columnHorizontalBoundaries: {
+          ...state.columnHorizontalBoundaries,
+          [colIndex]: newBoundaries,
+        },
+      };
+    }),
+  removeColumnShelf: (colIndex, shelfIndex) =>
+    set((state) => {
+      const existing = state.columnHorizontalBoundaries[colIndex] || [];
+      const newBoundaries = existing.filter((_, i) => i !== shelfIndex);
+      return {
+        columnHorizontalBoundaries: {
+          ...state.columnHorizontalBoundaries,
+          [colIndex]: newBoundaries,
+        },
+      };
+    }),
+  moveColumnShelf: (colIndex, shelfIndex, newY) =>
+    set((state) => {
+      const existing = state.columnHorizontalBoundaries[colIndex] || [];
+      const newBoundaries = [...existing];
+      newBoundaries[shelfIndex] = newY;
+      // Re-sort to maintain order (in case shelf moved past another)
+      newBoundaries.sort((a, b) => a - b);
+      return {
+        columnHorizontalBoundaries: {
+          ...state.columnHorizontalBoundaries,
+          [colIndex]: newBoundaries,
+        },
+      };
+    }),
   resetColumnHorizontalBoundaries: () =>
     set({ columnHorizontalBoundaries: {} }),
   // Track if dragging is in progress (to disable OrbitControls)
   isDragging: false,
   setIsDragging: (val) => set({ isDragging: val }),
+  // Per-column heights (in CM, default = global height)
+  columnHeights: {},
+  setColumnHeight: (colIdx, heightCm) =>
+    set((state) => {
+      const oldHeightCm = state.columnHeights[colIdx] ?? state.height;
+      const oldBoundaries = state.columnHorizontalBoundaries[colIdx] || [];
+      let newColumnBoundaries = state.columnHorizontalBoundaries;
+
+      // Scale ALL horizontal boundaries proportionally when height changes
+      if (oldBoundaries.length > 0 && oldHeightCm > 0) {
+        const scaledBoundaries = oldBoundaries.map((y) => {
+          const ratio = y / (oldHeightCm / 100); // ratio relative to old height
+          return ratio * (heightCm / 100); // apply ratio to new height
+        });
+        newColumnBoundaries = {
+          ...newColumnBoundaries,
+          [colIdx]: scaledBoundaries,
+        };
+      }
+
+      return {
+        columnHeights: { ...state.columnHeights, [colIdx]: heightCm },
+        columnHorizontalBoundaries: newColumnBoundaries,
+      };
+    }),
+  resetColumnHeights: () => set({ columnHeights: {} }),
 }));

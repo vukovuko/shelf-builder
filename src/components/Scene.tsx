@@ -65,8 +65,8 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
       {!showEdgesOnly && <Environment preset="apartment" />}
 
-      {/* Bounds auto-fits the camera to show the entire model */}
-      <Bounds fit clip observe margin={1.5}>
+      {/* Bounds fits camera on initial load only (no observe = no auto-refit on changes) */}
+      <Bounds fit clip margin={1.5}>
         <Center>
           <Wardrobe ref={wardrobeRef} />
         </Center>
@@ -80,6 +80,8 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
         enableZoom={true}
         minPolarAngle={0}
         maxPolarAngle={Math.PI}
+        minDistance={1.65}
+        maxDistance={3}
       />
     </Canvas>
   );

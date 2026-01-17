@@ -17,8 +17,10 @@ export function getWardrobeSnapshot() {
     baseHeight: s.baseHeight,
     // Vertical seam positions (full height seams)
     verticalBoundaries: s.verticalBoundaries,
-    // Per-column horizontal boundaries
+    // Per-column horizontal boundaries (array of Y positions per column)
     columnHorizontalBoundaries: s.columnHorizontalBoundaries,
+    // Per-column heights (independent heights)
+    columnHeights: s.columnHeights,
   };
 }
 
@@ -41,8 +43,20 @@ export function applyWardrobeSnapshot(data: any) {
     );
   });
 
-  // Per-column horizontal boundaries (simple - just use what's saved)
-  const columnHorizontalBoundaries = data.columnHorizontalBoundaries || {};
+  // Per-column horizontal boundaries - migrate old format (single value) to new (array)
+  const rawBoundaries = data.columnHorizontalBoundaries || {};
+  const columnHorizontalBoundaries: Record<number, number[]> = {};
+  Object.entries(rawBoundaries).forEach(([key, value]) => {
+    const colIdx = Number(key);
+    if (Array.isArray(value)) {
+      // New format - already an array
+      columnHorizontalBoundaries[colIdx] = value;
+    } else if (typeof value === "number") {
+      // Old format - single value, convert to array
+      columnHorizontalBoundaries[colIdx] = [value];
+    }
+    // null/undefined values are skipped (no shelves)
+  });
 
   (useShelfStore as any).setState((prev: any) => ({
     compartmentExtras: {
@@ -54,5 +68,6 @@ export function applyWardrobeSnapshot(data: any) {
     baseHeight: data.baseHeight,
     verticalBoundaries: data.verticalBoundaries || [],
     columnHorizontalBoundaries,
+    columnHeights: data.columnHeights || {},
   }));
 }

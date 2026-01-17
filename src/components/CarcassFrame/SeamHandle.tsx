@@ -103,7 +103,7 @@ export function SeamHandle({
   const handleSize = 0.06; // 6cm circle
 
   return (
-    <group position={[x, 0, depth / 2 + 0.01]}>
+    <group position={[x, height / 2, depth / 2 + 0.01]}>
       {/* Invisible hit area for easier clicking */}
       <mesh
         onPointerDown={handlePointerDown}

@@ -6,32 +6,32 @@ import React, { useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
 
-interface HorizontalSplitHandleProps {
+interface TopHeightHandleProps {
   columnIndex: number;
-  shelfIndex: number; // Which shelf in the array (0 = bottom-most shelf)
   x: number;
-  y: number;
+  y: number; // Current top Y position in meters
   depth: number;
   colWidth: number;
-  minY: number;
-  maxY: number;
+  minHeight: number; // Min column height in meters
+  maxHeight: number; // Max column height in meters
+  currentHeightM: number; // Current column height in meters
 }
 
 /**
- * HorizontalSplitHandle - Drags up/down (Y direction)
+ * TopHeightHandle - Drags up/down to change column height
  * Uses relative dragging: captures start position and applies delta
  */
-export function HorizontalSplitHandle({
+export function TopHeightHandle({
   columnIndex,
-  shelfIndex,
   x,
   y,
   depth,
   colWidth,
-  minY,
-  maxY,
-}: HorizontalSplitHandleProps) {
-  const moveColumnShelf = useShelfStore((state) => state.moveColumnShelf);
+  minHeight,
+  maxHeight,
+  currentHeightM,
+}: TopHeightHandleProps) {
+  const setColumnHeight = useShelfStore((state) => state.setColumnHeight);
   const setIsDragging = useShelfStore((state) => state.setIsDragging);
   const { camera, gl } = useThree();
 
@@ -43,7 +43,7 @@ export function HorizontalSplitHandle({
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const raycaster = useRef(new THREE.Raycaster());
   const intersection = useRef(new THREE.Vector3());
-  const startY = useRef(0); // Initial split Y when drag started
+  const startHeightM = useRef(0); // Initial column height when drag started
   const startMouseY = useRef(0); // Initial mouse world Y when drag started
 
   const handlePointerDown = useCallback(
@@ -54,8 +54,8 @@ export function HorizontalSplitHandle({
       setIsDragging(true);
       gl.domElement.style.cursor = "grabbing";
 
-      // Store the starting split Y
-      startY.current = y;
+      // Store the starting column height
+      startHeightM.current = currentHeightM;
 
       // Set up drag plane at Z = depth/2
       dragPlane.current.setFromNormalAndCoplanarPoint(
@@ -83,7 +83,7 @@ export function HorizontalSplitHandle({
         startMouseY.current = intersection.current.y;
       }
     },
-    [gl, setIsDragging, y, depth, camera],
+    [gl, setIsDragging, currentHeightM, depth, camera],
   );
 
   // Global event listeners for drag
@@ -107,9 +107,13 @@ export function HorizontalSplitHandle({
       ) {
         // Calculate delta from start mouse position
         const deltaY = intersection.current.y - startMouseY.current;
-        // Apply delta to starting split Y
-        const newY = Math.max(minY, Math.min(maxY, startY.current + deltaY));
-        moveColumnShelf(columnIndex, shelfIndex, newY);
+        // Apply delta to starting height
+        const newHeightM = Math.max(
+          minHeight,
+          Math.min(maxHeight, startHeightM.current + deltaY),
+        );
+        // Convert to CM and update store
+        setColumnHeight(columnIndex, newHeightM * 100);
       }
     };
 
@@ -132,11 +136,10 @@ export function HorizontalSplitHandle({
   }, [
     camera,
     gl,
-    minY,
-    maxY,
+    minHeight,
+    maxHeight,
     columnIndex,
-    shelfIndex,
-    moveColumnShelf,
+    setColumnHeight,
     setIsDragging,
   ]);
 
