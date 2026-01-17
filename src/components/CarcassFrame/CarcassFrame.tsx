@@ -12,6 +12,7 @@ import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
 import { TopHeightHandle } from "./TopHeightHandle";
+import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 
 type Material = {
   id: string;
@@ -48,6 +49,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       (state) => state.setColumnHorizontalBoundaries,
     );
     const columnHeights = useShelfStore((state) => state.columnHeights);
+    const setHoveredColumnIndex = useShelfStore(
+      (state) => state.setHoveredColumnIndex,
+    );
 
     // Convert cm to meters
     const w = width / 100;
@@ -208,6 +212,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             return Math.round((topY - bottomY) * 100); // meters to cm, rounded
           };
 
+          // Get compartment bounds for hit area
+          const getCompartmentBounds = (compIdx: number) => {
+            const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
+            const topY =
+              compIdx === shelves.length ? colH - t : shelves[compIdx];
+            const height = topY - bottomY;
+            const centerY = (bottomY + topY) / 2;
+            return { centerY, height };
+          };
+
           return (
             <React.Fragment key={`col-${colIdx}`}>
               {/* Top panel of column */}
@@ -253,40 +267,56 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 currentHeightM={colH}
               />
 
-              {/* Labels for each compartment (A1, A2, B1, B2...) with height */}
-              {Array.from({ length: numCompartments }).map((_, compIdx) => (
-                <Html
-                  key={`label-${compIdx}`}
-                  position={[
-                    colCenterX,
-                    getCompartmentCenterY(compIdx),
-                    d / 2 + 0.01,
-                  ]}
-                  center
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 2,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 24,
-                        fontWeight: "bold",
-                        color: "#333",
-                      }}
+              {/* Invisible hit areas + Labels for each compartment */}
+              {Array.from({ length: numCompartments }).map((_, compIdx) => {
+                const bounds = getCompartmentBounds(compIdx);
+                return (
+                  <React.Fragment key={`comp-${compIdx}`}>
+                    {/* Invisible hit mesh covering entire compartment front */}
+                    <mesh
+                      position={[colCenterX, bounds.centerY, d / 2 + 0.005]}
+                      onPointerEnter={() => setHoveredColumnIndex(colIdx)}
+                      onPointerLeave={() => setHoveredColumnIndex(null)}
                     >
-                      {`${colLetter}${compIdx + 1}`}
-                    </span>
-                    <span style={{ fontSize: 14, color: "#666" }}>
-                      {`${getCompartmentHeightCm(compIdx)}cm`}
-                    </span>
-                  </div>
-                </Html>
-              ))}
+                      <planeGeometry args={[colInnerW, bounds.height]} />
+                      <meshBasicMaterial transparent opacity={0} />
+                    </mesh>
+                    {/* Label */}
+                    <Html
+                      position={[
+                        colCenterX,
+                        getCompartmentCenterY(compIdx),
+                        d / 2 + 0.01,
+                      ]}
+                      center
+                      style={{ pointerEvents: "none" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 24,
+                            fontWeight: "bold",
+                            color: "#333",
+                          }}
+                        >
+                          {`${colLetter}${compIdx + 1}`}
+                        </span>
+                        <span style={{ fontSize: 14, color: "#666" }}>
+                          {`${getCompartmentHeightCm(compIdx)}cm`}
+                        </span>
+                      </div>
+                    </Html>
+                  </React.Fragment>
+                );
+              })}
 
               {/* Back panel for this column */}
               <Panel
@@ -334,6 +364,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             </React.Fragment>
           );
         })}
+
+        {/* Column controls bar - positioned below wardrobe */}
+        <ColumnControlsBar3D depth={d} />
       </group>
     );
   },

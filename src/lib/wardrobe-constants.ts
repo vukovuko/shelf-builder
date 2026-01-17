@@ -63,3 +63,32 @@ export function getMaxShelvesForHeight(columnHeightCm: number): number {
   }
   return 0;
 }
+
+/**
+ * Calculate evenly-distributed shelf Y positions (space-around)
+ * @param columnHeightM Column height in meters
+ * @param shelfCount Number of shelves to distribute
+ * @param panelThicknessM Panel thickness in meters
+ * @returns Array of Y positions in meters (from floor)
+ */
+export function distributeShelvesEvenly(
+  columnHeightM: number,
+  shelfCount: number,
+  panelThicknessM: number,
+): number[] {
+  if (shelfCount <= 0) return [];
+
+  // Usable height = column height minus top and bottom panels
+  const usableHeight = columnHeightM - 2 * panelThicknessM;
+
+  // Space between shelves (space-around = equal gaps including top/bottom)
+  const numGaps = shelfCount + 1;
+  const gapSize = usableHeight / numGaps;
+
+  const positions: number[] = [];
+  for (let i = 1; i <= shelfCount; i++) {
+    // Y position from floor: bottom panel + i gaps
+    positions.push(panelThicknessM + i * gapSize);
+  }
+  return positions;
+}

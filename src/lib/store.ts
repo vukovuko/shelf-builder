@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { MAX_SHELVES_PER_COLUMN } from "./wardrobe-constants";
+import {
+  MAX_SHELVES_PER_COLUMN,
+  getMaxShelvesForHeight,
+  distributeShelvesEvenly,
+} from "./wardrobe-constants";
 
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
@@ -136,6 +140,11 @@ interface ShelfState {
   addColumnShelf: (colIndex: number, y: number) => void;
   removeColumnShelf: (colIndex: number, shelfIndex: number) => void;
   moveColumnShelf: (colIndex: number, shelfIndex: number, newY: number) => void;
+  setColumnShelfCount: (
+    colIndex: number,
+    count: number,
+    panelThicknessM: number,
+  ) => void;
   resetColumnHorizontalBoundaries: () => void;
   // Track if dragging is in progress (to disable OrbitControls)
   isDragging: boolean;
@@ -144,6 +153,9 @@ interface ShelfState {
   columnHeights: Record<number, number>;
   setColumnHeight: (colIdx: number, heightCm: number) => void;
   resetColumnHeights: () => void;
+  // Hovered column for bottom bar controls
+  hoveredColumnIndex: number | null;
+  setHoveredColumnIndex: (idx: number | null) => void;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -456,6 +468,29 @@ export const useShelfStore = create<ShelfState>((set) => ({
         },
       };
     }),
+  setColumnShelfCount: (colIndex, count, panelThicknessM) =>
+    set((state) => {
+      const columnHeightCm = state.columnHeights[colIndex] ?? state.height;
+      const columnHeightM = columnHeightCm / 100;
+
+      // Clamp count to valid range
+      const maxShelves = getMaxShelvesForHeight(columnHeightCm);
+      const clampedCount = Math.max(0, Math.min(count, maxShelves));
+
+      // Calculate evenly-distributed positions
+      const newBoundaries = distributeShelvesEvenly(
+        columnHeightM,
+        clampedCount,
+        panelThicknessM,
+      );
+
+      return {
+        columnHorizontalBoundaries: {
+          ...state.columnHorizontalBoundaries,
+          [colIndex]: newBoundaries,
+        },
+      };
+    }),
   resetColumnHorizontalBoundaries: () =>
     set({ columnHorizontalBoundaries: {} }),
   // Track if dragging is in progress (to disable OrbitControls)
@@ -487,4 +522,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       };
     }),
   resetColumnHeights: () => set({ columnHeights: {} }),
+  // Hovered column for bottom bar controls
+  hoveredColumnIndex: null,
+  setHoveredColumnIndex: (idx) => set({ hoveredColumnIndex: idx }),
 }));
