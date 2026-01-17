@@ -1,5 +1,4 @@
 import { useShelfStore } from "./store";
-import { buildModulesY } from "./wardrobe-utils";
 
 export function getWardrobeSnapshot() {
   const s = useShelfStore.getState() as any;
@@ -16,13 +15,10 @@ export function getWardrobeSnapshot() {
     doorSelections: s.doorSelections,
     hasBase: s.hasBase,
     baseHeight: s.baseHeight,
-    // NEW: Per-module vertical boundaries
-    moduleVerticalBoundaries: s.moduleVerticalBoundaries,
-    // NEW: Per-column horizontal boundaries
-    columnHorizontalBoundaries: s.columnHorizontalBoundaries,
-    // DEPRECATED: Keep for backward compatibility when loading old formats
-    horizontalBoundary: s.horizontalBoundary,
+    // Vertical seam positions (full height seams)
     verticalBoundaries: s.verticalBoundaries,
+    // Per-column horizontal boundaries
+    columnHorizontalBoundaries: s.columnHorizontalBoundaries,
   };
 }
 
@@ -45,27 +41,8 @@ export function applyWardrobeSnapshot(data: any) {
     );
   });
 
-  // Migration: Convert old verticalBoundaries format to new moduleVerticalBoundaries format
-  let moduleVerticalBoundaries = data.moduleVerticalBoundaries || {};
-  if (
-    data.verticalBoundaries &&
-    data.verticalBoundaries.length > 0 &&
-    (!data.moduleVerticalBoundaries ||
-      Object.keys(data.moduleVerticalBoundaries).length === 0)
-  ) {
-    // Old saved wardrobe: apply same boundaries to all modules
-    const h = (data.height || 200) / 100;
-    const modulesY = buildModulesY(h, true, data.horizontalBoundary);
-    modulesY.forEach((m) => {
-      const moduleKey = m.label ?? "SingleModule";
-      moduleVerticalBoundaries[moduleKey] = [...data.verticalBoundaries];
-    });
-  }
-
-  // Migration: Convert old horizontalBoundary to new columnHorizontalBoundaries format
-  // If old data has horizontalBoundary but no columnHorizontalBoundaries, we leave columnHorizontalBoundaries
-  // empty so all columns fall back to the global horizontalBoundary
-  let columnHorizontalBoundaries = data.columnHorizontalBoundaries || {};
+  // Per-column horizontal boundaries (simple - just use what's saved)
+  const columnHorizontalBoundaries = data.columnHorizontalBoundaries || {};
 
   (useShelfStore as any).setState((prev: any) => ({
     compartmentExtras: {
@@ -75,12 +52,7 @@ export function applyWardrobeSnapshot(data: any) {
     doorSelections: { ...data.doorSelections },
     hasBase: data.hasBase,
     baseHeight: data.baseHeight,
-    // NEW: Per-module vertical boundaries
-    moduleVerticalBoundaries,
-    // NEW: Per-column horizontal boundaries
-    columnHorizontalBoundaries,
-    // DEPRECATED: Keep for backward compatibility
-    horizontalBoundary: data.horizontalBoundary ?? null,
     verticalBoundaries: data.verticalBoundaries || [],
+    columnHorizontalBoundaries,
   }));
 }

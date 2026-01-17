@@ -117,33 +117,16 @@ interface ShelfState {
   fromOrderNumber: number | null;
   setFromOrder: (orderId: string | null, orderNumber: number | null) => void;
   clearFromOrder: () => void;
-  // Vertical structural boundaries (seam positions in meters from center)
+  // Vertical structural boundaries (seam X positions in meters from center)
   // Empty array = auto-calculate equal segments
-  // DEPRECATED: Use moduleVerticalBoundaries for per-module boundaries
+  // These seams span FULL HEIGHT of the wardrobe
   verticalBoundaries: number[];
   setVerticalBoundary: (index: number, x: number) => void;
   setVerticalBoundaries: (boundaries: number[]) => void;
   resetVerticalBoundaries: () => void;
-  // Per-module vertical boundaries (NEW: each module has independent boundaries)
-  // Keys: "BottomModule", "TopModule", "SingleModule"
-  moduleVerticalBoundaries: Record<string, number[]>;
-  setModuleVerticalBoundaries: (
-    moduleKey: string,
-    boundaries: number[],
-  ) => void;
-  setModuleVerticalBoundary: (
-    moduleKey: string,
-    index: number,
-    x: number,
-  ) => void;
-  resetModuleVerticalBoundaries: () => void;
-  // Horizontal boundary (Y position of module split, in meters)
-  // null = auto-calculate at 200cm (TARGET_BOTTOM_HEIGHT)
-  // DEPRECATED: Use columnHorizontalBoundaries for per-column boundaries
-  horizontalBoundary: number | null;
-  setHorizontalBoundary: (y: number | null) => void;
-  // Per-column horizontal boundaries (NEW: each column has independent horizontal split)
-  // Key: column index (0, 1, 2...), Value: Y position in meters or null for auto
+  // Per-column horizontal boundaries (Y position of horizontal split in meters)
+  // Key: column index (0, 1, 2...), Value: Y position or null for auto/no-split
+  // Only relevant when h > TARGET_BOTTOM_HEIGHT (200cm)
   columnHorizontalBoundaries: Record<number, number | null>;
   setColumnHorizontalBoundary: (colIndex: number, y: number | null) => void;
   resetColumnHorizontalBoundaries: () => void;
@@ -403,9 +386,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setFromOrder: (orderId, orderNumber) =>
     set({ fromOrderId: orderId, fromOrderNumber: orderNumber }),
   clearFromOrder: () => set({ fromOrderId: null, fromOrderNumber: null }),
-  // Vertical structural boundaries (seam positions in meters from center)
-  // DEPRECATED: Use moduleVerticalBoundaries for per-module boundaries
-  verticalBoundaries: [], // Empty = auto-calculate
+  // Vertical structural boundaries (seam X positions in meters from center)
+  // Empty array = auto-calculate equal segments
+  // These seams span FULL HEIGHT of the wardrobe
+  verticalBoundaries: [],
   setVerticalBoundary: (index, x) =>
     set((state) => {
       const boundaries = [...state.verticalBoundaries];
@@ -415,33 +399,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setVerticalBoundaries: (boundaries) =>
     set({ verticalBoundaries: boundaries }),
   resetVerticalBoundaries: () => set({ verticalBoundaries: [] }),
-  // Per-module vertical boundaries (NEW: each module has independent boundaries)
-  moduleVerticalBoundaries: {}, // Empty = auto-calculate for all modules
-  setModuleVerticalBoundaries: (moduleKey, boundaries) =>
-    set((state) => ({
-      moduleVerticalBoundaries: {
-        ...state.moduleVerticalBoundaries,
-        [moduleKey]: boundaries,
-      },
-    })),
-  setModuleVerticalBoundary: (moduleKey, index, x) =>
-    set((state) => {
-      const boundaries = [...(state.moduleVerticalBoundaries[moduleKey] ?? [])];
-      boundaries[index] = x;
-      return {
-        moduleVerticalBoundaries: {
-          ...state.moduleVerticalBoundaries,
-          [moduleKey]: boundaries,
-        },
-      };
-    }),
-  resetModuleVerticalBoundaries: () => set({ moduleVerticalBoundaries: {} }),
-  // Horizontal boundary (Y position of module split)
-  // DEPRECATED: Use columnHorizontalBoundaries for per-column boundaries
-  horizontalBoundary: null, // null = auto at 200cm
-  setHorizontalBoundary: (y) => set({ horizontalBoundary: y }),
-  // Per-column horizontal boundaries (NEW: each column has independent horizontal split)
-  columnHorizontalBoundaries: {}, // Empty = use global horizontalBoundary as fallback
+  // Per-column horizontal boundaries (Y position of horizontal split in meters)
+  // Key: column index (0, 1, 2...), Value: Y position or null for auto/no-split
+  columnHorizontalBoundaries: {},
   setColumnHorizontalBoundary: (colIndex, y) =>
     set((state) => ({
       columnHorizontalBoundaries: {
@@ -449,7 +409,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         [colIndex]: y,
       },
     })),
-  resetColumnHorizontalBoundaries: () => set({ columnHorizontalBoundaries: {} }),
+  resetColumnHorizontalBoundaries: () =>
+    set({ columnHorizontalBoundaries: {} }),
   // Track if dragging is in progress (to disable OrbitControls)
   isDragging: false,
   setIsDragging: (val) => set({ isDragging: val }),

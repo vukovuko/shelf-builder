@@ -25,8 +25,15 @@ export function Panel({ position, size }: PanelProps) {
   return (
     <mesh position={safePosition} castShadow receiveShadow>
       <boxGeometry key={geoKey} args={safeSize} />
-      {/* The material will be defined on the parent so all panels match */}
-      <Edges key={`e-${geoKey}`} scale={1} threshold={15} color="black" />
+      <meshStandardMaterial
+        color="#f5f5f5"
+        roughness={0.85}
+        metalness={0}
+        polygonOffset
+        polygonOffsetFactor={1}
+        polygonOffsetUnits={1}
+      />
+      <Edges key={`e-${geoKey}`} threshold={15} color="#000000" />
     </mesh>
   );
 }

@@ -2,7 +2,7 @@ import "dotenv/config";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { materials } from "./schema";
-import materialsData from "../data/materials-final.json";
+import materialsData from "@/data/materials-final.json";
 
 interface MaterialJson {
   id: number;

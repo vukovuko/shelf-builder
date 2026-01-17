@@ -66,20 +66,19 @@ export function DesignLayoutClient({
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Desktop aside */}
-      <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
+      {/* TEMPORARILY COMMENTED OUT FOR REBUILD - Desktop aside */}
+      {/* <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
         <ConfiguratorControls
           wardrobeRef={wardrobeRef}
           initialSession={initialSession}
           materials={initialMaterials}
           isAdmin={isAdmin}
         />
-      </aside>
+      </aside> */}
 
-      {/* Mobile header */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-14 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* TEMPORARILY COMMENTED OUT FOR REBUILD - Mobile header */}
+      {/* <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-14 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2">
-          {/* Back to order button (mobile) */}
           {fromOrderId && fromOrderNumber && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/admin/orders/${fromOrderId}`}>
@@ -101,10 +100,10 @@ export function DesignLayoutClient({
         <div className="flex justify-end">
           <ViewModeToggle />
         </div>
-      </div>
+      </div> */}
 
-      {/* Drawer overlay */}
-      {drawerOpen && (
+      {/* TEMPORARILY COMMENTED OUT FOR REBUILD - Drawer overlay */}
+      {/* {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -120,11 +119,11 @@ export function DesignLayoutClient({
             />
           </div>
         </div>
-      )}
+      )} */}
 
-      <main className="flex-1 relative overflow-hidden h-screen pt-14 md:pt-0">
-        {/* Back to order button (desktop) */}
-        {fromOrderId && fromOrderNumber && (
+      <main className="flex-1 relative overflow-hidden h-screen">
+        {/* TEMPORARILY COMMENTED OUT FOR REBUILD */}
+        {/* {fromOrderId && fromOrderNumber && (
           <div className="absolute top-2 left-2 hidden md:block z-20">
             <Button variant="outline" size="sm" asChild>
               <Link href={`/admin/orders/${fromOrderId}`}>
@@ -136,7 +135,7 @@ export function DesignLayoutClient({
         )}
         <div className="absolute top-2 right-2 hidden md:block z-20">
           <ViewModeToggle />
-        </div>
+        </div> */}
         {childrenWithProps}
       </main>
     </div>

@@ -126,33 +126,6 @@ export function buildModulesY(
 }
 
 /**
- * Split wardrobe height into vertical modules for a specific column.
- * Uses column-specific horizontal boundary if available, otherwise falls back to global.
- *
- * @param h - Total height in meters
- * @param colIndex - Column index (0, 1, 2...)
- * @param columnHorizontalBoundaries - Per-column boundaries (colIndex → Y position)
- * @param globalFallback - Global horizontal boundary to use if column has no specific boundary
- * @param includeLabel - Whether to include module labels
- */
-export function buildModulesYForColumn(
-  h: number,
-  colIndex: number,
-  columnHorizontalBoundaries: Record<number, number | null>,
-  globalFallback: number | null,
-  includeLabel = false,
-): { yStart: number; yEnd: number; height: number; label?: string }[] {
-  // Use column-specific boundary if defined, otherwise use global fallback
-  const boundary =
-    colIndex in columnHorizontalBoundaries
-      ? columnHorizontalBoundaries[colIndex]
-      : globalFallback;
-
-  // Reuse existing buildModulesY logic
-  return buildModulesY(h, includeLabel, boundary);
-}
-
-/**
  * Get all element keys (A, B, C, ...) for a given wardrobe size.
  */
 export function getElementKeys(w: number, h: number): string[] {

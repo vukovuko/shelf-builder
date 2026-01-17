@@ -2,7 +2,7 @@
 import React from "react";
 import { useShelfStore } from "@/lib/store";
 import CarcassFrame, { type CarcassFrameHandle } from "./CarcassFrame";
-import { InteriorBack } from "./InteriorBack";
+// import { InteriorBack } from "./InteriorBack";  // Temporarily removed for rebuild
 
 const Wardrobe = React.forwardRef<CarcassFrameHandle, {}>(
   function Wardrobe(_, ref) {
@@ -17,7 +17,7 @@ const Wardrobe = React.forwardRef<CarcassFrameHandle, {}>(
             thickness: m.thickness ?? undefined,
           }))}
         />
-        <InteriorBack />
+        {/* <InteriorBack /> */}
       </group>
     );
   },
