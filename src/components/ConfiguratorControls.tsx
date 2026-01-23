@@ -1161,7 +1161,9 @@ export function ConfiguratorControls({
                   useShelfStore.getState().columnHorizontalBoundaries;
                 const columns = buildBlocksX(
                   w,
-                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                  verticalBoundaries.length > 0
+                    ? verticalBoundaries
+                    : undefined,
                 );
                 const compartmentKeys = getCompartmentKeys(
                   columns,
@@ -1574,7 +1576,9 @@ export function ConfiguratorControls({
                 const w = width / 100;
                 const columns = buildBlocksX(
                   w,
-                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                  verticalBoundaries.length > 0
+                    ? verticalBoundaries
+                    : undefined,
                 );
                 const allKeys = getCompartmentKeys(
                   columns,
@@ -1800,7 +1804,9 @@ export function ConfiguratorControls({
                 const w = width / 100;
                 const columns = buildBlocksX(
                   w,
-                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                  verticalBoundaries.length > 0
+                    ? verticalBoundaries
+                    : undefined,
                 );
                 const allKeys = getCompartmentKeys(
                   columns,

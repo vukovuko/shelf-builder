@@ -59,9 +59,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Simple hover handler - only set on enter, not on leave
     // This prevents flickering when moving between compartment and drag handles
-    const handleColumnHover = React.useCallback((colIdx: number) => {
-      setHoveredColumnIndex(colIdx);
-    }, [setHoveredColumnIndex]);
+    const handleColumnHover = React.useCallback(
+      (colIdx: number) => {
+        setHoveredColumnIndex(colIdx);
+      },
+      [setHoveredColumnIndex],
+    );
 
     // Convert cm to meters
     const w = width / 100;
@@ -138,13 +141,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const initializedColumnsRef = React.useRef<Set<number>>(new Set());
 
     // Stable ref for columnHorizontalBoundaries to avoid effect re-runs during drag
-    const columnHorizontalBoundariesRef = React.useRef(columnHorizontalBoundaries);
+    const columnHorizontalBoundariesRef = React.useRef(
+      columnHorizontalBoundaries,
+    );
     React.useEffect(() => {
       columnHorizontalBoundariesRef.current = columnHorizontalBoundaries;
     });
 
     // Stable ref for setColumnHorizontalBoundaries
-    const setColumnHorizontalBoundariesRef = React.useRef(setColumnHorizontalBoundaries);
+    const setColumnHorizontalBoundariesRef = React.useRef(
+      setColumnHorizontalBoundaries,
+    );
     React.useEffect(() => {
       setColumnHorizontalBoundariesRef.current = setColumnHorizontalBoundaries;
     });
@@ -155,7 +162,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         const colH = getColumnHeight(colIdx);
         const canHaveSplit = colH > splitThreshold;
         const alreadyInitialized = initializedColumnsRef.current.has(colIdx);
-        const existingShelves = columnHorizontalBoundariesRef.current[colIdx] || [];
+        const existingShelves =
+          columnHorizontalBoundariesRef.current[colIdx] || [];
 
         if (
           canHaveSplit &&
@@ -344,7 +352,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const showLabel = compHeightCm >= 10; // Hide completely if < 10cm
                 // Compact layout for small compartments: "C6 14cm" in one row
                 const useCompactLayout = compHeightCm < 20;
-                const fontSize = useCompactLayout ? 13 : compHeightCm < 25 ? 18 : 24;
+                const fontSize = useCompactLayout
+                  ? 13
+                  : compHeightCm < 25
+                    ? 18
+                    : 24;
 
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
@@ -417,7 +429,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       const compBottomY =
                         compIdx === 0 ? t : shelves[compIdx - 1];
                       const compTopY =
-                        compIdx === shelves.length ? colH - t : shelves[compIdx];
+                        compIdx === shelves.length
+                          ? colH - t
+                          : shelves[compIdx];
                       const compInnerH = compTopY - compBottomY;
 
                       const compLeftX = colCenterX - colInnerW / 2;
@@ -454,7 +468,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       const compBottomY =
                         compIdx === 0 ? t : shelves[compIdx - 1];
                       const compTopY =
-                        compIdx === shelves.length ? colH - t : shelves[compIdx];
+                        compIdx === shelves.length
+                          ? colH - t
+                          : shelves[compIdx];
                       const compInnerH = compTopY - compBottomY;
 
                       const compLeftX = colCenterX - colInnerW / 2;

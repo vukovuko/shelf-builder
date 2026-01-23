@@ -8,7 +8,7 @@ import {
   useBounds,
 } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, Suspense } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
@@ -30,6 +30,7 @@ function StoreInvalidator() {
   const columnHeights = useShelfStore((s) => s.columnHeights);
   const elementConfigs = useShelfStore((s) => s.elementConfigs);
   const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
+  const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
 
   useEffect(() => {
     invalidate();
@@ -42,6 +43,7 @@ function StoreInvalidator() {
     columnHeights,
     elementConfigs,
     hoveredColumnIndex,
+    selectedMaterialId,
     invalidate,
   ]);
 
@@ -134,9 +136,11 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
         {/* Bounds fits camera, CameraFitter re-fits when dimensions change */}
         <Bounds fit clip margin={1.5}>
-          <Center>
-            <Wardrobe ref={wardrobeRef} />
-          </Center>
+          <Suspense fallback={null}>
+            <Center>
+              <Wardrobe ref={wardrobeRef} />
+            </Center>
+          </Suspense>
           <CameraFitter />
         </Bounds>
 

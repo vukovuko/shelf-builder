@@ -143,7 +143,10 @@ export function TopHeightHandle({
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
         // Final store update to ensure exact value is committed
-        setColumnHeightRef.current(columnIndex, currentDragHeightRef.current * 100);
+        setColumnHeightRef.current(
+          columnIndex,
+          currentDragHeightRef.current * 100,
+        );
         setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }

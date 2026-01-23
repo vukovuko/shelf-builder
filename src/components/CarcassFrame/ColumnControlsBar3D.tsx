@@ -266,8 +266,17 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
         >
           {/* Width control - only show if multiple columns */}
           {hasMultipleColumns && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Širina</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+                Širina
+              </span>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   style={{
@@ -325,8 +334,17 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           )}
 
           {/* Height control */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Visina</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+              Visina
+            </span>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
                 style={{
@@ -383,8 +401,17 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           </div>
 
           {/* Shelf count control */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Police</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+              Police
+            </span>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
                 style={{

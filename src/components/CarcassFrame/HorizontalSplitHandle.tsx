@@ -37,7 +37,9 @@ export function HorizontalSplitHandle({
 }: HorizontalSplitHandleProps) {
   const moveColumnShelf = useShelfStore((state) => state.moveColumnShelf);
   const setIsDragging = useShelfStore((state) => state.setIsDragging);
-  const setHoveredColumnIndex = useShelfStore((state) => state.setHoveredColumnIndex);
+  const setHoveredColumnIndex = useShelfStore(
+    (state) => state.setHoveredColumnIndex,
+  );
   const { camera, gl } = useThree();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -140,7 +142,11 @@ export function HorizontalSplitHandle({
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
         // Final store update to ensure exact position is committed
-        moveColumnShelfRef.current(columnIndex, shelfIndex, currentDragYRef.current);
+        moveColumnShelfRef.current(
+          columnIndex,
+          shelfIndex,
+          currentDragYRef.current,
+        );
         setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }
