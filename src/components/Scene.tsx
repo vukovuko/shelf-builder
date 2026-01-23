@@ -28,6 +28,8 @@ function StoreInvalidator() {
     (s) => s.columnHorizontalBoundaries,
   );
   const columnHeights = useShelfStore((s) => s.columnHeights);
+  const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
+  const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
   const elementConfigs = useShelfStore((s) => s.elementConfigs);
   const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
@@ -41,6 +43,8 @@ function StoreInvalidator() {
     verticalBoundaries,
     columnHorizontalBoundaries,
     columnHeights,
+    columnModuleBoundaries,
+    columnTopModuleShelves,
     elementConfigs,
     hoveredColumnIndex,
     selectedMaterialId,

@@ -28,12 +28,19 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const columnHorizontalBoundaries = useShelfStore(
     (s) => s.columnHorizontalBoundaries,
   );
+  const columnModuleBoundaries = useShelfStore(
+    (s) => s.columnModuleBoundaries,
+  );
   const setColumnHeight = useShelfStore((s) => s.setColumnHeight);
   const setColumnShelfCount = useShelfStore((s) => s.setColumnShelfCount);
   const setVerticalBoundary = useShelfStore((s) => s.setVerticalBoundary);
   const setVerticalBoundaries = useShelfStore((s) => s.setVerticalBoundaries);
   const materials = useShelfStore((s) => s.materials);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
+  const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
+  const setColumnTopModuleShelfCount = useShelfStore(
+    (s) => s.setColumnTopModuleShelfCount,
+  );
 
   // Track if mouse is over the bar
   const isBarHoveredRef = useRef(false);
@@ -117,14 +124,34 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     materials[0];
   const panelThicknessM = ((material?.thickness ?? 18) as number) / 1000;
 
-  // Calculate limits
+  // Module boundary info
+  const moduleBoundary = columnModuleBoundaries[displayColumn] ?? null;
+  const hasModuleBoundary = moduleBoundary !== null && currentHeightCm > 200;
+
+  // Effective height for shelves = bottom module height (if module boundary exists)
+  const bottomModuleHeightCm = hasModuleBoundary
+    ? Math.round(moduleBoundary * 100)
+    : currentHeightCm;
+
+  // Calculate limits - shelves go in bottom module only
   const minHeightForCurrentShelves = getMinColumnHeightCm(shelfCount);
-  const maxShelves = getMaxShelvesForHeight(currentHeightCm);
+  const maxShelves = getMaxShelvesForHeight(bottomModuleHeightCm);
 
   const canDecreaseHeight = currentHeightCm > minHeightForCurrentShelves;
   const canIncreaseHeight = currentHeightCm < MAX_COLUMN_HEIGHT_CM;
   const canDecreaseShelves = shelfCount > 0;
   const canIncreaseShelves = shelfCount < maxShelves;
+
+  // Top module shelf calculations
+  const topModuleShelfCount = (columnTopModuleShelves[displayColumn] || []).length;
+  const topModuleHeightCm = hasModuleBoundary
+    ? Math.round(currentHeightCm - moduleBoundary * 100)
+    : 0;
+  const maxTopModuleShelves = hasModuleBoundary
+    ? getMaxShelvesForHeight(topModuleHeightCm)
+    : 0;
+  const canDecreaseTopShelves = topModuleShelfCount > 0;
+  const canIncreaseTopShelves = topModuleShelfCount < maxTopModuleShelves;
 
   const handleHeightChange = (delta: number) => {
     const newHeight = currentHeightCm + delta;
@@ -142,6 +169,13 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     const newCount = shelfCount + delta;
     if (newCount >= 0 && newCount <= maxShelves) {
       setColumnShelfCount(displayColumn, newCount, panelThicknessM);
+    }
+  };
+
+  const handleTopModuleShelfCountChange = (delta: number) => {
+    const newCount = topModuleShelfCount + delta;
+    if (newCount >= 0 && newCount <= maxTopModuleShelves) {
+      setColumnTopModuleShelfCount(displayColumn, newCount, panelThicknessM);
     }
   };
 
@@ -400,7 +434,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             </div>
           </div>
 
-          {/* Shelf count control */}
+          {/* Shelf count control (bottom module when split exists) */}
           <div
             style={{
               display: "flex",
@@ -410,7 +444,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             }}
           >
             <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
-              Police
+              {hasModuleBoundary ? "Police ↓" : "Police"}
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
@@ -466,6 +500,103 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               </button>
             </div>
           </div>
+
+          {/* Top module shelf count control - only show when module boundary exists */}
+          {hasModuleBoundary && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+                Police ↑
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canDecreaseTopShelves ? "pointer" : "not-allowed",
+                    opacity: canDecreaseTopShelves ? 1 : 0.4,
+                  }}
+                  onClick={() => handleTopModuleShelfCountChange(-1)}
+                  disabled={!canDecreaseTopShelves}
+                >
+                  -
+                </button>
+                <span
+                  style={{
+                    minWidth: 50,
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#000000",
+                  }}
+                >
+                  {topModuleShelfCount}
+                </span>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canIncreaseTopShelves ? "pointer" : "not-allowed",
+                    opacity: canIncreaseTopShelves ? 1 : 0.4,
+                  }}
+                  onClick={() => handleTopModuleShelfCountChange(1)}
+                  disabled={!canIncreaseTopShelves}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Module boundary info - only show when there's a module split */}
+          {hasModuleBoundary && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                borderTop: "1px solid #e0e0e0",
+                paddingTop: 6,
+                marginTop: 2,
+              }}
+            >
+              <span style={{ fontSize: 12, color: "#cc5500", minWidth: 50 }}>
+                Modul
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#cc5500",
+                }}
+              >
+                {Math.round(moduleBoundary * 100)} + {Math.round(currentHeightCm - moduleBoundary * 100)} cm
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Html>

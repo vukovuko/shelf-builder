@@ -21,6 +21,10 @@ export function getWardrobeSnapshot() {
     columnHorizontalBoundaries: s.columnHorizontalBoundaries,
     // Per-column heights (independent heights)
     columnHeights: s.columnHeights,
+    // Per-column module boundaries (Y position where modules split)
+    columnModuleBoundaries: s.columnModuleBoundaries,
+    // Per-column top module shelves (Y positions in top module)
+    columnTopModuleShelves: s.columnTopModuleShelves,
   };
 }
 
@@ -69,5 +73,7 @@ export function applyWardrobeSnapshot(data: any) {
     verticalBoundaries: data.verticalBoundaries || [],
     columnHorizontalBoundaries,
     columnHeights: data.columnHeights || {},
+    columnModuleBoundaries: data.columnModuleBoundaries || {},
+    columnTopModuleShelves: data.columnTopModuleShelves || {},
   }));
 }

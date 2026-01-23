@@ -5,48 +5,43 @@ import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
-import { ChevronsUpDown } from "lucide-react";
+import { GripHorizontal } from "lucide-react";
 
 // Throttle interval in ms (~20 updates/sec during drag)
 const THROTTLE_MS = 50;
 
-export interface HorizontalSplitHandleProps {
+interface ModuleBoundaryHandleProps {
   columnIndex: number;
-  shelfIndex: number; // Which shelf in the array (0 = bottom-most shelf)
   x: number;
-  y: number;
+  y: number; // Current boundary Y position
   depth: number;
   colWidth: number;
-  minY: number;
-  maxY: number;
-  isTopModule?: boolean; // If true, controls top module shelf instead of bottom module shelf
+  minY: number; // Minimum Y (MIN_TOP_HEIGHT from bottom)
+  maxY: number; // Maximum Y (colH - MIN_TOP_HEIGHT)
 }
 
 /**
- * HorizontalSplitHandle - Drags up/down (Y direction)
+ * ModuleBoundaryHandle - Drags the module boundary up/down (Y direction)
  * Uses relative dragging: captures start position and applies delta
+ * Similar to HorizontalSplitHandle but for module boundaries (stacked modules)
  */
-export function HorizontalSplitHandle({
+export function ModuleBoundaryHandle({
   columnIndex,
-  shelfIndex,
   x,
   y,
   depth,
   colWidth,
   minY,
   maxY,
-  isTopModule = false,
-}: HorizontalSplitHandleProps) {
-  const moveColumnShelf = useShelfStore((state) => state.moveColumnShelf);
-  const moveTopModuleShelf = useShelfStore((state) => state.moveTopModuleShelf);
+}: ModuleBoundaryHandleProps) {
+  const moveColumnModuleBoundary = useShelfStore(
+    (state) => state.moveColumnModuleBoundary,
+  );
   const setIsDragging = useShelfStore((state) => state.setIsDragging);
   const setHoveredColumnIndex = useShelfStore(
     (state) => state.setHoveredColumnIndex,
   );
   const { camera, gl } = useThree();
-
-  // Choose the correct move function based on module type
-  const moveShelf = isTopModule ? moveTopModuleShelf : moveColumnShelf;
 
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
@@ -55,10 +50,10 @@ export function HorizontalSplitHandle({
   const lastStoreUpdateRef = useRef(0);
 
   // Stable refs for functions (prevents useEffect re-subscription)
-  const moveShelfRef = useRef(moveShelf);
+  const moveColumnModuleBoundaryRef = useRef(moveColumnModuleBoundary);
   const setIsDraggingRef = useRef(setIsDragging);
   useEffect(() => {
-    moveShelfRef.current = moveShelf;
+    moveColumnModuleBoundaryRef.current = moveColumnModuleBoundary;
     setIsDraggingRef.current = setIsDragging;
   });
 
@@ -66,7 +61,7 @@ export function HorizontalSplitHandle({
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const raycaster = useRef(new THREE.Raycaster());
   const intersection = useRef(new THREE.Vector3());
-  const startY = useRef(0); // Initial split Y when drag started
+  const startY = useRef(0); // Initial boundary Y when drag started
   const startMouseY = useRef(0); // Initial mouse world Y when drag started
 
   const handlePointerDown = useCallback(
@@ -77,7 +72,7 @@ export function HorizontalSplitHandle({
       setIsDragging(true);
       gl.domElement.style.cursor = "grabbing";
 
-      // Store the starting split Y
+      // Store the starting boundary Y
       startY.current = y;
 
       // Set up drag plane at Z = depth/2
@@ -130,7 +125,7 @@ export function HorizontalSplitHandle({
       ) {
         // Calculate delta from start mouse position
         const deltaY = intersection.current.y - startMouseY.current;
-        // Apply delta to starting split Y
+        // Apply delta to starting boundary Y
         const newY = Math.max(minY, Math.min(maxY, startY.current + deltaY));
         currentDragYRef.current = newY;
 
@@ -138,7 +133,7 @@ export function HorizontalSplitHandle({
         const now = Date.now();
         if (now - lastStoreUpdateRef.current >= THROTTLE_MS) {
           lastStoreUpdateRef.current = now;
-          moveShelfRef.current(columnIndex, shelfIndex, newY);
+          moveColumnModuleBoundaryRef.current(columnIndex, newY);
         }
       }
     };
@@ -148,9 +143,8 @@ export function HorizontalSplitHandle({
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
         // Final store update to ensure exact position is committed
-        moveShelfRef.current(
+        moveColumnModuleBoundaryRef.current(
           columnIndex,
-          shelfIndex,
           currentDragYRef.current,
         );
         setIsDraggingRef.current(false);
@@ -165,8 +159,7 @@ export function HorizontalSplitHandle({
       window.removeEventListener("pointermove", handleGlobalMove);
       window.removeEventListener("pointerup", handleGlobalUp);
     };
-  }, [camera, gl, minY, maxY, columnIndex, shelfIndex]);
-  // Removed moveColumnShelf, setIsDragging from deps - using refs instead
+  }, [camera, gl, minY, maxY, columnIndex]);
 
   return (
     <group position={[x, y, depth / 2 + 0.01]}>
@@ -175,7 +168,7 @@ export function HorizontalSplitHandle({
         onPointerDown={handlePointerDown}
         onPointerOver={() => {
           setIsHovered(true);
-          setHoveredColumnIndex(columnIndex); // Keep column hovered to prevent flickering
+          setHoveredColumnIndex(columnIndex);
           if (!isDraggingRef.current) {
             gl.domElement.style.cursor = "grab";
           }
@@ -187,11 +180,11 @@ export function HorizontalSplitHandle({
           }
         }}
       >
-        <planeGeometry args={[colWidth * 0.5, 0.08]} />
+        <planeGeometry args={[colWidth * 0.5, 0.1]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      {/* Visible circular handle with HTML */}
+      {/* Visible handle with HTML - distinct style for module boundary */}
       <Html center zIndexRange={[1, 10]}>
         <div
           onPointerDown={(e) => {
@@ -199,29 +192,29 @@ export function HorizontalSplitHandle({
             handlePointerDown(e.nativeEvent);
           }}
           style={{
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#e8e8e8" : "#ffffff",
-            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#999999"}`,
+            backgroundColor: isDraggingLocal ? "#fff3e0" : "#ffffff",
+            border: `3px solid ${isHovered || isDraggingLocal ? "#ff6600" : "#cc5500"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={() => {
             setIsHovered(true);
-            setHoveredColumnIndex(columnIndex); // Keep column hovered
+            setHoveredColumnIndex(columnIndex);
           }}
           onMouseLeave={() => !isDraggingRef.current && setIsHovered(false)}
         >
-          <ChevronsUpDown
-            size={18}
-            strokeWidth={2.5}
-            color={isHovered || isDraggingLocal ? "#0066ff" : "#333333"}
+          <GripHorizontal
+            size={20}
+            strokeWidth={3}
+            color={isHovered || isDraggingLocal ? "#ff6600" : "#cc5500"}
           />
         </div>
       </Html>

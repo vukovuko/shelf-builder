@@ -7,12 +7,14 @@ import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
   MAX_COLUMN_HEIGHT_CM,
+  MIN_TOP_HEIGHT,
 } from "@/lib/wardrobe-constants";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
 import { TopHeightHandle } from "./TopHeightHandle";
 import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
+import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 
 type Material = {
   id: string;
@@ -55,6 +57,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     );
     const setHoveredColumnIndex = useShelfStore(
       (state) => state.setHoveredColumnIndex,
+    );
+    const columnModuleBoundaries = useShelfStore(
+      (state) => state.columnModuleBoundaries,
+    );
+    const columnTopModuleShelves = useShelfStore(
+      (state) => state.columnTopModuleShelves,
     );
 
     // Simple hover handler - only set on enter, not on leave
@@ -137,6 +145,26 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       return getMinColumnHeightCm(shelves.length) / 100; // convert to meters
     };
 
+    // Get modules for a column (stacked units with their own back panels)
+    // When height > 200cm, column splits into top and bottom modules
+    const getColumnModules = (
+      colIdx: number,
+    ): Array<{ yStart: number; yEnd: number; height: number }> => {
+      const colH = getColumnHeight(colIdx);
+      const boundary = columnModuleBoundaries[colIdx] ?? null;
+
+      // No boundary or height <= 200cm = single module
+      if (boundary === null || colH <= splitThreshold) {
+        return [{ yStart: 0, yEnd: colH, height: colH }];
+      }
+
+      // Two stacked modules
+      return [
+        { yStart: 0, yEnd: boundary, height: boundary }, // Bottom module
+        { yStart: boundary, yEnd: colH, height: colH - boundary }, // Top module
+      ];
+    };
+
     // Track which columns we've initialized to avoid re-running
     const initializedColumnsRef = React.useRef<Set<number>>(new Set());
 
@@ -213,7 +241,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           // Get array of shelf positions for this column (sorted bottom to top)
           const shelves = columnHorizontalBoundaries[colIdx] || [];
-          const numCompartments = shelves.length + 1;
+
+          // Check for module boundary
+          const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+          const hasModuleBoundary = moduleBoundary !== null && colH > splitThreshold;
+
+          // Bottom module compartments = shelves + 1
+          // If module boundary exists, add 1 more for top module
+          const bottomModuleCompartments = shelves.length + 1;
+          const numCompartments = hasModuleBoundary
+            ? bottomModuleCompartments + 1  // +1 for top module
+            : bottomModuleCompartments;
 
           // Column letter: 0=A, 1=B, 2=C...
           const colLetter = String.fromCharCode(65 + colIdx);
@@ -233,19 +271,43 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           };
 
           // Calculate compartment center Y positions for labels
+          // Handles both bottom module compartments and top module
           const getCompartmentCenterY = (compIdx: number): number => {
+            // Top module compartment (last one if module boundary exists)
+            if (hasModuleBoundary && compIdx === numCompartments - 1) {
+              const bottomY = moduleBoundary + t; // Just above module boundary panels
+              const topY = colH - t;
+              return (bottomY + topY) / 2;
+            }
+
+            // Bottom module compartments
             const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
-            const topY =
-              compIdx === shelves.length ? colH - t : shelves[compIdx];
+            const topY = hasModuleBoundary
+              ? (compIdx === bottomModuleCompartments - 1 ? moduleBoundary - t : shelves[compIdx])
+              : (compIdx === shelves.length ? colH - t : shelves[compIdx]);
             return (bottomY + topY) / 2;
           };
 
           // Calculate compartment height (heights add up to column height exactly)
+          // Handles both bottom module compartments and top module
           const getCompartmentHeightCm = (compIdx: number): number => {
-            const colHCm = Math.round(colH * 100);
+            // Top module compartment
+            if (hasModuleBoundary && compIdx === numCompartments - 1) {
+              const topModuleHeight = colH - moduleBoundary;
+              return Math.round(topModuleHeight * 100);
+            }
 
-            // For last compartment, calculate as remainder to ensure exact sum
-            if (compIdx === shelves.length) {
+            // Last compartment in bottom module (when module boundary exists)
+            if (hasModuleBoundary && compIdx === bottomModuleCompartments - 1) {
+              const bottomY = compIdx === 0 ? 0 : shelves[compIdx - 1];
+              const topY = moduleBoundary;
+              return Math.round((topY - bottomY) * 100);
+            }
+
+            // Regular bottom module compartments
+            const colHCm = Math.round(colH * 100);
+            if (compIdx === shelves.length && !hasModuleBoundary) {
+              // Last compartment without module boundary - remainder
               let sumPrevious = 0;
               for (let i = 0; i < compIdx; i++) {
                 const prevBottomY = i === 0 ? 0 : shelves[i - 1];
@@ -255,17 +317,29 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               return colHCm - sumPrevious;
             }
 
-            // For non-last compartments, use floor (whole cm)
+            // Non-last compartments
             const bottomY = compIdx === 0 ? 0 : shelves[compIdx - 1];
             const topY = shelves[compIdx];
             return Math.floor((topY - bottomY) * 100);
           };
 
           // Get compartment bounds for hit area
+          // Handles both bottom module compartments and top module
           const getCompartmentBounds = (compIdx: number) => {
+            // Top module compartment
+            if (hasModuleBoundary && compIdx === numCompartments - 1) {
+              const bottomY = moduleBoundary + t;
+              const topY = colH - t;
+              const height = topY - bottomY;
+              const centerY = (bottomY + topY) / 2;
+              return { centerY, height };
+            }
+
+            // Bottom module compartments
             const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
-            const topY =
-              compIdx === shelves.length ? colH - t : shelves[compIdx];
+            const topY = hasModuleBoundary
+              ? (compIdx === bottomModuleCompartments - 1 ? moduleBoundary - t : shelves[compIdx])
+              : (compIdx === shelves.length ? colH - t : shelves[compIdx]);
             const height = topY - bottomY;
             const centerY = (bottomY + topY) / 2;
             return { centerY, height };
@@ -515,11 +589,107 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 );
               })}
 
-              {/* Back panel for this column */}
-              <Panel
-                position={[colCenterX, colH / 2, -d / 2 + backT / 2]}
-                size={[colInnerW + t, colH, backT]}
-              />
+              {/* Back panels - ONE PER MODULE (each module has its own back) */}
+              {getColumnModules(colIdx).map((mod, modIdx) => (
+                <Panel
+                  key={`back-${colIdx}-${modIdx}`}
+                  position={[
+                    colCenterX,
+                    mod.yStart + mod.height / 2,
+                    -d / 2 + backT / 2,
+                  ]}
+                  size={[colInnerW + t, mod.height, backT]}
+                />
+              ))}
+
+              {/* Module boundary panels (TWO panels touching when boundary exists) + drag handle */}
+              {(() => {
+                const boundary = columnModuleBoundaries[colIdx] ?? null;
+                if (boundary === null || colH <= splitThreshold) return null;
+
+                // Min/max Y for module boundary drag
+                // Module boundary must stay ABOVE all existing horizontal shelves
+                // and maintain MIN_TOP_HEIGHT from top
+                const highestShelfY =
+                  shelves.length > 0 ? Math.max(...shelves) : 0;
+                // Minimum = above highest shelf + panel thickness + small gap
+                const boundaryMinY = Math.max(
+                  MIN_TOP_HEIGHT,
+                  highestShelfY + t + 0.05, // 5cm gap above highest shelf
+                );
+                const boundaryMaxY = colH - MIN_TOP_HEIGHT;
+
+                return (
+                  <>
+                    {/* Top panel of bottom module */}
+                    <Panel
+                      position={[colCenterX, boundary - t / 2, carcassZ]}
+                      size={[colInnerW, t, carcassD]}
+                    />
+                    {/* Bottom panel of top module */}
+                    <Panel
+                      position={[colCenterX, boundary + t / 2, carcassZ]}
+                      size={[colInnerW, t, carcassD]}
+                    />
+                    {/* Drag handle for module boundary - show when hovered */}
+                    {hoveredColumnIndex === colIdx && (
+                      <ModuleBoundaryHandle
+                        columnIndex={colIdx}
+                        x={colCenterX}
+                        y={boundary}
+                        depth={d}
+                        colWidth={colInnerW}
+                        minY={boundaryMinY}
+                        maxY={boundaryMaxY}
+                      />
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* Top module shelves (when module boundary exists) */}
+              {(() => {
+                const boundary = columnModuleBoundaries[colIdx] ?? null;
+                if (boundary === null || colH <= splitThreshold) return null;
+
+                const topShelves = columnTopModuleShelves[colIdx] || [];
+                if (topShelves.length === 0) return null;
+
+                return (
+                  <>
+                    {topShelves.map((shelfY, shelfIdx) => {
+                      // Min/max Y for shelf drag within top module
+                      const prevY = shelfIdx === 0 ? boundary + t : topShelves[shelfIdx - 1];
+                      const nextY = shelfIdx === topShelves.length - 1 ? colH - t : topShelves[shelfIdx + 1];
+                      const shelfMinY = prevY + minCompHeight;
+                      const shelfMaxY = nextY - minCompHeight;
+
+                      return (
+                        <React.Fragment key={`top-shelf-${colIdx}-${shelfIdx}`}>
+                          <Panel
+                            position={[colCenterX, shelfY, carcassZ]}
+                            size={[colInnerW, t, carcassD]}
+                          />
+                          {/* Drag handle for top module shelf - show when hovered */}
+                          {hoveredColumnIndex === colIdx && (
+                            <HorizontalSplitHandle
+                              columnIndex={colIdx}
+                              shelfIndex={shelfIdx}
+                              x={colCenterX + colInnerW * 0.3}
+                              y={shelfY}
+                              depth={d}
+                              colWidth={colInnerW}
+                              minY={shelfMinY}
+                              maxY={shelfMaxY}
+                              isTopModule={true}
+                            />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </React.Fragment>
           );
         })}
