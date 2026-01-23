@@ -297,6 +297,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Handle module boundaries: auto-initialize or remove based on new height
       let newModuleBoundaries: Record<number, number | null> = {};
+      let newTopModuleShelves: Record<number, number[]> = {};
+
       if (newHeightM > TARGET_BOTTOM_HEIGHT) {
         // Auto-initialize module boundary for all columns at default position
         const initialBoundary = Math.min(
@@ -307,15 +309,18 @@ export const useShelfStore = create<ShelfState>((set) => ({
         const columnCount = state.verticalBoundaries.length + 1;
         for (let i = 0; i < columnCount; i++) {
           newModuleBoundaries[i] = initialBoundary;
+          // Preserve existing top module shelves (they'll be scaled by per-column logic if needed)
+          newTopModuleShelves[i] = state.columnTopModuleShelves[i] || [];
         }
       }
-      // If newHeightM <= TARGET_BOTTOM_HEIGHT, newModuleBoundaries stays empty (no splits)
+      // If newHeightM <= TARGET_BOTTOM_HEIGHT, newModuleBoundaries and newTopModuleShelves stay empty
 
       return {
         height: newHeight,
         columnHeights: {}, // Reset ALL manual column heights
         columnHorizontalBoundaries: newColumnBoundaries,
         columnModuleBoundaries: newModuleBoundaries,
+        columnTopModuleShelves: newTopModuleShelves,
       };
     }),
   setDepth: (depth) => set({ depth }),
@@ -619,6 +624,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Handle module boundary auto-initialization and scaling
       let newModuleBoundaries = state.columnModuleBoundaries;
+      let newTopModuleShelves = state.columnTopModuleShelves;
       const existingModuleBoundary = state.columnModuleBoundaries[colIdx];
 
       if (newHeightM > TARGET_BOTTOM_HEIGHT) {
@@ -646,13 +652,46 @@ export const useShelfStore = create<ShelfState>((set) => ({
             ...newModuleBoundaries,
             [colIdx]: scaledBoundary,
           };
+
+          // Scale top module shelves proportionally if they exist
+          const topShelves = state.columnTopModuleShelves[colIdx] || [];
+          if (topShelves.length > 0) {
+            const oldTopModuleHeight = oldHeightM - existingModuleBoundary;
+            const newTopModuleHeight = newHeightM - scaledBoundary;
+
+            if (newTopModuleHeight < 0.20) {
+              // Top module too small, clear shelves
+              newTopModuleShelves = {
+                ...newTopModuleShelves,
+                [colIdx]: [],
+              };
+            } else {
+              // Scale shelves
+              const scaledShelves = topShelves
+                .map((shelfY) => {
+                  const relativePos = (shelfY - existingModuleBoundary) / oldTopModuleHeight;
+                  return scaledBoundary + relativePos * newTopModuleHeight;
+                })
+                .filter((y) => y > scaledBoundary + 0.1 && y < newHeightM - 0.1);
+
+              newTopModuleShelves = {
+                ...newTopModuleShelves,
+                [colIdx]: scaledShelves,
+              };
+            }
+          }
         }
       } else {
-        // Height below threshold - remove module boundary
+        // Height below threshold - remove module boundary AND clear top module shelves
         if (existingModuleBoundary !== undefined && existingModuleBoundary !== null) {
           newModuleBoundaries = {
             ...newModuleBoundaries,
             [colIdx]: null,
+          };
+          // Clear top module shelves since there's no top module anymore
+          newTopModuleShelves = {
+            ...newTopModuleShelves,
+            [colIdx]: [],
           };
         }
       }
@@ -661,6 +700,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnHeights: { ...state.columnHeights, [colIdx]: heightCm },
         columnHorizontalBoundaries: newColumnBoundaries,
         columnModuleBoundaries: newModuleBoundaries,
+        columnTopModuleShelves: newTopModuleShelves,
       };
     }),
   resetColumnHeights: () => set({ columnHeights: {} }),
@@ -697,11 +737,45 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // Clamp to valid range
       const clampedY = Math.max(minY, Math.min(colHeightM - MIN_TOP_HEIGHT, newY));
 
+      // Scale or clear top module shelves based on new boundary position
+      const oldBoundary = state.columnModuleBoundaries[colIdx];
+      const topShelves = state.columnTopModuleShelves[colIdx] || [];
+      let newTopShelves = state.columnTopModuleShelves;
+
+      if (topShelves.length > 0 && oldBoundary !== null && oldBoundary !== undefined) {
+        const oldTopModuleHeight = colHeightM - oldBoundary;
+        const newTopModuleHeight = colHeightM - clampedY;
+
+        // If new top module is too small (< 20cm usable), clear shelves
+        if (newTopModuleHeight < 0.20) {
+          newTopShelves = {
+            ...state.columnTopModuleShelves,
+            [colIdx]: [],
+          };
+        } else {
+          // Scale shelves proportionally within new top module bounds
+          const scaledShelves = topShelves
+            .map((shelfY) => {
+              // Convert to relative position within old top module
+              const relativePos = (shelfY - oldBoundary) / oldTopModuleHeight;
+              // Apply to new top module
+              return clampedY + relativePos * newTopModuleHeight;
+            })
+            .filter((y) => y > clampedY + 0.1 && y < colHeightM - 0.1); // Remove invalid positions
+
+          newTopShelves = {
+            ...state.columnTopModuleShelves,
+            [colIdx]: scaledShelves,
+          };
+        }
+      }
+
       return {
         columnModuleBoundaries: {
           ...state.columnModuleBoundaries,
           [colIdx]: clampedY,
         },
+        columnTopModuleShelves: newTopShelves,
       };
     }),
   // Per-column top module shelves (only valid when module boundary exists)

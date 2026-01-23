@@ -259,14 +259,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Helper: get minY for a shelf (matches getCompartmentHeightCm calculation)
           // Ensures displayed compartment height >= minCompHeight (10cm)
           const getMinYForShelf = (shelfIdx: number): number => {
-            const prevY = shelfIdx === 0 ? 0 : shelves[shelfIdx - 1];
+            // First shelf starts above bottom panel (t), others above previous shelf
+            const prevY = shelfIdx === 0 ? t : shelves[shelfIdx - 1];
             return prevY + minCompHeight;
           };
 
           // Helper: get maxY for a shelf (matches getCompartmentHeightCm calculation)
           const getMaxYForShelf = (shelfIdx: number): number => {
-            const nextY =
-              shelfIdx === shelves.length - 1 ? colH : shelves[shelfIdx + 1];
+            let nextY: number;
+            if (shelfIdx === shelves.length - 1) {
+              // Last shelf - constrained by module boundary panel (if exists) or top panel
+              nextY = hasModuleBoundary ? (moduleBoundary - t) : (colH - t);
+            } else {
+              nextY = shelves[shelfIdx + 1];
+            }
             return nextY - minCompHeight;
           };
 
