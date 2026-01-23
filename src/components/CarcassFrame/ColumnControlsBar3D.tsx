@@ -30,6 +30,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   );
   const setColumnHeight = useShelfStore((s) => s.setColumnHeight);
   const setColumnShelfCount = useShelfStore((s) => s.setColumnShelfCount);
+  const setVerticalBoundary = useShelfStore((s) => s.setVerticalBoundary);
+  const setVerticalBoundaries = useShelfStore((s) => s.setVerticalBoundaries);
   const materials = useShelfStore((s) => s.materials);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
 
@@ -141,6 +143,62 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     }
   };
 
+  // === Width control logic ===
+  const hasMultipleColumns = columns.length > 1;
+  const currentWidthCm = Math.round(col.width * 100);
+
+  // Width constraints
+  const minWidthCm = 20;
+  const maxWidthCm = 100;
+
+  // Determine which seam to adjust
+  const isLastColumn = displayColumn === columns.length - 1;
+  const seamIndex = isLastColumn ? displayColumn - 1 : displayColumn;
+
+  // Check adjacent column constraints
+  const adjacentColIndex = isLastColumn ? displayColumn - 1 : displayColumn + 1;
+  const adjacentCol = columns[adjacentColIndex];
+  const adjacentWidthCm = adjacentCol ? Math.round(adjacentCol.width * 100) : 0;
+
+  // Can increase if current < max AND adjacent > min
+  const canIncreaseWidth =
+    hasMultipleColumns &&
+    currentWidthCm < maxWidthCm &&
+    adjacentWidthCm > minWidthCm;
+  // Can decrease if current > min AND adjacent < max
+  const canDecreaseWidth =
+    hasMultipleColumns &&
+    currentWidthCm > minWidthCm &&
+    adjacentWidthCm < maxWidthCm;
+
+  const handleWidthChange = (delta: number) => {
+    if (!hasMultipleColumns) return;
+
+    const newWidthCm = currentWidthCm + delta;
+    if (newWidthCm < minWidthCm || newWidthCm > maxWidthCm) return;
+
+    // Check adjacent column won't violate constraints
+    const newAdjacentWidthCm = adjacentWidthCm - delta;
+    if (newAdjacentWidthCm < minWidthCm || newAdjacentWidthCm > maxWidthCm)
+      return;
+
+    // If no custom boundaries exist, initialize from defaults first
+    let boundariesToUse = activeBoundaries;
+    if (verticalBoundaries.length === 0 && defaultBoundaries.length > 0) {
+      setVerticalBoundaries(defaultBoundaries);
+      boundariesToUse = defaultBoundaries;
+    }
+
+    // Calculate new seam position
+    // For non-last column: + delta moves seam right
+    // For last column: + delta moves seam left (opposite direction)
+    const seamDeltaM = (isLastColumn ? -delta : delta) / 100;
+    const currentSeamX = boundariesToUse[seamIndex];
+    const newSeamX = currentSeamX + seamDeltaM;
+
+    setVerticalBoundary(seamIndex, newSeamX);
+  };
+
   return (
     <Html
       position={[colCenterX, barY, depth / 2]}
@@ -204,6 +262,62 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             padding: "4px 12px",
           }}
         >
+          {/* Width control - only show if multiple columns */}
+          {hasMultipleColumns && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13, color: "#000000" }}>Dužina</span>
+              <button
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #cccccc",
+                  borderRadius: "var(--radius)",
+                  background: "#f5f5f5",
+                  color: "#000000",
+                  cursor: canDecreaseWidth ? "pointer" : "not-allowed",
+                  opacity: canDecreaseWidth ? 1 : 0.4,
+                }}
+                onClick={() => handleWidthChange(-1)}
+                disabled={!canDecreaseWidth}
+              >
+                -
+              </button>
+              <span
+                style={{
+                  minWidth: 50,
+                  textAlign: "center",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#000000",
+                }}
+              >
+                {currentWidthCm} cm
+              </span>
+              <button
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #cccccc",
+                  borderRadius: "var(--radius)",
+                  background: "#f5f5f5",
+                  color: "#000000",
+                  cursor: canIncreaseWidth ? "pointer" : "not-allowed",
+                  opacity: canIncreaseWidth ? 1 : 0.4,
+                }}
+                onClick={() => handleWidthChange(1)}
+                disabled={!canIncreaseWidth}
+              >
+                +
+              </button>
+            </div>
+          )}
+
           {/* Height control */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 13, color: "#000000" }}>Visina</span>
