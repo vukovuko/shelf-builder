@@ -371,12 +371,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           );
         })}
 
-        {/* Internal seams (2 panels each) + drag handles - height = MAX of adjacent columns */}
+        {/* Internal seams (2 panels each) + drag handles */}
+        {/* Each panel belongs to its column and matches that column's height */}
         {columns.slice(0, -1).map((col, idx) => {
           const seamX = col.end; // Right edge of this column = seam position
           const leftH = getColumnHeight(idx);
           const rightH = getColumnHeight(idx + 1);
-          const seamH = Math.max(leftH, rightH);
+          const seamH = Math.max(leftH, rightH); // For SeamHandle positioning only
 
           // Calculate min/max X for this seam based on adjacent columns
           const leftCol = columns[idx];
@@ -396,17 +397,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           return (
             <React.Fragment key={`seam-${idx}`}>
-              {/* Left seam panel */}
+              {/* Left seam panel - belongs to LEFT column, uses LEFT height */}
               <Panel
-                position={[seamX - t / 2, seamH / 2, carcassZ]}
-                size={[t, seamH, carcassD]}
+                position={[seamX - t / 2, leftH / 2, carcassZ]}
+                size={[t, leftH, carcassD]}
               />
-              {/* Right seam panel */}
+              {/* Right seam panel - belongs to RIGHT column, uses RIGHT height */}
               <Panel
-                position={[seamX + t / 2, seamH / 2, carcassZ]}
-                size={[t, seamH, carcassD]}
+                position={[seamX + t / 2, rightH / 2, carcassZ]}
+                size={[t, rightH, carcassD]}
               />
-              {/* Drag handle */}
+              {/* Drag handle - positioned at max height so it's always visible */}
               <SeamHandle
                 seamIndex={idx}
                 x={seamX}
