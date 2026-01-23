@@ -7,12 +7,46 @@ import {
   Environment,
   useBounds,
 } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import React, { useRef, useEffect } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
+
+/**
+ * StoreInvalidator - Invalidates R3F scene when Zustand store changes
+ * Required because frameloop="demand" doesn't auto-invalidate on external state changes
+ */
+function StoreInvalidator() {
+  const { invalidate } = useThree();
+  const width = useShelfStore((s) => s.width);
+  const height = useShelfStore((s) => s.height);
+  const depth = useShelfStore((s) => s.depth);
+  const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
+  const columnHorizontalBoundaries = useShelfStore(
+    (s) => s.columnHorizontalBoundaries,
+  );
+  const columnHeights = useShelfStore((s) => s.columnHeights);
+  const elementConfigs = useShelfStore((s) => s.elementConfigs);
+  const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
+
+  useEffect(() => {
+    invalidate();
+  }, [
+    width,
+    height,
+    depth,
+    verticalBoundaries,
+    columnHorizontalBoundaries,
+    columnHeights,
+    elementConfigs,
+    hoveredColumnIndex,
+    invalidate,
+  ]);
+
+  return null;
+}
 
 /**
  * CameraFitter - Auto-fits camera when wardrobe dimensions change
@@ -117,6 +151,9 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           minDistance={0.5}
           maxDistance={10}
         />
+
+        {/* Invalidate scene when store changes (required for frameloop="demand") */}
+        <StoreInvalidator />
       </Canvas>
     </div>
   );

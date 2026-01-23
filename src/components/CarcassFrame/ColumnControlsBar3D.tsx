@@ -102,8 +102,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const col = columns[displayColumn];
   const colCenterX = (col.start + col.end) / 2;
 
-  // Position below wardrobe - moved further down for mobile visibility
-  const barY = -0.28;
+  // Position below wardrobe - moved further down for visibility
+  const barY = -0.45;
 
   // Column letter for display
   const columnLetter = String.fromCharCode(65 + displayColumn);
@@ -128,9 +128,11 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   const handleHeightChange = (delta: number) => {
     const newHeight = currentHeightCm + delta;
+    // Allow decreasing even if above max (to bring back into valid range)
+    // Only block increasing above max
     if (
       newHeight >= minHeightForCurrentShelves &&
-      newHeight <= MAX_COLUMN_HEIGHT_CM
+      (delta < 0 || newHeight <= MAX_COLUMN_HEIGHT_CM)
     ) {
       setColumnHeight(displayColumn, newHeight);
     }
@@ -215,8 +217,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           borderRadius: "var(--radius)",
           boxShadow: "var(--shadow-lg)",
           border: "1px solid #e0e0e0",
-          padding: "4px 0 6px 0",
-          minWidth: 200,
+          padding: "4px 0 2px 0",
+          minWidth: 180,
           color: "#000000",
         }}
         onMouseEnter={handleBarMouseEnter}
@@ -252,24 +254,84 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           </span>
         </div>
 
-        {/* Controls row */}
+        {/* Controls - responsive layout */}
         <div
+          className="column-controls-grid"
           style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            padding: "4px 8px",
+            flexDirection: "column",
+            gap: 6,
+            padding: "4px 12px 8px 12px",
           }}
         >
           {/* Width control - only show if multiple columns */}
           {hasMultipleColumns && (
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ fontSize: 11, color: "#000000" }}>Š</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Širina</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canDecreaseWidth ? "pointer" : "not-allowed",
+                    opacity: canDecreaseWidth ? 1 : 0.4,
+                  }}
+                  onClick={() => handleWidthChange(-1)}
+                  disabled={!canDecreaseWidth}
+                >
+                  -
+                </button>
+                <span
+                  style={{
+                    minWidth: 50,
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#000000",
+                  }}
+                >
+                  {currentWidthCm} cm
+                </span>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canIncreaseWidth ? "pointer" : "not-allowed",
+                    opacity: canIncreaseWidth ? 1 : 0.4,
+                  }}
+                  onClick={() => handleWidthChange(1)}
+                  disabled={!canIncreaseWidth}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Height control */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Visina</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
                 style={{
-                  width: 20,
-                  height: 20,
+                  width: 24,
+                  height: 24,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -277,30 +339,30 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   borderRadius: "var(--radius)",
                   background: "#f5f5f5",
                   color: "#000000",
-                  fontSize: 12,
-                  cursor: canDecreaseWidth ? "pointer" : "not-allowed",
-                  opacity: canDecreaseWidth ? 1 : 0.4,
+                  fontSize: 14,
+                  cursor: canDecreaseHeight ? "pointer" : "not-allowed",
+                  opacity: canDecreaseHeight ? 1 : 0.4,
                 }}
-                onClick={() => handleWidthChange(-1)}
-                disabled={!canDecreaseWidth}
+                onClick={() => handleHeightChange(-1)}
+                disabled={!canDecreaseHeight}
               >
                 -
               </button>
               <span
                 style={{
-                  minWidth: 36,
+                  minWidth: 50,
                   textAlign: "center",
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 500,
                   color: "#000000",
                 }}
               >
-                {currentWidthCm}
+                {Math.round(currentHeightCm)} cm
               </span>
               <button
                 style={{
-                  width: 20,
-                  height: 20,
+                  width: 24,
+                  height: 24,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -308,128 +370,74 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   borderRadius: "var(--radius)",
                   background: "#f5f5f5",
                   color: "#000000",
-                  fontSize: 12,
-                  cursor: canIncreaseWidth ? "pointer" : "not-allowed",
-                  opacity: canIncreaseWidth ? 1 : 0.4,
+                  fontSize: 14,
+                  cursor: canIncreaseHeight ? "pointer" : "not-allowed",
+                  opacity: canIncreaseHeight ? 1 : 0.4,
                 }}
-                onClick={() => handleWidthChange(1)}
-                disabled={!canIncreaseWidth}
+                onClick={() => handleHeightChange(1)}
+                disabled={!canIncreaseHeight}
               >
                 +
               </button>
             </div>
-          )}
-
-          {/* Height control */}
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <span style={{ fontSize: 11, color: "#000000" }}>V</span>
-            <button
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid #cccccc",
-                borderRadius: "var(--radius)",
-                background: "#f5f5f5",
-                color: "#000000",
-                fontSize: 12,
-                cursor: canDecreaseHeight ? "pointer" : "not-allowed",
-                opacity: canDecreaseHeight ? 1 : 0.4,
-              }}
-              onClick={() => handleHeightChange(-1)}
-              disabled={!canDecreaseHeight}
-            >
-              -
-            </button>
-            <span
-              style={{
-                minWidth: 36,
-                textAlign: "center",
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#000000",
-              }}
-            >
-              {Math.round(currentHeightCm)}
-            </span>
-            <button
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid #cccccc",
-                borderRadius: "var(--radius)",
-                background: "#f5f5f5",
-                color: "#000000",
-                fontSize: 12,
-                cursor: canIncreaseHeight ? "pointer" : "not-allowed",
-                opacity: canIncreaseHeight ? 1 : 0.4,
-              }}
-              onClick={() => handleHeightChange(1)}
-              disabled={!canIncreaseHeight}
-            >
-              +
-            </button>
           </div>
 
           {/* Shelf count control */}
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <span style={{ fontSize: 11, color: "#000000" }}>P</span>
-            <button
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid #cccccc",
-                borderRadius: "var(--radius)",
-                background: "#f5f5f5",
-                color: "#000000",
-                fontSize: 12,
-                cursor: canDecreaseShelves ? "pointer" : "not-allowed",
-                opacity: canDecreaseShelves ? 1 : 0.4,
-              }}
-              onClick={() => handleShelfCountChange(-1)}
-              disabled={!canDecreaseShelves}
-            >
-              -
-            </button>
-            <span
-              style={{
-                minWidth: 16,
-                textAlign: "center",
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#000000",
-              }}
-            >
-              {shelfCount}
-            </span>
-            <button
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid #cccccc",
-                borderRadius: "var(--radius)",
-                background: "#f5f5f5",
-                color: "#000000",
-                fontSize: 12,
-                cursor: canIncreaseShelves ? "pointer" : "not-allowed",
-                opacity: canIncreaseShelves ? 1 : 0.4,
-              }}
-              onClick={() => handleShelfCountChange(1)}
-              disabled={!canIncreaseShelves}
-            >
-              +
-            </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>Police</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <button
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #cccccc",
+                  borderRadius: "var(--radius)",
+                  background: "#f5f5f5",
+                  color: "#000000",
+                  fontSize: 14,
+                  cursor: canDecreaseShelves ? "pointer" : "not-allowed",
+                  opacity: canDecreaseShelves ? 1 : 0.4,
+                }}
+                onClick={() => handleShelfCountChange(-1)}
+                disabled={!canDecreaseShelves}
+              >
+                -
+              </button>
+              <span
+                style={{
+                  minWidth: 50,
+                  textAlign: "center",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#000000",
+                }}
+              >
+                {shelfCount}
+              </span>
+              <button
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #cccccc",
+                  borderRadius: "var(--radius)",
+                  background: "#f5f5f5",
+                  color: "#000000",
+                  fontSize: 14,
+                  cursor: canIncreaseShelves ? "pointer" : "not-allowed",
+                  opacity: canIncreaseShelves ? 1 : 0.4,
+                }}
+                onClick={() => handleShelfCountChange(1)}
+                disabled={!canIncreaseShelves}
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </div>

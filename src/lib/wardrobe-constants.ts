@@ -21,7 +21,7 @@ export const MAX_SEGMENT_Y = 200 / 100; // 2.0m - max vertical segment (same as 
 export const MAX_SHELVES_PER_COLUMN = 14;
 
 // Maximum column height (cm) - also max compartment height
-export const MAX_COLUMN_HEIGHT_CM = 275;
+export const MAX_COLUMN_HEIGHT_CM = 280;
 
 // Minimum column height per number of shelves (in cm)
 // Key = number of shelves, Value = minimum column height in cm

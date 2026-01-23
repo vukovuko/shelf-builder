@@ -314,20 +314,21 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               {/* Column total height label - shown when hovered */}
               {hoveredColumnIndex === colIdx && (
                 <Html
-                  position={[colCenterX, colH + 0.05, d / 2]}
+                  position={[colCenterX, colH + 0.18, d / 2]}
                   center
                   zIndexRange={[1, 10]}
                   style={{ pointerEvents: "none" }}
                 >
                   <div
                     style={{
-                      background: "#0066ff",
-                      color: "white",
-                      padding: "2px 8px",
-                      borderRadius: "4px",
-                      fontSize: 12,
+                      background: "rgba(255, 255, 255, 0.95)",
+                      color: "#000000",
+                      padding: "3px 10px",
+                      borderRadius: "var(--radius)",
+                      fontSize: 13,
                       fontWeight: 600,
                       whiteSpace: "nowrap",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
                     }}
                   >
                     {Math.round(colH * 100)}cm
