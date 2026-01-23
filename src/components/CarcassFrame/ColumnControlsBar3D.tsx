@@ -102,8 +102,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const col = columns[displayColumn];
   const colCenterX = (col.start + col.end) / 2;
 
-  // Position below wardrobe (Y = -0.12 = 12cm below floor, moved down a bit more)
-  const barY = -0.15;
+  // Position below wardrobe - moved further down for mobile visibility
+  const barY = -0.28;
 
   // Column letter for display
   const columnLetter = String.fromCharCode(65 + displayColumn);
@@ -215,8 +215,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           borderRadius: "var(--radius)",
           boxShadow: "var(--shadow-lg)",
           border: "1px solid #e0e0e0",
-          padding: "4px 0 8px 0",
-          minWidth: 280,
+          padding: "4px 0 6px 0",
+          minWidth: 200,
           color: "#000000",
         }}
         onMouseEnter={handleBarMouseEnter}
@@ -258,18 +258,18 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 16,
-            padding: "4px 12px",
+            gap: 8,
+            padding: "4px 8px",
           }}
         >
           {/* Width control - only show if multiple columns */}
           {hasMultipleColumns && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 13, color: "#000000" }}>Dužina</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ fontSize: 11, color: "#000000" }}>Š</span>
               <button
                 style={{
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -277,6 +277,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   borderRadius: "var(--radius)",
                   background: "#f5f5f5",
                   color: "#000000",
+                  fontSize: 12,
                   cursor: canDecreaseWidth ? "pointer" : "not-allowed",
                   opacity: canDecreaseWidth ? 1 : 0.4,
                 }}
@@ -287,19 +288,19 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               </button>
               <span
                 style={{
-                  minWidth: 50,
+                  minWidth: 36,
                   textAlign: "center",
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: 500,
                   color: "#000000",
                 }}
               >
-                {currentWidthCm} cm
+                {currentWidthCm}
               </span>
               <button
                 style={{
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -307,6 +308,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   borderRadius: "var(--radius)",
                   background: "#f5f5f5",
                   color: "#000000",
+                  fontSize: 12,
                   cursor: canIncreaseWidth ? "pointer" : "not-allowed",
                   opacity: canIncreaseWidth ? 1 : 0.4,
                 }}
@@ -319,12 +321,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           )}
 
           {/* Height control */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "#000000" }}>Visina</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: 11, color: "#000000" }}>V</span>
             <button
               style={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -332,6 +334,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 borderRadius: "var(--radius)",
                 background: "#f5f5f5",
                 color: "#000000",
+                fontSize: 12,
                 cursor: canDecreaseHeight ? "pointer" : "not-allowed",
                 opacity: canDecreaseHeight ? 1 : 0.4,
               }}
@@ -342,19 +345,19 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             </button>
             <span
               style={{
-                minWidth: 50,
+                minWidth: 36,
                 textAlign: "center",
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: 500,
                 color: "#000000",
               }}
             >
-              {Math.round(currentHeightCm)} cm
+              {Math.round(currentHeightCm)}
             </span>
             <button
               style={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -362,6 +365,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 borderRadius: "var(--radius)",
                 background: "#f5f5f5",
                 color: "#000000",
+                fontSize: 12,
                 cursor: canIncreaseHeight ? "pointer" : "not-allowed",
                 opacity: canIncreaseHeight ? 1 : 0.4,
               }}
@@ -373,12 +377,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           </div>
 
           {/* Shelf count control */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "#000000" }}>Police</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: 11, color: "#000000" }}>P</span>
             <button
               style={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -386,6 +390,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 borderRadius: "var(--radius)",
                 background: "#f5f5f5",
                 color: "#000000",
+                fontSize: 12,
                 cursor: canDecreaseShelves ? "pointer" : "not-allowed",
                 opacity: canDecreaseShelves ? 1 : 0.4,
               }}
@@ -396,9 +401,9 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             </button>
             <span
               style={{
-                minWidth: 24,
+                minWidth: 16,
                 textAlign: "center",
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: 500,
                 color: "#000000",
               }}
@@ -407,8 +412,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
             </span>
             <button
               style={{
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -416,6 +421,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 borderRadius: "var(--radius)",
                 background: "#f5f5f5",
                 color: "#000000",
+                fontSize: 12,
                 cursor: canIncreaseShelves ? "pointer" : "not-allowed",
                 opacity: canIncreaseShelves ? 1 : 0.4,
               }}

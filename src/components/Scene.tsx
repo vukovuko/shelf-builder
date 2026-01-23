@@ -82,8 +82,8 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           enableZoom={true}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
-          minDistance={1.65}
-          maxDistance={3}
+          minDistance={1.0}
+          maxDistance={4}
         />
       </Canvas>
     </div>
