@@ -1,12 +1,43 @@
 "use client";
 
-import { Bounds, Center, OrbitControls, Environment } from "@react-three/drei";
+import {
+  Bounds,
+  Center,
+  OrbitControls,
+  Environment,
+  useBounds,
+} from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
+
+/**
+ * CameraFitter - Auto-fits camera when wardrobe dimensions change
+ * Must be placed inside Bounds component to access useBounds hook
+ */
+function CameraFitter() {
+  const bounds = useBounds();
+  const width = useShelfStore((s) => s.width);
+  const height = useShelfStore((s) => s.height);
+  const depth = useShelfStore((s) => s.depth);
+
+  // Track if this is the first render (skip initial fit - Bounds handles that)
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    // Re-fit camera when dimensions change
+    bounds.refresh().fit();
+  }, [width, height, depth, bounds]);
+
+  return null;
+}
 
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
   const { viewMode } = useShelfStore();
@@ -67,11 +98,12 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
         {!showEdgesOnly && <Environment preset="apartment" />}
 
-        {/* Bounds fits camera on initial load only (no observe = no auto-refit on changes) */}
+        {/* Bounds fits camera, CameraFitter re-fits when dimensions change */}
         <Bounds fit clip margin={1.5}>
           <Center>
             <Wardrobe ref={wardrobeRef} />
           </Center>
+          <CameraFitter />
         </Bounds>
 
         <OrbitControls
@@ -82,8 +114,8 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           enableZoom={true}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
-          minDistance={1.0}
-          maxDistance={4}
+          minDistance={0.5}
+          maxDistance={10}
         />
       </Canvas>
     </div>

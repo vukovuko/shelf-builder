@@ -49,6 +49,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       (state) => state.setColumnHorizontalBoundaries,
     );
     const columnHeights = useShelfStore((state) => state.columnHeights);
+    const elementConfigs = useShelfStore((state) => state.elementConfigs);
     const hoveredColumnIndex = useShelfStore(
       (state) => state.hoveredColumnIndex,
     );
@@ -358,6 +359,100 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         </div>
                       </Html>
                     )}
+
+                    {/* Inner vertical dividers from elementConfigs */}
+                    {(() => {
+                      const compKey = `${colLetter}${compIdx + 1}`;
+                      const cfg = elementConfigs[compKey] ?? {
+                        columns: 1,
+                        rowCounts: [0],
+                      };
+                      const innerCols = Math.max(1, cfg.columns);
+
+                      if (innerCols <= 1) return null; // No internal dividers
+
+                      // Compartment inner bounds
+                      const compBottomY =
+                        compIdx === 0 ? t : shelves[compIdx - 1];
+                      const compTopY =
+                        compIdx === shelves.length ? colH - t : shelves[compIdx];
+                      const compInnerH = compTopY - compBottomY;
+
+                      const compLeftX = colCenterX - colInnerW / 2;
+
+                      // Vertical dividers
+                      const dividerPanels = [];
+                      for (let divIdx = 1; divIdx < innerCols; divIdx++) {
+                        const divX =
+                          compLeftX + (divIdx * colInnerW) / innerCols;
+                        dividerPanels.push(
+                          <Panel
+                            key={`vd-${compKey}-${divIdx}`}
+                            position={[
+                              divX,
+                              (compBottomY + compTopY) / 2,
+                              carcassZ,
+                            ]}
+                            size={[t, compInnerH, carcassD]}
+                          />,
+                        );
+                      }
+                      return <>{dividerPanels}</>;
+                    })()}
+
+                    {/* Per-section horizontal shelves from elementConfigs */}
+                    {(() => {
+                      const compKey = `${colLetter}${compIdx + 1}`;
+                      const cfg = elementConfigs[compKey] ?? {
+                        columns: 1,
+                        rowCounts: [0],
+                      };
+                      const innerCols = Math.max(1, cfg.columns);
+
+                      const compBottomY =
+                        compIdx === 0 ? t : shelves[compIdx - 1];
+                      const compTopY =
+                        compIdx === shelves.length ? colH - t : shelves[compIdx];
+                      const compInnerH = compTopY - compBottomY;
+
+                      const compLeftX = colCenterX - colInnerW / 2;
+                      const sectionW = colInnerW / innerCols;
+
+                      const shelfPanels: React.ReactNode[] = [];
+                      for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                        const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                        if (shelfCount <= 0) continue;
+
+                        // Section X bounds (account for divider thickness)
+                        const secLeftX =
+                          compLeftX +
+                          secIdx * sectionW +
+                          (secIdx > 0 ? t / 2 : 0);
+                        const secRightX =
+                          compLeftX +
+                          (secIdx + 1) * sectionW -
+                          (secIdx < innerCols - 1 ? t / 2 : 0);
+                        const secCenterX = (secLeftX + secRightX) / 2;
+                        const secW = secRightX - secLeftX;
+
+                        // Distribute shelves evenly
+                        const usableH = compInnerH;
+                        const gap = usableH / (shelfCount + 1);
+
+                        for (let shIdx = 1; shIdx <= shelfCount; shIdx++) {
+                          const shelfY = compBottomY + shIdx * gap;
+                          shelfPanels.push(
+                            <Panel
+                              key={`sh-${compKey}-${secIdx}-${shIdx}`}
+                              position={[secCenterX, shelfY, carcassZ]}
+                              size={[secW, t, carcassD]}
+                            />,
+                          );
+                        }
+                      }
+                      if (shelfPanels.length === 0) return null;
+                      return <>{shelfPanels}</>;
+                    })()}
                   </React.Fragment>
                 );
               })}

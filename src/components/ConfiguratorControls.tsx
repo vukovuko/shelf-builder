@@ -69,6 +69,7 @@ import {
   buildBlocksX,
   buildModulesY,
   getElementKeys,
+  getCompartmentKeys,
 } from "@/lib/wardrobe-utils";
 import { DRAWER_HEIGHT, DRAWER_GAP } from "@/lib/wardrobe-constants";
 import { AuthForms } from "./AuthForms";
@@ -1152,10 +1153,20 @@ export function ConfiguratorControls({
             <AccordionContent className="space-y-4 pt-4">
               {/* Per-element selection and controls */}
               {(() => {
-                // Compute elements (letters) in the same order as CarcassFrame: bottom-to-top, left-to-right
+                // Compute compartment keys matching CarcassFrame: A1, A2, B1, B2...
                 const w = useShelfStore.getState().width / 100;
-                const h = useShelfStore.getState().height / 100;
-                const letters = getElementKeys(w, h);
+                const verticalBoundaries =
+                  useShelfStore.getState().verticalBoundaries;
+                const columnHorizontalBoundaries =
+                  useShelfStore.getState().columnHorizontalBoundaries;
+                const columns = buildBlocksX(
+                  w,
+                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                );
+                const compartmentKeys = getCompartmentKeys(
+                  columns,
+                  columnHorizontalBoundaries,
+                );
 
                 const selectedElementKey = useShelfStore(
                   (state) => state.selectedElementKey,
@@ -1177,18 +1188,18 @@ export function ConfiguratorControls({
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className="text-sm text-muted-foreground">
-                        Element:
+                        Pregrada:
                       </span>
-                      {letters.map((ltr, _idx) => (
+                      {compartmentKeys.map((key) => (
                         <Button
-                          key={ltr}
+                          key={key}
                           variant={
-                            selectedElementKey === ltr ? "default" : "outline"
+                            selectedElementKey === key ? "default" : "outline"
                           }
-                          onClick={() => setSelectedElementKey(ltr)}
+                          onClick={() => setSelectedElementKey(key)}
                           className="px-2 py-1 h-8  transition-colors"
                         >
-                          {ltr}
+                          {key}
                         </Button>
                       ))}
                     </div>
@@ -1552,10 +1563,23 @@ export function ConfiguratorControls({
                   (state) => state.toggleCompLed,
                 );
 
-                // Prikaz svih slova (A, B, C, ...) prema broju elemenata na crtežu
+                // Prikaz svih pregrada (A1, A2, B1, ...) matching CarcassFrame
                 const width = useShelfStore((state) => state.width);
-                const height = useShelfStore((state) => state.height);
-                const allKeys = getElementKeys(width / 100, height / 100);
+                const verticalBoundaries = useShelfStore(
+                  (state) => state.verticalBoundaries,
+                );
+                const columnHorizontalBoundaries = useShelfStore(
+                  (state) => state.columnHorizontalBoundaries,
+                );
+                const w = width / 100;
+                const columns = buildBlocksX(
+                  w,
+                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                );
+                const allKeys = getCompartmentKeys(
+                  columns,
+                  columnHorizontalBoundaries,
+                );
 
                 // Prikaz stanja za selektovani element
                 const extras = selectedCompartmentKey
@@ -1582,20 +1606,20 @@ export function ConfiguratorControls({
                         {/* Element selection row for extras */}
                         <div className="flex flex-wrap gap-2 items-center mb-2">
                           <span className="text-sm text-muted-foreground">
-                            Element:
+                            Pregrada:
                           </span>
-                          {allKeys.map((ltr) => (
+                          {allKeys.map((key) => (
                             <Button
-                              key={ltr}
+                              key={key}
                               variant={
-                                selectedCompartmentKey === ltr
+                                selectedCompartmentKey === key
                                   ? "default"
                                   : "outline"
                               }
-                              onClick={() => setSelectedCompartmentKey(ltr)}
+                              onClick={() => setSelectedCompartmentKey(key)}
                               className="px-2 py-1 h-8  transition-colors"
                             >
-                              {ltr}
+                              {key}
                             </Button>
                           ))}
                         </div>
@@ -1767,8 +1791,21 @@ export function ConfiguratorControls({
             <AccordionContent className="space-y-4 pt-4">
               {(() => {
                 const width = useShelfStore((state) => state.width);
-                const height = useShelfStore((state) => state.height);
-                const allKeys = getElementKeys(width / 100, height / 100);
+                const verticalBoundaries = useShelfStore(
+                  (state) => state.verticalBoundaries,
+                );
+                const columnHorizontalBoundaries = useShelfStore(
+                  (state) => state.columnHorizontalBoundaries,
+                );
+                const w = width / 100;
+                const columns = buildBlocksX(
+                  w,
+                  verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+                );
+                const allKeys = getCompartmentKeys(
+                  columns,
+                  columnHorizontalBoundaries,
+                );
 
                 const selectedDoorElementKey = useShelfStore(
                   (state) => state.selectedDoorElementKey,

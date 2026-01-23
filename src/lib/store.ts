@@ -4,6 +4,7 @@ import {
   getMaxShelvesForHeight,
   distributeShelvesEvenly,
 } from "./wardrobe-constants";
+import { getDefaultBoundariesX } from "./wardrobe-utils";
 
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
@@ -228,8 +229,65 @@ export const useShelfStore = create<ShelfState>((set) => ({
         selectedBackMaterialId,
       };
     }),
-  setWidth: (width) => set({ width }),
-  setHeight: (height) => set({ height }),
+  setWidth: (newWidth) =>
+    set((state) => {
+      const newWidthM = newWidth / 100;
+
+      // Calculate correct boundaries for new width (auto column count based on 100cm max)
+      const newBoundaries = getDefaultBoundariesX(newWidthM);
+      const newColumnCount = newBoundaries.length + 1;
+      const oldColumnCount = state.verticalBoundaries.length + 1;
+
+      // If column count decreased, clean up per-column data for removed columns
+      let newColumnHorizontalBoundaries = state.columnHorizontalBoundaries;
+      let newColumnHeights = state.columnHeights;
+
+      if (newColumnCount < oldColumnCount) {
+        // Remove data for columns that no longer exist
+        newColumnHorizontalBoundaries = {};
+        newColumnHeights = {};
+        for (let i = 0; i < newColumnCount; i++) {
+          if (state.columnHorizontalBoundaries[i]) {
+            newColumnHorizontalBoundaries[i] =
+              state.columnHorizontalBoundaries[i];
+          }
+          if (state.columnHeights[i] !== undefined) {
+            newColumnHeights[i] = state.columnHeights[i];
+          }
+        }
+      }
+
+      return {
+        width: newWidth,
+        verticalBoundaries: newBoundaries,
+        columnHorizontalBoundaries: newColumnHorizontalBoundaries,
+        columnHeights: newColumnHeights,
+      };
+    }),
+  setHeight: (newHeight) =>
+    set((state) => {
+      const oldHeightM = state.height / 100;
+      const newHeightM = newHeight / 100;
+
+      // Scale horizontal boundaries for columns using global height
+      const newColumnBoundaries = { ...state.columnHorizontalBoundaries };
+
+      Object.keys(newColumnBoundaries).forEach((key) => {
+        const colIdx = Number(key);
+        // Only scale if column uses global height (no custom height set)
+        if (state.columnHeights[colIdx] === undefined) {
+          const oldBoundaries = newColumnBoundaries[colIdx] || [];
+          newColumnBoundaries[colIdx] = oldBoundaries.map(
+            (y) => (y / oldHeightM) * newHeightM,
+          );
+        }
+      });
+
+      return {
+        height: newHeight,
+        columnHorizontalBoundaries: newColumnBoundaries,
+      };
+    }),
   setDepth: (depth) => set({ depth }),
   setPanelThickness: (panelThickness) => set({ panelThickness }),
   setNumberOfColumns: (numberOfColumns) =>

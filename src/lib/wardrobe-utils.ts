@@ -127,10 +127,34 @@ export function buildModulesY(
 
 /**
  * Get all element keys (A, B, C, ...) for a given wardrobe size.
+ * @deprecated Use getCompartmentKeys() for new code - this uses the old module system
  */
 export function getElementKeys(w: number, h: number): string[] {
   const blocksX = buildBlocksX(w);
   const modulesY = buildModulesY(h);
   const totalElements = blocksX.length * modulesY.length;
   return Array.from({ length: totalElements }, (_, i) => toLetters(i));
+}
+
+/**
+ * Get all compartment keys based on columns and their horizontal boundaries.
+ * Returns keys like "A1", "A2", "B1", "B2" (column letter + compartment number)
+ *
+ * @param columns - Array of column objects from buildBlocksX()
+ * @param columnHorizontalBoundaries - Per-column shelf Y positions from store
+ */
+export function getCompartmentKeys(
+  columns: { start: number; end: number; width: number }[],
+  columnHorizontalBoundaries: Record<number, number[]>,
+): string[] {
+  const keys: string[] = [];
+  columns.forEach((_, colIdx) => {
+    const colLetter = String.fromCharCode(65 + colIdx); // A, B, C...
+    const shelves = columnHorizontalBoundaries[colIdx] || [];
+    const numCompartments = shelves.length + 1;
+    for (let compIdx = 0; compIdx < numCompartments; compIdx++) {
+      keys.push(`${colLetter}${compIdx + 1}`);
+    }
+  });
+  return keys;
 }
