@@ -269,22 +269,19 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const oldHeightM = state.height / 100;
       const newHeightM = newHeight / 100;
 
-      // Scale horizontal boundaries for columns using global height
-      const newColumnBoundaries = { ...state.columnHorizontalBoundaries };
-
-      Object.keys(newColumnBoundaries).forEach((key) => {
+      // Scale ALL horizontal boundaries proportionally
+      const newColumnBoundaries: Record<number, number[]> = {};
+      Object.keys(state.columnHorizontalBoundaries).forEach((key) => {
         const colIdx = Number(key);
-        // Only scale if column uses global height (no custom height set)
-        if (state.columnHeights[colIdx] === undefined) {
-          const oldBoundaries = newColumnBoundaries[colIdx] || [];
-          newColumnBoundaries[colIdx] = oldBoundaries.map(
-            (y) => (y / oldHeightM) * newHeightM,
-          );
-        }
+        const oldBoundaries = state.columnHorizontalBoundaries[colIdx] || [];
+        newColumnBoundaries[colIdx] = oldBoundaries.map(
+          (y) => (y / oldHeightM) * newHeightM,
+        );
       });
 
       return {
         height: newHeight,
+        columnHeights: {}, // Reset ALL manual column heights
         columnHorizontalBoundaries: newColumnBoundaries,
       };
     }),

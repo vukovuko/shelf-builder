@@ -2,10 +2,13 @@
 
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
 import { ChevronsUpDown } from "lucide-react";
+
+// Throttle interval in ms (~20 updates/sec during drag)
+const THROTTLE_MS = 50;
 
 interface HorizontalSplitHandleProps {
   columnIndex: number;
@@ -40,6 +43,16 @@ export function HorizontalSplitHandle({
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const isDraggingRef = useRef(false);
+  const currentDragYRef = useRef(y);
+  const lastStoreUpdateRef = useRef(0);
+
+  // Stable refs for functions (prevents useEffect re-subscription)
+  const moveColumnShelfRef = useRef(moveColumnShelf);
+  const setIsDraggingRef = useRef(setIsDragging);
+  useEffect(() => {
+    moveColumnShelfRef.current = moveColumnShelf;
+    setIsDraggingRef.current = setIsDragging;
+  });
 
   // For relative dragging
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
@@ -111,7 +124,14 @@ export function HorizontalSplitHandle({
         const deltaY = intersection.current.y - startMouseY.current;
         // Apply delta to starting split Y
         const newY = Math.max(minY, Math.min(maxY, startY.current + deltaY));
-        moveColumnShelf(columnIndex, shelfIndex, newY);
+        currentDragYRef.current = newY;
+
+        // Throttled store update (~20 updates/sec instead of 60-120)
+        const now = Date.now();
+        if (now - lastStoreUpdateRef.current >= THROTTLE_MS) {
+          lastStoreUpdateRef.current = now;
+          moveColumnShelfRef.current(columnIndex, shelfIndex, newY);
+        }
       }
     };
 
@@ -119,7 +139,9 @@ export function HorizontalSplitHandle({
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
-        setIsDragging(false);
+        // Final store update to ensure exact position is committed
+        moveColumnShelfRef.current(columnIndex, shelfIndex, currentDragYRef.current);
+        setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }
     };
@@ -131,16 +153,8 @@ export function HorizontalSplitHandle({
       window.removeEventListener("pointermove", handleGlobalMove);
       window.removeEventListener("pointerup", handleGlobalUp);
     };
-  }, [
-    camera,
-    gl,
-    minY,
-    maxY,
-    columnIndex,
-    shelfIndex,
-    moveColumnShelf,
-    setIsDragging,
-  ]);
+  }, [camera, gl, minY, maxY, columnIndex, shelfIndex]);
+  // Removed moveColumnShelf, setIsDragging from deps - using refs instead
 
   return (
     <group position={[x, y, depth / 2 + 0.01]}>

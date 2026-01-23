@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Edges } from "@react-three/drei";
 
 interface PanelProps {
@@ -7,8 +8,30 @@ interface PanelProps {
   size: [number, number, number];
 }
 
+// Custom comparison for arrays - prevents re-render if values are same
+function areEqual(prev: PanelProps, next: PanelProps): boolean {
+  // Compare position array values
+  if (
+    prev.position[0] !== next.position[0] ||
+    prev.position[1] !== next.position[1] ||
+    prev.position[2] !== next.position[2]
+  ) {
+    return false;
+  }
+  // Compare size array values
+  if (
+    prev.size[0] !== next.size[0] ||
+    prev.size[1] !== next.size[1] ||
+    prev.size[2] !== next.size[2]
+  ) {
+    return false;
+  }
+  return true;
+}
+
 // A simple, reusable panel component. It's just a mesh with a box geometry.
-export function Panel({ position, size }: PanelProps) {
+// Wrapped in React.memo to prevent re-renders when position/size values unchanged
+export const Panel = React.memo(function Panel({ position, size }: PanelProps) {
   // Defensive: Clamp all sizes to minimum 0.001 and ensure no NaN
   const safeSize = size.map((v) => {
     if (typeof v !== "number" || Number.isNaN(v) || !Number.isFinite(v))
@@ -38,4 +61,4 @@ export function Panel({ position, size }: PanelProps) {
       <Edges key={`e-${geoKey}`} threshold={15} color="#4a4458" />
     </mesh>
   );
-}
+}, areEqual);

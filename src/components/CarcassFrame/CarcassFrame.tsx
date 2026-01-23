@@ -67,10 +67,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const w = width / 100;
     const d = depth / 100;
 
-    // Get material thickness
-    const material =
-      materials.find((m) => String(m.id) === String(selectedMaterialId)) ||
-      materials[0];
+    // Memoize material lookup to avoid searching on every render
+    const material = React.useMemo(
+      () =>
+        materials.find((m) => String(m.id) === String(selectedMaterialId)) ||
+        materials[0],
+      [materials, selectedMaterialId],
+    );
     const t = ((material?.thickness ?? 18) as number) / 1000; // mm to meters
 
     // Back panel thickness (5mm)
@@ -82,7 +85,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const carcassZ = backT / 2;
 
     // Initialize boundaries if empty but width requires multiple columns
-    const defaultBoundaries = getDefaultBoundariesX(w);
+    const defaultBoundaries = React.useMemo(
+      () => getDefaultBoundariesX(w),
+      [w],
+    );
     const hasInitializedVerticalRef = React.useRef(false);
 
     React.useEffect(() => {
@@ -93,12 +99,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       }
     }, [verticalBoundaries.length, defaultBoundaries, setVerticalBoundaries]);
 
-    // Calculate columns from boundaries
+    // Memoize columns calculation to avoid rebuilding on every render
     const activeBoundaries =
       verticalBoundaries.length > 0 ? verticalBoundaries : defaultBoundaries;
-    const columns = buildBlocksX(
-      w,
-      activeBoundaries.length > 0 ? activeBoundaries : undefined,
+    const columns = React.useMemo(
+      () =>
+        buildBlocksX(
+          w,
+          activeBoundaries.length > 0 ? activeBoundaries : undefined,
+        ),
+      [w, activeBoundaries],
     );
 
     // Helper: get column height (from columnHeights or default to global height)
@@ -127,13 +137,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Track which columns we've initialized to avoid re-running
     const initializedColumnsRef = React.useRef<Set<number>>(new Set());
 
+    // Stable ref for columnHorizontalBoundaries to avoid effect re-runs during drag
+    const columnHorizontalBoundariesRef = React.useRef(columnHorizontalBoundaries);
+    React.useEffect(() => {
+      columnHorizontalBoundariesRef.current = columnHorizontalBoundaries;
+    });
+
+    // Stable ref for setColumnHorizontalBoundaries
+    const setColumnHorizontalBoundariesRef = React.useRef(setColumnHorizontalBoundaries);
+    React.useEffect(() => {
+      setColumnHorizontalBoundariesRef.current = setColumnHorizontalBoundaries;
+    });
+
     // Auto-initialize horizontal splits when column height > 200cm
     React.useEffect(() => {
       columns.forEach((_, colIdx) => {
         const colH = getColumnHeight(colIdx);
         const canHaveSplit = colH > splitThreshold;
         const alreadyInitialized = initializedColumnsRef.current.has(colIdx);
-        const existingShelves = columnHorizontalBoundaries[colIdx] || [];
+        const existingShelves = columnHorizontalBoundariesRef.current[colIdx] || [];
 
         if (
           canHaveSplit &&
@@ -141,19 +163,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           existingShelves.length === 0
         ) {
           // Initialize with one shelf at middle of column
-          setColumnHorizontalBoundaries(colIdx, [colH / 2]);
+          setColumnHorizontalBoundariesRef.current(colIdx, [colH / 2]);
           initializedColumnsRef.current.add(colIdx);
         }
         // NOTE: We no longer auto-delete shelves when height drops
         // Instead, we scale them proportionally in setColumnHeight
       });
-    }, [
-      columns,
-      columnHeights,
-      columnHorizontalBoundaries,
-      setColumnHorizontalBoundaries,
-      height,
-    ]);
+    }, [columns, columnHeights, height, getColumnHeight]);
+    // Removed columnHorizontalBoundaries, setColumnHorizontalBoundaries from deps - using refs instead
 
     React.useImperativeHandle(ref, () => ({
       toggleAllInfo: () => {},
@@ -293,6 +310,30 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 maxHeight={maxColumnHeight}
                 currentHeightM={colH}
               />
+
+              {/* Column total height label - shown when hovered */}
+              {hoveredColumnIndex === colIdx && (
+                <Html
+                  position={[colCenterX, colH + 0.05, d / 2]}
+                  center
+                  zIndexRange={[1, 10]}
+                  style={{ pointerEvents: "none" }}
+                >
+                  <div
+                    style={{
+                      background: "#0066ff",
+                      color: "white",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {Math.round(colH * 100)}cm
+                  </div>
+                </Html>
+              )}
 
               {/* Invisible hit areas + Labels for each compartment */}
               {Array.from({ length: numCompartments }).map((_, compIdx) => {

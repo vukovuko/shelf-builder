@@ -7,6 +7,9 @@ import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
 import { ChevronsLeftRight } from "lucide-react";
 
+// Throttle interval in ms (~20 updates/sec during drag)
+const THROTTLE_MS = 50;
+
 interface SeamHandleProps {
   seamIndex: number;
   x: number;
@@ -41,6 +44,15 @@ export function SeamHandle({
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const isDraggingRef = useRef(false);
   const currentDragXRef = useRef(x);
+  const lastStoreUpdateRef = useRef(0);
+
+  // Stable refs for functions (prevents useEffect re-subscription)
+  const setVerticalBoundaryRef = useRef(setVerticalBoundary);
+  const setIsDraggingRef = useRef(setIsDragging);
+  useEffect(() => {
+    setVerticalBoundaryRef.current = setVerticalBoundary;
+    setIsDraggingRef.current = setIsDragging;
+  });
 
   // Direct DOM refs for instant updates (bypass React)
   const leftWidthSpanRef = useRef<HTMLSpanElement>(null);
@@ -90,7 +102,7 @@ export function SeamHandle({
         const newX = Math.max(minX, Math.min(maxX, intersection.current.x));
         currentDragXRef.current = newX;
 
-        // Direct DOM manipulation - instant, no React overhead
+        // Direct DOM manipulation - instant feedback, no React overhead
         if (leftWidthSpanRef.current) {
           leftWidthSpanRef.current.textContent = `${Math.round((newX - leftColStart) * 100)} cm`;
         }
@@ -98,8 +110,12 @@ export function SeamHandle({
           rightWidthSpanRef.current.textContent = `${Math.round((rightColEnd - newX) * 100)} cm`;
         }
 
-        // Update store (this can be slightly delayed, that's fine)
-        setVerticalBoundary(seamIndex, newX);
+        // Throttled store update (~20 updates/sec instead of 60-120)
+        const now = Date.now();
+        if (now - lastStoreUpdateRef.current >= THROTTLE_MS) {
+          lastStoreUpdateRef.current = now;
+          setVerticalBoundaryRef.current(seamIndex, newX);
+        }
       }
     };
 
@@ -107,7 +123,9 @@ export function SeamHandle({
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
-        setIsDragging(false);
+        // Final store update to ensure exact position is committed
+        setVerticalBoundaryRef.current(seamIndex, currentDragXRef.current);
+        setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }
     };
@@ -119,7 +137,8 @@ export function SeamHandle({
       window.removeEventListener("pointermove", handleGlobalMove);
       window.removeEventListener("pointerup", handleGlobalUp);
     };
-  }, [camera, gl, minX, maxX, seamIndex, setVerticalBoundary, setIsDragging, leftColStart, rightColEnd]);
+  }, [camera, gl, minX, maxX, seamIndex, leftColStart, rightColEnd]);
+  // Removed setVerticalBoundary, setIsDragging from deps - using refs instead
 
   return (
     <group position={[x, height / 2, depth / 2 + 0.01]}>

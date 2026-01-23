@@ -2,10 +2,13 @@
 
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
 import { ChevronsUpDown } from "lucide-react";
+
+// Throttle interval in ms (~20 updates/sec during drag)
+const THROTTLE_MS = 50;
 
 interface TopHeightHandleProps {
   columnIndex: number;
@@ -39,6 +42,16 @@ export function TopHeightHandle({
   const [isHovered, setIsHovered] = useState(false);
   const [isDraggingLocal, setIsDraggingLocal] = useState(false);
   const isDraggingRef = useRef(false);
+  const currentDragHeightRef = useRef(currentHeightM);
+  const lastStoreUpdateRef = useRef(0);
+
+  // Stable refs for functions (prevents useEffect re-subscription)
+  const setColumnHeightRef = useRef(setColumnHeight);
+  const setIsDraggingRef = useRef(setIsDragging);
+  useEffect(() => {
+    setColumnHeightRef.current = setColumnHeight;
+    setIsDraggingRef.current = setIsDragging;
+  });
 
   // For relative dragging
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
@@ -113,8 +126,15 @@ export function TopHeightHandle({
           minHeight,
           Math.min(maxHeight, startHeightM.current + deltaY),
         );
-        // Convert to CM and update store
-        setColumnHeight(columnIndex, newHeightM * 100);
+        currentDragHeightRef.current = newHeightM;
+
+        // Throttled store update (~20 updates/sec instead of 60-120)
+        const now = Date.now();
+        if (now - lastStoreUpdateRef.current >= THROTTLE_MS) {
+          lastStoreUpdateRef.current = now;
+          // Convert to CM and update store
+          setColumnHeightRef.current(columnIndex, newHeightM * 100);
+        }
       }
     };
 
@@ -122,7 +142,9 @@ export function TopHeightHandle({
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
-        setIsDragging(false);
+        // Final store update to ensure exact value is committed
+        setColumnHeightRef.current(columnIndex, currentDragHeightRef.current * 100);
+        setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }
     };
@@ -134,15 +156,8 @@ export function TopHeightHandle({
       window.removeEventListener("pointermove", handleGlobalMove);
       window.removeEventListener("pointerup", handleGlobalUp);
     };
-  }, [
-    camera,
-    gl,
-    minHeight,
-    maxHeight,
-    columnIndex,
-    setColumnHeight,
-    setIsDragging,
-  ]);
+  }, [camera, gl, minHeight, maxHeight, columnIndex]);
+  // Removed setColumnHeight, setIsDragging from deps - using refs instead
 
   return (
     <group position={[x, y, depth / 2 + 0.01]}>
