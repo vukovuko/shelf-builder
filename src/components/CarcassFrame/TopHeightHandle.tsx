@@ -5,6 +5,7 @@ import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
+import { ChevronsUpDown } from "lucide-react";
 
 interface TopHeightHandleProps {
   columnIndex: number;
@@ -176,32 +177,24 @@ export function TopHeightHandle({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#e0e0e0" : "#ffffff",
-            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#666666"}`,
+            backgroundColor: isDraggingLocal ? "#e8e8e8" : "#ffffff",
+            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#999999"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow:
-              isHovered || isDraggingLocal
-                ? "0 2px 8px rgba(0,102,255,0.3)"
-                : "0 1px 3px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => !isDraggingRef.current && setIsHovered(false)}
         >
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: isHovered || isDraggingLocal ? "#0066ff" : "#666666",
-              letterSpacing: 2,
-            }}
-          >
-            {"^v"}
-          </span>
+          <ChevronsUpDown
+            size={18}
+            strokeWidth={2.5}
+            color={isHovered || isDraggingLocal ? "#0066ff" : "#333333"}
+          />
         </div>
       </Html>
     </group>

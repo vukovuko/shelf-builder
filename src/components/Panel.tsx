@@ -25,15 +25,17 @@ export function Panel({ position, size }: PanelProps) {
   return (
     <mesh position={safePosition} castShadow receiveShadow>
       <boxGeometry key={geoKey} args={safeSize} />
+      {/* Panel color: cream white for contrast against dark background */}
       <meshStandardMaterial
-        color="#f5f5f5"
+        color="#f8f6f4"
         roughness={0.85}
         metalness={0}
         polygonOffset
         polygonOffsetFactor={1}
         polygonOffsetUnits={1}
       />
-      <Edges key={`e-${geoKey}`} threshold={15} color="#000000" />
+      {/* Edge color: muted purple from theme (--border in dark mode) */}
+      <Edges key={`e-${geoKey}`} threshold={15} color="#4a4458" />
     </mesh>
   );
 }

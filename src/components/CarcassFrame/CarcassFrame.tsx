@@ -49,9 +49,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       (state) => state.setColumnHorizontalBoundaries,
     );
     const columnHeights = useShelfStore((state) => state.columnHeights);
+    const hoveredColumnIndex = useShelfStore(
+      (state) => state.hoveredColumnIndex,
+    );
     const setHoveredColumnIndex = useShelfStore(
       (state) => state.setHoveredColumnIndex,
     );
+
+    // Simple hover handler - only set on enter, not on leave
+    // This prevents flickering when moving between compartment and drag handles
+    const handleColumnHover = React.useCallback((colIdx: number) => {
+      setHoveredColumnIndex(colIdx);
+    }, [setHoveredColumnIndex]);
 
     // Convert cm to meters
     const w = width / 100;
@@ -100,9 +109,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const minColWidth = 0.2;
     // Max column width (100cm = 1.0m)
     const maxColWidth = 1.0;
-    // Min compartment height for drag constraints (5cm = 0.05m)
-    // Reduced from 20cm to allow fine-grained dragging with many shelves
-    const minCompHeight = 0.05;
+    // Min compartment height for drag constraints (10cm = 0.10m)
+    const minCompHeight = 0.1;
     // Height threshold for horizontal splits (200cm = 2m)
     const splitThreshold = 2.0;
     // Column height constraints (from wardrobe-constants.ts)
@@ -184,18 +192,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Column letter: 0=A, 1=B, 2=C...
           const colLetter = String.fromCharCode(65 + colIdx);
 
-          // Helper: get minY for a shelf (above previous shelf or bottom panel)
+          // Helper: get minY for a shelf (matches getCompartmentHeightCm calculation)
+          // Ensures displayed compartment height >= minCompHeight (10cm)
           const getMinYForShelf = (shelfIdx: number): number => {
-            const prevY = shelfIdx === 0 ? t : shelves[shelfIdx - 1] + t;
+            const prevY = shelfIdx === 0 ? 0 : shelves[shelfIdx - 1];
             return prevY + minCompHeight;
           };
 
-          // Helper: get maxY for a shelf (below next shelf or top panel)
+          // Helper: get maxY for a shelf (matches getCompartmentHeightCm calculation)
           const getMaxYForShelf = (shelfIdx: number): number => {
             const nextY =
-              shelfIdx === shelves.length - 1
-                ? colH - t
-                : shelves[shelfIdx + 1] - t;
+              shelfIdx === shelves.length - 1 ? colH : shelves[shelfIdx + 1];
             return nextY - minCompHeight;
           };
 
@@ -258,16 +265,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     position={[colCenterX, shelfY, carcassZ]}
                     size={[colInnerW, t, carcassD]}
                   />
-                  <HorizontalSplitHandle
-                    columnIndex={colIdx}
-                    shelfIndex={shelfIdx}
-                    x={colCenterX}
-                    y={shelfY}
-                    depth={d}
-                    colWidth={colInnerW}
-                    minY={getMinYForShelf(shelfIdx)}
-                    maxY={getMaxYForShelf(shelfIdx)}
-                  />
+                  {/* Only show drag handle when column is hovered - positioned left of center to not overlap labels */}
+                  {hoveredColumnIndex === colIdx && (
+                    <HorizontalSplitHandle
+                      columnIndex={colIdx}
+                      shelfIndex={shelfIdx}
+                      x={colCenterX - colInnerW * 0.3}
+                      y={shelfY}
+                      depth={d}
+                      colWidth={colInnerW}
+                      minY={getMinYForShelf(shelfIdx)}
+                      maxY={getMaxYForShelf(shelfIdx)}
+                    />
+                  )}
                 </React.Fragment>
               ))}
 
@@ -286,51 +296,68 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               {/* Invisible hit areas + Labels for each compartment */}
               {Array.from({ length: numCompartments }).map((_, compIdx) => {
                 const bounds = getCompartmentBounds(compIdx);
+                const compHeightCm = getCompartmentHeightCm(compIdx);
+                // Responsive label sizing based on compartment height
+                const showLabel = compHeightCm >= 10; // Hide completely if < 10cm
+                // Compact layout for small compartments: "C6 14cm" in one row
+                const useCompactLayout = compHeightCm < 20;
+                const fontSize = useCompactLayout ? 13 : compHeightCm < 25 ? 18 : 24;
+
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
                     {/* Invisible hit mesh covering entire compartment front */}
                     <mesh
                       position={[colCenterX, bounds.centerY, d / 2 + 0.005]}
-                      onPointerEnter={() => setHoveredColumnIndex(colIdx)}
-                      onPointerLeave={() => setHoveredColumnIndex(null)}
+                      onPointerEnter={() => handleColumnHover(colIdx)}
                     >
                       <planeGeometry args={[colInnerW, bounds.height]} />
                       <meshBasicMaterial transparent opacity={0} />
                     </mesh>
-                    {/* Label */}
-                    <Html
-                      position={[
-                        colCenterX,
-                        getCompartmentCenterY(compIdx),
-                        d / 2 + 0.01,
-                      ]}
-                      center
-                      zIndexRange={[1, 10]}
-                      style={{ pointerEvents: "none" }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2,
-                          pointerEvents: "none",
-                        }}
+                    {/* Label - only show if compartment is large enough */}
+                    {showLabel && (
+                      <Html
+                        position={[
+                          colCenterX,
+                          getCompartmentCenterY(compIdx),
+                          d / 2 + 0.01,
+                        ]}
+                        center
+                        zIndexRange={[1, 10]}
+                        style={{ pointerEvents: "none" }}
                       >
-                        <span
+                        <div
                           style={{
-                            fontSize: 24,
-                            fontWeight: "bold",
-                            color: "#333",
+                            display: "flex",
+                            flexDirection: useCompactLayout ? "row" : "column",
+                            alignItems: "center",
+                            gap: useCompactLayout ? 6 : 2,
+                            pointerEvents: "none",
+                            background: "rgba(255, 255, 255, 0.95)",
+                            padding: useCompactLayout ? "3px 8px" : "4px 8px",
+                            borderRadius: "var(--radius)",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
                           }}
                         >
-                          {`${colLetter}${compIdx + 1}`}
-                        </span>
-                        <span style={{ fontSize: 14, color: "#666" }}>
-                          {`${getCompartmentHeightCm(compIdx)}cm`}
-                        </span>
-                      </div>
-                    </Html>
+                          <span
+                            style={{
+                              fontSize,
+                              fontWeight: "bold",
+                              color: "#000000",
+                            }}
+                          >
+                            {`${colLetter}${compIdx + 1}`}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: useCompactLayout ? 13 : 14,
+                              color: "#555555",
+                            }}
+                          >
+                            {`${compHeightCm}cm`}
+                          </span>
+                        </div>
+                      </Html>
+                    )}
                   </React.Fragment>
                 );
               })}

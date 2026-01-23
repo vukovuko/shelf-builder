@@ -153,12 +153,13 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          background: "rgba(255, 255, 255, 0.95)",
-          borderRadius: 8,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          background: "#ffffff",
+          borderRadius: "var(--radius)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid #e0e0e0",
           padding: "4px 0 8px 0",
           minWidth: 280,
-          color: "#000",
+          color: "#000000",
         }}
         onMouseEnter={handleBarMouseEnter}
         onMouseLeave={handleBarMouseLeave}
@@ -178,14 +179,14 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               height: 0,
               borderLeft: "10px solid transparent",
               borderRight: "10px solid transparent",
-              borderBottom: "10px solid rgba(255, 255, 255, 0.95)",
+              borderBottom: "10px solid #ffffff",
             }}
           />
           <span
             style={{
               fontSize: 11,
               fontWeight: "bold",
-              color: "#000",
+              color: "#000000",
               marginTop: 2,
             }}
           >
@@ -205,7 +206,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
         >
           {/* Height control */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "#000" }}>Visina</span>
+            <span style={{ fontSize: 13, color: "#000000" }}>Visina</span>
             <button
               style={{
                 width: 24,
@@ -213,10 +214,10 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1px solid #000",
-                borderRadius: 4,
-                background: "#fff",
-                color: "#000",
+                border: "1px solid #cccccc",
+                borderRadius: "var(--radius)",
+                background: "#f5f5f5",
+                color: "#000000",
                 cursor: canDecreaseHeight ? "pointer" : "not-allowed",
                 opacity: canDecreaseHeight ? 1 : 0.4,
               }}
@@ -231,7 +232,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 textAlign: "center",
                 fontSize: 13,
                 fontWeight: 500,
-                color: "#000",
+                color: "#000000",
               }}
             >
               {Math.round(currentHeightCm)} cm
@@ -243,10 +244,10 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1px solid #000",
-                borderRadius: 4,
-                background: "#fff",
-                color: "#000",
+                border: "1px solid #cccccc",
+                borderRadius: "var(--radius)",
+                background: "#f5f5f5",
+                color: "#000000",
                 cursor: canIncreaseHeight ? "pointer" : "not-allowed",
                 opacity: canIncreaseHeight ? 1 : 0.4,
               }}
@@ -259,7 +260,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
           {/* Shelf count control */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, color: "#000" }}>Police</span>
+            <span style={{ fontSize: 13, color: "#000000" }}>Police</span>
             <button
               style={{
                 width: 24,
@@ -267,10 +268,10 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1px solid #000",
-                borderRadius: 4,
-                background: "#fff",
-                color: "#000",
+                border: "1px solid #cccccc",
+                borderRadius: "var(--radius)",
+                background: "#f5f5f5",
+                color: "#000000",
                 cursor: canDecreaseShelves ? "pointer" : "not-allowed",
                 opacity: canDecreaseShelves ? 1 : 0.4,
               }}
@@ -285,7 +286,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 textAlign: "center",
                 fontSize: 13,
                 fontWeight: 500,
-                color: "#000",
+                color: "#000000",
               }}
             >
               {shelfCount}
@@ -297,10 +298,10 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "1px solid #000",
-                borderRadius: 4,
-                background: "#fff",
-                color: "#000",
+                border: "1px solid #cccccc",
+                borderRadius: "var(--radius)",
+                background: "#f5f5f5",
+                color: "#000000",
                 cursor: canIncreaseShelves ? "pointer" : "not-allowed",
                 opacity: canIncreaseShelves ? 1 : 0.4,
               }}

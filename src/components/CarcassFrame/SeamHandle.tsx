@@ -5,6 +5,7 @@ import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
+import { ChevronsLeftRight } from "lucide-react";
 
 interface SeamHandleProps {
   seamIndex: number;
@@ -153,32 +154,24 @@ export function SeamHandle({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#e0e0e0" : "#ffffff",
-            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#666666"}`,
+            backgroundColor: isDraggingLocal ? "#e8e8e8" : "#ffffff",
+            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#999999"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow:
-              isHovered || isDraggingLocal
-                ? "0 2px 8px rgba(0,102,255,0.3)"
-                : "0 1px 3px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => !isDraggingRef.current && setIsHovered(false)}
         >
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: isHovered || isDraggingLocal ? "#0066ff" : "#666666",
-              letterSpacing: 2,
-            }}
-          >
-            {"<>"}
-          </span>
+          <ChevronsLeftRight
+            size={18}
+            strokeWidth={2.5}
+            color={isHovered || isDraggingLocal ? "#0066ff" : "#333333"}
+          />
         </div>
       </Html>
 
@@ -197,11 +190,12 @@ export function SeamHandle({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                background: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 8,
+                background: "#ffffff",
+                borderRadius: "var(--radius)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                border: "1px solid #e0e0e0",
                 padding: "4px 12px 8px 12px",
-                color: "#000",
+                color: "#000000",
               }}
             >
               <div
@@ -210,13 +204,13 @@ export function SeamHandle({
                   height: 0,
                   borderLeft: "8px solid transparent",
                   borderRight: "8px solid transparent",
-                  borderBottom: "8px solid rgba(255, 255, 255, 0.95)",
+                  borderBottom: "8px solid #ffffff",
                   marginTop: -12,
                 }}
               />
               <span
                 ref={leftWidthSpanRef}
-                style={{ fontSize: 13, fontWeight: 500, color: "#000" }}
+                style={{ fontSize: 13, fontWeight: 500, color: "#000000" }}
               >
                 {Math.round((x - leftColStart) * 100)} cm
               </span>
@@ -235,11 +229,12 @@ export function SeamHandle({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                background: "rgba(255, 255, 255, 0.95)",
-                borderRadius: 8,
+                background: "#ffffff",
+                borderRadius: "var(--radius)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                border: "1px solid #e0e0e0",
                 padding: "4px 12px 8px 12px",
-                color: "#000",
+                color: "#000000",
               }}
             >
               <div
@@ -248,13 +243,13 @@ export function SeamHandle({
                   height: 0,
                   borderLeft: "8px solid transparent",
                   borderRight: "8px solid transparent",
-                  borderBottom: "8px solid rgba(255, 255, 255, 0.95)",
+                  borderBottom: "8px solid #ffffff",
                   marginTop: -12,
                 }}
               />
               <span
                 ref={rightWidthSpanRef}
-                style={{ fontSize: 13, fontWeight: 500, color: "#000" }}
+                style={{ fontSize: 13, fontWeight: 500, color: "#000000" }}
               >
                 {Math.round((rightColEnd - x) * 100)} cm
               </span>

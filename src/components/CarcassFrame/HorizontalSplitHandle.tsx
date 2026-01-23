@@ -5,6 +5,7 @@ import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { useShelfStore } from "@/lib/store";
+import { ChevronsUpDown } from "lucide-react";
 
 interface HorizontalSplitHandleProps {
   columnIndex: number;
@@ -33,6 +34,7 @@ export function HorizontalSplitHandle({
 }: HorizontalSplitHandleProps) {
   const moveColumnShelf = useShelfStore((state) => state.moveColumnShelf);
   const setIsDragging = useShelfStore((state) => state.setIsDragging);
+  const setHoveredColumnIndex = useShelfStore((state) => state.setHoveredColumnIndex);
   const { camera, gl } = useThree();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -147,6 +149,7 @@ export function HorizontalSplitHandle({
         onPointerDown={handlePointerDown}
         onPointerOver={() => {
           setIsHovered(true);
+          setHoveredColumnIndex(columnIndex); // Keep column hovered to prevent flickering
           if (!isDraggingRef.current) {
             gl.domElement.style.cursor = "grab";
           }
@@ -173,32 +176,27 @@ export function HorizontalSplitHandle({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#e0e0e0" : "#ffffff",
-            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#666666"}`,
+            backgroundColor: isDraggingLocal ? "#e8e8e8" : "#ffffff",
+            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#999999"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow:
-              isHovered || isDraggingLocal
-                ? "0 2px 8px rgba(0,102,255,0.3)"
-                : "0 1px 3px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
-          onMouseEnter={() => setIsHovered(true)}
+          onMouseEnter={() => {
+            setIsHovered(true);
+            setHoveredColumnIndex(columnIndex); // Keep column hovered
+          }}
           onMouseLeave={() => !isDraggingRef.current && setIsHovered(false)}
         >
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: isHovered || isDraggingLocal ? "#0066ff" : "#666666",
-              letterSpacing: 2,
-            }}
-          >
-            {"^v"}
-          </span>
+          <ChevronsUpDown
+            size={18}
+            strokeWidth={2.5}
+            color={isHovered || isDraggingLocal ? "#0066ff" : "#333333"}
+          />
         </div>
       </Html>
     </group>

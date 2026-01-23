@@ -55,9 +55,10 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           gl.domElement.addEventListener("webglcontextrestored", () => {});
         }}
       >
+        {/* Background: dark purple from theme (--background in dark mode) */}
         <color
           attach="background"
-          args={[showEdgesOnly ? "#ffffff" : "#f0f0f0"]}
+          args={[showEdgesOnly ? "#ffffff" : "#2d2a3e"]}
         />
 
         {/* Basic lighting */}
