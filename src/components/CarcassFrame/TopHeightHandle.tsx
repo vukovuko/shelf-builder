@@ -166,7 +166,7 @@ export function TopHeightHandle({
       </mesh>
 
       {/* Visible circular handle with HTML */}
-      <Html center>
+      <Html center zIndexRange={[1, 10]}>
         <div
           onPointerDown={(e) => {
             e.stopPropagation();

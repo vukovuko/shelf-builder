@@ -305,6 +305,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         d / 2 + 0.01,
                       ]}
                       center
+                      zIndexRange={[1, 10]}
                       style={{ pointerEvents: "none" }}
                     >
                       <div

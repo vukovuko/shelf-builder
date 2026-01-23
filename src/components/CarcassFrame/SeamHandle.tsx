@@ -143,7 +143,7 @@ export function SeamHandle({
       </mesh>
 
       {/* Visible circular handle with HTML */}
-      <Html center>
+      <Html center zIndexRange={[1, 10]}>
         <div
           onPointerDown={(e) => {
             e.stopPropagation();
@@ -189,6 +189,7 @@ export function SeamHandle({
           <Html
             position={[(leftColStart + x) / 2 - x, -height / 2 - 0.15, 0]}
             center
+            zIndexRange={[1, 10]}
             style={{ pointerEvents: "none" }}
           >
             <div
@@ -226,6 +227,7 @@ export function SeamHandle({
           <Html
             position={[(x + rightColEnd) / 2 - x, -height / 2 - 0.15, 0]}
             center
+            zIndexRange={[1, 10]}
             style={{ pointerEvents: "none" }}
           >
             <div

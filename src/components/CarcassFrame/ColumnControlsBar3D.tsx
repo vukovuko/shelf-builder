@@ -145,6 +145,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     <Html
       position={[colCenterX, barY, depth / 2]}
       center
+      zIndexRange={[1, 10]}
       style={{ pointerEvents: "auto" }}
     >
       <div
