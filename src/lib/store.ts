@@ -6,6 +6,7 @@ import {
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
   MAX_MODULE_HEIGHT,
+  DEFAULT_PANEL_THICKNESS_M,
 } from "./wardrobe-constants";
 import { getDefaultBoundariesX } from "./wardrobe-utils";
 
@@ -40,6 +41,7 @@ export type DoorOption =
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
+  drawerCounts?: number[]; // drawers per compartment (max = rowCounts[i] + 1)
 }
 
 interface CompartmentExtras {
@@ -91,6 +93,7 @@ interface ShelfState {
   elementConfigs: Record<string, ElementConfig>;
   setElementColumns: (key: string, columns: number) => void;
   setElementRowCount: (key: string, index: number, count: number) => void;
+  setElementDrawerCount: (key: string, index: number, count: number) => void;
   // Base (plinth)
   hasBase: boolean;
   baseHeight: number; // in cm
@@ -463,6 +466,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const current = state.elementConfigs[key] ?? {
         columns: 1,
         rowCounts: [0],
+        drawerCounts: [0],
       };
       // Adjust rowCounts length to match new columns
       let rowCounts = [...current.rowCounts];
@@ -474,10 +478,20 @@ export const useShelfStore = create<ShelfState>((set) => ({
       } else if (columns < rowCounts.length) {
         rowCounts = rowCounts.slice(0, columns);
       }
+      // Adjust drawerCounts length to match new columns
+      let drawerCounts = [...(current.drawerCounts ?? [])];
+      if (columns > drawerCounts.length) {
+        drawerCounts = [
+          ...drawerCounts,
+          ...Array(columns - drawerCounts.length).fill(0),
+        ];
+      } else if (columns < drawerCounts.length) {
+        drawerCounts = drawerCounts.slice(0, columns);
+      }
       return {
         elementConfigs: {
           ...state.elementConfigs,
-          [key]: { columns, rowCounts },
+          [key]: { columns, rowCounts, drawerCounts },
         },
       };
     }),
@@ -498,7 +512,29 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return {
         elementConfigs: {
           ...state.elementConfigs,
-          [key]: { columns: current.columns, rowCounts },
+          [key]: { ...current, rowCounts },
+        },
+      };
+    }),
+  setElementDrawerCount: (key, index, count) =>
+    set((state) => {
+      const current = state.elementConfigs[key] ?? {
+        columns: 1,
+        rowCounts: [0],
+        drawerCounts: [0],
+      };
+      const drawerCounts = [...(current.drawerCounts ?? [])];
+      // Ensure index exists
+      if (index >= drawerCounts.length) {
+        drawerCounts.length = index + 1;
+        for (let i = 0; i < drawerCounts.length; i++)
+          if (drawerCounts[i] == null) drawerCounts[i] = 0;
+      }
+      drawerCounts[index] = count;
+      return {
+        elementConfigs: {
+          ...state.elementConfigs,
+          [key]: { ...current, drawerCounts },
         },
       };
     }),
@@ -582,7 +618,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
       activeAccordionStep: step,
       // Clear compartment selection when step changes
       selectedCompartmentKey:
-        step !== state.activeAccordionStep ? null : state.selectedCompartmentKey,
+        step !== state.activeAccordionStep
+          ? null
+          : state.selectedCompartmentKey,
     })),
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: null,
@@ -901,8 +939,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const shelves = state.columnHorizontalBoundaries[colIdx] || [];
       const highestShelfY = shelves.length > 0 ? Math.max(...shelves) : 0;
 
-      // Panel thickness (default 18mm)
-      const panelThicknessM = 0.018;
+      // Panel thickness (from constants)
+      const panelThicknessM = DEFAULT_PANEL_THICKNESS_M;
 
       // Min/max Y for module boundary
       // Constraints: NO module (top or bottom) can exceed 200cm

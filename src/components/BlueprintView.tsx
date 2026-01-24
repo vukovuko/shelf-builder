@@ -2,6 +2,13 @@
 
 import type React from "react";
 import { useShelfStore } from "@/lib/store";
+import {
+  MAX_SEGMENT_X_CM,
+  TARGET_BOTTOM_HEIGHT_CM,
+  MIN_TOP_HEIGHT_CM,
+  DRAWER_HEIGHT_CM,
+  DRAWER_GAP_CM,
+} from "@/lib/wardrobe-constants";
 
 export function BlueprintView() {
   const {
@@ -55,17 +62,16 @@ export function BlueprintView() {
   const sideViewY = frontViewY;
 
   // Calculate element blocks for front view dimensions
-  const maxSegX = 120; // 120cm max per block
-  const nBlocksX = Math.max(1, Math.ceil(width / maxSegX));
+  const nBlocksX = Math.max(1, Math.ceil(width / MAX_SEGMENT_X_CM));
   const blockWidth = width / nBlocksX;
 
   // Calculate Y modules for height segmentation
   const modulesY = [];
-  if (height > 200) {
-    const targetBottomH = 200;
-    const minTopH = 10;
+  if (height > TARGET_BOTTOM_HEIGHT_CM) {
     const bottomH =
-      height - targetBottomH < minTopH ? height - minTopH : targetBottomH;
+      height - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM
+        ? height - MIN_TOP_HEIGHT_CM
+        : TARGET_BOTTOM_HEIGHT_CM;
     modulesY.push({ start: 0, height: bottomH, label: "Bottom" });
     modulesY.push({ start: bottomH, height: height - bottomH, label: "Top" });
   } else {
@@ -421,8 +427,8 @@ export function BlueprintView() {
                 // Drawers region (full inner width)
                 if (extras.drawers) {
                   // Work in centimeters to prevent off-by-height errors
-                  const drawerHcm = 10; // 10cm each
-                  const gapCm = 1; // 1cm gap
+                  const drawerHcm = DRAWER_HEIGHT_CM;
+                  const gapCm = DRAWER_GAP_CM;
                   const iy0FromBottomCm = iy0FromBottom / scale;
                   const iy1FromBottomCm = iy1FromBottom / scale;
                   const innerHForDrawersCm = Math.max(

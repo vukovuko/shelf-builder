@@ -9,6 +9,12 @@ import {
   MAX_COLUMN_HEIGHT_CM,
   MIN_TOP_HEIGHT,
   MAX_MODULE_HEIGHT,
+  MAX_SEGMENT_X,
+  TARGET_BOTTOM_HEIGHT,
+  MIN_SEGMENT,
+  DEFAULT_PANEL_THICKNESS_M,
+  MIN_SHELF_HEIGHT_CM,
+  MIN_DIVIDER_WIDTH_CM,
 } from "@/lib/wardrobe-constants";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
@@ -54,6 +60,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     );
     const columnHeights = useShelfStore((state) => state.columnHeights);
     const elementConfigs = useShelfStore((state) => state.elementConfigs);
+    const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
     const hoveredColumnIndex = useShelfStore(
       (state) => state.hoveredColumnIndex,
     );
@@ -137,12 +144,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Min column width (20cm = 0.2m)
     const minColWidth = 0.2;
-    // Max column width (120cm = 1.2m)
-    const maxColWidth = 1.2;
-    // Min compartment height for drag constraints (10cm = 0.10m)
-    const minCompHeight = 0.1;
-    // Height threshold for horizontal splits (200cm = 2m)
-    const splitThreshold = 2.0;
+    // Max column width (from constants)
+    const maxColWidth = MAX_SEGMENT_X;
+    // Min compartment height for drag constraints (from constants)
+    const minCompHeight = MIN_SEGMENT;
+    // Height threshold for horizontal splits (from constants)
+    const splitThreshold = TARGET_BOTTOM_HEIGHT;
     // Column height constraints (from wardrobe-constants.ts)
     const maxColumnHeight = MAX_COLUMN_HEIGHT_CM / 100; // 275cm -> meters
 
@@ -151,6 +158,53 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const getMinColumnHeight = (colIdx: number): number => {
       const shelves = columnHorizontalBoundaries[colIdx] || [];
       return getMinColumnHeightCm(shelves.length) / 100; // convert to meters
+    };
+
+    // Calculate minimum compartment height based on inner shelves from elementConfigs
+    // Returns height in METERS. Each section with N shelves needs (N+1) * MIN_SHELF_HEIGHT_CM
+    const getMinCompartmentHeightM = (compKey: string): number => {
+      const cfg = elementConfigs[compKey];
+      if (!cfg) return minCompHeight; // Default 10cm minimum
+
+      const rowCounts = cfg.rowCounts ?? [];
+      if (rowCounts.length === 0) return minCompHeight;
+
+      // Find the section with most shelves - that determines minimum height
+      // Each section with N shelves creates N+1 spaces, each needing MIN_SHELF_HEIGHT_CM
+      let maxRequired = 0;
+      for (const shelfCount of rowCounts) {
+        const spaces = shelfCount + 1;
+        const requiredCm = spaces * MIN_SHELF_HEIGHT_CM;
+        maxRequired = Math.max(maxRequired, requiredCm);
+      }
+
+      // Add panel thickness allowance (top and bottom inner shelves have half-thickness effect)
+      const requiredM = maxRequired / 100;
+      return Math.max(minCompHeight, requiredM);
+    };
+
+    // Calculate minimum column width based on inner vertical dividers from elementConfigs
+    // Checks ALL compartments in the column and returns the maximum requirement
+    // Returns width in METERS. Each compartment with N columns needs N * MIN_DIVIDER_WIDTH_CM
+    const getMinColumnWidthForCompartments = (
+      colIdx: number,
+      numCompartments: number,
+    ): number => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      let maxRequired = minColWidth; // Default 20cm minimum
+
+      for (let compIdx = 0; compIdx < numCompartments; compIdx++) {
+        const compKey = `${colLetter}${compIdx + 1}`;
+        const cfg = elementConfigs[compKey];
+        if (cfg && cfg.columns > 1) {
+          // Each section needs MIN_DIVIDER_WIDTH_CM
+          const requiredCm = cfg.columns * MIN_DIVIDER_WIDTH_CM;
+          const requiredM = requiredCm / 100;
+          maxRequired = Math.max(maxRequired, requiredM);
+        }
+      }
+
+      return maxRequired;
     };
 
     // Get modules for a column (stacked units with their own back panels)
@@ -270,15 +324,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Column letter: 0=A, 1=B, 2=C...
           const colLetter = String.fromCharCode(65 + colIdx);
 
-          // Helper: get minY for a shelf (matches getCompartmentHeightCm calculation)
-          // Ensures displayed compartment height >= minCompHeight (10cm)
+          // Helper: get minY for a shelf (accounts for inner elements in compartment below)
+          // Shelf at shelfIdx affects compartment below it (compIdx = shelfIdx)
           const getMinYForShelf = (shelfIdx: number): number => {
             // First shelf starts above bottom panel (t), others above previous shelf
             const prevY = shelfIdx === 0 ? t : shelves[shelfIdx - 1];
-            return prevY + minCompHeight;
+            // Compartment below this shelf
+            const compKeyBelow = `${colLetter}${shelfIdx + 1}`;
+            const minHeightBelow = getMinCompartmentHeightM(compKeyBelow);
+            return prevY + minHeightBelow;
           };
 
-          // Helper: get maxY for a shelf (matches getCompartmentHeightCm calculation)
+          // Helper: get maxY for a shelf (accounts for inner elements in compartment above)
+          // Shelf at shelfIdx affects compartment above it (compIdx = shelfIdx + 1)
           const getMaxYForShelf = (shelfIdx: number): number => {
             let nextY: number;
             if (shelfIdx === shelves.length - 1) {
@@ -287,7 +345,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             } else {
               nextY = shelves[shelfIdx + 1];
             }
-            return nextY - minCompHeight;
+            // Compartment above this shelf
+            const compKeyAbove = `${colLetter}${shelfIdx + 2}`;
+            const minHeightAbove = getMinCompartmentHeightM(compKeyAbove);
+            return nextY - minHeightAbove;
           };
 
           // Calculate compartment center Y positions for labels
@@ -685,6 +746,124 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       if (shelfPanels.length === 0) return null;
                       return <>{shelfPanels}</>;
                     })()}
+
+                    {/* Per-section drawer fronts from elementConfigs */}
+                    {(() => {
+                      const compKey = `${colLetter}${compIdx + 1}`;
+                      const cfg = elementConfigs[compKey] ?? {
+                        columns: 1,
+                        rowCounts: [0],
+                        drawerCounts: [0],
+                      };
+                      const innerCols = Math.max(1, cfg.columns);
+
+                      // Use getCompartmentBounds to get correct bounds
+                      const { centerY, height: compInnerH } =
+                        getCompartmentBounds(compIdx);
+                      const compBottomY = centerY - compInnerH / 2;
+
+                      const compLeftX = colCenterX - colInnerW / 2;
+                      const sectionW = colInnerW / innerCols;
+
+                      const drawerPanels: React.ReactNode[] = [];
+                      for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                        const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                        const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
+                        if (drawerCount <= 0 || shelfCount <= 0) continue;
+
+                        // Section X bounds (account for divider thickness)
+                        const secLeftX =
+                          compLeftX +
+                          secIdx * sectionW +
+                          (secIdx > 0 ? t / 2 : 0);
+                        const secRightX =
+                          compLeftX +
+                          (secIdx + 1) * sectionW -
+                          (secIdx < innerCols - 1 ? t / 2 : 0);
+                        const secCenterX = (secLeftX + secRightX) / 2;
+                        const secW = secRightX - secLeftX;
+
+                        // Calculate space positions (N shelves = N+1 spaces)
+                        const usableH = compInnerH;
+                        const gap = usableH / (shelfCount + 1);
+
+                        // Drawer front dimensions
+                        const drawerInset = 0.002; // 2mm inset from section edges
+                        const drawerW = secW - drawerInset * 2;
+                        const drawerZ = d / 2 + 0.009; // 9mm in front of carcass (door thickness)
+
+                        // Render drawers from bottom up (space 1 = bottom)
+                        for (
+                          let drIdx = 0;
+                          drIdx < Math.min(drawerCount, shelfCount + 1);
+                          drIdx++
+                        ) {
+                          // Space N is between shelf N-1 and shelf N (or bottom/top panel)
+                          const spaceBottomY =
+                            compBottomY + drIdx * gap + t / 2;
+                          const spaceTopY =
+                            compBottomY + (drIdx + 1) * gap - t / 2;
+                          const drawerCenterY = (spaceBottomY + spaceTopY) / 2;
+                          const actualDrawerH = Math.max(
+                            0.02,
+                            spaceTopY - spaceBottomY - 0.004,
+                          );
+
+                          drawerPanels.push(
+                            <mesh
+                              key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                              position={[secCenterX, drawerCenterY, drawerZ]}
+                            >
+                              <boxGeometry
+                                args={[
+                                  drawerW,
+                                  actualDrawerH,
+                                  DEFAULT_PANEL_THICKNESS_M,
+                                ]}
+                              />
+                              <meshStandardMaterial
+                                color="#d4c4b0"
+                                roughness={0.7}
+                                metalness={0}
+                              />
+                            </mesh>,
+                          );
+                        }
+                      }
+
+                      // Rod (šipka za ofingere) - horizontal cylinder at 75% height
+                      const extras = compartmentExtras[compKey] ?? {};
+                      let rodElement: React.ReactNode = null;
+                      if (extras.rod) {
+                        const rodRadius = 0.015; // 3cm diameter = 1.5cm radius
+                        const rodY = compBottomY + compInnerH * 0.75; // 75% up from bottom
+                        const rodLength = colInnerW - 0.01; // Slightly shorter than compartment width
+                        rodElement = (
+                          <mesh
+                            key={`rod-${compKey}`}
+                            position={[colCenterX, rodY, d / 2 - carcassD / 2]}
+                            rotation={[0, 0, Math.PI / 2]} // Rotate to horizontal
+                          >
+                            <cylinderGeometry
+                              args={[rodRadius, rodRadius, rodLength, 16]}
+                            />
+                            <meshStandardMaterial
+                              color="#888888"
+                              roughness={0.3}
+                              metalness={0.8}
+                            />
+                          </mesh>
+                        );
+                      }
+
+                      if (drawerPanels.length === 0 && !rodElement) return null;
+                      return (
+                        <>
+                          {drawerPanels}
+                          {rodElement}
+                        </>
+                      );
+                    })()}
                   </React.Fragment>
                 );
               })}
@@ -709,18 +888,33 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                 // Min/max Y for module boundary drag
                 // Constraints: NO module (top or bottom) can exceed 200cm
-                // - boundaryMinY ensures: bottom module >= 10cm AND top module <= 200cm
-                // - boundaryMaxY ensures: top module >= 10cm AND bottom module <= 200cm
+                // Also respect inner elements in compartments adjacent to boundary
                 const highestShelfY =
-                  shelves.length > 0 ? Math.max(...shelves) : 0;
+                  shelves.length > 0 ? Math.max(...shelves) : t;
+                const lowestTopShelfY =
+                  topModuleShelves.length > 0
+                    ? Math.min(...topModuleShelves)
+                    : colH - t;
+
+                // Last bottom compartment (just below boundary)
+                const lastBottomCompKey = `${colLetter}${bottomModuleCompartments}`;
+                const minHeightLastBottom =
+                  getMinCompartmentHeightM(lastBottomCompKey);
+
+                // First top compartment (just above boundary)
+                const firstTopCompKey = `${colLetter}${bottomModuleCompartments + 1}`;
+                const minHeightFirstTop =
+                  getMinCompartmentHeightM(firstTopCompKey);
+
                 const boundaryMinY = Math.max(
                   MIN_TOP_HEIGHT, // Bottom module >= 10cm
                   colH - MAX_MODULE_HEIGHT, // Top module <= 200cm
-                  highestShelfY + t + 0.05, // Above highest shelf + gap
+                  highestShelfY + t + minHeightLastBottom, // Last bottom comp has enough height
                 );
                 const boundaryMaxY = Math.min(
                   colH - MIN_TOP_HEIGHT, // Top module >= 10cm
                   MAX_MODULE_HEIGHT, // Bottom module <= 200cm
+                  lowestTopShelfY - t - minHeightFirstTop, // First top comp has enough height
                 );
 
                 return (
@@ -812,20 +1006,52 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const rightH = getColumnHeight(idx + 1);
           const seamH = Math.max(leftH, rightH); // For SeamHandle positioning only
 
+          // Calculate number of compartments for each adjacent column
+          const leftShelves = columnHorizontalBoundaries[idx] || [];
+          const leftModuleBoundary = columnModuleBoundaries[idx] ?? null;
+          const leftHasModuleBoundary =
+            leftModuleBoundary !== null && leftH > splitThreshold;
+          const leftBottomComps = leftShelves.length + 1;
+          const leftTopComps = leftHasModuleBoundary
+            ? (columnTopModuleShelves[idx] || []).length + 1
+            : 0;
+          const leftNumComps = leftBottomComps + leftTopComps;
+
+          const rightShelves = columnHorizontalBoundaries[idx + 1] || [];
+          const rightModuleBoundary = columnModuleBoundaries[idx + 1] ?? null;
+          const rightHasModuleBoundary =
+            rightModuleBoundary !== null && rightH > splitThreshold;
+          const rightBottomComps = rightShelves.length + 1;
+          const rightTopComps = rightHasModuleBoundary
+            ? (columnTopModuleShelves[idx + 1] || []).length + 1
+            : 0;
+          const rightNumComps = rightBottomComps + rightTopComps;
+
           // Calculate min/max X for this seam based on adjacent columns
           const leftCol = columns[idx];
           const rightCol = columns[idx + 1];
+
+          // Get minimum width needed for inner elements in each column
+          const leftMinWidth = getMinColumnWidthForCompartments(
+            idx,
+            leftNumComps,
+          );
+          const rightMinWidth = getMinColumnWidthForCompartments(
+            idx + 1,
+            rightNumComps,
+          );
+
           // Width displayed = seamX - leftCol.start (or rightCol.end - seamX)
           // So constraints are directly on seamX position without thickness adjustment
-          // minX: left column at minimum width (20cm) OR right column at maximum width (120cm)
+          // minX: left column at minimum width OR right column at maximum width (120cm)
           const minX = Math.max(
-            leftCol.start + minColWidth,
+            leftCol.start + leftMinWidth,
             rightCol.end - maxColWidth,
           );
-          // maxX: left column at maximum width (120cm) OR right column at minimum width (20cm)
+          // maxX: left column at maximum width (120cm) OR right column at minimum width
           const maxX = Math.min(
             leftCol.start + maxColWidth,
-            rightCol.end - minColWidth,
+            rightCol.end - rightMinWidth,
           );
 
           return (

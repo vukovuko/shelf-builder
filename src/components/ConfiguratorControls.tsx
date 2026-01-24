@@ -71,7 +71,15 @@ import {
   getElementKeys,
   getCompartmentKeys,
 } from "@/lib/wardrobe-utils";
-import { DRAWER_HEIGHT, DRAWER_GAP } from "@/lib/wardrobe-constants";
+import {
+  DRAWER_HEIGHT,
+  DRAWER_GAP,
+  DRAWER_HEIGHT_CM,
+  DRAWER_GAP_CM,
+  MAX_SEGMENT_X_CM,
+  TARGET_BOTTOM_HEIGHT_CM,
+  MIN_TOP_HEIGHT_CM,
+} from "@/lib/wardrobe-constants";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { CompartmentExtrasPanel } from "./CompartmentExtrasPanel";
@@ -496,13 +504,13 @@ export function ConfiguratorControls({
 
   // Accordion step state (for controlled accordion)
   const activeAccordionStep = useShelfStore(
-    (state) => state.activeAccordionStep
+    (state) => state.activeAccordionStep,
   );
   const setActiveAccordionStep = useShelfStore(
-    (state) => state.setActiveAccordionStep
+    (state) => state.setActiveAccordionStep,
   );
   const selectedCompartmentKey = useShelfStore(
-    (state) => state.selectedCompartmentKey
+    (state) => state.selectedCompartmentKey,
   );
 
   // State for global info toggle
@@ -596,13 +604,13 @@ export function ConfiguratorControls({
       const heightCm = useShelfStore.getState().height; // cm
       const hasBase = useShelfStore.getState().hasBase;
       const baseHeight = useShelfStore.getState().baseHeight; // cm
-      const maxSegX = 120; // cm per block (max column width)
-      const nBlocksX = Math.max(1, Math.ceil(widthCm / maxSegX));
-      const hasSplitY = heightCm > 200;
-      const minTopH = 10; // cm
-      let bottomModuleCm = Math.min(200, heightCm);
-      const topModuleCm = hasSplitY ? Math.max(minTopH, heightCm - 200) : 0;
-      if (hasSplitY && heightCm - 200 < minTopH) {
+      const nBlocksX = Math.max(1, Math.ceil(widthCm / MAX_SEGMENT_X_CM));
+      const hasSplitY = heightCm > TARGET_BOTTOM_HEIGHT_CM;
+      let bottomModuleCm = Math.min(TARGET_BOTTOM_HEIGHT_CM, heightCm);
+      const topModuleCm = hasSplitY
+        ? Math.max(MIN_TOP_HEIGHT_CM, heightCm - TARGET_BOTTOM_HEIGHT_CM)
+        : 0;
+      if (hasSplitY && heightCm - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM) {
         // Adjust bottom if top had to be enlarged
         bottomModuleCm = heightCm - topModuleCm;
       }
@@ -745,7 +753,8 @@ export function ConfiguratorControls({
         const tOffsetXmm = tCm / cmPerMmX;
         const tOffsetYmm = tCm / cmPerMmY;
         // Base region inside element (applies to lower module or single)
-        const appliesBase = hasBase && (heightCm <= 200 || rowIdx === 0);
+        const appliesBase =
+          hasBase && (heightCm <= TARGET_BOTTOM_HEIGHT_CM || rowIdx === 0);
         const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
         const innerTopMmY = boxY + tOffsetYmm;
         const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
@@ -809,8 +818,8 @@ export function ConfiguratorControls({
         // Drawers region (occupies full width; count from extras) – match BlueprintView logic
         const extras = (compartmentExtras as any)[letter] ?? {};
         if (extras.drawers) {
-          const drawerHcm = 10; // 10cm each
-          const gapCm = 1; // 1cm gap between
+          const drawerHcm = DRAWER_HEIGHT_CM;
+          const gapCm = DRAWER_GAP_CM;
           const drawerHMm = drawerHcm / cmPerMmY;
           const gapMm = gapCm / cmPerMmY;
           const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);

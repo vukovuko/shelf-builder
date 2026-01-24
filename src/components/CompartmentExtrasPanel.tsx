@@ -3,21 +3,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useShelfStore, type Material } from "@/lib/store";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
 import {
-  DRAWER_HEIGHT,
-  DRAWER_GAP,
   MIN_DIVIDER_WIDTH_CM,
   MIN_SHELF_HEIGHT_CM,
   MAX_VERTICAL_DIVIDERS,
   MAX_HORIZONTAL_SHELVES_INNER,
+  TARGET_BOTTOM_HEIGHT,
 } from "@/lib/wardrobe-constants";
 import { X } from "lucide-react";
 
@@ -33,12 +26,10 @@ export function CompartmentExtrasPanel({
   // Store selectors
   const width = useShelfStore((s) => s.width);
   const height = useShelfStore((s) => s.height);
-  const hasBase = useShelfStore((s) => s.hasBase);
-  const baseHeight = useShelfStore((s) => s.baseHeight);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
   const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
   const columnHorizontalBoundaries = useShelfStore(
-    (s) => s.columnHorizontalBoundaries
+    (s) => s.columnHorizontalBoundaries,
   );
   const columnHeights = useShelfStore((s) => s.columnHeights);
   const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
@@ -47,39 +38,41 @@ export function CompartmentExtrasPanel({
   const elementConfigs = useShelfStore((s) => s.elementConfigs);
   const setElementColumns = useShelfStore((s) => s.setElementColumns);
   const setElementRowCount = useShelfStore((s) => s.setElementRowCount);
+  const setElementDrawerCount = useShelfStore((s) => s.setElementDrawerCount);
 
   const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
-  const toggleCompDrawers = useShelfStore((s) => s.toggleCompDrawers);
   const toggleCompRod = useShelfStore((s) => s.toggleCompRod);
   const toggleCompLed = useShelfStore((s) => s.toggleCompLed);
-  const setCompDrawersCount = useShelfStore((s) => s.setCompDrawersCount);
   const setSelectedCompartmentKey = useShelfStore(
-    (s) => s.setSelectedCompartmentKey
+    (s) => s.setSelectedCompartmentKey,
   );
 
   // Get current config
-  const config = elementConfigs[compartmentKey] ?? { columns: 1, rowCounts: [0] };
+  const config = elementConfigs[compartmentKey] ?? {
+    columns: 1,
+    rowCounts: [0],
+  };
   const extras = compartmentExtras[compartmentKey] ?? {};
 
   // Calculate compartment dimensions
   const w = width / 100;
-  const mat = materials.find((m) => String(m.id) === String(selectedMaterialId));
+  const mat = materials.find(
+    (m) => String(m.id) === String(selectedMaterialId),
+  );
   const thicknessMm = mat?.thickness ?? 18;
   const t = thicknessMm / 1000;
 
-  // Height threshold for module splits (200cm = 2m)
-  const splitThreshold = 2.0;
+  // Height threshold for module splits (from constants)
 
   // Calculate compartment width and height
   const blocksX = buildBlocksX(
     w,
-    verticalBoundaries.length > 0 ? verticalBoundaries : undefined
+    verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
   );
 
   // Find compartment by key (matching A1, A2, B1, etc.)
   let compartmentWidthCm = 0;
   let compartmentHeightCm = 0;
-  let innerHForDrawers = 0;
 
   // Parse the compartment key to find column and row
   const colLetter = compartmentKey.match(/^[A-Z]+/)?.[0] ?? "A";
@@ -100,7 +93,8 @@ export function CompartmentExtrasPanel({
 
   // Check for module boundary (top/bottom split)
   const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-  const hasModuleBoundary = moduleBoundary !== null && colH > splitThreshold;
+  const hasModuleBoundary =
+    moduleBoundary !== null && colH > TARGET_BOTTOM_HEIGHT;
 
   // Calculate compartment counts
   const bottomModuleCompartments = shelves.length + 1;
@@ -159,13 +153,6 @@ export function CompartmentExtrasPanel({
     }
 
     compartmentHeightCm = Math.round((topY - bottomY) * 100);
-
-    // For drawers, we need the inner height accounting for base
-    const yStartInner = bottomY + (compIdx === 0 ? 0 : t / 2);
-    const yEndInner = topY - t / 2;
-    const raiseByBase = hasBase && compIdx === 0 ? baseHeight / 100 : 0;
-    const drawersYStart = yStartInner + raiseByBase;
-    innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
   }
 
   // Calculate limits based on compartment dimensions
@@ -173,27 +160,17 @@ export function CompartmentExtrasPanel({
     0,
     Math.min(
       MAX_VERTICAL_DIVIDERS,
-      Math.floor(compartmentWidthCm / MIN_DIVIDER_WIDTH_CM) - 1
-    )
+      Math.floor(compartmentWidthCm / MIN_DIVIDER_WIDTH_CM) - 1,
+    ),
   );
 
   const maxHorizontalShelves = Math.max(
     0,
     Math.min(
       MAX_HORIZONTAL_SHELVES_INNER,
-      Math.floor(compartmentHeightCm / MIN_SHELF_HEIGHT_CM) - 1
-    )
+      Math.floor(compartmentHeightCm / MIN_SHELF_HEIGHT_CM) - 1,
+    ),
   );
-
-  // Max drawer count
-  const maxDrawerCount = Math.max(
-    0,
-    Math.floor((innerHForDrawers + DRAWER_GAP) / (DRAWER_HEIGHT + DRAWER_GAP))
-  );
-  const currentDrawerCount = extras.drawersCount ?? 0;
-  const drawerOptions: number[] = [];
-  for (let i = 0; i <= maxDrawerCount; i++) drawerOptions.push(i);
-  if (currentDrawerCount > maxDrawerCount) drawerOptions.push(currentDrawerCount);
 
   // Current inner divider count
   const currentVerticalDividers = (config.columns ?? 1) - 1;
@@ -212,7 +189,9 @@ export function CompartmentExtrasPanel({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 border-b">
-        <span className="font-semibold text-lg">Pregrada: {compartmentKey}</span>
+        <span className="font-semibold text-lg">
+          Pregrada: {compartmentKey}
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -233,7 +212,8 @@ export function CompartmentExtrasPanel({
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Vertikalne pregrade</span>
           <span className="text-xs text-muted-foreground">
-            {currentVerticalDividers} {currentVerticalDividers === 1 ? "pregrada" : "pregrada"}
+            {currentVerticalDividers}{" "}
+            {currentVerticalDividers === 1 ? "pregrada" : "pregrada"}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -254,7 +234,9 @@ export function CompartmentExtrasPanel({
             max={maxVerticalDividers}
             step={1}
             value={[currentVerticalDividers]}
-            onValueChange={([val]) => setElementColumns(compartmentKey, val + 1)}
+            onValueChange={([val]) =>
+              setElementColumns(compartmentKey, val + 1)
+            }
             className="flex-1"
             disabled={maxVerticalDividers <= 0}
           />
@@ -262,7 +244,10 @@ export function CompartmentExtrasPanel({
             variant="outline"
             size="icon"
             onClick={() => {
-              const newVal = Math.min(maxVerticalDividers, currentVerticalDividers + 1);
+              const newVal = Math.min(
+                maxVerticalDividers,
+                currentVerticalDividers + 1,
+              );
               setElementColumns(compartmentKey, newVal + 1);
             }}
             disabled={currentVerticalDividers >= maxVerticalDividers}
@@ -273,58 +258,229 @@ export function CompartmentExtrasPanel({
         </div>
       </div>
 
-      {/* Section: Horizontalne police (per inner column) */}
-      {config.columns > 1 && (
-        <div className="space-y-3 pb-3 border-b">
-          <span className="text-sm font-medium">Police po pregradi</span>
+      {/* Section: Per-section config (shelves + drawers) */}
+      {config.columns > 1 ? (
+        <div className="space-y-4 pb-3 border-b">
+          <span className="text-sm font-medium">Sekcije</span>
           {Array.from({ length: config.columns }).map((_, idx) => {
-            const count = config.rowCounts?.[idx] ?? 0;
+            const shelfCount = config.rowCounts?.[idx] ?? 0;
+            const drawerCount = config.drawerCounts?.[idx] ?? 0;
+            const maxDrawersForSection = shelfCount + 1;
             return (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground w-20">
-                  Pregrada {idx + 1}:
+              <div key={idx} className="space-y-2 p-2 bg-muted/30 rounded">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Sekcija {idx + 1}
                 </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setElementRowCount(compartmentKey, idx, Math.max(count - 1, 0))
-                  }
-                  disabled={count <= 0}
-                  className="h-7 w-7"
-                >
-                  –
-                </Button>
-                <Slider
-                  min={0}
-                  max={maxHorizontalShelves}
-                  step={1}
-                  value={[count]}
-                  onValueChange={([val]) =>
-                    setElementRowCount(compartmentKey, idx, val)
-                  }
-                  className="flex-1"
-                  disabled={maxHorizontalShelves <= 0}
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setElementRowCount(
-                      compartmentKey,
-                      idx,
-                      Math.min(count + 1, maxHorizontalShelves)
-                    )
-                  }
-                  disabled={count >= maxHorizontalShelves}
-                  className="h-7 w-7"
-                >
-                  +
-                </Button>
-                <span className="text-xs w-6 text-right">{count}</span>
+                {/* Shelves */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-14">
+                    Police:
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      setElementRowCount(
+                        compartmentKey,
+                        idx,
+                        Math.max(shelfCount - 1, 0),
+                      )
+                    }
+                    disabled={shelfCount <= 0}
+                    className="h-6 w-6"
+                  >
+                    –
+                  </Button>
+                  <Slider
+                    min={0}
+                    max={maxHorizontalShelves}
+                    step={1}
+                    value={[shelfCount]}
+                    onValueChange={([val]) =>
+                      setElementRowCount(compartmentKey, idx, val)
+                    }
+                    className="flex-1"
+                    disabled={maxHorizontalShelves <= 0}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      setElementRowCount(
+                        compartmentKey,
+                        idx,
+                        Math.min(shelfCount + 1, maxHorizontalShelves),
+                      )
+                    }
+                    disabled={shelfCount >= maxHorizontalShelves}
+                    className="h-6 w-6"
+                  >
+                    +
+                  </Button>
+                  <span className="text-xs w-4 text-right">{shelfCount}</span>
+                </div>
+                {/* Drawers - only show if there are shelves */}
+                {shelfCount > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-14">
+                      Fioke:
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        setElementDrawerCount(
+                          compartmentKey,
+                          idx,
+                          Math.max(drawerCount - 1, 0),
+                        )
+                      }
+                      disabled={drawerCount <= 0}
+                      className="h-6 w-6"
+                    >
+                      –
+                    </Button>
+                    <Slider
+                      min={0}
+                      max={maxDrawersForSection}
+                      step={1}
+                      value={[drawerCount]}
+                      onValueChange={([val]) =>
+                        setElementDrawerCount(compartmentKey, idx, val)
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        setElementDrawerCount(
+                          compartmentKey,
+                          idx,
+                          Math.min(drawerCount + 1, maxDrawersForSection),
+                        )
+                      }
+                      disabled={drawerCount >= maxDrawersForSection}
+                      className="h-6 w-6"
+                    >
+                      +
+                    </Button>
+                    <span className="text-xs w-4 text-right">
+                      {drawerCount}/{maxDrawersForSection}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      ) : (
+        /* Single section - show shelves and drawers directly */
+        <div className="space-y-3 pb-3 border-b">
+          <span className="text-sm font-medium">Police i Fioke</span>
+          {/* Shelves */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-14">Police:</span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                const count = config.rowCounts?.[0] ?? 0;
+                setElementRowCount(compartmentKey, 0, Math.max(count - 1, 0));
+              }}
+              disabled={(config.rowCounts?.[0] ?? 0) <= 0}
+              className="h-7 w-7"
+            >
+              –
+            </Button>
+            <Slider
+              min={0}
+              max={maxHorizontalShelves}
+              step={1}
+              value={[config.rowCounts?.[0] ?? 0]}
+              onValueChange={([val]) =>
+                setElementRowCount(compartmentKey, 0, val)
+              }
+              className="flex-1"
+              disabled={maxHorizontalShelves <= 0}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                const count = config.rowCounts?.[0] ?? 0;
+                setElementRowCount(
+                  compartmentKey,
+                  0,
+                  Math.min(count + 1, maxHorizontalShelves),
+                );
+              }}
+              disabled={(config.rowCounts?.[0] ?? 0) >= maxHorizontalShelves}
+              className="h-7 w-7"
+            >
+              +
+            </Button>
+            <span className="text-xs w-4 text-right">
+              {config.rowCounts?.[0] ?? 0}
+            </span>
+          </div>
+          {/* Drawers - only show if there are shelves */}
+          {(config.rowCounts?.[0] ?? 0) > 0 &&
+            (() => {
+              const shelfCount = config.rowCounts?.[0] ?? 0;
+              const drawerCount = config.drawerCounts?.[0] ?? 0;
+              const maxDrawersForSection = shelfCount + 1;
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-14">
+                    Fioke:
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      setElementDrawerCount(
+                        compartmentKey,
+                        0,
+                        Math.max(drawerCount - 1, 0),
+                      )
+                    }
+                    disabled={drawerCount <= 0}
+                    className="h-7 w-7"
+                  >
+                    –
+                  </Button>
+                  <Slider
+                    min={0}
+                    max={maxDrawersForSection}
+                    step={1}
+                    value={[drawerCount]}
+                    onValueChange={([val]) =>
+                      setElementDrawerCount(compartmentKey, 0, val)
+                    }
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() =>
+                      setElementDrawerCount(
+                        compartmentKey,
+                        0,
+                        Math.min(drawerCount + 1, maxDrawersForSection),
+                      )
+                    }
+                    disabled={drawerCount >= maxDrawersForSection}
+                    className="h-7 w-7"
+                  >
+                    +
+                  </Button>
+                  <span className="text-xs w-6 text-right">
+                    {drawerCount}/{maxDrawersForSection}
+                  </span>
+                </div>
+              );
+            })()}
         </div>
       )}
 
@@ -332,45 +488,13 @@ export function CompartmentExtrasPanel({
       <div className="space-y-2">
         <span className="text-sm font-medium">Dodaci</span>
 
-        {/* Drawers with count */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={extras.drawers ? "default" : "outline"}
-            onClick={() => toggleCompDrawers(compartmentKey)}
-            className="flex-1 justify-start"
-          >
-            {extras.drawers ? "✔ " : ""}Fioke
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                disabled={!extras.drawers}
-                className="w-16"
-              >
-                {currentDrawerCount}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {drawerOptions.map((n) => (
-                <DropdownMenuItem
-                  key={n}
-                  onClick={() => setCompDrawersCount(compartmentKey, n)}
-                >
-                  {n}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
         <Button
           variant={extras.rod ? "default" : "outline"}
           onClick={() => toggleCompRod(compartmentKey)}
           className="w-full justify-start"
           disabled={rodDisabled}
         >
-          {extras.rod ? "✔ " : ""}Sipka za vesalice
+          {extras.rod ? "✔ " : ""}Šipka za ofingere
           {rodDisabled && (
             <span className="ml-auto text-xs opacity-50">(subdividirano)</span>
           )}

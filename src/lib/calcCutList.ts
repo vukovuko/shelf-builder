@@ -1,4 +1,12 @@
 import type { DoorOption } from "@/lib/store";
+import {
+  MAX_SEGMENT_X,
+  TARGET_BOTTOM_HEIGHT,
+  MIN_TOP_HEIGHT,
+  DRAWER_HEIGHT,
+  DRAWER_GAP,
+  DOOR_THICKNESS_M,
+} from "./wardrobe-constants";
 
 type PricingMaterial = {
   id: number;
@@ -100,7 +108,7 @@ export function calculateCutList(
 
     const pricePerM2 = Number(mat?.price ?? 0);
     const t = (Number(mat?.thickness ?? 18) / 1000) as number; // m
-    const doorT = 18 / 1000; // m
+    const doorT = DOOR_THICKNESS_M;
     const clearance = 1 / 1000; // 1mm
     const doubleGap = 3 / 1000; // 3mm between double leaves
 
@@ -143,20 +151,20 @@ export function calculateCutList(
       return emptyCutList;
     }
 
-    const maxSegX = 120 / 100; // 120cm max per column
-    const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
+    const nBlocksX = Math.max(1, Math.ceil(w / MAX_SEGMENT_X));
     const segWX = w / nBlocksX;
     const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
       const start = -w / 2 + i * segWX;
       const end = start + segWX;
       return { start, end };
     });
-    const targetBottomH = 200 / 100;
-    const minTopH = 10 / 100;
     const modulesY: { yStart: number; yEnd: number }[] = [];
-    if (h > 200 / 100) {
+    if (h > TARGET_BOTTOM_HEIGHT) {
       const yStartBottom = -h / 2;
-      const bottomH = h - targetBottomH < minTopH ? h - minTopH : targetBottomH;
+      const bottomH =
+        h - TARGET_BOTTOM_HEIGHT < MIN_TOP_HEIGHT
+          ? h - MIN_TOP_HEIGHT
+          : TARGET_BOTTOM_HEIGHT;
       const yEndBottom = yStartBottom + bottomH;
       const yStartTop = yEndBottom;
       const yEndTop = h / 2;
@@ -290,8 +298,8 @@ export function calculateCutList(
           const extrasForEl = compartmentExtras[
             letter as keyof typeof compartmentExtras
           ] as any;
-          const drawerH = 10 / 100; // 10cm
-          const gap = 1 / 100; // 1cm
+          const drawerH = DRAWER_HEIGHT;
+          const gap = DRAWER_GAP;
           const per = drawerH + gap;
           const raiseByBase =
             hasBase && (modulesY.length === 1 || mIdx === 0)
@@ -404,8 +412,8 @@ export function calculateCutList(
             letter as keyof typeof compartmentExtras
           ] as any;
           if (extras?.verticalDivider) {
-            const drawerH = 10 / 100;
-            const gap = 1 / 100;
+            const drawerH = DRAWER_HEIGHT;
+            const gap = DRAWER_GAP;
             const per = drawerH + gap;
             const raiseByBase =
               hasBase && (modulesY.length === 1 || mIdx === 0)
@@ -462,8 +470,8 @@ export function calculateCutList(
           letter as keyof typeof compartmentExtras
         ] as any;
         if (extras?.drawers) {
-          const drawerH = 10 / 100;
-          const gap = 1 / 100;
+          const drawerH = DRAWER_HEIGHT;
+          const gap = DRAWER_GAP;
           const per = drawerH + gap;
           const yStartInner = m.yStart + t;
           const yEndInner = m.yEnd - t;

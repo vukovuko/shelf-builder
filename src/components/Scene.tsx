@@ -31,6 +31,7 @@ function StoreInvalidator() {
   const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
   const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
   const elementConfigs = useShelfStore((s) => s.elementConfigs);
+  const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
   const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
   const activeAccordionStep = useShelfStore((s) => s.activeAccordionStep);
@@ -48,6 +49,7 @@ function StoreInvalidator() {
     columnModuleBoundaries,
     columnTopModuleShelves,
     elementConfigs,
+    compartmentExtras,
     hoveredColumnIndex,
     selectedMaterialId,
     activeAccordionStep,

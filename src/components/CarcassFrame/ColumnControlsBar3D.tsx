@@ -8,6 +8,8 @@ import {
   getMinColumnHeightCm,
   getMaxShelvesForHeight,
   MAX_COLUMN_HEIGHT_CM,
+  MAX_SEGMENT_X_CM,
+  TARGET_BOTTOM_HEIGHT,
 } from "@/lib/wardrobe-constants";
 
 interface ColumnControlsBar3DProps {
@@ -118,8 +120,11 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
       ),
     ) / 100;
   const BASE_GAP = 0.15; // 15cm base gap
-  const HEIGHT_FACTOR = 0.08; // 8cm extra per meter above 2m
-  const extraGap = Math.max(0, (maxHeightM - 2.0) * HEIGHT_FACTOR);
+  const HEIGHT_FACTOR = 0.08; // 8cm extra per meter above split threshold
+  const extraGap = Math.max(
+    0,
+    (maxHeightM - TARGET_BOTTOM_HEIGHT) * HEIGHT_FACTOR,
+  );
   const barY = -(BASE_GAP + extraGap);
 
   // Column letter for display
@@ -196,7 +201,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   // Width constraints
   const minWidthCm = 20;
-  const maxWidthCm = 120;
+  const maxWidthCm = MAX_SEGMENT_X_CM;
 
   // Determine which seam to adjust
   const isLastColumn = displayColumn === columns.length - 1;

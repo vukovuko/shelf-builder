@@ -1,12 +1,22 @@
 // Segment thresholds
 export const MAX_SEGMENT_X = 120 / 100; // 1.2m - max element width (120cm)
+export const MAX_SEGMENT_X_CM = 120; // 120cm - same as above but in cm (for UI)
 export const TARGET_BOTTOM_HEIGHT = 200 / 100; // 2.0m - height split threshold
+export const TARGET_BOTTOM_HEIGHT_CM = 200; // 200cm - same as above but in cm (for UI/2D)
 export const MIN_TOP_HEIGHT = 10 / 100; // 0.1m - min top module height
+export const MIN_TOP_HEIGHT_CM = 10; // 10cm - same as above but in cm (for UI/2D)
 export const MAX_MODULE_HEIGHT = 200 / 100; // 2.0m - max height for any single module (top or bottom)
+export const MAX_MODULE_HEIGHT_CM = 200; // 200cm - same as above but in cm (for UI/2D)
+
+// Panel/door thickness defaults
+export const DEFAULT_PANEL_THICKNESS_M = 18 / 1000; // 18mm = 0.018m
+export const DOOR_THICKNESS_M = 18 / 1000; // 18mm door thickness
 
 // Drawer dimensions
 export const DRAWER_HEIGHT = 10 / 100; // 10cm
+export const DRAWER_HEIGHT_CM = 10; // 10cm - same as above but in cm (for UI/2D)
 export const DRAWER_GAP = 1 / 100; // 1cm
+export const DRAWER_GAP_CM = 1; // 1cm - same as above but in cm (for UI/2D)
 
 // Drag constraints
 export const MIN_DRAG_GAP = 10 / 100; // 10cm minimum between shelves/dividers
