@@ -244,14 +244,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           // Check for module boundary
           const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-          const hasModuleBoundary = moduleBoundary !== null && colH > splitThreshold;
+          const hasModuleBoundary =
+            moduleBoundary !== null && colH > splitThreshold;
 
           // Bottom module compartments = shelves + 1
-          // If module boundary exists, add 1 more for top module
+          // Top module compartments = top module shelves + 1 (if module boundary exists)
           const bottomModuleCompartments = shelves.length + 1;
-          const numCompartments = hasModuleBoundary
-            ? bottomModuleCompartments + 1  // +1 for top module
-            : bottomModuleCompartments;
+          const topModuleShelves = hasModuleBoundary
+            ? columnTopModuleShelves[colIdx] || []
+            : [];
+          const topModuleCompartments = hasModuleBoundary
+            ? topModuleShelves.length + 1
+            : 0;
+          const numCompartments =
+            bottomModuleCompartments + topModuleCompartments;
 
           // Column letter: 0=A, 1=B, 2=C...
           const colLetter = String.fromCharCode(65 + colIdx);
@@ -269,7 +275,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             let nextY: number;
             if (shelfIdx === shelves.length - 1) {
               // Last shelf - constrained by module boundary panel (if exists) or top panel
-              nextY = hasModuleBoundary ? (moduleBoundary - t) : (colH - t);
+              nextY = hasModuleBoundary ? moduleBoundary - t : colH - t;
             } else {
               nextY = shelves[shelfIdx + 1];
             }
@@ -277,65 +283,130 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           };
 
           // Calculate compartment center Y positions for labels
-          // Handles both bottom module compartments and top module
+          // Handles bottom module compartments AND individual compartments within top module
           const getCompartmentCenterY = (compIdx: number): number => {
-            // Top module compartment (last one if module boundary exists)
-            if (hasModuleBoundary && compIdx === numCompartments - 1) {
-              const bottomY = moduleBoundary + t; // Just above module boundary panels
-              const topY = colH - t;
+            // Top module compartments (when compIdx >= bottomModuleCompartments)
+            if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
+              const topCompIdx = compIdx - bottomModuleCompartments;
+
+              let bottomY: number;
+              let topY: number;
+
+              if (topCompIdx === 0) {
+                // First compartment in top module: starts just above module boundary
+                bottomY = moduleBoundary + t;
+              } else {
+                // Starts at top module shelf
+                bottomY = topModuleShelves[topCompIdx - 1];
+              }
+
+              if (topCompIdx === topModuleShelves.length) {
+                // Last compartment in top module: ends at top panel
+                topY = colH - t;
+              } else {
+                // Ends at top module shelf
+                topY = topModuleShelves[topCompIdx];
+              }
+
               return (bottomY + topY) / 2;
             }
 
             // Bottom module compartments
             const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
             const topY = hasModuleBoundary
-              ? (compIdx === bottomModuleCompartments - 1 ? moduleBoundary - t : shelves[compIdx])
-              : (compIdx === shelves.length ? colH - t : shelves[compIdx]);
+              ? compIdx === bottomModuleCompartments - 1
+                ? moduleBoundary - t
+                : shelves[compIdx]
+              : compIdx === shelves.length
+                ? colH - t
+                : shelves[compIdx];
             return (bottomY + topY) / 2;
           };
 
-          // Calculate compartment height (heights add up to column height exactly)
-          // Handles both bottom module compartments and top module
+          // Calculate compartment INNER usable height (accounts for panel thickness)
+          // Panel thickness is subtracted from usable space
           const getCompartmentHeightCm = (compIdx: number): number => {
-            // Top module compartment
-            if (hasModuleBoundary && compIdx === numCompartments - 1) {
-              const topModuleHeight = colH - moduleBoundary;
-              return Math.round(topModuleHeight * 100);
+            // Top module compartments (when compIdx >= bottomModuleCompartments)
+            if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
+              const topCompIdx = compIdx - bottomModuleCompartments;
+
+              let bottomSurface: number;
+              let topSurface: number;
+
+              if (topCompIdx === 0) {
+                // First compartment in top module: starts at top of module boundary panel
+                bottomSurface = moduleBoundary + t;
+              } else {
+                // Starts at top of previous top module shelf
+                bottomSurface = topModuleShelves[topCompIdx - 1] + t / 2;
+              }
+
+              if (topCompIdx === topModuleShelves.length) {
+                // Last compartment in top module: ends at bottom of top panel
+                topSurface = colH - t;
+              } else {
+                // Ends at bottom of current top module shelf
+                topSurface = topModuleShelves[topCompIdx] - t / 2;
+              }
+
+              return Math.round((topSurface - bottomSurface) * 100);
             }
 
             // Last compartment in bottom module (when module boundary exists)
             if (hasModuleBoundary && compIdx === bottomModuleCompartments - 1) {
-              const bottomY = compIdx === 0 ? 0 : shelves[compIdx - 1];
-              const topY = moduleBoundary;
-              return Math.round((topY - bottomY) * 100);
+              // Bottom surface: top of bottom panel OR top of previous shelf
+              const bottomSurface =
+                compIdx === 0 ? t : shelves[compIdx - 1] + t / 2;
+              // Top surface: bottom of module separator panel
+              const topSurface = moduleBoundary - t;
+              return Math.round((topSurface - bottomSurface) * 100);
             }
 
-            // Regular bottom module compartments
-            const colHCm = Math.round(colH * 100);
+            // Determine surfaces for regular compartments (bottom module)
+            let bottomSurface: number;
+            let topSurface: number;
+
+            if (compIdx === 0) {
+              // First compartment: starts at top of bottom panel
+              bottomSurface = t;
+            } else {
+              // Starts at top of previous shelf
+              bottomSurface = shelves[compIdx - 1] + t / 2;
+            }
+
             if (compIdx === shelves.length && !hasModuleBoundary) {
-              // Last compartment without module boundary - remainder
-              let sumPrevious = 0;
-              for (let i = 0; i < compIdx; i++) {
-                const prevBottomY = i === 0 ? 0 : shelves[i - 1];
-                const prevTopY = shelves[i];
-                sumPrevious += Math.floor((prevTopY - prevBottomY) * 100);
-              }
-              return colHCm - sumPrevious;
+              // Last compartment (no module boundary): ends at bottom of top panel
+              topSurface = colH - t;
+            } else {
+              // Ends at bottom of current shelf
+              topSurface = shelves[compIdx] - t / 2;
             }
 
-            // Non-last compartments
-            const bottomY = compIdx === 0 ? 0 : shelves[compIdx - 1];
-            const topY = shelves[compIdx];
-            return Math.floor((topY - bottomY) * 100);
+            return Math.round((topSurface - bottomSurface) * 100);
           };
 
           // Get compartment bounds for hit area
-          // Handles both bottom module compartments and top module
+          // Handles bottom module compartments AND individual compartments within top module
           const getCompartmentBounds = (compIdx: number) => {
-            // Top module compartment
-            if (hasModuleBoundary && compIdx === numCompartments - 1) {
-              const bottomY = moduleBoundary + t;
-              const topY = colH - t;
+            // Top module compartments (when compIdx >= bottomModuleCompartments)
+            if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
+              const topCompIdx = compIdx - bottomModuleCompartments;
+
+              let bottomY: number;
+              let topY: number;
+
+              if (topCompIdx === 0) {
+                bottomY = moduleBoundary + t;
+              } else {
+                bottomY = topModuleShelves[topCompIdx - 1];
+              }
+
+              if (topCompIdx === topModuleShelves.length) {
+                topY = colH - t;
+              } else {
+                topY = topModuleShelves[topCompIdx];
+              }
+
               const height = topY - bottomY;
               const centerY = (bottomY + topY) / 2;
               return { centerY, height };
@@ -344,8 +415,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             // Bottom module compartments
             const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
             const topY = hasModuleBoundary
-              ? (compIdx === bottomModuleCompartments - 1 ? moduleBoundary - t : shelves[compIdx])
-              : (compIdx === shelves.length ? colH - t : shelves[compIdx]);
+              ? compIdx === bottomModuleCompartments - 1
+                ? moduleBoundary - t
+                : shelves[compIdx]
+              : compIdx === shelves.length
+                ? colH - t
+                : shelves[compIdx];
             const height = topY - bottomY;
             const centerY = (bottomY + topY) / 2;
             return { centerY, height };
@@ -665,8 +740,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   <>
                     {topShelves.map((shelfY, shelfIdx) => {
                       // Min/max Y for shelf drag within top module
-                      const prevY = shelfIdx === 0 ? boundary + t : topShelves[shelfIdx - 1];
-                      const nextY = shelfIdx === topShelves.length - 1 ? colH - t : topShelves[shelfIdx + 1];
+                      const prevY =
+                        shelfIdx === 0
+                          ? boundary + t
+                          : topShelves[shelfIdx - 1];
+                      const nextY =
+                        shelfIdx === topShelves.length - 1
+                          ? colH - t
+                          : topShelves[shelfIdx + 1];
                       const shelfMinY = prevY + minCompHeight;
                       const shelfMaxY = nextY - minCompHeight;
 

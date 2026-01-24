@@ -28,9 +28,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const columnHorizontalBoundaries = useShelfStore(
     (s) => s.columnHorizontalBoundaries,
   );
-  const columnModuleBoundaries = useShelfStore(
-    (s) => s.columnModuleBoundaries,
-  );
+  const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
   const setColumnHeight = useShelfStore((s) => s.setColumnHeight);
   const setColumnShelfCount = useShelfStore((s) => s.setColumnShelfCount);
   const setVerticalBoundary = useShelfStore((s) => s.setVerticalBoundary);
@@ -143,7 +141,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const canIncreaseShelves = shelfCount < maxShelves;
 
   // Top module shelf calculations
-  const topModuleShelfCount = (columnTopModuleShelves[displayColumn] || []).length;
+  const topModuleShelfCount = (columnTopModuleShelves[displayColumn] || [])
+    .length;
   const topModuleHeightCm = hasModuleBoundary
     ? Math.round(currentHeightCm - moduleBoundary * 100)
     : 0;
@@ -593,7 +592,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   color: "#cc5500",
                 }}
               >
-                {Math.round(moduleBoundary * 100)} + {Math.round(currentHeightCm - moduleBoundary * 100)} cm
+                {Math.round(moduleBoundary * 100)} +{" "}
+                {Math.round(currentHeightCm - moduleBoundary * 100)} cm
               </span>
             </div>
           )}

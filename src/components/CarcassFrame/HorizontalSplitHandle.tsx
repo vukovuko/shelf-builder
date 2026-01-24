@@ -148,11 +148,7 @@ export function HorizontalSplitHandle({
         isDraggingRef.current = false;
         setIsDraggingLocal(false);
         // Final store update to ensure exact position is committed
-        moveShelfRef.current(
-          columnIndex,
-          shelfIndex,
-          currentDragYRef.current,
-        );
+        moveShelfRef.current(columnIndex, shelfIndex, currentDragYRef.current);
         setIsDraggingRef.current(false);
         gl.domElement.style.cursor = "auto";
       }
