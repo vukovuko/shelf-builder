@@ -55,7 +55,7 @@ export function BlueprintView() {
   const sideViewY = frontViewY;
 
   // Calculate element blocks for front view dimensions
-  const maxSegX = 100; // 100cm max per block
+  const maxSegX = 120; // 120cm max per block
   const nBlocksX = Math.max(1, Math.ceil(width / maxSegX));
   const blockWidth = width / nBlocksX;
 

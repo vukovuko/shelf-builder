@@ -196,7 +196,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   // Width constraints
   const minWidthCm = 20;
-  const maxWidthCm = 100;
+  const maxWidthCm = 120;
 
   // Determine which seam to adjust
   const isLastColumn = displayColumn === columns.length - 1;

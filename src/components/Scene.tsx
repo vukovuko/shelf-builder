@@ -33,6 +33,8 @@ function StoreInvalidator() {
   const elementConfigs = useShelfStore((s) => s.elementConfigs);
   const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
   const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
+  const activeAccordionStep = useShelfStore((s) => s.activeAccordionStep);
+  const selectedCompartmentKey = useShelfStore((s) => s.selectedCompartmentKey);
 
   useEffect(() => {
     invalidate();
@@ -48,6 +50,8 @@ function StoreInvalidator() {
     elementConfigs,
     hoveredColumnIndex,
     selectedMaterialId,
+    activeAccordionStep,
+    selectedCompartmentKey,
     invalidate,
   ]);
 

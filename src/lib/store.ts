@@ -116,6 +116,9 @@ interface ShelfState {
   setShowDoors: (show: boolean) => void;
   showInfoButtons: boolean;
   setShowInfoButtons: (show: boolean) => void;
+  // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
+  activeAccordionStep: string | null;
+  setActiveAccordionStep: (step: string | null) => void;
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: string | null;
   loadedWardrobeIsModel: boolean;
@@ -254,7 +257,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => {
       const newWidthM = newWidth / 100;
 
-      // Calculate correct boundaries for new width (auto column count based on 100cm max)
+      // Calculate correct boundaries for new width (auto column count based on 120cm max)
       const newBoundaries = getDefaultBoundariesX(newWidthM);
       const newColumnCount = newBoundaries.length + 1;
       const oldColumnCount = state.verticalBoundaries.length + 1;
@@ -572,6 +575,15 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setShowDoors: (show) => set({ showDoors: show }),
   showInfoButtons: false,
   setShowInfoButtons: (show) => set({ showInfoButtons: show }),
+  // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
+  activeAccordionStep: "item-1", // Default to Step 1 open
+  setActiveAccordionStep: (step) =>
+    set((state) => ({
+      activeAccordionStep: step,
+      // Clear compartment selection when step changes
+      selectedCompartmentKey:
+        step !== state.activeAccordionStep ? null : state.selectedCompartmentKey,
+    })),
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: null,
   loadedWardrobeIsModel: false,

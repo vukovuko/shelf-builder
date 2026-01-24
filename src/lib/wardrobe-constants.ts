@@ -1,5 +1,5 @@
 // Segment thresholds
-export const MAX_SEGMENT_X = 100 / 100; // 1.0m - max element width
+export const MAX_SEGMENT_X = 120 / 100; // 1.2m - max element width (120cm)
 export const TARGET_BOTTOM_HEIGHT = 200 / 100; // 2.0m - height split threshold
 export const MIN_TOP_HEIGHT = 10 / 100; // 0.1m - min top module height
 export const MAX_MODULE_HEIGHT = 200 / 100; // 2.0m - max height for any single module (top or bottom)
@@ -12,6 +12,12 @@ export const DRAWER_GAP = 1 / 100; // 1cm
 export const MIN_DRAG_GAP = 10 / 100; // 10cm minimum between shelves/dividers
 export const MIN_SEGMENT = 10 / 100; // 10cm minimum segment size (same as MIN_DRAG_GAP)
 export const MAX_SEGMENT_Y = 200 / 100; // 2.0m - max vertical segment (same as TARGET_BOTTOM_HEIGHT)
+
+// Compartment subdivision limits (for Step 2 inner dividers)
+export const MIN_DIVIDER_WIDTH_CM = 15; // Min 15cm per vertical section
+export const MIN_SHELF_HEIGHT_CM = 12; // Min 12cm per horizontal section
+export const MAX_VERTICAL_DIVIDERS = 7; // Max 7 dividers = 8 sections
+export const MAX_HORIZONTAL_SHELVES_INNER = 10; // Max 10 shelves within a compartment = 11 sections
 
 // ============================================
 // SHELF CONSTRAINTS CONFIG

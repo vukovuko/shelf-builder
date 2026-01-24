@@ -16,6 +16,7 @@ import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
 import { TopHeightHandle } from "./TopHeightHandle";
 import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
+import { CompartmentClickCircle } from "./CompartmentClickCircle";
 
 type Material = {
   id: string;
@@ -65,6 +66,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const columnTopModuleShelves = useShelfStore(
       (state) => state.columnTopModuleShelves,
     );
+    const activeAccordionStep = useShelfStore(
+      (state) => state.activeAccordionStep,
+    );
+
+    // Check if Step 2 is active (for hiding labels and showing circles)
+    const isStep2Active = activeAccordionStep === "item-2";
 
     // Simple hover handler - only set on enter, not on leave
     // This prevents flickering when moving between compartment and drag handles
@@ -130,8 +137,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Min column width (20cm = 0.2m)
     const minColWidth = 0.2;
-    // Max column width (100cm = 1.0m)
-    const maxColWidth = 1.0;
+    // Max column width (120cm = 1.2m)
+    const maxColWidth = 1.2;
     // Min compartment height for drag constraints (10cm = 0.10m)
     const minCompHeight = 0.1;
     // Height threshold for horizontal splits (200cm = 2m)
@@ -447,8 +454,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     position={[colCenterX, shelfY, carcassZ]}
                     size={[colInnerW, t, carcassD]}
                   />
-                  {/* Only show drag handle when column is hovered - positioned left of center to not overlap labels */}
-                  {hoveredColumnIndex === colIdx && (
+                  {/* Only show drag handle when column is hovered AND Step 2 not active */}
+                  {hoveredColumnIndex === colIdx && !isStep2Active && (
                     <HorizontalSplitHandle
                       columnIndex={colIdx}
                       shelfIndex={shelfIdx}
@@ -463,20 +470,22 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 </React.Fragment>
               ))}
 
-              {/* Top height drag handle */}
-              <TopHeightHandle
-                columnIndex={colIdx}
-                x={colCenterX}
-                y={colH - t / 2}
-                depth={d}
-                colWidth={colInnerW}
-                minHeight={getMinColumnHeight(colIdx)}
-                maxHeight={maxColumnHeight}
-                currentHeightM={colH}
-              />
+              {/* Top height drag handle - HIDE when Step 2 active */}
+              {!isStep2Active && (
+                <TopHeightHandle
+                  columnIndex={colIdx}
+                  x={colCenterX}
+                  y={colH - t / 2}
+                  depth={d}
+                  colWidth={colInnerW}
+                  minHeight={getMinColumnHeight(colIdx)}
+                  maxHeight={maxColumnHeight}
+                  currentHeightM={colH}
+                />
+              )}
 
-              {/* Column total height label - shown when hovered */}
-              {hoveredColumnIndex === colIdx && (
+              {/* Column total height label - shown when hovered, HIDE when Step 2 active */}
+              {hoveredColumnIndex === colIdx && !isStep2Active && (
                 <Html
                   position={[colCenterX, colH + 0.18, d / 2]}
                   center
@@ -500,12 +509,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 </Html>
               )}
 
-              {/* Invisible hit areas + Labels for each compartment */}
+              {/* Invisible hit areas + Labels/Circles for each compartment */}
               {Array.from({ length: numCompartments }).map((_, compIdx) => {
                 const bounds = getCompartmentBounds(compIdx);
                 const compHeightCm = getCompartmentHeightCm(compIdx);
+                const compKey = `${colLetter}${compIdx + 1}`;
                 // Responsive label sizing based on compartment height
-                const showLabel = compHeightCm >= 10; // Hide completely if < 10cm
+                // HIDE labels when Step 2 is active (show circles instead)
+                const showLabel = compHeightCm >= 10 && !isStep2Active;
                 // Compact layout for small compartments: "C6 14cm" in one row
                 const useCompactLayout = compHeightCm < 20;
                 const fontSize = useCompactLayout
@@ -524,7 +535,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       <planeGeometry args={[colInnerW, bounds.height]} />
                       <meshBasicMaterial transparent opacity={0} />
                     </mesh>
-                    {/* Label - only show if compartment is large enough */}
+
+                    {/* Clickable circle - SHOW when Step 2 active */}
+                    {isStep2Active && (
+                      <CompartmentClickCircle
+                        compartmentKey={compKey}
+                        position={[
+                          colCenterX,
+                          getCompartmentCenterY(compIdx),
+                          d / 2 + 0.02,
+                        ]}
+                      />
+                    )}
+
+                    {/* Label - only show if compartment is large enough AND Step 2 not active */}
                     {showLabel && (
                       <Html
                         position={[
@@ -556,7 +580,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               color: "#000000",
                             }}
                           >
-                            {`${colLetter}${compIdx + 1}`}
+                            {compKey}
                           </span>
                           <span
                             style={{
@@ -581,14 +605,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                       if (innerCols <= 1) return null; // No internal dividers
 
-                      // Compartment inner bounds
-                      const compBottomY =
-                        compIdx === 0 ? t : shelves[compIdx - 1];
-                      const compTopY =
-                        compIdx === shelves.length
-                          ? colH - t
-                          : shelves[compIdx];
-                      const compInnerH = compTopY - compBottomY;
+                      // Use getCompartmentBounds to get correct bounds for both bottom and top module compartments
+                      const { centerY, height: compInnerH } =
+                        getCompartmentBounds(compIdx);
+                      const compBottomY = centerY - compInnerH / 2;
+                      const compTopY = centerY + compInnerH / 2;
 
                       const compLeftX = colCenterX - colInnerW / 2;
 
@@ -621,13 +642,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       };
                       const innerCols = Math.max(1, cfg.columns);
 
-                      const compBottomY =
-                        compIdx === 0 ? t : shelves[compIdx - 1];
-                      const compTopY =
-                        compIdx === shelves.length
-                          ? colH - t
-                          : shelves[compIdx];
-                      const compInnerH = compTopY - compBottomY;
+                      // Use getCompartmentBounds to get correct bounds for both bottom and top module compartments
+                      const { centerY, height: compInnerH } =
+                        getCompartmentBounds(compIdx);
+                      const compBottomY = centerY - compInnerH / 2;
 
                       const compLeftX = colCenterX - colInnerW / 2;
                       const sectionW = colInnerW / innerCols;
@@ -717,8 +735,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       position={[colCenterX, boundary + t / 2, carcassZ]}
                       size={[colInnerW, t, carcassD]}
                     />
-                    {/* Drag handle for module boundary - show when hovered */}
-                    {hoveredColumnIndex === colIdx && (
+                    {/* Drag handle for module boundary - show when hovered, HIDE when Step 2 active */}
+                    {hoveredColumnIndex === colIdx && !isStep2Active && (
                       <ModuleBoundaryHandle
                         columnIndex={colIdx}
                         x={colCenterX}
@@ -762,8 +780,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             position={[colCenterX, shelfY, carcassZ]}
                             size={[colInnerW, t, carcassD]}
                           />
-                          {/* Drag handle for top module shelf - show when hovered */}
-                          {hoveredColumnIndex === colIdx && (
+                          {/* Drag handle for top module shelf - show when hovered, HIDE when Step 2 active */}
+                          {hoveredColumnIndex === colIdx && !isStep2Active && (
                             <HorizontalSplitHandle
                               columnIndex={colIdx}
                               shelfIndex={shelfIdx}
@@ -799,12 +817,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           const rightCol = columns[idx + 1];
           // Width displayed = seamX - leftCol.start (or rightCol.end - seamX)
           // So constraints are directly on seamX position without thickness adjustment
-          // minX: left column at minimum width (20cm) OR right column at maximum width (100cm)
+          // minX: left column at minimum width (20cm) OR right column at maximum width (120cm)
           const minX = Math.max(
             leftCol.start + minColWidth,
             rightCol.end - maxColWidth,
           );
-          // maxX: left column at maximum width (100cm) OR right column at minimum width (20cm)
+          // maxX: left column at maximum width (120cm) OR right column at minimum width (20cm)
           const maxX = Math.min(
             leftCol.start + maxColWidth,
             rightCol.end - minColWidth,
@@ -822,23 +840,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 position={[seamX + t / 2, rightH / 2, carcassZ]}
                 size={[t, rightH, carcassD]}
               />
-              {/* Drag handle - positioned at max height so it's always visible */}
-              <SeamHandle
-                seamIndex={idx}
-                x={seamX}
-                height={seamH}
-                depth={d}
-                minX={minX}
-                maxX={maxX}
-                leftColStart={leftCol.start}
-                rightColEnd={rightCol.end}
-              />
+              {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2 active */}
+              {!isStep2Active && (
+                <SeamHandle
+                  seamIndex={idx}
+                  x={seamX}
+                  height={seamH}
+                  depth={d}
+                  minX={minX}
+                  maxX={maxX}
+                  leftColStart={leftCol.start}
+                  rightColEnd={rightCol.end}
+                />
+              )}
             </React.Fragment>
           );
         })}
 
-        {/* Column controls bar - positioned below wardrobe */}
-        <ColumnControlsBar3D depth={d} />
+        {/* Column controls bar - positioned below wardrobe, HIDE when Step 2 active */}
+        {!isStep2Active && <ColumnControlsBar3D depth={d} />}
       </group>
     );
   },

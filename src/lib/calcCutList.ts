@@ -143,7 +143,7 @@ export function calculateCutList(
       return emptyCutList;
     }
 
-    const maxSegX = 100 / 100;
+    const maxSegX = 120 / 100; // 120cm max per column
     const nBlocksX = Math.max(1, Math.ceil(w / maxSegX));
     const segWX = w / nBlocksX;
     const blocksX = Array.from({ length: nBlocksX }, (_, i) => {

@@ -74,6 +74,7 @@ import {
 import { DRAWER_HEIGHT, DRAWER_GAP } from "@/lib/wardrobe-constants";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
+import { CompartmentExtrasPanel } from "./CompartmentExtrasPanel";
 import { DimensionControl } from "./DimensionControl";
 import { MaterialPickerModal } from "./MaterialPickerModal";
 import { Button } from "./ui/button";
@@ -493,6 +494,17 @@ export function ConfiguratorControls({
   const setHasBase = useShelfStore((state) => state.setHasBase);
   const setBaseHeight = useShelfStore((state) => state.setBaseHeight);
 
+  // Accordion step state (for controlled accordion)
+  const activeAccordionStep = useShelfStore(
+    (state) => state.activeAccordionStep
+  );
+  const setActiveAccordionStep = useShelfStore(
+    (state) => state.setActiveAccordionStep
+  );
+  const selectedCompartmentKey = useShelfStore(
+    (state) => state.selectedCompartmentKey
+  );
+
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
   const [showCutList, setShowCutList] = React.useState(false);
@@ -584,7 +596,7 @@ export function ConfiguratorControls({
       const heightCm = useShelfStore.getState().height; // cm
       const hasBase = useShelfStore.getState().hasBase;
       const baseHeight = useShelfStore.getState().baseHeight; // cm
-      const maxSegX = 100; // cm per block
+      const maxSegX = 120; // cm per block (max column width)
       const nBlocksX = Math.max(1, Math.ceil(widthCm / maxSegX));
       const hasSplitY = heightCm > 200;
       const minTopH = 10; // cm
@@ -1111,7 +1123,8 @@ export function ConfiguratorControls({
         <Accordion
           type="single"
           collapsible
-          defaultValue="item-1"
+          value={activeAccordionStep ?? undefined}
+          onValueChange={(value) => setActiveAccordionStep(value || null)}
           className="w-full"
         >
           <AccordionItem value="item-1" className="border-border">
@@ -1151,195 +1164,22 @@ export function ConfiguratorControls({
               2. Kolone i Pregrade
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-4">
-              {/* Per-element selection and controls */}
-              {(() => {
-                // Compute compartment keys matching CarcassFrame: A1, A2, B1, B2...
-                const w = useShelfStore.getState().width / 100;
-                const verticalBoundaries =
-                  useShelfStore.getState().verticalBoundaries;
-                const columnHorizontalBoundaries =
-                  useShelfStore.getState().columnHorizontalBoundaries;
-                const columns = buildBlocksX(
-                  w,
-                  verticalBoundaries.length > 0
-                    ? verticalBoundaries
-                    : undefined,
-                );
-                const compartmentKeys = getCompartmentKeys(
-                  columns,
-                  columnHorizontalBoundaries,
-                );
-
-                const selectedElementKey = useShelfStore(
-                  (state) => state.selectedElementKey,
-                );
-                const setSelectedElementKey = useShelfStore(
-                  (state) => state.setSelectedElementKey,
-                );
-                const elementConfigs = useShelfStore(
-                  (state) => state.elementConfigs,
-                );
-                const setElementColumns = useShelfStore(
-                  (state) => state.setElementColumns,
-                );
-                const setElementRowCount = useShelfStore(
-                  (state) => state.setElementRowCount,
-                );
-
-                return (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Pregrada:
-                      </span>
-                      {compartmentKeys.map((key) => (
-                        <Button
-                          key={key}
-                          variant={
-                            selectedElementKey === key ? "default" : "outline"
-                          }
-                          onClick={() => setSelectedElementKey(key)}
-                          className="px-2 py-1 h-8  transition-colors"
-                        >
-                          {key}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {selectedElementKey && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Pregrade (vertikalne)</span>
-                          <span className="text-xs text-muted-foreground">
-                            {elementConfigs[selectedElementKey]?.columns ?? 1}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const curr =
-                                elementConfigs[selectedElementKey]?.columns ??
-                                1;
-                              setElementColumns(
-                                selectedElementKey,
-                                Math.max(curr - 1, 1),
-                              );
-                            }}
-                            className="px-2"
-                          >
-                            –
-                          </Button>
-                          <Slider
-                            min={1}
-                            max={8}
-                            step={1}
-                            value={[
-                              elementConfigs[selectedElementKey]?.columns ?? 1,
-                            ]}
-                            onValueChange={([val]) =>
-                              setElementColumns(selectedElementKey, val)
-                            }
-                            className="flex-1"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const curr =
-                                elementConfigs[selectedElementKey]?.columns ??
-                                1;
-                              setElementColumns(
-                                selectedElementKey,
-                                Math.min(curr + 1, 8),
-                              );
-                            }}
-                            className="px-2"
-                          >
-                            +
-                          </Button>
-                        </div>
-
-                        {/* Shelf sliders per compartment */}
-                        <div className="space-y-2">
-                          {Array.from({
-                            length:
-                              elementConfigs[selectedElementKey]?.columns ?? 1,
-                          }).map((_, idx) => {
-                            const count =
-                              elementConfigs[selectedElementKey]?.rowCounts?.[
-                                idx
-                              ] ?? 0;
-                            return (
-                              <div
-                                key={idx}
-                                className="flex items-center space-x-2"
-                              >
-                                <span className="text-xs text-muted-foreground">
-                                  Police u pregradi {idx + 1}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() =>
-                                    setElementRowCount(
-                                      selectedElementKey,
-                                      idx,
-                                      Math.max(count - 1, 0),
-                                    )
-                                  }
-                                  disabled={count <= 0}
-                                  className="px-2"
-                                >
-                                  –
-                                </Button>
-                                <Slider
-                                  min={0}
-                                  max={10}
-                                  step={1}
-                                  value={[count]}
-                                  onValueChange={([val]) =>
-                                    setElementRowCount(
-                                      selectedElementKey,
-                                      idx,
-                                      val,
-                                    )
-                                  }
-                                  className="flex-1"
-                                />
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() =>
-                                    setElementRowCount(
-                                      selectedElementKey,
-                                      idx,
-                                      Math.min(count + 1, 10),
-                                    )
-                                  }
-                                  disabled={count >= 10}
-                                  className="px-2"
-                                >
-                                  +
-                                </Button>
-                                <span className="text-xs w-10 text-right">
-                                  {count}{" "}
-                                  {count === 1
-                                    ? "polica"
-                                    : count >= 2 && count <= 4
-                                      ? "police"
-                                      : "polica"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {!selectedCompartmentKey ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <div className="text-4xl mb-3">👆</div>
+                  <p className="text-sm font-medium">
+                    Kliknite na pregradu u 3D prikazu
+                  </p>
+                  <p className="text-xs mt-2 opacity-70">
+                    Svaka pregrada ima krug sa oznakom (A1, B2, itd.)
+                  </p>
+                </div>
+              ) : (
+                <CompartmentExtrasPanel
+                  compartmentKey={selectedCompartmentKey}
+                  materials={materials}
+                />
+              )}
             </AccordionContent>
           </AccordionItem>
 
