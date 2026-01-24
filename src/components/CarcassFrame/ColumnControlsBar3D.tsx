@@ -107,8 +107,20 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const col = columns[displayColumn];
   const colCenterX = (col.start + col.end) / 2;
 
-  // Position below wardrobe - moved further down for visibility
-  const barY = -0.45;
+  // Position bar below wardrobe bottom
+  // Dynamic gap: base gap + extra for taller wardrobes
+  // Anchored at TOP of HTML (no center prop), so it only extends DOWN
+  const maxHeightM =
+    Math.max(
+      height,
+      ...Object.values(columnHeights).filter(
+        (h): h is number => h !== undefined,
+      ),
+    ) / 100;
+  const BASE_GAP = 0.15; // 15cm base gap
+  const HEIGHT_FACTOR = 0.08; // 8cm extra per meter above 2m
+  const extraGap = Math.max(0, (maxHeightM - 2.0) * HEIGHT_FACTOR);
+  const barY = -(BASE_GAP + extraGap);
 
   // Column letter for display
   const columnLetter = String.fromCharCode(65 + displayColumn);
@@ -237,9 +249,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   return (
     <Html
       position={[colCenterX, barY, depth / 2]}
-      center
+      // NO center prop - anchor at top-left, HTML extends DOWN only
       zIndexRange={[1, 10]}
-      style={{ pointerEvents: "auto" }}
+      style={{
+        pointerEvents: "auto",
+        transform: "translateX(-50%)", // Center horizontally only
+      }}
     >
       <div
         style={{

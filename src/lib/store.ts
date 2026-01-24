@@ -5,6 +5,7 @@ import {
   distributeShelvesEvenly,
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
+  MAX_MODULE_HEIGHT,
 } from "./wardrobe-constants";
 import { getDefaultBoundariesX } from "./wardrobe-utils";
 
@@ -290,8 +291,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         const heightM = state.height / 100;
         if (heightM > TARGET_BOTTOM_HEIGHT) {
           const initialBoundary = Math.min(
-            TARGET_BOTTOM_HEIGHT,
-            heightM - MIN_TOP_HEIGHT,
+            MAX_MODULE_HEIGHT, // Bottom <= 200cm
+            heightM - MIN_TOP_HEIGHT, // Top >= 10cm
           );
           newColumnModuleBoundaries = { ...state.columnModuleBoundaries };
           newColumnTopModuleShelves = { ...state.columnTopModuleShelves };
@@ -313,42 +314,93 @@ export const useShelfStore = create<ShelfState>((set) => ({
     }),
   setHeight: (newHeight) =>
     set((state) => {
-      const oldHeightM = state.height / 100;
       const newHeightM = newHeight / 100;
 
-      // Scale ALL horizontal boundaries proportionally
+      // Scale ALL horizontal boundaries proportionally PER COLUMN
+      // Each column uses its ACTUAL height (from columnHeights or global)
       const newColumnBoundaries: Record<number, number[]> = {};
       Object.keys(state.columnHorizontalBoundaries).forEach((key) => {
         const colIdx = Number(key);
+        const oldColHeightCm = state.columnHeights[colIdx] ?? state.height;
+        const oldColHeightM = oldColHeightCm / 100;
         const oldBoundaries = state.columnHorizontalBoundaries[colIdx] || [];
+
+        // Scale shelves from old COLUMN height to new global height
         newColumnBoundaries[colIdx] = oldBoundaries.map(
-          (y) => (y / oldHeightM) * newHeightM,
+          (y) => (y / oldColHeightM) * newHeightM,
         );
       });
 
-      // Handle module boundaries: auto-initialize or remove based on new height
+      // Handle module boundaries: scale or remove based on new height
       let newModuleBoundaries: Record<number, number | null> = {};
       let newTopModuleShelves: Record<number, number[]> = {};
 
       if (newHeightM > TARGET_BOTTOM_HEIGHT) {
-        // Auto-initialize module boundary for all columns at default position
-        const initialBoundary = Math.min(
-          TARGET_BOTTOM_HEIGHT,
-          newHeightM - MIN_TOP_HEIGHT,
-        );
-        // Get column count from vertical boundaries
+        // Scale existing module boundaries and top module shelves per-column
+        Object.keys(state.columnModuleBoundaries).forEach((key) => {
+          const colIdx = Number(key);
+          const oldBoundary = state.columnModuleBoundaries[colIdx];
+          if (oldBoundary === null || oldBoundary === undefined) return;
+
+          const oldColHeightCm = state.columnHeights[colIdx] ?? state.height;
+          const oldColHeightM = oldColHeightCm / 100;
+
+          // Scale module boundary
+          const ratio = oldBoundary / oldColHeightM;
+          let scaledBoundary = ratio * newHeightM;
+          // Clamp to valid range: NO module can exceed 200cm
+          const minY = Math.max(
+            MIN_TOP_HEIGHT, // Bottom >= 10cm
+            newHeightM - MAX_MODULE_HEIGHT, // Top <= 200cm
+          );
+          const maxY = Math.min(
+            newHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
+            MAX_MODULE_HEIGHT, // Bottom <= 200cm
+          );
+          scaledBoundary = Math.max(minY, Math.min(maxY, scaledBoundary));
+          newModuleBoundaries[colIdx] = scaledBoundary;
+
+          // Scale top module shelves
+          const topShelves = state.columnTopModuleShelves[colIdx] || [];
+          if (topShelves.length > 0) {
+            const oldTopModuleHeight = oldColHeightM - oldBoundary;
+            const newTopModuleHeight = newHeightM - scaledBoundary;
+
+            if (newTopModuleHeight < 0.2) {
+              newTopModuleShelves[colIdx] = []; // Too small, clear
+            } else {
+              newTopModuleShelves[colIdx] = topShelves
+                .map((shelfY) => {
+                  const relativePos =
+                    (shelfY - oldBoundary) / oldTopModuleHeight;
+                  return scaledBoundary + relativePos * newTopModuleHeight;
+                })
+                .filter(
+                  (y) => y > scaledBoundary + 0.1 && y < newHeightM - 0.1,
+                );
+            }
+          } else {
+            newTopModuleShelves[colIdx] = [];
+          }
+        });
+
+        // Initialize boundaries for columns that don't have one yet
         const columnCount = state.verticalBoundaries.length + 1;
         for (let i = 0; i < columnCount; i++) {
-          newModuleBoundaries[i] = initialBoundary;
-          // Preserve existing top module shelves (they'll be scaled by per-column logic if needed)
-          newTopModuleShelves[i] = state.columnTopModuleShelves[i] || [];
+          if (newModuleBoundaries[i] === undefined) {
+            newModuleBoundaries[i] = Math.min(
+              MAX_MODULE_HEIGHT, // Bottom <= 200cm
+              newHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
+            );
+            newTopModuleShelves[i] = [];
+          }
         }
       }
-      // If newHeightM <= TARGET_BOTTOM_HEIGHT, newModuleBoundaries and newTopModuleShelves stay empty
+      // If newHeightM <= TARGET_BOTTOM_HEIGHT, boundaries stay empty (no top module)
 
       return {
         height: newHeight,
-        columnHeights: {}, // Reset ALL manual column heights
+        columnHeights: {}, // Reset ALL manual column heights (intentional)
         columnHorizontalBoundaries: newColumnBoundaries,
         columnModuleBoundaries: newModuleBoundaries,
         columnTopModuleShelves: newTopModuleShelves,
@@ -666,10 +718,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
           existingModuleBoundary === undefined ||
           existingModuleBoundary === null
         ) {
-          // Auto-initialize: split at TARGET_BOTTOM_HEIGHT (190cm if possible)
+          // Auto-initialize: split at MAX_MODULE_HEIGHT (200cm if possible)
           const initialBoundary = Math.min(
-            TARGET_BOTTOM_HEIGHT,
-            newHeightM - MIN_TOP_HEIGHT,
+            MAX_MODULE_HEIGHT, // Bottom <= 200cm
+            newHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
           );
           newModuleBoundaries = {
             ...newModuleBoundaries,
@@ -679,11 +731,16 @@ export const useShelfStore = create<ShelfState>((set) => ({
           // Scale existing boundary proportionally
           const ratio = existingModuleBoundary / oldHeightM;
           let scaledBoundary = ratio * newHeightM;
-          // Clamp to valid range
-          scaledBoundary = Math.max(
-            MIN_TOP_HEIGHT,
-            Math.min(newHeightM - MIN_TOP_HEIGHT, scaledBoundary),
+          // Clamp to valid range: NO module can exceed 200cm
+          const minY = Math.max(
+            MIN_TOP_HEIGHT, // Bottom >= 10cm
+            newHeightM - MAX_MODULE_HEIGHT, // Top <= 200cm
           );
+          const maxY = Math.min(
+            newHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
+            MAX_MODULE_HEIGHT, // Bottom <= 200cm
+          );
+          scaledBoundary = Math.max(minY, Math.min(maxY, scaledBoundary));
           newModuleBoundaries = {
             ...newModuleBoundaries,
             [colIdx]: scaledBoundary,
@@ -742,6 +799,47 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // This ensures sidebar always shows the actual bounding box
       const newGlobalHeight = Math.max(state.height, heightCm);
 
+      // If global height increased past 200cm, initialize module boundaries for ALL columns
+      // that don't have them yet (this handles the case where dragging one column
+      // causes the global height to increase, affecting other columns)
+      if (
+        newGlobalHeight > state.height &&
+        newGlobalHeight / 100 > TARGET_BOTTOM_HEIGHT
+      ) {
+        const columnCount = state.verticalBoundaries.length + 1;
+
+        for (let i = 0; i < columnCount; i++) {
+          // Skip the column being dragged (already handled above)
+          if (i === colIdx) continue;
+
+          // Check if this column needs a module boundary
+          const colH = state.columnHeights[i] ?? newGlobalHeight;
+          const colHM = colH / 100;
+
+          if (colHM > TARGET_BOTTOM_HEIGHT) {
+            // This column exceeds 200cm and doesn't have a boundary yet
+            if (
+              newModuleBoundaries[i] === undefined ||
+              newModuleBoundaries[i] === null
+            ) {
+              const colInitialBoundary = Math.min(
+                MAX_MODULE_HEIGHT,
+                colHM - MIN_TOP_HEIGHT,
+              );
+              newModuleBoundaries = {
+                ...newModuleBoundaries,
+                [i]: colInitialBoundary,
+              };
+              // Initialize empty top module shelves
+              newTopModuleShelves = {
+                ...newTopModuleShelves,
+                [i]: [],
+              };
+            }
+          }
+        }
+      }
+
       return {
         height: newGlobalHeight,
         columnHeights: { ...state.columnHeights, [colIdx]: heightCm },
@@ -765,8 +863,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
     const boundaries = getDefaultBoundariesX(defaultWidthM);
     const columnCount = boundaries.length + 1; // 3 columns for 210cm
     const initialBoundary = Math.min(
-      TARGET_BOTTOM_HEIGHT,
-      defaultHeightM - MIN_TOP_HEIGHT,
+      MAX_MODULE_HEIGHT, // Bottom <= 200cm
+      defaultHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
     );
 
     const result: Record<number, number> = {};
@@ -794,17 +892,22 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // Panel thickness (default 18mm)
       const panelThicknessM = 0.018;
 
-      // Minimum Y: must stay above all shelves + panel thickness + 5cm gap
+      // Min/max Y for module boundary
+      // Constraints: NO module (top or bottom) can exceed 200cm
+      // - minY ensures: bottom module >= 10cm AND top module <= 200cm
+      // - maxY ensures: top module >= 10cm AND bottom module <= 200cm
       const minY = Math.max(
-        MIN_TOP_HEIGHT,
+        MIN_TOP_HEIGHT, // Bottom >= 10cm
+        colHeightM - MAX_MODULE_HEIGHT, // Top <= 200cm
         highestShelfY + panelThicknessM + 0.05,
+      );
+      const maxY = Math.min(
+        colHeightM - MIN_TOP_HEIGHT, // Top >= 10cm
+        MAX_MODULE_HEIGHT, // Bottom <= 200cm
       );
 
       // Clamp to valid range
-      const clampedY = Math.max(
-        minY,
-        Math.min(colHeightM - MIN_TOP_HEIGHT, newY),
-      );
+      const clampedY = Math.max(minY, Math.min(maxY, newY));
 
       // Scale or clear top module shelves based on new boundary position
       const oldBoundary = state.columnModuleBoundaries[colIdx];

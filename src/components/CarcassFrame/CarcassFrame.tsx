@@ -8,6 +8,7 @@ import {
   getMinColumnHeightCm,
   MAX_COLUMN_HEIGHT_CM,
   MIN_TOP_HEIGHT,
+  MAX_MODULE_HEIGHT,
 } from "@/lib/wardrobe-constants";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
@@ -689,16 +690,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 if (boundary === null || colH <= splitThreshold) return null;
 
                 // Min/max Y for module boundary drag
-                // Module boundary must stay ABOVE all existing horizontal shelves
-                // and maintain MIN_TOP_HEIGHT from top
+                // Constraints: NO module (top or bottom) can exceed 200cm
+                // - boundaryMinY ensures: bottom module >= 10cm AND top module <= 200cm
+                // - boundaryMaxY ensures: top module >= 10cm AND bottom module <= 200cm
                 const highestShelfY =
                   shelves.length > 0 ? Math.max(...shelves) : 0;
-                // Minimum = above highest shelf + panel thickness + small gap
                 const boundaryMinY = Math.max(
-                  MIN_TOP_HEIGHT,
-                  highestShelfY + t + 0.05, // 5cm gap above highest shelf
+                  MIN_TOP_HEIGHT, // Bottom module >= 10cm
+                  colH - MAX_MODULE_HEIGHT, // Top module <= 200cm
+                  highestShelfY + t + 0.05, // Above highest shelf + gap
                 );
-                const boundaryMaxY = colH - MIN_TOP_HEIGHT;
+                const boundaryMaxY = Math.min(
+                  colH - MIN_TOP_HEIGHT, // Top module >= 10cm
+                  MAX_MODULE_HEIGHT, // Bottom module <= 200cm
+                );
 
                 return (
                   <>
