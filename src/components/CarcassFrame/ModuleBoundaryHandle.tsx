@@ -4,7 +4,7 @@ import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState } from "@/lib/store";
 import { GripHorizontal } from "lucide-react";
 
 // Throttle interval in ms (~20 updates/sec during drag)
@@ -35,11 +35,13 @@ export function ModuleBoundaryHandle({
   maxY,
 }: ModuleBoundaryHandleProps) {
   const moveColumnModuleBoundary = useShelfStore(
-    (state) => state.moveColumnModuleBoundary,
+    (state: ShelfState) => state.moveColumnModuleBoundary,
   );
-  const setIsDragging = useShelfStore((state) => state.setIsDragging);
+  const setIsDragging = useShelfStore(
+    (state: ShelfState) => state.setIsDragging,
+  );
   const setHoveredColumnIndex = useShelfStore(
-    (state) => state.setHoveredColumnIndex,
+    (state: ShelfState) => state.setHoveredColumnIndex,
   );
   const { camera, gl } = useThree();
 

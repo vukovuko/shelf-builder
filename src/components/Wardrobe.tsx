@@ -1,18 +1,18 @@
 "use client";
 import React from "react";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState, type Material } from "@/lib/store";
 import CarcassFrame, { type CarcassFrameHandle } from "./CarcassFrame";
 // import { InteriorBack } from "./InteriorBack";  // Temporarily removed for rebuild
 
 const Wardrobe = React.forwardRef<CarcassFrameHandle, {}>(
   function Wardrobe(_, ref) {
-    const materials = useShelfStore((state) => state.materials);
+    const materials = useShelfStore((state: ShelfState) => state.materials);
 
     return (
       <group>
         <CarcassFrame
           ref={ref}
-          materials={materials.map((m) => ({
+          materials={materials.map((m: Material) => ({
             id: String(m.id),
             thickness: m.thickness ?? undefined,
           }))}

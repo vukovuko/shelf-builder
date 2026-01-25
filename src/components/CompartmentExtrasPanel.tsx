@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useShelfStore, type Material } from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
 import {
   MIN_DIVIDER_WIDTH_CM,
@@ -24,27 +24,43 @@ export function CompartmentExtrasPanel({
   materials,
 }: CompartmentExtrasPanelProps) {
   // Store selectors
-  const width = useShelfStore((s) => s.width);
-  const height = useShelfStore((s) => s.height);
-  const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
-  const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
-  const columnHorizontalBoundaries = useShelfStore(
-    (s) => s.columnHorizontalBoundaries,
+  const width = useShelfStore((s: ShelfState) => s.width);
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const selectedMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedMaterialId,
   );
-  const columnHeights = useShelfStore((s) => s.columnHeights);
-  const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
-  const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
+  const verticalBoundaries = useShelfStore(
+    (s: ShelfState) => s.verticalBoundaries,
+  );
+  const columnHorizontalBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnHorizontalBoundaries,
+  );
+  const columnHeights = useShelfStore((s: ShelfState) => s.columnHeights);
+  const columnModuleBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnModuleBoundaries,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (s: ShelfState) => s.columnTopModuleShelves,
+  );
 
-  const elementConfigs = useShelfStore((s) => s.elementConfigs);
-  const setElementColumns = useShelfStore((s) => s.setElementColumns);
-  const setElementRowCount = useShelfStore((s) => s.setElementRowCount);
-  const setElementDrawerCount = useShelfStore((s) => s.setElementDrawerCount);
+  const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
+  const setElementColumns = useShelfStore(
+    (s: ShelfState) => s.setElementColumns,
+  );
+  const setElementRowCount = useShelfStore(
+    (s: ShelfState) => s.setElementRowCount,
+  );
+  const setElementDrawerCount = useShelfStore(
+    (s: ShelfState) => s.setElementDrawerCount,
+  );
 
-  const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
-  const toggleCompRod = useShelfStore((s) => s.toggleCompRod);
-  const toggleCompLed = useShelfStore((s) => s.toggleCompLed);
+  const compartmentExtras = useShelfStore(
+    (s: ShelfState) => s.compartmentExtras,
+  );
+  const toggleCompRod = useShelfStore((s: ShelfState) => s.toggleCompRod);
+  const toggleCompLed = useShelfStore((s: ShelfState) => s.toggleCompLed);
   const setSelectedCompartmentKey = useShelfStore(
-    (s) => s.setSelectedCompartmentKey,
+    (s: ShelfState) => s.setSelectedCompartmentKey,
   );
 
   // Get current config
@@ -177,8 +193,9 @@ export function CompartmentExtrasPanel({
 
   // Disabled state for extras based on subdivisions
   const hasVerticalDividers = config.columns > 1;
-  const hasHorizontalShelves = config.rowCounts?.some((c) => c > 0) ?? false;
-  const hasDrawers = config.drawerCounts?.some((c) => c > 0) ?? false;
+  const hasHorizontalShelves =
+    config.rowCounts?.some((c: number) => c > 0) ?? false;
+  const hasDrawers = config.drawerCounts?.some((c: number) => c > 0) ?? false;
 
   // BOTH rod and LED disabled when ANY subdivision exists (clean compartment only)
   const isSubdivided =

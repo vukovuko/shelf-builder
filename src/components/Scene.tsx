@@ -9,8 +9,9 @@ import {
 } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import React, { useRef, useEffect, Suspense } from "react";
+import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
 
@@ -20,30 +21,54 @@ import { Wardrobe } from "./Wardrobe";
  */
 function StoreInvalidator() {
   const { invalidate } = useThree();
-  const width = useShelfStore((s) => s.width);
-  const height = useShelfStore((s) => s.height);
-  const depth = useShelfStore((s) => s.depth);
-  const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
-  const columnHorizontalBoundaries = useShelfStore(
-    (s) => s.columnHorizontalBoundaries,
+  const width = useShelfStore((s: ShelfState) => s.width);
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const depth = useShelfStore((s: ShelfState) => s.depth);
+  const viewMode = useShelfStore((s: ShelfState) => s.viewMode);
+  const verticalBoundaries = useShelfStore(
+    (s: ShelfState) => s.verticalBoundaries,
   );
-  const columnHeights = useShelfStore((s) => s.columnHeights);
-  const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
-  const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
-  const elementConfigs = useShelfStore((s) => s.elementConfigs);
-  const compartmentExtras = useShelfStore((s) => s.compartmentExtras);
-  const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
-  const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
-  const activeAccordionStep = useShelfStore((s) => s.activeAccordionStep);
-  const selectedCompartmentKey = useShelfStore((s) => s.selectedCompartmentKey);
-  const hoveredCompartmentKey = useShelfStore((s) => s.hoveredCompartmentKey);
-  const hasBase = useShelfStore((s) => s.hasBase);
-  const baseHeight = useShelfStore((s) => s.baseHeight);
+  const columnHorizontalBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnHorizontalBoundaries,
+  );
+  const columnHeights = useShelfStore((s: ShelfState) => s.columnHeights);
+  const columnModuleBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnModuleBoundaries,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (s: ShelfState) => s.columnTopModuleShelves,
+  );
+  const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
+  const compartmentExtras = useShelfStore(
+    (s: ShelfState) => s.compartmentExtras,
+  );
+  const hoveredColumnIndex = useShelfStore(
+    (s: ShelfState) => s.hoveredColumnIndex,
+  );
+  const selectedMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedMaterialId,
+  );
+  const activeAccordionStep = useShelfStore(
+    (s: ShelfState) => s.activeAccordionStep,
+  );
+  const selectedCompartmentKey = useShelfStore(
+    (s: ShelfState) => s.selectedCompartmentKey,
+  );
+  const hoveredCompartmentKey = useShelfStore(
+    (s: ShelfState) => s.hoveredCompartmentKey,
+  );
+  const hasBase = useShelfStore((s: ShelfState) => s.hasBase);
+  const baseHeight = useShelfStore((s: ShelfState) => s.baseHeight);
   // Door selection state for Step 5
   const selectedDoorCompartments = useShelfStore(
-    (s) => s.selectedDoorCompartments,
+    (s: ShelfState) => s.selectedDoorCompartments,
   );
-  const doorSelectionDragging = useShelfStore((s) => s.doorSelectionDragging);
+  const doorSelectionDragging = useShelfStore(
+    (s: ShelfState) => s.doorSelectionDragging,
+  );
+  // Door groups for 3D rendering
+  const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
+  const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
 
   useEffect(() => {
     invalidate();
@@ -51,6 +76,7 @@ function StoreInvalidator() {
     width,
     height,
     depth,
+    viewMode,
     verticalBoundaries,
     columnHorizontalBoundaries,
     columnHeights,
@@ -67,6 +93,8 @@ function StoreInvalidator() {
     baseHeight,
     selectedDoorCompartments,
     doorSelectionDragging,
+    doorGroups,
+    showDoors,
     invalidate,
   ]);
 
@@ -79,9 +107,9 @@ function StoreInvalidator() {
  */
 function CameraFitter() {
   const bounds = useBounds();
-  const width = useShelfStore((s) => s.width);
-  const height = useShelfStore((s) => s.height);
-  const depth = useShelfStore((s) => s.depth);
+  const width = useShelfStore((s: ShelfState) => s.width);
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const depth = useShelfStore((s: ShelfState) => s.depth);
 
   // Track if this is the first render (skip initial fit - Bounds handles that)
   const isFirstRender = useRef(true);
@@ -98,11 +126,74 @@ function CameraFitter() {
   return null;
 }
 
+/**
+ * ViewModeController - Handles camera positioning for 2D/3D view modes
+ * Resets camera to front view when switching to 2D, restores controls for 3D
+ */
+function ViewModeController({
+  controlsRef,
+}: {
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
+}) {
+  const { camera, gl, invalidate } = useThree();
+  const viewMode = useShelfStore((s: ShelfState) => s.viewMode);
+  const width = useShelfStore((s: ShelfState) => s.width);
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const depth = useShelfStore((s: ShelfState) => s.depth);
+  const prevViewMode = useRef<ViewMode>(viewMode);
+
+  useEffect(() => {
+    // Only act when viewMode changes
+    if (prevViewMode.current === viewMode) return;
+    prevViewMode.current = viewMode;
+
+    if (viewMode === "2D") {
+      const w = width / 100; // Convert cm to meters
+      const h = height / 100;
+      const d = depth / 100;
+
+      const perspCam = camera as THREE.PerspectiveCamera;
+      const fovRad = (perspCam.fov * Math.PI) / 180;
+
+      // Get canvas aspect ratio for proper width calculation
+      const aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
+
+      // Distance needed to fit width (accounting for aspect ratio)
+      const distanceForWidth = w / 2 / Math.tan(fovRad / 2) / aspect;
+
+      // Distance needed to fit height
+      const distanceForHeight = h / 2 / Math.tan(fovRad / 2);
+
+      // Use whichever requires more distance (ensures both fit)
+      const margin = 1.2; // 20% margin for breathing room
+      const distance = Math.max(distanceForWidth, distanceForHeight) * margin;
+
+      // Position camera in front, ensuring it's beyond the object
+      camera.position.set(0, 0, Math.max(distance, d / 2 + 0.5));
+      camera.rotation.set(0, 0, 0);
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+
+      // Reset OrbitControls target and rotation
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+
+      invalidate();
+    }
+  }, [viewMode, camera, gl, width, height, depth, controlsRef, invalidate]);
+
+  return null;
+}
+
 export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
-  const { viewMode } = useShelfStore();
-  const showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
-  const materials = useShelfStore((state) => state.materials);
-  const isDragging = useShelfStore((state) => state.isDragging);
+  const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
+  const showEdgesOnly = useShelfStore(
+    (state: ShelfState) => state.showEdgesOnly,
+  );
+  const materials = useShelfStore((state: ShelfState) => state.materials);
+  const isDragging = useShelfStore((state: ShelfState) => state.isDragging);
 
   const controlsRef = useRef<OrbitControlsImpl>(null);
 
@@ -171,13 +262,17 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           ref={controlsRef}
           enabled={areControlsEnabled && !isDragging}
           makeDefault
-          enablePan={true}
-          enableZoom={true}
+          enablePan={areControlsEnabled}
+          enableZoom={areControlsEnabled}
+          enableRotate={areControlsEnabled}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
           minDistance={0.5}
           maxDistance={10}
         />
+
+        {/* Handle camera positioning for 2D/3D view modes */}
+        <ViewModeController controlsRef={controlsRef} />
 
         {/* Invalidate scene when store changes (required for frameloop="demand") */}
         <StoreInvalidator />

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type Material } from "@/lib/store";
 import {
   MAX_SEGMENT_X_CM,
   TARGET_BOTTOM_HEIGHT_CM,
@@ -31,7 +31,7 @@ export function BlueprintView() {
     });
 
   // Material thickness (cm)
-  const mat = materials.find((m) => m.id === selectedMaterialId);
+  const mat = materials.find((m: Material) => m.id === selectedMaterialId);
   const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
   const _backTCm = 0.5; // assume 5mm backs for hatch if needed
 

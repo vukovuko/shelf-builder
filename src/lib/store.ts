@@ -38,6 +38,14 @@ export type DoorOption =
   | "doubleMirror"
   | "drawerStyle";
 
+// Door group - spans multiple compartments with one door
+export interface DoorGroup {
+  id: string; // Unique ID (e.g., "door-A1-A3")
+  type: DoorOption; // "left", "right", "double", etc.
+  compartments: string[]; // ["A1", "A2", "A3"] - ordered bottom to top
+  column: string; // "A" - column letter (for validation)
+}
+
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
@@ -52,7 +60,7 @@ interface CompartmentExtras {
   led?: boolean;
 }
 
-interface ShelfState {
+export interface ShelfState {
   width: number;
   height: number;
   depth: number;
@@ -129,6 +137,10 @@ interface ShelfState {
   endDoorSelection: () => void;
   clearDoorSelection: () => void;
   setDoorForSelection: (type: DoorOption) => void;
+  // Door groups (span multiple compartments)
+  doorGroups: DoorGroup[];
+  getDoorGroupForCompartment: (compKey: string) => DoorGroup | null;
+  removeDoorGroup: (groupId: string) => void;
   showInfoButtons: boolean;
   setShowInfoButtons: (show: boolean) => void;
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
@@ -670,16 +682,63 @@ export const useShelfStore = create<ShelfState>((set) => ({
   doorSelectionStart: null,
   doorSelectionCurrent: null,
   selectedDoorCompartments: [],
-  startDoorSelection: (compKey) =>
-    set({
-      doorSelectionDragging: true,
-      doorSelectionStart: compKey,
-      doorSelectionCurrent: compKey,
-      selectedDoorCompartments: [compKey],
-    }),
-  updateDoorSelectionDrag: (compKey) =>
+  // Door groups (span multiple compartments)
+  doorGroups: [],
+  getDoorGroupForCompartment: (compKey: string): DoorGroup | null => {
+    const state = useShelfStore.getState();
+    return (
+      state.doorGroups.find((g: DoorGroup) =>
+        g.compartments.includes(compKey),
+      ) ?? null
+    );
+  },
+  removeDoorGroup: (groupId: string) =>
     set((state) => {
-      if (!state.doorSelectionDragging || !state.doorSelectionStart) return state;
+      const group = state.doorGroups.find((g: DoorGroup) => g.id === groupId);
+      if (!group) return state;
+
+      // Also remove from doorSelections for backward compatibility
+      const newSelections = { ...state.doorSelections };
+      for (const compKey of group.compartments) {
+        delete newSelections[compKey];
+      }
+
+      return {
+        doorGroups: state.doorGroups.filter((g: DoorGroup) => g.id !== groupId),
+        doorSelections: newSelections,
+        // Clear selection
+        selectedDoorCompartments: [],
+      };
+    }),
+  startDoorSelection: (compKey: string) =>
+    set((state) => {
+      // Check if compartment is part of existing group
+      const existingGroup = state.doorGroups.find((g: DoorGroup) =>
+        g.compartments.includes(compKey),
+      );
+
+      if (existingGroup) {
+        // Re-select existing group (no dragging, just selection)
+        return {
+          doorSelectionDragging: false,
+          doorSelectionStart: null,
+          doorSelectionCurrent: null,
+          selectedDoorCompartments: [...existingGroup.compartments],
+        };
+      }
+
+      // Start new selection (dragging)
+      return {
+        doorSelectionDragging: true,
+        doorSelectionStart: compKey,
+        doorSelectionCurrent: compKey,
+        selectedDoorCompartments: [compKey],
+      };
+    }),
+  updateDoorSelectionDrag: (compKey: string) =>
+    set((state) => {
+      if (!state.doorSelectionDragging || !state.doorSelectionStart)
+        return state;
 
       // Parse column letter and compartment index from keys
       const startMatch = state.doorSelectionStart.match(/^([A-Z]+)(\d+)$/);
@@ -699,10 +758,30 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // Generate range of compartment keys
       const minIdx = Math.min(startIdx, currentIdx);
       const maxIdx = Math.max(startIdx, currentIdx);
-      const selected: string[] = [];
+      let selected: string[] = [];
       for (let i = minIdx; i <= maxIdx; i++) {
         selected.push(`${startCol}${i}`);
       }
+
+      // Auto-expand: if any selected compartment is part of an existing group,
+      // include ALL compartments from that group
+      const expandedSet = new Set(selected);
+      for (const group of state.doorGroups) {
+        const hasOverlap = group.compartments.some((c) => expandedSet.has(c));
+        if (hasOverlap) {
+          // Add all compartments from this group
+          group.compartments.forEach((c) => expandedSet.add(c));
+        }
+      }
+
+      // Convert back to sorted array
+      selected = Array.from(expandedSet).sort((a, b) => {
+        const aMatch = a.match(/^([A-Z]+)(\d+)$/);
+        const bMatch = b.match(/^([A-Z]+)(\d+)$/);
+        if (!aMatch || !bMatch) return 0;
+        if (aMatch[1] !== bMatch[1]) return aMatch[1].localeCompare(bMatch[1]);
+        return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+      });
 
       return {
         doorSelectionCurrent: compKey,
@@ -725,13 +804,69 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => {
       if (state.selectedDoorCompartments.length === 0) return state;
 
-      // Set the same door type for all selected compartments
+      const selectedComps = [...state.selectedDoorCompartments].sort((a, b) => {
+        const aMatch = a.match(/^([A-Z]+)(\d+)$/);
+        const bMatch = b.match(/^([A-Z]+)(\d+)$/);
+        if (!aMatch || !bMatch) return 0;
+        if (aMatch[1] !== bMatch[1]) return aMatch[1].localeCompare(bMatch[1]);
+        return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+      });
+
+      // Get column letter from first compartment
+      const firstMatch = selectedComps[0].match(/^([A-Z]+)(\d+)$/);
+      const column = firstMatch?.[1] ?? "A";
+
+      // Generate group ID
+      const firstComp = selectedComps[0];
+      const lastComp = selectedComps[selectedComps.length - 1];
+      const groupId =
+        firstComp === lastComp
+          ? `door-${firstComp}`
+          : `door-${firstComp}-${lastComp}`;
+
+      // Remove any existing groups that overlap with this selection
+      const newGroups = state.doorGroups.filter((g: DoorGroup) => {
+        const hasOverlap = g.compartments.some((c: string) =>
+          selectedComps.includes(c),
+        );
+        return !hasOverlap;
+      });
+
+      // Handle "none" type - just remove the group, don't create a new one
+      if (type === "none") {
+        // Also remove from doorSelections for backward compatibility
+        const newSelections = { ...state.doorSelections };
+        for (const key of selectedComps) {
+          delete newSelections[key];
+        }
+
+        return {
+          doorGroups: newGroups,
+          doorSelections: newSelections,
+          // Clear selection after applying
+          doorSelectionDragging: false,
+          doorSelectionStart: null,
+          doorSelectionCurrent: null,
+          selectedDoorCompartments: [],
+        };
+      }
+
+      // Create new door group
+      const newGroup: DoorGroup = {
+        id: groupId,
+        type,
+        compartments: selectedComps,
+        column,
+      };
+
+      // Also update doorSelections for backward compatibility with cut list
       const newSelections = { ...state.doorSelections };
-      for (const key of state.selectedDoorCompartments) {
+      for (const key of selectedComps) {
         newSelections[key] = type;
       }
 
       return {
+        doorGroups: [...newGroups, newGroup],
         doorSelections: newSelections,
         // Clear selection after applying
         doorSelectionDragging: false,

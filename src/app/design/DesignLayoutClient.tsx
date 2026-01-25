@@ -2,11 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, DoorOpen, DoorClosed } from "lucide-react";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { Button } from "@/components/ui/button";
-import { useShelfStore, type Material } from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 
 function useLockBodyScroll(locked: boolean) {
   React.useEffect(() => {
@@ -44,14 +44,22 @@ export function DesignLayoutClient({
   useLockBodyScroll(drawerOpen);
 
   // Set materials in store on mount
-  const setMaterials = useShelfStore((state) => state.setMaterials);
+  const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
   React.useEffect(() => {
     setMaterials(initialMaterials);
   }, [initialMaterials, setMaterials]);
 
   // Track order context for "back to order" button
-  const fromOrderId = useShelfStore((state) => state.fromOrderId);
-  const fromOrderNumber = useShelfStore((state) => state.fromOrderNumber);
+  const fromOrderId = useShelfStore((state: ShelfState) => state.fromOrderId);
+  const fromOrderNumber = useShelfStore(
+    (state: ShelfState) => state.fromOrderNumber,
+  );
+
+  // Door visibility toggle
+  const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
+  const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+  const setShowDoors = useShelfStore((state: ShelfState) => state.setShowDoors);
+  const hasDoors = doorGroups.length > 0;
 
   // Clone children and inject wardrobeRef and isLoggedIn as props
   const childrenWithProps = React.Children.map(children, (child) => {
@@ -97,7 +105,21 @@ export function DesignLayoutClient({
           </button>
         </div>
         <div className="flex-1" />
-        <div className="flex justify-end">
+        <div className="flex items-center gap-2 justify-end">
+          {hasDoors && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDoors(!showDoors)}
+              title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+            >
+              {showDoors ? (
+                <DoorOpen className="h-4 w-4" />
+              ) : (
+                <DoorClosed className="h-4 w-4 opacity-50" />
+              )}
+            </Button>
+          )}
           <ViewModeToggle />
         </div>
       </div>
@@ -132,7 +154,21 @@ export function DesignLayoutClient({
             </Button>
           </div>
         )}
-        <div className="absolute top-2 right-2 hidden md:block z-20">
+        <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20">
+          {hasDoors && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDoors(!showDoors)}
+              title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+            >
+              {showDoors ? (
+                <DoorOpen className="h-4 w-4" />
+              ) : (
+                <DoorClosed className="h-4 w-4 opacity-50" />
+              )}
+            </Button>
+          )}
           <ViewModeToggle />
         </div>
         {childrenWithProps}

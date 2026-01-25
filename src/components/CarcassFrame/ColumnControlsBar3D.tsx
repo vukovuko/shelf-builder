@@ -2,7 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState, type Material } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
@@ -21,25 +21,43 @@ interface ColumnControlsBar3DProps {
  * Uses Html component so it follows camera rotation/zoom
  */
 export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
-  const hoveredColumnIndex = useShelfStore((s) => s.hoveredColumnIndex);
-  const setHoveredColumnIndex = useShelfStore((s) => s.setHoveredColumnIndex);
-  const width = useShelfStore((s) => s.width);
-  const height = useShelfStore((s) => s.height);
-  const verticalBoundaries = useShelfStore((s) => s.verticalBoundaries);
-  const columnHeights = useShelfStore((s) => s.columnHeights);
-  const columnHorizontalBoundaries = useShelfStore(
-    (s) => s.columnHorizontalBoundaries,
+  const hoveredColumnIndex = useShelfStore(
+    (s: ShelfState) => s.hoveredColumnIndex,
   );
-  const columnModuleBoundaries = useShelfStore((s) => s.columnModuleBoundaries);
-  const setColumnHeight = useShelfStore((s) => s.setColumnHeight);
-  const setColumnShelfCount = useShelfStore((s) => s.setColumnShelfCount);
-  const setVerticalBoundary = useShelfStore((s) => s.setVerticalBoundary);
-  const setVerticalBoundaries = useShelfStore((s) => s.setVerticalBoundaries);
-  const materials = useShelfStore((s) => s.materials);
-  const selectedMaterialId = useShelfStore((s) => s.selectedMaterialId);
-  const columnTopModuleShelves = useShelfStore((s) => s.columnTopModuleShelves);
+  const setHoveredColumnIndex = useShelfStore(
+    (s: ShelfState) => s.setHoveredColumnIndex,
+  );
+  const width = useShelfStore((s: ShelfState) => s.width);
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const verticalBoundaries = useShelfStore(
+    (s: ShelfState) => s.verticalBoundaries,
+  );
+  const columnHeights = useShelfStore((s: ShelfState) => s.columnHeights);
+  const columnHorizontalBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnHorizontalBoundaries,
+  );
+  const columnModuleBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnModuleBoundaries,
+  );
+  const setColumnHeight = useShelfStore((s: ShelfState) => s.setColumnHeight);
+  const setColumnShelfCount = useShelfStore(
+    (s: ShelfState) => s.setColumnShelfCount,
+  );
+  const setVerticalBoundary = useShelfStore(
+    (s: ShelfState) => s.setVerticalBoundary,
+  );
+  const setVerticalBoundaries = useShelfStore(
+    (s: ShelfState) => s.setVerticalBoundaries,
+  );
+  const materials = useShelfStore((s: ShelfState) => s.materials);
+  const selectedMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedMaterialId,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (s: ShelfState) => s.columnTopModuleShelves,
+  );
   const setColumnTopModuleShelfCount = useShelfStore(
-    (s) => s.setColumnTopModuleShelfCount,
+    (s: ShelfState) => s.setColumnTopModuleShelfCount,
   );
 
   // Track if mouse is over the bar
@@ -132,8 +150,9 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   // Get panel thickness for shelf distribution
   const material =
-    materials.find((m) => String(m.id) === String(selectedMaterialId)) ||
-    materials[0];
+    materials.find(
+      (m: Material) => String(m.id) === String(selectedMaterialId),
+    ) || materials[0];
   const panelThicknessM = ((material?.thickness ?? 18) as number) / 1000;
 
   // Module boundary info

@@ -4,7 +4,7 @@ import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState } from "@/lib/store";
 import { ChevronsUpDown } from "lucide-react";
 
 // Throttle interval in ms (~20 updates/sec during drag)
@@ -35,8 +35,12 @@ export function TopHeightHandle({
   maxHeight,
   currentHeightM,
 }: TopHeightHandleProps) {
-  const setColumnHeight = useShelfStore((state) => state.setColumnHeight);
-  const setIsDragging = useShelfStore((state) => state.setIsDragging);
+  const setColumnHeight = useShelfStore(
+    (state: ShelfState) => state.setColumnHeight,
+  );
+  const setIsDragging = useShelfStore(
+    (state: ShelfState) => state.setIsDragging,
+  );
   const { camera, gl } = useThree();
 
   const [isHovered, setIsHovered] = useState(false);

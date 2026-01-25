@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
-import { useShelfStore, type Material } from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
 import {
@@ -233,10 +233,12 @@ export function OrderDetailClient({
   const [notes, setNotes] = useState(order.notes || "");
 
   // For 3D preview
-  const setMaterials = useShelfStore((state) => state.setMaterials);
-  const viewMode = useShelfStore((state) => state.viewMode);
-  const setViewMode = useShelfStore((state) => state.setViewMode);
-  const setShowEdgesOnly = useShelfStore((state) => state.setShowEdgesOnly);
+  const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
+  const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
+  const setViewMode = useShelfStore((state: ShelfState) => state.setViewMode);
+  const setShowEdgesOnly = useShelfStore(
+    (state: ShelfState) => state.setShowEdgesOnly,
+  );
 
   const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
   const setCameraMode = (mode: "2D" | "3D") => setViewMode(mode);

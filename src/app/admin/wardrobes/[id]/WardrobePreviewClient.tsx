@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/accordion";
 import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
-import { useShelfStore, type Material } from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 
 interface CutListItem {
@@ -212,29 +212,39 @@ export function WardrobePreviewClient({
 }: WardrobePreviewClientProps) {
   const wardrobeRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const setMaterials = useShelfStore((state) => state.setMaterials);
+  const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
 
   // Store values for display
-  const width = useShelfStore((state) => state.width);
-  const height = useShelfStore((state) => state.height);
-  const depth = useShelfStore((state) => state.depth);
+  const width = useShelfStore((state: ShelfState) => state.width);
+  const height = useShelfStore((state: ShelfState) => state.height);
+  const depth = useShelfStore((state: ShelfState) => state.depth);
 
   // For PDF export
-  const viewMode = useShelfStore((state) => state.viewMode);
-  const setViewMode = useShelfStore((state) => state.setViewMode);
-  const setShowEdgesOnly = useShelfStore((state) => state.setShowEdgesOnly);
-  const selectedMaterialId = useShelfStore((state) => state.selectedMaterialId);
+  const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
+  const setViewMode = useShelfStore((state: ShelfState) => state.setViewMode);
+  const setShowEdgesOnly = useShelfStore(
+    (state: ShelfState) => state.setShowEdgesOnly,
+  );
+  const selectedMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedMaterialId,
+  );
   const selectedFrontMaterialId = useShelfStore(
-    (state) => state.selectedFrontMaterialId,
+    (state: ShelfState) => state.selectedFrontMaterialId,
   );
   const selectedBackMaterialId = useShelfStore(
-    (state) => state.selectedBackMaterialId,
+    (state: ShelfState) => state.selectedBackMaterialId,
   );
-  const elementConfigs = useShelfStore((state) => state.elementConfigs);
-  const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
-  const doorSelections = useShelfStore((state) => state.doorSelections);
-  const hasBase = useShelfStore((state) => state.hasBase);
-  const baseHeight = useShelfStore((state) => state.baseHeight);
+  const elementConfigs = useShelfStore(
+    (state: ShelfState) => state.elementConfigs,
+  );
+  const compartmentExtras = useShelfStore(
+    (state: ShelfState) => state.compartmentExtras,
+  );
+  const doorSelections = useShelfStore(
+    (state: ShelfState) => state.doorSelections,
+  );
+  const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
+  const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
 
   // Calculate cut list from store state for PDF export
   const cutList = useMemo(

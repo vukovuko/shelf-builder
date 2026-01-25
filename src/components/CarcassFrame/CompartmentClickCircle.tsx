@@ -2,7 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import { useState } from "react";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState } from "@/lib/store";
 import { Plus } from "lucide-react";
 
 interface CompartmentClickCircleProps {
@@ -15,9 +15,15 @@ export function CompartmentClickCircle({
   position,
 }: CompartmentClickCircleProps) {
   const [isButtonHovered, setIsButtonHovered] = useState(false);
-  const selectedKey = useShelfStore((s) => s.selectedCompartmentKey);
-  const setSelectedKey = useShelfStore((s) => s.setSelectedCompartmentKey);
-  const hoveredCompKey = useShelfStore((s) => s.hoveredCompartmentKey);
+  const selectedKey = useShelfStore(
+    (s: ShelfState) => s.selectedCompartmentKey,
+  );
+  const setSelectedKey = useShelfStore(
+    (s: ShelfState) => s.setSelectedCompartmentKey,
+  );
+  const hoveredCompKey = useShelfStore(
+    (s: ShelfState) => s.hoveredCompartmentKey,
+  );
 
   const isSelected = selectedKey === compartmentKey;
   const isCompartmentHovered = hoveredCompKey === compartmentKey;

@@ -3,6 +3,8 @@
 import jsPDF from "jspdf";
 import {
   ChevronDown,
+  DoorClosed,
+  DoorOpen,
   Download,
   Eye,
   EyeOff,
@@ -63,7 +65,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore, type Material } from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import {
   toLetters,
   buildBlocksX,
@@ -318,13 +320,17 @@ export function ConfiguratorControls({
   };
 
   // Download 2D front view as JPG
-  const setViewMode = useShelfStore((state) => state.setViewMode);
-  const viewMode = useShelfStore((state) => state.viewMode);
+  const setViewMode = useShelfStore((state: ShelfState) => state.setViewMode);
+  const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
   // For backward compatibility with existing camera mode logic
   const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
   const setCameraMode = (mode: "2D" | "3D") => setViewMode(mode);
-  const setShowEdgesOnly = useShelfStore((state) => state.setShowEdgesOnly);
-  const _showEdgesOnly = useShelfStore((state) => state.showEdgesOnly);
+  const setShowEdgesOnly = useShelfStore(
+    (state: ShelfState) => state.setShowEdgesOnly,
+  );
+  const _showEdgesOnly = useShelfStore(
+    (state: ShelfState) => state.showEdgesOnly,
+  );
 
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
@@ -415,21 +421,23 @@ export function ConfiguratorControls({
   } = useShelfStore();
 
   // Add these if not already in your store:
-  const selectedMaterialId = useShelfStore((state) => state.selectedMaterialId);
+  const selectedMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedMaterialId,
+  );
   const setSelectedMaterialId = useShelfStore(
-    (state) => state.setSelectedMaterialId,
+    (state: ShelfState) => state.setSelectedMaterialId,
   );
   const selectedFrontMaterialId = useShelfStore(
-    (state) => state.selectedFrontMaterialId,
+    (state: ShelfState) => state.selectedFrontMaterialId,
   );
   const setSelectedFrontMaterialId = useShelfStore(
-    (state) => state.setSelectedFrontMaterialId,
+    (state: ShelfState) => state.setSelectedFrontMaterialId,
   );
   const selectedBackMaterialId = useShelfStore(
-    (state) => state.selectedBackMaterialId,
+    (state: ShelfState) => state.selectedBackMaterialId,
   );
   const setSelectedBackMaterialId = useShelfStore(
-    (state) => state.setSelectedBackMaterialId,
+    (state: ShelfState) => state.setSelectedBackMaterialId,
   );
 
   // Auto-select first material for each category type if current selection is invalid
@@ -496,43 +504,57 @@ export function ConfiguratorControls({
     setSelectedBackMaterialId,
   ]);
 
-  const showDimensions = useShelfStore((state) => state.showDimensions);
-  const setShowDimensions = useShelfStore((state) => state.setShowDimensions);
+  const showDimensions = useShelfStore(
+    (state: ShelfState) => state.showDimensions,
+  );
+  const setShowDimensions = useShelfStore(
+    (state: ShelfState) => state.setShowDimensions,
+  );
   // Base (baza) state
-  const hasBase = useShelfStore((state) => state.hasBase);
-  const baseHeight = useShelfStore((state) => state.baseHeight);
-  const setHasBase = useShelfStore((state) => state.setHasBase);
-  const setBaseHeight = useShelfStore((state) => state.setBaseHeight);
+  const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
+  const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
+  const setHasBase = useShelfStore((state: ShelfState) => state.setHasBase);
+  const setBaseHeight = useShelfStore(
+    (state: ShelfState) => state.setBaseHeight,
+  );
 
   // Accordion step state (for controlled accordion)
   const activeAccordionStep = useShelfStore(
-    (state) => state.activeAccordionStep,
+    (state: ShelfState) => state.activeAccordionStep,
   );
   const setActiveAccordionStep = useShelfStore(
-    (state) => state.setActiveAccordionStep,
+    (state: ShelfState) => state.setActiveAccordionStep,
   );
   const selectedCompartmentKey = useShelfStore(
-    (state) => state.selectedCompartmentKey,
+    (state: ShelfState) => state.selectedCompartmentKey,
   );
 
   // State for global info toggle
   const [allInfoShown, setAllInfoShown] = React.useState(false);
   const [showCutList, setShowCutList] = React.useState(false);
-  const setShowInfoButtons = useShelfStore((state) => state.setShowInfoButtons);
+  const setShowInfoButtons = useShelfStore(
+    (state: ShelfState) => state.setShowInfoButtons,
+  );
 
   // Track loaded wardrobe for update functionality
-  const loadedWardrobeId = useShelfStore((state) => state.loadedWardrobeId);
+  const loadedWardrobeId = useShelfStore(
+    (state: ShelfState) => state.loadedWardrobeId,
+  );
   const loadedWardrobeIsModel = useShelfStore(
-    (state) => state.loadedWardrobeIsModel,
+    (state: ShelfState) => state.loadedWardrobeIsModel,
   );
   const clearLoadedWardrobe = useShelfStore(
-    (state) => state.clearLoadedWardrobe,
+    (state: ShelfState) => state.clearLoadedWardrobe,
   );
 
   // Track order context when editing from order detail page
-  const fromOrderId = useShelfStore((state) => state.fromOrderId);
-  const fromOrderNumber = useShelfStore((state) => state.fromOrderNumber);
-  const clearFromOrder = useShelfStore((state) => state.clearFromOrder);
+  const fromOrderId = useShelfStore((state: ShelfState) => state.fromOrderId);
+  const fromOrderNumber = useShelfStore(
+    (state: ShelfState) => state.fromOrderNumber,
+  );
+  const clearFromOrder = useShelfStore(
+    (state: ShelfState) => state.clearFromOrder,
+  );
 
   // Track which material should be pinned to first position per category type
   // Only updated when selecting from popup, not when clicking preview images
@@ -543,20 +565,37 @@ export function ConfiguratorControls({
   }>({});
 
   // Additional store reads needed for cut list (top-level to respect Rules of Hooks)
-  const elementConfigs = useShelfStore((state) => state.elementConfigs);
-  const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
-  const doorSelections = useShelfStore((state) => state.doorSelections);
+  const elementConfigs = useShelfStore(
+    (state: ShelfState) => state.elementConfigs,
+  );
+  const compartmentExtras = useShelfStore(
+    (state: ShelfState) => state.compartmentExtras,
+  );
+  const doorSelections = useShelfStore(
+    (state: ShelfState) => state.doorSelections,
+  );
+  const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
+  const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+  const setShowDoors = useShelfStore((state: ShelfState) => state.setShowDoors);
   // Door multi-select state for Step 5
   const selectedDoorCompartments = useShelfStore(
-    (state) => state.selectedDoorCompartments,
+    (state: ShelfState) => state.selectedDoorCompartments,
   );
   // Structural boundaries - CRITICAL for accurate area calculation
-  const verticalBoundaries = useShelfStore((state) => state.verticalBoundaries);
+  const verticalBoundaries = useShelfStore(
+    (state: ShelfState) => state.verticalBoundaries,
+  );
   const columnHorizontalBoundaries = useShelfStore(
-    (state) => state.columnHorizontalBoundaries,
+    (state: ShelfState) => state.columnHorizontalBoundaries,
   );
   const columnModuleBoundaries = useShelfStore(
-    (state) => state.columnModuleBoundaries,
+    (state: ShelfState) => state.columnModuleBoundaries,
+  );
+  const columnHeights = useShelfStore(
+    (state: ShelfState) => state.columnHeights,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (state: ShelfState) => state.columnTopModuleShelves,
   );
 
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
@@ -1039,7 +1078,7 @@ export function ConfiguratorControls({
   }, [cutList, fmt2]);
 
   // Reset info button state if wardrobe structure changes
-  const rowCounts = useShelfStore((state) => state.rowCounts);
+  const rowCounts = useShelfStore((state: ShelfState) => state.rowCounts);
   React.useEffect(() => {
     setAllInfoShown(false);
     setShowInfoButtons(false);
@@ -1416,36 +1455,136 @@ export function ConfiguratorControls({
                 <DoorOptionsPanel
                   selectedKeys={selectedDoorCompartments}
                   compartmentHeights={(() => {
-                    // Calculate compartment heights
+                    // Calculate compartment heights - MATCHING CarcassFrame logic exactly
                     const w = width / 100;
                     const h = height / 100;
                     const t = 0.018; // panel thickness
                     const baseH = hasBase ? baseHeight / 100 : 0;
-                    const innerH = h - 2 * t - baseH;
+                    const splitThreshold = TARGET_BOTTOM_HEIGHT_CM / 100; // 2.0m
+
                     const columns = buildBlocksX(
                       w,
                       verticalBoundaries.length > 0
                         ? verticalBoundaries
                         : undefined,
                     );
+
                     const heights: Record<string, number> = {};
+
                     columns.forEach((col, colIdx) => {
                       const colLetter = toLetters(colIdx);
-                      const hBoundary = columnHorizontalBoundaries[colIdx];
-                      if (hBoundary !== null && hBoundary !== undefined) {
-                        // Split column - bottom and top compartments
-                        const bottomH = hBoundary - (-h / 2 + t + baseH);
-                        const topH = h / 2 - t - hBoundary;
-                        heights[`${colLetter}1`] = Math.round(bottomH * 100);
-                        heights[`${colLetter}2`] = Math.round(topH * 100);
-                      } else {
-                        // Single compartment
-                        heights[`${colLetter}1`] = Math.round(innerH * 100);
+                      // Get column-specific height (or global height)
+                      const colH = (columnHeights[colIdx] ?? height) / 100;
+                      // Get array of shelf Y positions for this column
+                      const shelves = columnHorizontalBoundaries[colIdx] || [];
+                      // Get module boundary for this column (if split)
+                      const moduleBoundary =
+                        columnModuleBoundaries[colIdx] ?? null;
+                      const hasModuleBoundary =
+                        moduleBoundary !== null && colH > splitThreshold;
+                      // Top module shelves
+                      const topModuleShelves =
+                        columnTopModuleShelves[colIdx] || [];
+                      // Number of compartments in bottom module
+                      const bottomModuleCompartments = shelves.length + 1;
+
+                      // Calculate height for each bottom module compartment
+                      for (
+                        let compIdx = 0;
+                        compIdx < bottomModuleCompartments;
+                        compIdx++
+                      ) {
+                        const compKey = `${colLetter}${compIdx + 1}`;
+                        let bottomSurface: number;
+                        let topSurface: number;
+
+                        // Last compartment in bottom module (when module boundary exists)
+                        if (
+                          hasModuleBoundary &&
+                          compIdx === bottomModuleCompartments - 1
+                        ) {
+                          bottomSurface =
+                            compIdx === 0
+                              ? baseH + t
+                              : shelves[compIdx - 1] + t / 2;
+                          topSurface = moduleBoundary - t;
+                        } else {
+                          // Regular compartments
+                          if (compIdx === 0) {
+                            bottomSurface = baseH + t;
+                          } else {
+                            bottomSurface = shelves[compIdx - 1] + t / 2;
+                          }
+
+                          if (
+                            compIdx === shelves.length &&
+                            !hasModuleBoundary
+                          ) {
+                            topSurface = colH - t;
+                          } else {
+                            topSurface = shelves[compIdx] - t / 2;
+                          }
+                        }
+
+                        heights[compKey] = Math.round(
+                          (topSurface - bottomSurface) * 100,
+                        );
+                      }
+
+                      // Calculate height for each top module compartment
+                      if (hasModuleBoundary) {
+                        const topModuleCompartments =
+                          topModuleShelves.length + 1;
+                        for (
+                          let topCompIdx = 0;
+                          topCompIdx < topModuleCompartments;
+                          topCompIdx++
+                        ) {
+                          const compIdx = bottomModuleCompartments + topCompIdx;
+                          const compKey = `${colLetter}${compIdx + 1}`;
+                          let bottomSurface: number;
+                          let topSurface: number;
+
+                          if (topCompIdx === 0) {
+                            bottomSurface = moduleBoundary + t;
+                          } else {
+                            bottomSurface =
+                              topModuleShelves[topCompIdx - 1] + t / 2;
+                          }
+
+                          if (topCompIdx === topModuleShelves.length) {
+                            topSurface = colH - t;
+                          } else {
+                            topSurface = topModuleShelves[topCompIdx] - t / 2;
+                          }
+
+                          heights[compKey] = Math.round(
+                            (topSurface - bottomSurface) * 100,
+                          );
+                        }
                       }
                     });
                     return heights;
                   })()}
                 />
+              )}
+              {/* Show/Hide Doors toggle - only when doors exist */}
+              {doorGroups.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowDoors(!showDoors)}
+                  className="w-full mt-4"
+                  size="sm"
+                >
+                  {showDoors ? (
+                    <EyeOff className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
+                  {showDoors
+                    ? "Sakrij vrata na slici"
+                    : "Prikaži vrata na slici"}
+                </Button>
               )}
             </AccordionContent>
           </AccordionItem>
@@ -1496,6 +1635,22 @@ export function ConfiguratorControls({
                   )}
                   {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
                 </Button>
+                {/* Door visibility toggle - only show if doors exist */}
+                {doorGroups.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowDoors(!showDoors)}
+                    className="hover:text-white px-2"
+                    size="sm"
+                    title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+                  >
+                    {showDoors ? (
+                      <DoorOpen className="h-4 w-4" />
+                    ) : (
+                      <DoorClosed className="h-4 w-4 opacity-50" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -1829,13 +1984,17 @@ export function ConfiguratorControls({
 
 // Example: Top-right controls (e.g. in Scene.tsx or AppBar.tsx)
 export function TopRightControls() {
-  const viewMode = useShelfStore((state) => state.viewMode);
-  const setViewMode = useShelfStore((state) => state.setViewMode);
+  const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
+  const setViewMode = useShelfStore((state: ShelfState) => state.setViewMode);
   // For backward compatibility with existing camera mode logic
   const cameraMode = viewMode === "Sizing" ? "2D" : viewMode;
   const setCameraMode = (mode: "2D" | "3D") => setViewMode(mode);
-  const showDimensions = useShelfStore((state) => state.showDimensions);
-  const setShowDimensions = useShelfStore((state) => state.setShowDimensions);
+  const showDimensions = useShelfStore(
+    (state: ShelfState) => state.showDimensions,
+  );
+  const setShowDimensions = useShelfStore(
+    (state: ShelfState) => state.setShowDimensions,
+  );
 
   return (
     <div

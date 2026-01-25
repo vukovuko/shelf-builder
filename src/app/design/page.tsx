@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState } from "@/lib/store";
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
@@ -14,8 +14,10 @@ function LoadFromUrl() {
   const loadId = searchParams.get("load");
   const fromOrderId = searchParams.get("fromOrder");
   const orderNum = searchParams.get("orderNum");
-  const setLoadedWardrobe = useShelfStore((s) => s.setLoadedWardrobe);
-  const setFromOrder = useShelfStore((s) => s.setFromOrder);
+  const setLoadedWardrobe = useShelfStore(
+    (s: ShelfState) => s.setLoadedWardrobe,
+  );
+  const setFromOrder = useShelfStore((s: ShelfState) => s.setFromOrder);
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 

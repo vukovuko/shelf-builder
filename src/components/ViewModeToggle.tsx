@@ -8,12 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useShelfStore, type ViewMode } from "@/lib/store";
+import { useShelfStore, type ViewMode, type ShelfState } from "@/lib/store";
 
 export function ViewModeToggle() {
-  const { viewMode, setViewMode } = useShelfStore();
+  const viewMode = useShelfStore((s: ShelfState) => s.viewMode);
+  const setViewMode = useShelfStore((s: ShelfState) => s.setViewMode);
 
-  const viewModeConfig = {
+  const viewModeConfig: Record<
+    ViewMode,
+    { icon: typeof Rotate3d; label: string }
+  > = {
     "3D": {
       icon: Rotate3d,
       label: "3D Prikaz",

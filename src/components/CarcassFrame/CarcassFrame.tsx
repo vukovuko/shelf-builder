@@ -2,7 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import React from "react";
-import { useShelfStore } from "@/lib/store";
+import { useShelfStore, type ShelfState, type DoorGroup } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
@@ -48,65 +48,76 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
   function CarcassFrame({ materials }, ref) {
     const { width, height, depth, selectedMaterialId } = useShelfStore();
     const verticalBoundaries = useShelfStore(
-      (state) => state.verticalBoundaries,
+      (state: ShelfState) => state.verticalBoundaries,
     );
     const setVerticalBoundaries = useShelfStore(
-      (state) => state.setVerticalBoundaries,
+      (state: ShelfState) => state.setVerticalBoundaries,
     );
     const columnHorizontalBoundaries = useShelfStore(
-      (state) => state.columnHorizontalBoundaries,
+      (state: ShelfState) => state.columnHorizontalBoundaries,
     );
     const setColumnHorizontalBoundaries = useShelfStore(
-      (state) => state.setColumnHorizontalBoundaries,
+      (state: ShelfState) => state.setColumnHorizontalBoundaries,
     );
-    const columnHeights = useShelfStore((state) => state.columnHeights);
-    const elementConfigs = useShelfStore((state) => state.elementConfigs);
-    const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
+    const columnHeights = useShelfStore(
+      (state: ShelfState) => state.columnHeights,
+    );
+    const elementConfigs = useShelfStore(
+      (state: ShelfState) => state.elementConfigs,
+    );
+    const compartmentExtras = useShelfStore(
+      (state: ShelfState) => state.compartmentExtras,
+    );
     const hoveredColumnIndex = useShelfStore(
-      (state) => state.hoveredColumnIndex,
+      (state: ShelfState) => state.hoveredColumnIndex,
     );
     const setHoveredColumnIndex = useShelfStore(
-      (state) => state.setHoveredColumnIndex,
+      (state: ShelfState) => state.setHoveredColumnIndex,
     );
     const columnModuleBoundaries = useShelfStore(
-      (state) => state.columnModuleBoundaries,
+      (state: ShelfState) => state.columnModuleBoundaries,
     );
     const columnTopModuleShelves = useShelfStore(
-      (state) => state.columnTopModuleShelves,
+      (state: ShelfState) => state.columnTopModuleShelves,
     );
     const activeAccordionStep = useShelfStore(
-      (state) => state.activeAccordionStep,
+      (state: ShelfState) => state.activeAccordionStep,
     );
-    const isDragging = useShelfStore((state) => state.isDragging);
+    const isDragging = useShelfStore((state: ShelfState) => state.isDragging);
     const hoveredCompartmentKey = useShelfStore(
-      (state) => state.hoveredCompartmentKey,
+      (state: ShelfState) => state.hoveredCompartmentKey,
     );
     const setHoveredCompartmentKey = useShelfStore(
-      (state) => state.setHoveredCompartmentKey,
+      (state: ShelfState) => state.setHoveredCompartmentKey,
     );
     const selectedCompartmentKey = useShelfStore(
-      (state) => state.selectedCompartmentKey,
+      (state: ShelfState) => state.selectedCompartmentKey,
     );
     const setSelectedCompartmentKey = useShelfStore(
-      (state) => state.setSelectedCompartmentKey,
+      (state: ShelfState) => state.setSelectedCompartmentKey,
     );
-    const hasBase = useShelfStore((state) => state.hasBase);
-    const baseHeight = useShelfStore((state) => state.baseHeight);
+    const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
+    const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
 
     // Door selection state (Step 5)
     const selectedDoorCompartments = useShelfStore(
-      (state) => state.selectedDoorCompartments,
+      (state: ShelfState) => state.selectedDoorCompartments,
     );
     const doorSelectionDragging = useShelfStore(
-      (state) => state.doorSelectionDragging,
+      (state: ShelfState) => state.doorSelectionDragging,
     );
     const startDoorSelection = useShelfStore(
-      (state) => state.startDoorSelection,
+      (state: ShelfState) => state.startDoorSelection,
     );
     const updateDoorSelectionDrag = useShelfStore(
-      (state) => state.updateDoorSelectionDrag,
+      (state: ShelfState) => state.updateDoorSelectionDrag,
     );
-    const endDoorSelection = useShelfStore((state) => state.endDoorSelection);
+    const endDoorSelection = useShelfStore(
+      (state: ShelfState) => state.endDoorSelection,
+    );
+    // Door groups for 3D rendering
+    const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
+    const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
 
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
@@ -566,7 +577,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               />
 
               {/* Horizontal shelves - one panel per shelf */}
-              {shelves.map((shelfY, shelfIdx) => (
+              {shelves.map((shelfY: number, shelfIdx: number) => (
                 <React.Fragment key={`shelf-${shelfIdx}`}>
                   <Panel
                     position={[colCenterX, shelfY, carcassZ]}
@@ -675,7 +686,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       <meshBasicMaterial
                         transparent
                         opacity={
-                          (isStep2Active && (isCompHovered || isCompSelected)) ||
+                          (isStep2Active &&
+                            (isCompHovered || isCompSelected)) ||
                           (isStep5Active && isDoorSelected)
                             ? 0.15
                             : 0
@@ -1039,7 +1051,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                 return (
                   <>
-                    {topShelves.map((shelfY, shelfIdx) => {
+                    {topShelves.map((shelfY: number, shelfIdx: number) => {
                       // Min/max Y for shelf drag within top module
                       const prevY =
                         shelfIdx === 0
@@ -1173,6 +1185,125 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             </React.Fragment>
           );
         })}
+
+        {/* Door panels - render for each door group (only on Step 5 when showDoors is true) */}
+        {showDoors &&
+          isStep5Active &&
+          doorGroups.map((group: DoorGroup) => {
+            // Find which column this door belongs to
+            const colIdx = columns.findIndex((_, idx) => {
+              const colLetter = String.fromCharCode(65 + idx);
+              return group.column === colLetter;
+            });
+            if (colIdx === -1) return null;
+
+            const col = columns[colIdx];
+            const colCenterX = (col.start + col.end) / 2;
+            const colInnerW = col.width - 2 * t;
+            const colH = getColumnHeight(colIdx);
+
+            // Get compartment bounds helper for this column
+            const shelves = columnHorizontalBoundaries[colIdx] || [];
+            const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+            const hasModuleBoundary =
+              moduleBoundary !== null && colH > splitThreshold;
+            const topModuleShelves = columnTopModuleShelves[colIdx] || [];
+            const bottomModuleCompartments = shelves.length + 1;
+
+            // Get bounds for compartment by key
+            const getCompBounds = (compKey: string) => {
+              const match = compKey.match(/^([A-Z]+)(\d+)$/);
+              if (!match) return { bottomY: baseH + t, topY: colH - t };
+              const compIdx = parseInt(match[2], 10) - 1;
+
+              // Check if this is a top module compartment
+              if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
+                const topCompIdx = compIdx - bottomModuleCompartments;
+                const bottomY =
+                  topCompIdx === 0
+                    ? moduleBoundary + t
+                    : topModuleShelves[topCompIdx - 1];
+                const topY =
+                  topCompIdx === topModuleShelves.length
+                    ? colH - t
+                    : topModuleShelves[topCompIdx];
+                return { bottomY, topY };
+              }
+
+              // Bottom module compartment
+              const bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
+              let topY: number;
+              if (
+                hasModuleBoundary &&
+                compIdx === bottomModuleCompartments - 1
+              ) {
+                topY = moduleBoundary - t;
+              } else if (compIdx === shelves.length) {
+                topY = colH - t;
+              } else {
+                topY = shelves[compIdx];
+              }
+              return { bottomY, topY };
+            };
+
+            // Calculate door span bounds
+            const firstComp = group.compartments[0];
+            const lastComp = group.compartments[group.compartments.length - 1];
+            const firstBounds = getCompBounds(firstComp);
+            const lastBounds = getCompBounds(lastComp);
+
+            const doorBottomY = firstBounds.bottomY;
+            const doorTopY = lastBounds.topY;
+            const doorHeight = doorTopY - doorBottomY;
+            const doorCenterY = (doorBottomY + doorTopY) / 2;
+
+            // Door dimensions
+            const doorInset = 0.002; // 2mm clearance
+            const doorW = colInnerW - doorInset * 2;
+            const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
+            const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
+
+            // Render based on door type
+            if (group.type === "double" || group.type === "doubleMirror") {
+              // Double doors - two panels with gap
+              const gapBetween = 0.003; // 3mm gap
+              const leafW = (doorW - gapBetween) / 2;
+              const offset = (leafW + gapBetween) / 2;
+
+              return (
+                <React.Fragment key={group.id}>
+                  <mesh position={[colCenterX - offset, doorCenterY, doorZ]}>
+                    <boxGeometry args={[leafW, doorHeight, doorT]} />
+                    <meshStandardMaterial
+                      color="#b4befe"
+                      roughness={0.5}
+                      metalness={0.1}
+                    />
+                  </mesh>
+                  <mesh position={[colCenterX + offset, doorCenterY, doorZ]}>
+                    <boxGeometry args={[leafW, doorHeight, doorT]} />
+                    <meshStandardMaterial
+                      color="#b4befe"
+                      roughness={0.5}
+                      metalness={0.1}
+                    />
+                  </mesh>
+                </React.Fragment>
+              );
+            }
+
+            // Single door (left, right, or other types)
+            return (
+              <mesh key={group.id} position={[colCenterX, doorCenterY, doorZ]}>
+                <boxGeometry args={[doorW, doorHeight, doorT]} />
+                <meshStandardMaterial
+                  color="#b4befe"
+                  roughness={0.5}
+                  metalness={0.1}
+                />
+              </mesh>
+            );
+          })}
 
         {/* Column controls bar - positioned below wardrobe, HIDE when Step 2/5 active or dragging */}
         {!hideUIForSteps && !isDragging && <ColumnControlsBar3D depth={d} />}
