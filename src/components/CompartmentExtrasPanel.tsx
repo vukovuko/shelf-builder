@@ -178,12 +178,13 @@ export function CompartmentExtrasPanel({
   // Disabled state for extras based on subdivisions
   const hasVerticalDividers = config.columns > 1;
   const hasHorizontalShelves = config.rowCounts?.some((c) => c > 0) ?? false;
+  const hasDrawers = config.drawerCounts?.some((c) => c > 0) ?? false;
 
-  // Rod disabled when BOTH vertical AND horizontal subdivisions exist
-  const rodDisabled = hasVerticalDividers && hasHorizontalShelves;
-
-  // LED disabled when ANY subdivision exists
-  const ledDisabled = hasVerticalDividers || hasHorizontalShelves;
+  // BOTH rod and LED disabled when ANY subdivision exists (clean compartment only)
+  const isSubdivided =
+    hasVerticalDividers || hasHorizontalShelves || hasDrawers;
+  const rodDisabled = isSubdivided;
+  const ledDisabled = isSubdivided;
 
   return (
     <div className="space-y-4">

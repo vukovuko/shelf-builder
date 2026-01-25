@@ -1,12 +1,11 @@
 import type { DoorOption } from "@/lib/store";
 import {
-  MAX_SEGMENT_X,
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
   DRAWER_HEIGHT,
   DRAWER_GAP,
-  DOOR_THICKNESS_M,
 } from "./wardrobe-constants";
+import { buildBlocksX } from "./wardrobe-utils";
 
 type PricingMaterial = {
   id: number;
@@ -40,6 +39,10 @@ export type WardrobeSnapshot = {
   doorSelections?: Record<string, DoorOption>;
   hasBase?: boolean;
   baseHeight?: number;
+  // Structural data - MUST be used for accurate calculations
+  verticalBoundaries?: number[]; // X positions of vertical seams (in meters from center)
+  columnHorizontalBoundaries?: Record<number, number[]>; // Y positions of shelves per column
+  columnModuleBoundaries?: Record<number, number | null>; // Module split Y position per column
 };
 
 export type MaterialType = "korpus" | "front" | "back";
@@ -53,7 +56,7 @@ export type CutListItem = {
   areaM2: number;
   cost: number;
   element: string;
-  materialType: MaterialType; // Which material category this part uses
+  materialType: MaterialType;
 };
 
 export type PriceBreakdown = {
@@ -84,6 +87,13 @@ const emptyCutList: CutList = {
   },
 };
 
+/**
+ * Calculate cut list following exact CarcassFrame structure:
+ * - Uses verticalBoundaries for actual column widths
+ * - Uses columnHorizontalBoundaries for shelf positions
+ * - Correctly counts side panels (2 outer + seam panels)
+ * - Adds module boundary panels when h > 200cm
+ */
 export function calculateCutList(
   snapshot: WardrobeSnapshot,
   materials: PricingMaterial[],
@@ -98,7 +108,9 @@ export function calculateCutList(
     const doorSelections = snapshot.doorSelections ?? {};
     const hasBase = snapshot.hasBase ?? false;
     const baseHeight = snapshot.baseHeight ?? 0;
+    const baseH = baseHeight / 100; // Convert to meters
 
+    // Get materials and prices
     const mat = materials.find(
       (m) => String(m.id) === String(snapshot.selectedMaterialId),
     );
@@ -107,23 +119,19 @@ export function calculateCutList(
     }
 
     const pricePerM2 = Number(mat?.price ?? 0);
-    const t = (Number(mat?.thickness ?? 18) / 1000) as number; // m
-    const doorT = DOOR_THICKNESS_M;
-    const clearance = 1 / 1000; // 1mm
-    const doubleGap = 3 / 1000; // 3mm between double leaves
+    const t = (Number(mat?.thickness ?? 18) / 1000) as number; // meters
+    const backT = 5 / 1000; // 5mm back panel
 
-    // Front material price (Lica/Vrata) - for doors and drawer fronts
+    // Front material (Lica/Vrata) - for doors and drawer fronts
     const frontId = snapshot.selectedFrontMaterialId ?? null;
-    // Use front material if selected, otherwise fall back to main material
     const frontMat = frontId
       ? materials.find((m) => String(m.id) === String(frontId))
       : mat;
     const frontPricePerM2 = Number(frontMat?.price ?? pricePerM2);
     const frontT = (Number(frontMat?.thickness ?? 18) / 1000) as number;
 
-    // Back material price and thickness (5mm)
+    // Back material (Leđa)
     const backId = snapshot.selectedBackMaterialId ?? null;
-    // Find back material - by ID if selected, otherwise first material with "Leđa" in categories
     const backMat = materials.find((m) =>
       backId
         ? String(m.id) === String(backId)
@@ -134,8 +142,9 @@ export function calculateCutList(
           ),
     );
     const backPricePerM2 = Number(backMat?.price ?? 0);
-    const backT = (Number(backMat?.thickness ?? 5) / 1000) as number;
+    const actualBackT = (Number(backMat?.thickness ?? 5) / 1000) as number;
 
+    // Convert dimensions to meters
     const w = snapshot.width / 100;
     const h = snapshot.height / 100;
     const d = snapshot.depth / 100;
@@ -151,416 +160,366 @@ export function calculateCutList(
       return emptyCutList;
     }
 
-    const nBlocksX = Math.max(1, Math.ceil(w / MAX_SEGMENT_X));
-    const segWX = w / nBlocksX;
-    const blocksX = Array.from({ length: nBlocksX }, (_, i) => {
-      const start = -w / 2 + i * segWX;
-      const end = start + segWX;
-      return { start, end };
-    });
-    const modulesY: { yStart: number; yEnd: number }[] = [];
-    if (h > TARGET_BOTTOM_HEIGHT) {
-      const yStartBottom = -h / 2;
-      const bottomH =
+    // Carcass depth (shortened for back panel)
+    const carcassD = d - backT;
+
+    // Use actual vertical boundaries from store
+    const verticalBoundaries = snapshot.verticalBoundaries ?? [];
+    const columnHorizontalBoundaries =
+      snapshot.columnHorizontalBoundaries ?? {};
+
+    // Build columns using actual boundaries
+    const columns = buildBlocksX(
+      w,
+      verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+    );
+    const numColumns = columns.length;
+
+    // Check if we need module split (h > 200cm)
+    const needsModuleSplit = h > TARGET_BOTTOM_HEIGHT;
+    let bottomModuleH = h;
+    let topModuleH = 0;
+    if (needsModuleSplit) {
+      bottomModuleH =
         h - TARGET_BOTTOM_HEIGHT < MIN_TOP_HEIGHT
           ? h - MIN_TOP_HEIGHT
           : TARGET_BOTTOM_HEIGHT;
-      const yEndBottom = yStartBottom + bottomH;
-      const yStartTop = yEndBottom;
-      const yEndTop = h / 2;
-      modulesY.push({ yStart: yStartBottom, yEnd: yEndBottom });
-      modulesY.push({ yStart: yStartTop, yEnd: yEndTop });
-    } else {
-      modulesY.push({ yStart: -h / 2, yEnd: h / 2 });
+      topModuleH = h - bottomModuleH;
     }
-    const toLetters = (num: number) => {
-      let n = num + 1;
-      let s = "";
-      while (n > 0) {
-        const rem = (n - 1) % 26;
-        s = String.fromCharCode(65 + rem) + s;
-        n = Math.floor((n - 1) / 26);
-      }
-      return s;
-    };
 
     const items: CutListItem[] = [];
 
-    let idx = 0;
-    modulesY.forEach((m, mIdx) => {
-      const moduleH = m.yEnd - m.yStart;
-      const doorH = Math.max(moduleH - clearance, 0);
-      blocksX.forEach((bx) => {
-        const letter = toLetters(idx);
-        const elemW = bx.end - bx.start;
-        const innerStartX = bx.start + t;
-        const innerEndX = bx.end - t;
-        const innerW = Math.max(innerEndX - innerStartX, 0);
-        const suffix = `.${mIdx + 1}`;
-        const yStartInner = m.yStart + t;
-        const yEndInner = m.yEnd - t;
+    // Helper to add korpus item
+    const addKorpus = (
+      code: string,
+      desc: string,
+      widthM: number,
+      heightM: number,
+      element: string,
+    ) => {
+      const area = widthM * heightM;
+      items.push({
+        code,
+        desc,
+        widthCm: widthM * 100,
+        heightCm: heightM * 100,
+        thicknessMm: t * 1000,
+        areaM2: area,
+        cost: area * pricePerM2,
+        element,
+        materialType: "korpus",
+      });
+    };
 
-        // Sides - use korpus material
-        const sideW = d;
-        const sideH = moduleH;
-        const sideArea = sideW * sideH;
-        items.push({
-          code: `A${letter}L${suffix}`,
-          desc: `Leva stranica elementa ${letter}${suffix}`,
-          widthCm: sideW * 100,
-          heightCm: sideH * 100,
-          thicknessMm: t * 1000,
-          areaM2: sideArea,
-          cost: sideArea * pricePerM2,
-          element: letter,
-          materialType: "korpus",
-        });
-        items.push({
-          code: `A${letter}D${suffix}`,
-          desc: `Desna stranica elementa ${letter}${suffix}`,
-          widthCm: sideW * 100,
-          heightCm: sideH * 100,
-          thicknessMm: t * 1000,
-          areaM2: sideArea,
-          cost: sideArea * pricePerM2,
-          element: letter,
-          materialType: "korpus",
-        });
+    // Helper to add front item
+    const addFront = (
+      code: string,
+      desc: string,
+      widthM: number,
+      heightM: number,
+      element: string,
+    ) => {
+      const area = widthM * heightM;
+      items.push({
+        code,
+        desc,
+        widthCm: widthM * 100,
+        heightCm: heightM * 100,
+        thicknessMm: frontT * 1000,
+        areaM2: area,
+        cost: area * frontPricePerM2,
+        element,
+        materialType: "front",
+      });
+    };
 
-        // Shelves per compartment
-        const cfg = elementConfigs[letter] ?? { columns: 1, rowCounts: [0] };
-        const cols = Math.max(1, (cfg.columns as number) | 0);
-        const xs: number[] = [innerStartX];
-        for (let c = 1; c <= cols - 1; c++)
-          xs.push(innerStartX + (innerW * c) / cols);
-        xs.push(innerEndX);
-        const compWidths = xs.slice(0, -1).map((x0, cIdx) => {
-          const x1 = xs[cIdx + 1];
-          const left = x0 + (cIdx === 0 ? 0 : t / 2);
-          const right = x1 - (cIdx === cols - 1 ? 0 : t / 2);
-          return Math.max(right - left, 0);
-        });
-        let shelfSerial = 0;
-        compWidths.forEach((compW, cIdx) => {
-          const count = Math.max(
-            0,
-            Math.floor((cfg.rowCounts as number[] | undefined)?.[cIdx] ?? 0),
+    // Helper to add back item
+    const addBack = (
+      code: string,
+      desc: string,
+      widthM: number,
+      heightM: number,
+      element: string,
+    ) => {
+      const area = widthM * heightM;
+      items.push({
+        code,
+        desc,
+        widthCm: widthM * 100,
+        heightCm: heightM * 100,
+        thicknessMm: actualBackT * 1000,
+        areaM2: area,
+        cost: area * backPricePerM2,
+        element,
+        materialType: "back",
+      });
+    };
+
+    // ==========================================
+    // 1. OUTER SIDE PANELS (2 for entire wardrobe)
+    // ==========================================
+    // Side L and Side R - full height, carcass depth
+    addKorpus("SL", "Leva stranica (spoljna)", carcassD, h, "KORPUS");
+    addKorpus("SD", "Desna stranica (spoljna)", carcassD, h, "KORPUS");
+
+    // ==========================================
+    // 2. VERTICAL SEAM PANELS (2 per seam)
+    // ==========================================
+    // At each vertical boundary, there are 2 panels (one from each adjacent column)
+    const seamH = hasBase ? h - baseH : h;
+    verticalBoundaries.forEach((_, seamIdx) => {
+      addKorpus(
+        `VS${seamIdx + 1}L`,
+        `Vertikalna pregrada ${seamIdx + 1} (leva)`,
+        carcassD,
+        seamH,
+        "KORPUS",
+      );
+      addKorpus(
+        `VS${seamIdx + 1}D`,
+        `Vertikalna pregrada ${seamIdx + 1} (desna)`,
+        carcassD,
+        seamH,
+        "KORPUS",
+      );
+    });
+
+    // ==========================================
+    // 3. TOP AND BOTTOM PANELS (per column)
+    // ==========================================
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const innerW = Math.max(col.width - 2 * t, 0);
+
+      if (innerW > 0) {
+        // Bottom panel (raised by base if hasBase)
+        addKorpus(
+          `${colLetter}-DON`,
+          `Donja ploča kolone ${colLetter}`,
+          innerW,
+          carcassD,
+          colLetter,
+        );
+
+        // Top panel
+        addKorpus(
+          `${colLetter}-GOR`,
+          `Gornja ploča kolone ${colLetter}`,
+          innerW,
+          carcassD,
+          colLetter,
+        );
+
+        // Module boundary panels (if h > 200cm) - 2 panels touching
+        if (needsModuleSplit) {
+          addKorpus(
+            `${colLetter}-MB1`,
+            `Granica modula ${colLetter} (donja)`,
+            innerW,
+            carcassD,
+            colLetter,
           );
-          for (let s = 0; s < count; s++) {
-            shelfSerial += 1;
-            const area = compW * d;
-            items.push({
-              code: `A${letter}P.${shelfSerial}`,
-              desc: `Polica ${letter} (komora ${cIdx + 1})`,
-              widthCm: compW * 100,
-              heightCm: d * 100,
-              thicknessMm: t * 1000,
-              areaM2: area,
-              cost: area * pricePerM2,
-              element: letter,
-              materialType: "korpus",
-            });
-          }
-        });
+          addKorpus(
+            `${colLetter}-MB2`,
+            `Granica modula ${colLetter} (gornja)`,
+            innerW,
+            carcassD,
+            colLetter,
+          );
+        }
+      }
+    });
 
-        // Top and Bottom panels per element (like CarcassFrame) - use korpus material
-        const innerLenX = Math.max(elemW - 2 * t, 0);
-        if (innerLenX > 0) {
-          const areaBot = innerLenX * d;
-          items.push({
-            code: `A${letter}B${suffix}`,
-            desc: `Donja ploča ${letter}${suffix}`,
-            widthCm: innerLenX * 100,
-            heightCm: d * 100,
-            thicknessMm: t * 1000,
-            areaM2: areaBot,
-            cost: areaBot * pricePerM2,
-            element: letter,
-            materialType: "korpus",
-          });
-          const areaTop = innerLenX * d;
-          items.push({
-            code: `A${letter}G${suffix}`,
-            desc: `Gornja ploča ${letter}${suffix}`,
-            widthCm: innerLenX * 100,
-            heightCm: d * 100,
-            thicknessMm: t * 1000,
-            areaM2: areaTop,
-            cost: areaTop * pricePerM2,
-            element: letter,
-            materialType: "korpus",
-          });
+    // ==========================================
+    // 4. MAIN SHELVES (from columnHorizontalBoundaries)
+    // ==========================================
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const innerW = Math.max(col.width - 2 * t, 0);
+      const shelfYs = columnHorizontalBoundaries[colIdx] || [];
+
+      shelfYs.forEach((_, shelfIdx) => {
+        if (innerW > 0) {
+          addKorpus(
+            `${colLetter}-P${shelfIdx + 1}`,
+            `Polica ${colLetter} (glavna ${shelfIdx + 1})`,
+            innerW,
+            carcassD,
+            colLetter,
+          );
+        }
+      });
+    });
+
+    // ==========================================
+    // 5. PER-COMPARTMENT: Inner structure, doors, drawers, back panels
+    // ==========================================
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const innerW = Math.max(col.width - 2 * t, 0);
+      const shelfYs = columnHorizontalBoundaries[colIdx] || [];
+      const numCompartments = shelfYs.length + 1;
+
+      // Calculate compartment heights
+      const yBottom = -h / 2 + t + (hasBase ? baseH : 0);
+      const yTop = h / 2 - t;
+      const sortedYs = [...shelfYs].sort((a, b) => a - b);
+      const allYs = [yBottom, ...sortedYs, yTop];
+
+      for (let compIdx = 0; compIdx < numCompartments; compIdx++) {
+        const compKey = `${colLetter}${compIdx + 1}`;
+        const compYStart = allYs[compIdx];
+        const compYEnd = allYs[compIdx + 1];
+        const compH = Math.max(compYEnd - compYStart - t, 0); // Account for shelf thickness
+
+        // Get element config for this compartment
+        const cfg = elementConfigs[compKey] ?? { columns: 1, rowCounts: [0] };
+        const innerCols = Math.max(1, (cfg.columns as number) | 0);
+
+        // Calculate inner section widths
+        const sectionW = innerW / innerCols;
+
+        // Inner vertical dividers (from elementConfigs)
+        if (innerCols > 1) {
+          for (let divIdx = 1; divIdx < innerCols; divIdx++) {
+            addKorpus(
+              `${compKey}-VD${divIdx}`,
+              `Vertikalni divider ${compKey} (${divIdx})`,
+              carcassD,
+              compH,
+              compKey,
+            );
+          }
         }
 
-        // Internal vertical dividers from elementConfigs (between compartments)
-        if (cols > 1) {
-          // Compute drawers region to shorten divider height (same approach as CarcassFrame)
-          const extrasForEl = compartmentExtras[
-            letter as keyof typeof compartmentExtras
-          ] as any;
+        // Inner shelves per section (from rowCounts)
+        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+          const shelfCount = Math.max(
+            0,
+            Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
+          );
+          const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
+
+          for (let shelfNum = 0; shelfNum < shelfCount; shelfNum++) {
+            addKorpus(
+              `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
+              `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+              secW,
+              carcassD,
+              compKey,
+            );
+          }
+        }
+
+        // Extras: center vertical divider
+        const extras = compartmentExtras[compKey] ?? {};
+        if (extras.verticalDivider && innerCols === 1) {
+          addKorpus(
+            `${compKey}-VDC`,
+            `Vertikalni divider (srednji) ${compKey}`,
+            carcassD,
+            compH,
+            compKey,
+          );
+        }
+
+        // Drawers (use front material)
+        if (extras.drawers) {
           const drawerH = DRAWER_HEIGHT;
           const gap = DRAWER_GAP;
           const per = drawerH + gap;
-          const raiseByBase =
-            hasBase && (modulesY.length === 1 || mIdx === 0)
-              ? baseHeight / 100
-              : 0;
-          const drawersYStart = yStartInner + raiseByBase;
-          const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-          const maxAuto = Math.max(
-            0,
-            Math.floor((innerHForDrawers + gap) / per),
-          );
-          const countFromState = Math.max(
-            0,
-            Math.floor(extrasForEl?.drawersCount ?? 0),
-          );
-          const usedDrawerCount = extrasForEl?.drawers
-            ? countFromState > 0
-              ? Math.min(countFromState, maxAuto)
-              : maxAuto
-            : 0;
-          const drawersTopY =
-            usedDrawerCount > 0
-              ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
-              : 0;
-          const autoShelfExists =
-            usedDrawerCount > 0 &&
-            usedDrawerCount < maxAuto &&
-            yEndInner - (drawersTopY + gap) >= t;
-          let yDivFrom = yStartInner;
-          if (usedDrawerCount > 0) {
-            const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
-            yDivFrom = Math.min(Math.max(baseFrom, yStartInner), yEndInner);
-          }
-          const hDiv = Math.max(yEndInner - yDivFrom, 0);
-          if (hDiv > 0) {
-            for (let c = 1; c <= cols - 1; c++) {
-              const area = d * hDiv;
-              items.push({
-                code: `A${letter}VD.${c}${suffix}`,
-                desc: `Vertikalni divider ${letter} (između komora ${c}/${c + 1})`,
-                widthCm: d * 100,
-                heightCm: hDiv * 100,
-                thicknessMm: t * 1000,
-                areaM2: area,
-                cost: area * pricePerM2,
-                element: letter,
-                materialType: "korpus",
-              });
-            }
-          }
-        }
-
-        // Doors - use front material (Lica/Vrata)
-        const sel = doorSelections[
-          letter as keyof typeof doorSelections
-        ] as any;
-        if (sel && sel !== "none") {
-          const totalAvailW = Math.max(elemW - clearance, 0);
-          if (sel === "double" || sel === "doubleMirror") {
-            const leafW = Math.max((totalAvailW - doubleGap) / 2, 0);
-            const area = leafW * doorH;
-            items.push({
-              code: `A${letter}V.L${suffix}`,
-              desc: `Vrata leva ${letter}${suffix}`,
-              widthCm: leafW * 100,
-              heightCm: doorH * 100,
-              thicknessMm: frontT * 1000,
-              areaM2: area,
-              cost: area * frontPricePerM2,
-              element: letter,
-              materialType: "front",
-            });
-            items.push({
-              code: `A${letter}V.D${suffix}`,
-              desc: `Vrata desna ${letter}${suffix}`,
-              widthCm: leafW * 100,
-              heightCm: doorH * 100,
-              thicknessMm: frontT * 1000,
-              areaM2: area,
-              cost: area * frontPricePerM2,
-              element: letter,
-              materialType: "front",
-            });
-          } else {
-            const leafW = totalAvailW;
-            const area = leafW * doorH;
-            const isLeft = sel === "left" || sel === "leftMirror";
-            const codeSuffix = isLeft
-              ? "L"
-              : sel === "right" || sel === "rightMirror"
-                ? "D"
-                : "";
-            items.push({
-              code: `A${letter}V.${codeSuffix}${suffix}`,
-              desc: `Vrata ${isLeft ? "leva" : codeSuffix === "D" ? "desna" : "jednokrilna"} ${letter}${suffix}`,
-              widthCm: leafW * 100,
-              heightCm: doorH * 100,
-              thicknessMm: frontT * 1000,
-              areaM2: area,
-              cost: area * frontPricePerM2,
-              element: letter,
-              materialType: "front",
-            });
-          }
-        }
-
-        // Extras center vertical divider (from Extras menu)
-        {
-          const extras = compartmentExtras[
-            letter as keyof typeof compartmentExtras
-          ] as any;
-          if (extras?.verticalDivider) {
-            const drawerH = DRAWER_HEIGHT;
-            const gap = DRAWER_GAP;
-            const per = drawerH + gap;
-            const raiseByBase =
-              hasBase && (modulesY.length === 1 || mIdx === 0)
-                ? baseHeight / 100
-                : 0;
-            const drawersYStart = yStartInner + raiseByBase;
-            const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-            const maxAuto = Math.max(
-              0,
-              Math.floor((innerHForDrawers + gap) / per),
-            );
-            const countFromState = Math.max(
-              0,
-              Math.floor(extras?.drawersCount ?? 0),
-            );
-            const usedDrawerCount = extras?.drawers
-              ? countFromState > 0
-                ? Math.min(countFromState, maxAuto)
-                : maxAuto
-              : 0;
-            const drawersTopY =
-              usedDrawerCount > 0
-                ? drawersYStart + drawerH + (usedDrawerCount - 1) * per
-                : 0;
-            const autoShelfExists =
-              usedDrawerCount > 0 &&
-              usedDrawerCount < maxAuto &&
-              yEndInner - (drawersTopY + gap) >= t;
-            let yDivFrom = yStartInner;
-            if (usedDrawerCount > 0) {
-              const baseFrom = drawersTopY + gap + (autoShelfExists ? t : 0);
-              yDivFrom = Math.min(Math.max(baseFrom, yStartInner), yEndInner);
-            }
-            const hDiv = Math.max(yEndInner - yDivFrom, 0);
-            if (hDiv > 0) {
-              const area = d * hDiv;
-              items.push({
-                code: `A${letter}VD.C${suffix}`,
-                desc: `Vertikalni divider (srednji) ${letter}${suffix}`,
-                widthCm: d * 100,
-                heightCm: hDiv * 100,
-                thicknessMm: t * 1000,
-                areaM2: area,
-                cost: area * pricePerM2,
-                element: letter,
-                materialType: "korpus",
-              });
-            }
-          }
-        }
-
-        // Drawers - use front material (Lica/Vrata)
-        const extras = compartmentExtras[
-          letter as keyof typeof compartmentExtras
-        ] as any;
-        if (extras?.drawers) {
-          const drawerH = DRAWER_HEIGHT;
-          const gap = DRAWER_GAP;
-          const per = drawerH + gap;
-          const yStartInner = m.yStart + t;
-          const yEndInner = m.yEnd - t;
-          const raiseByBase =
-            hasBase && (modulesY.length === 1 || mIdx === 0)
-              ? baseHeight / 100
-              : 0;
-          const drawersYStart = yStartInner + raiseByBase;
-          const innerHForDrawers = Math.max(yEndInner - drawersYStart, 0);
-          const maxAuto = Math.max(
-            0,
-            Math.floor((innerHForDrawers + gap) / per),
-          );
+          const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
           const countFromState = Math.max(
             0,
             Math.floor(extras.drawersCount ?? 0),
           );
-          const used =
-            countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
-          for (let i = 0; i < used; i++) {
-            const area = innerW * drawerH;
-            items.push({
-              code: `A${letter}F.${i + 1}${suffix}`,
-              desc: `Fioka ${letter}${suffix}`,
-              widthCm: innerW * 100,
-              heightCm: drawerH * 100,
-              thicknessMm: frontT * 1000,
-              areaM2: area,
-              cost: area * frontPricePerM2,
-              element: letter,
-              materialType: "front",
-            });
+          const usedCount =
+            countFromState > 0
+              ? Math.min(countFromState, maxDrawers)
+              : maxDrawers;
+
+          for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
+            addFront(
+              `${compKey}-F${drwIdx + 1}`,
+              `Fioka ${compKey} (${drwIdx + 1})`,
+              innerW,
+              drawerH,
+              compKey,
+            );
           }
 
-          // Auto-shelf directly above drawers if they don't fill full available height - use korpus material
-          if (used > 0 && used < maxAuto) {
-            const drawersTopY = drawersYStart + drawerH + (used - 1) * per;
-            const shelfPlaneY = drawersTopY + gap; // bottom plane of the shelf
-            const remaining = yEndInner - shelfPlaneY;
+          // Auto-shelf above drawers if space remains
+          if (usedCount > 0 && usedCount < maxDrawers) {
+            const drawersTopY = usedCount * per;
+            const remaining = compH - drawersTopY;
             if (remaining >= t) {
-              const area = innerW * d;
-              items.push({
-                code: `A${letter}P.A${suffix}`,
-                desc: `Polica iznad fioka ${letter}${suffix}`,
-                widthCm: innerW * 100,
-                heightCm: d * 100,
-                thicknessMm: t * 1000,
-                areaM2: area,
-                cost: area * pricePerM2,
-                element: letter,
-                materialType: "korpus",
-              });
+              addKorpus(
+                `${compKey}-PA`,
+                `Polica iznad fioka ${compKey}`,
+                innerW,
+                carcassD,
+                compKey,
+              );
             }
           }
         }
 
-        // Back panel per element - use back material (Leđa)
-        {
-          const clearanceBack = 2 / 1000; // 2mm
-          const backW = Math.max(elemW - clearanceBack, 0);
-          const backH = Math.max(moduleH - clearanceBack, 0);
-          if (backW > 0 && backH > 0) {
-            const area = backW * backH;
-            items.push({
-              code: `A${letter}Z${suffix}`,
-              desc: `Zadnji panel ${letter}${suffix}`,
-              widthCm: backW * 100,
-              heightCm: backH * 100,
-              thicknessMm: backT * 1000,
-              areaM2: area,
-              cost: area * backPricePerM2,
-              element: letter,
-              materialType: "back",
-            });
+        // Doors (use front material)
+        const doorSel = doorSelections[compKey];
+        if (doorSel && doorSel !== "none") {
+          const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+          const doorH = compH;
+
+          if (doorSel === "double" || doorSel === "doubleMirror") {
+            const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+            addFront(
+              `${compKey}-VL`,
+              `Vrata leva ${compKey}`,
+              leafW,
+              doorH,
+              compKey,
+            );
+            addFront(
+              `${compKey}-VD`,
+              `Vrata desna ${compKey}`,
+              leafW,
+              doorH,
+              compKey,
+            );
+          } else {
+            addFront(`${compKey}-V`, `Vrata ${compKey}`, doorW, doorH, compKey);
           }
         }
 
-        idx += 1;
-      });
+        // Back panel per compartment (use back material)
+        const backClearance = 2 / 1000; // 2mm
+        const backW = Math.max(col.width - backClearance, 0);
+        const backH = Math.max(compH - backClearance, 0);
+        if (backW > 0 && backH > 0) {
+          addBack(
+            `${compKey}-Z`,
+            `Zadnji panel ${compKey}`,
+            backW,
+            backH,
+            compKey,
+          );
+        }
+      }
     });
 
+    // ==========================================
+    // Calculate totals
+    // ==========================================
     const totalArea = items.reduce((a, b) => a + b.areaM2, 0);
     const totalCost = items.reduce((a, b) => a + b.cost, 0);
+
+    // Group by element
     const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
       (acc[it.element] = acc[it.element] || []).push(it);
       return acc;
     }, {});
 
-    // Calculate price breakdown by material type
+    // Price breakdown by material type
     const priceBreakdown: PriceBreakdown = {
       korpus: {
         areaM2: items

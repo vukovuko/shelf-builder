@@ -83,6 +83,7 @@ import {
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { CompartmentExtrasPanel } from "./CompartmentExtrasPanel";
+import { CompartmentSchematic } from "./CompartmentSchematic";
 import { DimensionControl } from "./DimensionControl";
 import { MaterialPickerModal } from "./MaterialPickerModal";
 import { Button } from "./ui/button";
@@ -544,6 +545,14 @@ export function ConfiguratorControls({
   const elementConfigs = useShelfStore((state) => state.elementConfigs);
   const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
   const doorSelections = useShelfStore((state) => state.doorSelections);
+  // Structural boundaries - CRITICAL for accurate area calculation
+  const verticalBoundaries = useShelfStore((state) => state.verticalBoundaries);
+  const columnHorizontalBoundaries = useShelfStore(
+    (state) => state.columnHorizontalBoundaries,
+  );
+  const columnModuleBoundaries = useShelfStore(
+    (state) => state.columnModuleBoundaries,
+  );
 
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(
@@ -561,6 +570,10 @@ export function ConfiguratorControls({
           doorSelections,
           hasBase,
           baseHeight,
+          // Structural boundaries for accurate calculation
+          verticalBoundaries,
+          columnHorizontalBoundaries,
+          columnModuleBoundaries,
         },
         materials,
       ),
@@ -577,6 +590,10 @@ export function ConfiguratorControls({
       hasBase,
       baseHeight,
       materials,
+      // Structural boundaries
+      verticalBoundaries,
+      columnHorizontalBoundaries,
+      columnModuleBoundaries,
     ],
   );
 
@@ -1174,13 +1191,10 @@ export function ConfiguratorControls({
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-4">
               {!selectedCompartmentKey ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <div className="text-4xl mb-3">👆</div>
-                  <p className="text-sm font-medium">
+                <div className="space-y-3">
+                  <CompartmentSchematic />
+                  <p className="text-xs text-center text-muted-foreground">
                     Kliknite na pregradu u 3D prikazu
-                  </p>
-                  <p className="text-xs mt-2 opacity-70">
-                    Svaka pregrada ima krug koji možete kliknuti
                   </p>
                 </div>
               ) : (
@@ -1326,18 +1340,18 @@ export function ConfiguratorControls({
               4. Baza
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-4">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="chk-base"
-                  checked={hasBase}
-                  onCheckedChange={setHasBase}
-                />
+              <div className="flex items-center justify-between">
                 <label
-                  htmlFor="chk-base"
+                  htmlFor="switch-base"
                   className="text-sm select-none cursor-pointer"
                 >
                   Uključi bazu (donja pregrada)
                 </label>
+                <Switch
+                  id="switch-base"
+                  checked={hasBase}
+                  onCheckedChange={setHasBase}
+                />
               </div>
 
               <div className="space-y-2">
@@ -1380,262 +1394,10 @@ export function ConfiguratorControls({
             </AccordionContent>
           </AccordionItem>
 
-          {/* 5. Extras */}
+          {/* 5. Doors */}
           <AccordionItem value="item-5" className="border-border">
             <AccordionTrigger className="text-base font-bold hover:no-underline">
-              5. Dodaci
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4 pt-4">
-              {(() => {
-                // Prava reaktivna veza na Zustand store
-                const extrasMode = useShelfStore((state) => state.extrasMode);
-                const setExtrasMode = useShelfStore(
-                  (state) => state.setExtrasMode,
-                );
-                const selectedCompartmentKey = useShelfStore(
-                  (state) => state.selectedCompartmentKey,
-                );
-                const setSelectedCompartmentKey = useShelfStore(
-                  (state) => state.setSelectedCompartmentKey,
-                );
-                const compartmentExtras = useShelfStore(
-                  (state) => state.compartmentExtras,
-                );
-                const toggleCompVerticalDivider = useShelfStore(
-                  (state) => state.toggleCompVerticalDivider,
-                );
-                const toggleCompDrawers = useShelfStore(
-                  (state) => state.toggleCompDrawers,
-                );
-                const toggleCompRod = useShelfStore(
-                  (state) => state.toggleCompRod,
-                );
-                const toggleCompLed = useShelfStore(
-                  (state) => state.toggleCompLed,
-                );
-
-                // Prikaz svih pregrada matching CarcassFrame
-                const width = useShelfStore((state) => state.width);
-                const verticalBoundaries = useShelfStore(
-                  (state) => state.verticalBoundaries,
-                );
-                const columnHorizontalBoundaries = useShelfStore(
-                  (state) => state.columnHorizontalBoundaries,
-                );
-                const w = width / 100;
-                const columns = buildBlocksX(
-                  w,
-                  verticalBoundaries.length > 0
-                    ? verticalBoundaries
-                    : undefined,
-                );
-                const allKeys = getCompartmentKeys(
-                  columns,
-                  columnHorizontalBoundaries,
-                );
-
-                // Prikaz stanja za selektovani element
-                const extras = selectedCompartmentKey
-                  ? compartmentExtras[selectedCompartmentKey] || {}
-                  : {};
-
-                return (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Režim selekcije</span>
-                      <Switch
-                        checked={extrasMode}
-                        onCheckedChange={setExtrasMode}
-                      />
-                    </div>
-
-                    {!extrasMode ? (
-                      <div className="text-sm text-muted-foreground">
-                        Uključite režim selekcije da biste mogli da izaberete
-                        elemente i dodate dodatke.
-                      </div>
-                    ) : (
-                      <>
-                        {/* Element selection row for extras */}
-                        <div className="flex flex-wrap gap-2 items-center mb-2">
-                          <span className="text-sm text-muted-foreground">
-                            Pregrada:
-                          </span>
-                          {allKeys.map((key, idx) => (
-                            <Button
-                              key={key}
-                              variant={
-                                selectedCompartmentKey === key
-                                  ? "default"
-                                  : "outline"
-                              }
-                              onClick={() => setSelectedCompartmentKey(key)}
-                              className="px-2 py-1 h-8 transition-colors"
-                            >
-                              {idx + 1}
-                            </Button>
-                          ))}
-                        </div>
-                        {!selectedCompartmentKey ? (
-                          <div className="text-sm text-muted-foreground">
-                            Izaberi pregradu klikom iznad, pa dodaj dodatke.
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-1 gap-2">
-                              <Button
-                                variant={
-                                  extras.verticalDivider ? "default" : "outline"
-                                }
-                                onClick={() =>
-                                  toggleCompVerticalDivider(
-                                    selectedCompartmentKey,
-                                  )
-                                }
-                                className=" transition-colors"
-                              >
-                                {extras.verticalDivider ? "✔ " : ""}+ Vertikalni
-                                divider
-                              </Button>
-                              {/* Drawers button + count selector together */}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant={
-                                    extras.drawers ? "default" : "outline"
-                                  }
-                                  onClick={() =>
-                                    toggleCompDrawers(selectedCompartmentKey)
-                                  }
-                                  className="flex-1 transition-colors"
-                                >
-                                  {extras.drawers ? "✔ " : ""}+ Fioke
-                                </Button>
-                                {(() => {
-                                  const width = useShelfStore.getState().width;
-                                  const height =
-                                    useShelfStore.getState().height;
-                                  const selectedMaterialId =
-                                    useShelfStore.getState()
-                                      .selectedMaterialId as number;
-                                  const mat = materials.find(
-                                    (m) =>
-                                      String(m.id) ===
-                                      String(selectedMaterialId),
-                                  );
-                                  const thicknessMm = mat?.thickness ?? 18; // mm
-                                  const t = thicknessMm / 1000; // world units (m)
-                                  const w = width / 100;
-                                  const h = height / 100;
-                                  const blocksX = buildBlocksX(w);
-                                  const modulesY = buildModulesY(h);
-                                  let idx = 0;
-                                  let innerHForDrawers = 0;
-                                  let found = false;
-                                  modulesY.forEach((m, mIdx) => {
-                                    blocksX.forEach(() => {
-                                      const letter = toLetters(idx);
-                                      if (
-                                        !found &&
-                                        letter === selectedCompartmentKey
-                                      ) {
-                                        const yStartInner = m.yStart + t;
-                                        const yEndInner = m.yEnd - t;
-                                        const raiseByBase =
-                                          hasBase &&
-                                          (modulesY.length === 1 || mIdx === 0)
-                                            ? baseHeight / 100
-                                            : 0;
-                                        const drawersYStart =
-                                          yStartInner + raiseByBase;
-                                        innerHForDrawers = Math.max(
-                                          yEndInner - drawersYStart,
-                                          0,
-                                        );
-                                        found = true;
-                                      }
-                                      idx += 1;
-                                    });
-                                  });
-                                  const maxCount = Math.max(
-                                    0,
-                                    Math.floor(
-                                      (innerHForDrawers + DRAWER_GAP) /
-                                        (DRAWER_HEIGHT + DRAWER_GAP),
-                                    ),
-                                  );
-                                  const current = extras.drawersCount ?? 0;
-                                  const options = [] as number[];
-                                  for (let i = 0; i <= maxCount; i++)
-                                    options.push(i);
-                                  if (current > maxCount) options.push(current);
-
-                                  return (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          disabled={
-                                            !selectedCompartmentKey ||
-                                            !extras.drawers
-                                          }
-                                          className="w-16"
-                                        >
-                                          {current}
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        {options.map((n) => (
-                                          <DropdownMenuItem
-                                            key={n}
-                                            onClick={() => {
-                                              useShelfStore
-                                                .getState()
-                                                .setCompDrawersCount(
-                                                  selectedCompartmentKey!,
-                                                  n,
-                                                );
-                                            }}
-                                          >
-                                            {n}
-                                          </DropdownMenuItem>
-                                        ))}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  );
-                                })()}
-                              </div>
-                              <Button
-                                variant={extras.rod ? "default" : "outline"}
-                                onClick={() =>
-                                  toggleCompRod(selectedCompartmentKey)
-                                }
-                                className=" transition-colors"
-                              >
-                                {extras.rod ? "✔ " : ""}+ Šipka za ofingere
-                              </Button>
-                              <Button
-                                variant={extras.led ? "default" : "outline"}
-                                onClick={() =>
-                                  toggleCompLed(selectedCompartmentKey)
-                                }
-                                className=" transition-colors"
-                              >
-                                {extras.led ? "✔ " : ""}LED rasveta
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
-            </AccordionContent>
-          </AccordionItem>
-          {/* 6. Doors */}
-          <AccordionItem value="item-6" className="border-border">
-            <AccordionTrigger className="text-base font-bold hover:no-underline">
-              6. Vrata
+              5. Vrata
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-4">
               {(() => {

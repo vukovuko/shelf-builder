@@ -104,6 +104,8 @@ interface ShelfState {
   setExtrasMode: (val: boolean) => void;
   selectedCompartmentKey: string | null;
   setSelectedCompartmentKey: (key: string | null) => void;
+  hoveredCompartmentKey: string | null;
+  setHoveredCompartmentKey: (key: string | null) => void;
   compartmentExtras: Record<string, CompartmentExtras>;
   toggleCompVerticalDivider: (key: string) => void;
   toggleCompDrawers: (key: string) => void;
@@ -488,11 +490,25 @@ export const useShelfStore = create<ShelfState>((set) => ({
       } else if (columns < drawerCounts.length) {
         drawerCounts = drawerCounts.slice(0, columns);
       }
+      // Clear rod/LED if compartment now has subdivisions
+      const hasSubdivisions =
+        columns > 1 ||
+        rowCounts.some((c) => c > 0) ||
+        drawerCounts.some((c) => c > 0);
+      let compartmentExtras = state.compartmentExtras;
+      if (hasSubdivisions && state.compartmentExtras[key]) {
+        const { rod, led, ...rest } = state.compartmentExtras[key];
+        compartmentExtras = {
+          ...state.compartmentExtras,
+          [key]: rest,
+        };
+      }
       return {
         elementConfigs: {
           ...state.elementConfigs,
           [key]: { columns, rowCounts, drawerCounts },
         },
+        compartmentExtras,
       };
     }),
   setElementRowCount: (key, index, count) =>
@@ -509,11 +525,25 @@ export const useShelfStore = create<ShelfState>((set) => ({
           if (rowCounts[i] == null) rowCounts[i] = 0;
       }
       rowCounts[index] = count;
+      // Clear rod/LED if compartment now has subdivisions
+      const hasSubdivisions =
+        (current.columns ?? 1) > 1 ||
+        rowCounts.some((c) => c > 0) ||
+        (current.drawerCounts?.some((c) => c > 0) ?? false);
+      let compartmentExtras = state.compartmentExtras;
+      if (hasSubdivisions && state.compartmentExtras[key]) {
+        const { rod, led, ...rest } = state.compartmentExtras[key];
+        compartmentExtras = {
+          ...state.compartmentExtras,
+          [key]: rest,
+        };
+      }
       return {
         elementConfigs: {
           ...state.elementConfigs,
           [key]: { ...current, rowCounts },
         },
+        compartmentExtras,
       };
     }),
   setElementDrawerCount: (key, index, count) =>
@@ -531,11 +561,25 @@ export const useShelfStore = create<ShelfState>((set) => ({
           if (drawerCounts[i] == null) drawerCounts[i] = 0;
       }
       drawerCounts[index] = count;
+      // Clear rod/LED if compartment now has subdivisions
+      const hasSubdivisions =
+        (current.columns ?? 1) > 1 ||
+        (current.rowCounts?.some((c) => c > 0) ?? false) ||
+        drawerCounts.some((c) => c > 0);
+      let compartmentExtras = state.compartmentExtras;
+      if (hasSubdivisions && state.compartmentExtras[key]) {
+        const { rod, led, ...rest } = state.compartmentExtras[key];
+        compartmentExtras = {
+          ...state.compartmentExtras,
+          [key]: rest,
+        };
+      }
       return {
         elementConfigs: {
           ...state.elementConfigs,
           [key]: { ...current, drawerCounts },
         },
+        compartmentExtras,
       };
     }),
   // Base defaults
@@ -548,6 +592,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setExtrasMode: (val) => set({ extrasMode: val }),
   selectedCompartmentKey: null,
   setSelectedCompartmentKey: (key) => set({ selectedCompartmentKey: key }),
+  hoveredCompartmentKey: null,
+  setHoveredCompartmentKey: (key) => set({ hoveredCompartmentKey: key }),
   compartmentExtras: {},
   toggleCompVerticalDivider: (key) =>
     set((state) => {

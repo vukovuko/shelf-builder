@@ -77,6 +77,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       (state) => state.activeAccordionStep,
     );
     const isDragging = useShelfStore((state) => state.isDragging);
+    const hoveredCompartmentKey = useShelfStore(
+      (state) => state.hoveredCompartmentKey,
+    );
+    const setHoveredCompartmentKey = useShelfStore(
+      (state) => state.setHoveredCompartmentKey,
+    );
+    const selectedCompartmentKey = useShelfStore(
+      (state) => state.selectedCompartmentKey,
+    );
+    const setSelectedCompartmentKey = useShelfStore(
+      (state) => state.setSelectedCompartmentKey,
+    );
+    const hasBase = useShelfStore((state) => state.hasBase);
+    const baseHeight = useShelfStore((state) => state.baseHeight);
 
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
@@ -93,6 +107,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Convert cm to meters
     const w = width / 100;
     const d = depth / 100;
+    // Base height in meters (0 if base disabled)
+    const baseH = hasBase ? baseHeight / 100 : 0;
 
     // Memoize material lookup to avoid searching on every render
     const material = React.useMemo(
@@ -210,6 +226,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Get modules for a column (stacked units with their own back panels)
     // When height > 200cm, column splits into top and bottom modules
+    // Back panels start at baseH (not floor) when base is enabled
     const getColumnModules = (
       colIdx: number,
     ): Array<{ yStart: number; yEnd: number; height: number }> => {
@@ -218,13 +235,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       // No boundary or height <= 200cm = single module
       if (boundary === null || colH <= splitThreshold) {
-        return [{ yStart: 0, yEnd: colH, height: colH }];
+        // Back panel starts at baseH, reduced height
+        return [{ yStart: baseH, yEnd: colH, height: colH - baseH }];
       }
 
       // Two stacked modules
       return [
-        { yStart: 0, yEnd: boundary, height: boundary }, // Bottom module
-        { yStart: boundary, yEnd: colH, height: colH - boundary }, // Top module
+        // Bottom module - starts at baseH, reduced height
+        { yStart: baseH, yEnd: boundary, height: boundary - baseH },
+        // Top module - unchanged (above base area)
+        { yStart: boundary, yEnd: colH, height: colH - boundary },
       ];
     };
 
@@ -294,6 +314,22 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           position={[w / 2 - t / 2, sideR_H / 2, carcassZ]}
           size={[t, sideR_H, carcassD]}
         />
+
+        {/* Front and back sokl panels - only when base is enabled */}
+        {baseH > 0 && (
+          <>
+            {/* Front sokl panel - covers base gap from front */}
+            <Panel
+              position={[0, baseH / 2, d / 2 - t / 2]}
+              size={[w - 2 * t, baseH, t]}
+            />
+            {/* Back sokl panel - covers base gap from back */}
+            <Panel
+              position={[0, baseH / 2, -d / 2 + backT / 2]}
+              size={[w - 2 * t, baseH, backT]}
+            />
+          </>
+        )}
 
         {/* Per-column Top & Bottom panels + Horizontal shelves + Labels + TopHeightHandle */}
         {columns.map((col, colIdx) => {
@@ -381,8 +417,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               return (bottomY + topY) / 2;
             }
 
-            // Bottom module compartments
-            const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
+            // Bottom module compartments (account for base height)
+            const bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
             const topY = hasModuleBoundary
               ? compIdx === bottomModuleCompartments - 1
                 ? moduleBoundary - t
@@ -424,9 +460,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
             // Last compartment in bottom module (when module boundary exists)
             if (hasModuleBoundary && compIdx === bottomModuleCompartments - 1) {
-              // Bottom surface: top of bottom panel OR top of previous shelf
+              // Bottom surface: top of bottom panel OR top of previous shelf (account for base)
               const bottomSurface =
-                compIdx === 0 ? t : shelves[compIdx - 1] + t / 2;
+                compIdx === 0 ? baseH + t : shelves[compIdx - 1] + t / 2;
               // Top surface: bottom of module separator panel
               const topSurface = moduleBoundary - t;
               return Math.round((topSurface - bottomSurface) * 100);
@@ -437,8 +473,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             let topSurface: number;
 
             if (compIdx === 0) {
-              // First compartment: starts at top of bottom panel
-              bottomSurface = t;
+              // First compartment: starts at top of bottom panel (raised by baseH)
+              bottomSurface = baseH + t;
             } else {
               // Starts at top of previous shelf
               bottomSurface = shelves[compIdx - 1] + t / 2;
@@ -482,8 +518,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               return { centerY, height };
             }
 
-            // Bottom module compartments
-            const bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
+            // Bottom module compartments (account for base height)
+            const bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
             const topY = hasModuleBoundary
               ? compIdx === bottomModuleCompartments - 1
                 ? moduleBoundary - t
@@ -503,9 +539,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 position={[colCenterX, colH - t / 2, carcassZ]}
                 size={[colInnerW, t, carcassD]}
               />
-              {/* Bottom panel of column */}
+              {/* Bottom panel of column - raised by baseH when base enabled */}
               <Panel
-                position={[colCenterX, t / 2, carcassZ]}
+                position={[colCenterX, baseH + t / 2, carcassZ]}
                 size={[colInnerW, t, carcassD]}
               />
 
@@ -582,15 +618,35 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const fontSize =
                   compHeightCm < 20 ? 13 : compHeightCm < 25 ? 16 : 18;
 
+                const isCompHovered = hoveredCompartmentKey === compKey;
+                const isCompSelected = selectedCompartmentKey === compKey;
+
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
-                    {/* Invisible hit mesh covering entire compartment front */}
+                    {/* Clickable hit mesh covering entire compartment front */}
                     <mesh
                       position={[colCenterX, bounds.centerY, d / 2 + 0.005]}
-                      onPointerEnter={() => handleColumnHover(colIdx)}
+                      onPointerEnter={() => {
+                        handleColumnHover(colIdx);
+                        if (isStep2Active) setHoveredCompartmentKey(compKey);
+                      }}
+                      onPointerLeave={() => {
+                        if (isStep2Active) setHoveredCompartmentKey(null);
+                      }}
+                      onClick={() => {
+                        if (isStep2Active) setSelectedCompartmentKey(compKey);
+                      }}
                     >
                       <planeGeometry args={[colInnerW, bounds.height]} />
-                      <meshBasicMaterial transparent opacity={0} />
+                      <meshBasicMaterial
+                        transparent
+                        opacity={
+                          isStep2Active && (isCompHovered || isCompSelected)
+                            ? 0.15
+                            : 0
+                        }
+                        color={isCompSelected ? "#89b4fa" : "#cdd6f4"}
+                      />
                     </mesh>
 
                     {/* Clickable circle - SHOW when Step 2 active */}
@@ -1033,17 +1089,24 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             rightCol.end - rightMinWidth,
           );
 
+          // Seam heights reduced by baseH (seams don't extend into base space)
+          const seamLeftH = leftH - baseH;
+          const seamRightH = rightH - baseH;
+          // Seam Y positions (centered above base)
+          const seamLeftY = baseH + seamLeftH / 2;
+          const seamRightY = baseH + seamRightH / 2;
+
           return (
             <React.Fragment key={`seam-${idx}`}>
-              {/* Left seam panel - belongs to LEFT column, uses LEFT height */}
+              {/* Left seam panel - belongs to LEFT column, shortened when base enabled */}
               <Panel
-                position={[seamX - t / 2, leftH / 2, carcassZ]}
-                size={[t, leftH, carcassD]}
+                position={[seamX - t / 2, seamLeftY, carcassZ]}
+                size={[t, seamLeftH, carcassD]}
               />
-              {/* Right seam panel - belongs to RIGHT column, uses RIGHT height */}
+              {/* Right seam panel - belongs to RIGHT column, shortened when base enabled */}
               <Panel
-                position={[seamX + t / 2, rightH / 2, carcassZ]}
-                size={[t, rightH, carcassD]}
+                position={[seamX + t / 2, seamRightY, carcassZ]}
+                size={[t, seamRightH, carcassD]}
               />
               {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2 active */}
               {!isStep2Active && (
