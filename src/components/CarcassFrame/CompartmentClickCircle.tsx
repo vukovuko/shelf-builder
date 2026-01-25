@@ -29,23 +29,21 @@ export function CompartmentClickCircle({
           width: 44,
           height: 44,
           borderRadius: "50%",
-          border: isSelected ? "3px solid #2563eb" : "2px solid #666",
-          background: isSelected ? "#2563eb" : isHovered ? "#e5e7eb" : "#fff",
+          border: isSelected ? "3px solid #cba6f7" : "2px solid #585b70",
+          background: isSelected
+            ? "#cba6f7"
+            : isHovered
+              ? "#45475a"
+              : "#313244",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
           transition: "all 0.15s ease",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
         }}
       >
-        {isHovered || isSelected ? (
-          <Plus size={22} color={isSelected ? "#fff" : "#374151"} />
-        ) : (
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>
-            {compartmentKey}
-          </span>
-        )}
+        <Plus size={22} color={isSelected ? "#1e1e2e" : "#cdd6f4"} />
       </button>
     </Html>
   );

@@ -189,9 +189,7 @@ export function CompartmentExtrasPanel({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 border-b">
-        <span className="font-semibold text-lg">
-          Pregrada: {compartmentKey}
-        </span>
+        <span className="font-semibold text-lg">Pregrada</span>
         <Button
           variant="ghost"
           size="icon"

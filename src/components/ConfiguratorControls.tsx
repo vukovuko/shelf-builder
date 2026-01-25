@@ -1180,7 +1180,7 @@ export function ConfiguratorControls({
                     Kliknite na pregradu u 3D prikazu
                   </p>
                   <p className="text-xs mt-2 opacity-70">
-                    Svaka pregrada ima krug sa oznakom (A1, B2, itd.)
+                    Svaka pregrada ima krug koji možete kliknuti
                   </p>
                 </div>
               ) : (
@@ -1414,7 +1414,7 @@ export function ConfiguratorControls({
                   (state) => state.toggleCompLed,
                 );
 
-                // Prikaz svih pregrada (A1, A2, B1, ...) matching CarcassFrame
+                // Prikaz svih pregrada matching CarcassFrame
                 const width = useShelfStore((state) => state.width);
                 const verticalBoundaries = useShelfStore(
                   (state) => state.verticalBoundaries,
@@ -1461,7 +1461,7 @@ export function ConfiguratorControls({
                           <span className="text-sm text-muted-foreground">
                             Pregrada:
                           </span>
-                          {allKeys.map((key) => (
+                          {allKeys.map((key, idx) => (
                             <Button
                               key={key}
                               variant={
@@ -1470,22 +1470,18 @@ export function ConfiguratorControls({
                                   : "outline"
                               }
                               onClick={() => setSelectedCompartmentKey(key)}
-                              className="px-2 py-1 h-8  transition-colors"
+                              className="px-2 py-1 h-8 transition-colors"
                             >
-                              {key}
+                              {idx + 1}
                             </Button>
                           ))}
                         </div>
                         {!selectedCompartmentKey ? (
                           <div className="text-sm text-muted-foreground">
-                            Izaberi element klikom na slovo iznad, pa dodaj
-                            dodatke.
+                            Izaberi pregradu klikom iznad, pa dodaj dodatke.
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            <div className="text-sm">
-                              Odabrani: {selectedCompartmentKey}
-                            </div>
                             <div className="grid grid-cols-1 gap-2">
                               <Button
                                 variant={

@@ -173,14 +173,14 @@ export function SeamHandle({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#e8e8e8" : "#ffffff",
-            border: `2px solid ${isHovered || isDraggingLocal ? "#0066ff" : "#999999"}`,
+            backgroundColor: isDraggingLocal ? "#45475a" : "#313244",
+            border: `2px solid ${isHovered || isDraggingLocal ? "#94e2d5" : "#6c7086"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={() => setIsHovered(true)}
@@ -189,7 +189,7 @@ export function SeamHandle({
           <ChevronsLeftRight
             size={18}
             strokeWidth={2.5}
-            color={isHovered || isDraggingLocal ? "#0066ff" : "#333333"}
+            color={isHovered || isDraggingLocal ? "#94e2d5" : "#cdd6f4"}
           />
         </div>
       </Html>

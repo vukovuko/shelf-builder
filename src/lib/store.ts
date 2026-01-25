@@ -723,11 +723,36 @@ export const useShelfStore = create<ShelfState>((set) => ({
         panelThicknessM,
       );
 
+      // Clear elementConfigs and compartmentExtras for this column when shelf count changes
+      // This prevents invalid inner elements when compartment sizes change
+      const oldBoundaries = state.columnHorizontalBoundaries[colIndex] || [];
+      const colLetter = String.fromCharCode(65 + colIndex);
+      let newElementConfigs = state.elementConfigs;
+      let newCompartmentExtras = state.compartmentExtras;
+
+      if (oldBoundaries.length !== clampedCount) {
+        // Shelf count changed - clear all configs for this column
+        newElementConfigs = { ...state.elementConfigs };
+        newCompartmentExtras = { ...state.compartmentExtras };
+        for (const key of Object.keys(newElementConfigs)) {
+          if (key.startsWith(colLetter)) {
+            delete newElementConfigs[key];
+          }
+        }
+        for (const key of Object.keys(newCompartmentExtras)) {
+          if (key.startsWith(colLetter)) {
+            delete newCompartmentExtras[key];
+          }
+        }
+      }
+
       return {
         columnHorizontalBoundaries: {
           ...state.columnHorizontalBoundaries,
           [colIndex]: newBoundaries,
         },
+        elementConfigs: newElementConfigs,
+        compartmentExtras: newCompartmentExtras,
       };
     }),
   resetColumnHorizontalBoundaries: () =>
@@ -1035,11 +1060,35 @@ export const useShelfStore = create<ShelfState>((set) => ({
         }
       }
 
+      // Clear elementConfigs and compartmentExtras for this column when shelf count changes
+      const oldShelves = state.columnTopModuleShelves[colIndex] || [];
+      const colLetter = String.fromCharCode(65 + colIndex);
+      let newElementConfigs = state.elementConfigs;
+      let newCompartmentExtras = state.compartmentExtras;
+
+      if (oldShelves.length !== clampedCount) {
+        // Shelf count changed - clear all configs for this column
+        newElementConfigs = { ...state.elementConfigs };
+        newCompartmentExtras = { ...state.compartmentExtras };
+        for (const key of Object.keys(newElementConfigs)) {
+          if (key.startsWith(colLetter)) {
+            delete newElementConfigs[key];
+          }
+        }
+        for (const key of Object.keys(newCompartmentExtras)) {
+          if (key.startsWith(colLetter)) {
+            delete newCompartmentExtras[key];
+          }
+        }
+      }
+
       return {
         columnTopModuleShelves: {
           ...state.columnTopModuleShelves,
           [colIndex]: positions,
         },
+        elementConfigs: newElementConfigs,
+        compartmentExtras: newCompartmentExtras,
       };
     }),
   moveTopModuleShelf: (colIndex, shelfIndex, newY) =>

@@ -76,6 +76,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const activeAccordionStep = useShelfStore(
       (state) => state.activeAccordionStep,
     );
+    const isDragging = useShelfStore((state) => state.isDragging);
 
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
@@ -575,16 +576,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const bounds = getCompartmentBounds(compIdx);
                 const compHeightCm = getCompartmentHeightCm(compIdx);
                 const compKey = `${colLetter}${compIdx + 1}`;
-                // Responsive label sizing based on compartment height
                 // HIDE labels when Step 2 is active (show circles instead)
                 const showLabel = compHeightCm >= 10 && !isStep2Active;
-                // Compact layout for small compartments: "C6 14cm" in one row
-                const useCompactLayout = compHeightCm < 20;
-                const fontSize = useCompactLayout
-                  ? 13
-                  : compHeightCm < 25
-                    ? 18
-                    : 24;
+                // Responsive font size based on compartment height
+                const fontSize =
+                  compHeightCm < 20 ? 13 : compHeightCm < 25 ? 16 : 18;
 
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
@@ -609,7 +605,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
 
-                    {/* Label - only show if compartment is large enough AND Step 2 not active */}
+                    {/* Height label - only show if compartment is large enough AND Step 2 not active */}
                     {showLabel && (
                       <Html
                         position={[
@@ -623,34 +619,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       >
                         <div
                           style={{
-                            display: "flex",
-                            flexDirection: useCompactLayout ? "row" : "column",
-                            alignItems: "center",
-                            gap: useCompactLayout ? 6 : 2,
                             pointerEvents: "none",
                             background: "rgba(255, 255, 255, 0.95)",
-                            padding: useCompactLayout ? "3px 8px" : "4px 8px",
+                            padding: "3px 10px",
                             borderRadius: "var(--radius)",
                             boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                            fontSize,
+                            fontWeight: "500",
+                            color: "#333333",
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize,
-                              fontWeight: "bold",
-                              color: "#000000",
-                            }}
-                          >
-                            {compKey}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: useCompactLayout ? 13 : 14,
-                              color: "#555555",
-                            }}
-                          >
-                            {`${compHeightCm}cm`}
-                          </span>
+                          {`${compHeightCm}cm`}
                         </div>
                       </Html>
                     )}
@@ -1083,8 +1062,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           );
         })}
 
-        {/* Column controls bar - positioned below wardrobe, HIDE when Step 2 active */}
-        {!isStep2Active && <ColumnControlsBar3D depth={d} />}
+        {/* Column controls bar - positioned below wardrobe, HIDE when Step 2 active or dragging */}
+        {!isStep2Active && !isDragging && <ColumnControlsBar3D depth={d} />}
       </group>
     );
   },

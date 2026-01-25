@@ -195,14 +195,14 @@ export function ModuleBoundaryHandle({
             width: 40,
             height: 40,
             borderRadius: "50%",
-            backgroundColor: isDraggingLocal ? "#fff3e0" : "#ffffff",
-            border: `3px solid ${isHovered || isDraggingLocal ? "#ff6600" : "#cc5500"}`,
+            backgroundColor: isDraggingLocal ? "#45475a" : "#313244",
+            border: `3px solid ${isHovered || isDraggingLocal ? "#f5c2e7" : "#cba6f7"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: isDraggingLocal ? "grabbing" : "grab",
             userSelect: "none",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
             transition: "border-color 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={() => {
@@ -214,7 +214,7 @@ export function ModuleBoundaryHandle({
           <GripHorizontal
             size={20}
             strokeWidth={3}
-            color={isHovered || isDraggingLocal ? "#ff6600" : "#cc5500"}
+            color={isHovered || isDraggingLocal ? "#f5c2e7" : "#cba6f7"}
           />
         </div>
       </Html>

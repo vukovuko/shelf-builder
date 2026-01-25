@@ -127,9 +127,6 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   );
   const barY = -(BASE_GAP + extraGap);
 
-  // Column letter for display
-  const columnLetter = String.fromCharCode(65 + displayColumn);
-
   const currentHeightCm = columnHeights[displayColumn] ?? height;
   const shelfCount = (columnHorizontalBoundaries[displayColumn] || []).length;
 
@@ -295,16 +292,6 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               borderBottom: "10px solid #ffffff",
             }}
           />
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: "bold",
-              color: "#000000",
-              marginTop: 2,
-            }}
-          >
-            {columnLetter}
-          </span>
         </div>
 
         {/* Controls - responsive layout */}
@@ -597,19 +584,19 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 8,
-                borderTop: "1px solid #e0e0e0",
+                borderTop: "1px solid #45475a",
                 paddingTop: 6,
                 marginTop: 2,
               }}
             >
-              <span style={{ fontSize: 12, color: "#cc5500", minWidth: 50 }}>
+              <span style={{ fontSize: 12, color: "#cba6f7", minWidth: 50 }}>
                 Modul
               </span>
               <span
                 style={{
                   fontSize: 12,
                   fontWeight: 500,
-                  color: "#cc5500",
+                  color: "#cba6f7",
                 }}
               >
                 {Math.round(moduleBoundary * 100)} +{" "}
