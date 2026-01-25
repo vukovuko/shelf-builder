@@ -39,6 +39,11 @@ function StoreInvalidator() {
   const hoveredCompartmentKey = useShelfStore((s) => s.hoveredCompartmentKey);
   const hasBase = useShelfStore((s) => s.hasBase);
   const baseHeight = useShelfStore((s) => s.baseHeight);
+  // Door selection state for Step 5
+  const selectedDoorCompartments = useShelfStore(
+    (s) => s.selectedDoorCompartments,
+  );
+  const doorSelectionDragging = useShelfStore((s) => s.doorSelectionDragging);
 
   useEffect(() => {
     invalidate();
@@ -60,6 +65,8 @@ function StoreInvalidator() {
     hoveredCompartmentKey,
     hasBase,
     baseHeight,
+    selectedDoorCompartments,
+    doorSelectionDragging,
     invalidate,
   ]);
 

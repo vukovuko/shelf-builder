@@ -85,6 +85,7 @@ import { CheckoutDialog } from "./CheckoutDialog";
 import { CompartmentExtrasPanel } from "./CompartmentExtrasPanel";
 import { CompartmentSchematic } from "./CompartmentSchematic";
 import { DimensionControl } from "./DimensionControl";
+import { DoorOptionsPanel } from "./DoorOptionsPanel";
 import { MaterialPickerModal } from "./MaterialPickerModal";
 import { Button } from "./ui/button";
 
@@ -545,6 +546,10 @@ export function ConfiguratorControls({
   const elementConfigs = useShelfStore((state) => state.elementConfigs);
   const compartmentExtras = useShelfStore((state) => state.compartmentExtras);
   const doorSelections = useShelfStore((state) => state.doorSelections);
+  // Door multi-select state for Step 5
+  const selectedDoorCompartments = useShelfStore(
+    (state) => state.selectedDoorCompartments,
+  );
   // Structural boundaries - CRITICAL for accurate area calculation
   const verticalBoundaries = useShelfStore((state) => state.verticalBoundaries);
   const columnHorizontalBoundaries = useShelfStore(
@@ -1400,124 +1405,48 @@ export function ConfiguratorControls({
               5. Vrata
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pt-4">
-              {(() => {
-                const width = useShelfStore((state) => state.width);
-                const verticalBoundaries = useShelfStore(
-                  (state) => state.verticalBoundaries,
-                );
-                const columnHorizontalBoundaries = useShelfStore(
-                  (state) => state.columnHorizontalBoundaries,
-                );
-                const w = width / 100;
-                const columns = buildBlocksX(
-                  w,
-                  verticalBoundaries.length > 0
-                    ? verticalBoundaries
-                    : undefined,
-                );
-                const allKeys = getCompartmentKeys(
-                  columns,
-                  columnHorizontalBoundaries,
-                );
-
-                const selectedDoorElementKey = useShelfStore(
-                  (state) => state.selectedDoorElementKey,
-                );
-                const setSelectedDoorElementKey = useShelfStore(
-                  (state) => state.setSelectedDoorElementKey,
-                );
-                const doorSelections = useShelfStore(
-                  (state) => state.doorSelections,
-                );
-                const setDoorOption = useShelfStore(
-                  (state) => state.setDoorOption,
-                );
-                const showDoors = useShelfStore((state) => state.showDoors);
-                const setShowDoors = useShelfStore(
-                  (state) => state.setShowDoors,
-                );
-
-                const options: { key: string; label: string }[] = [
-                  { key: "none", label: "Bez vrata" },
-                  { key: "left", label: "Leva vrata" },
-                  { key: "right", label: "Desna vrata" },
-                  { key: "double", label: "Dupla vrata" },
-                  { key: "leftMirror", label: "Leva vrata sa ogledalom" },
-                  { key: "rightMirror", label: "Desna vrata sa ogledalom" },
-                  { key: "doubleMirror", label: "Dupla vrata sa ogledalom" },
-                  { key: "drawerStyle", label: "Vrata kao fioka" },
-                ];
-
-                return (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Prikaži vrata</span>
-                      <Switch
-                        checked={showDoors}
-                        onCheckedChange={setShowDoors}
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 items-center mb-1">
-                      <span className="text-sm text-muted-foreground">
-                        Element:
-                      </span>
-                      {allKeys.map((ltr) => (
-                        <Button
-                          key={ltr}
-                          variant={
-                            selectedDoorElementKey === ltr
-                              ? "default"
-                              : "outline"
-                          }
-                          onClick={() => setSelectedDoorElementKey(ltr)}
-                          className="px-2 py-1 h-8 transition-colors"
-                        >
-                          {ltr}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {!selectedDoorElementKey ? (
-                      <div className="text-sm text-muted-foreground">
-                        Izaberi element klikom na slovo iznad, pa izaberi tip
-                        vrata.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="text-sm">
-                          Odabrani: {selectedDoorElementKey}
-                        </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          {options.map((opt) => {
-                            const curr = doorSelections[selectedDoorElementKey];
-                            const isSel = curr === (opt.key as any);
-                            return (
-                              <Button
-                                key={opt.key}
-                                variant={isSel ? "default" : "outline"}
-                                onClick={() =>
-                                  setDoorOption(
-                                    selectedDoorElementKey,
-                                    opt.key as any,
-                                  )
-                                }
-                                className="text-sm"
-                              >
-                                {isSel ? "✔ " : ""}
-                                {opt.label}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          (Posle ćemo definisati ponašanje svake opcije.)
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {selectedDoorCompartments.length === 0 ? (
+                <div className="space-y-3">
+                  <CompartmentSchematic />
+                  <p className="text-xs text-center text-muted-foreground">
+                    Kliknite na pregradu ili prevucite za višestruki izbor
+                  </p>
+                </div>
+              ) : (
+                <DoorOptionsPanel
+                  selectedKeys={selectedDoorCompartments}
+                  compartmentHeights={(() => {
+                    // Calculate compartment heights
+                    const w = width / 100;
+                    const h = height / 100;
+                    const t = 0.018; // panel thickness
+                    const baseH = hasBase ? baseHeight / 100 : 0;
+                    const innerH = h - 2 * t - baseH;
+                    const columns = buildBlocksX(
+                      w,
+                      verticalBoundaries.length > 0
+                        ? verticalBoundaries
+                        : undefined,
+                    );
+                    const heights: Record<string, number> = {};
+                    columns.forEach((col, colIdx) => {
+                      const colLetter = toLetters(colIdx);
+                      const hBoundary = columnHorizontalBoundaries[colIdx];
+                      if (hBoundary !== null && hBoundary !== undefined) {
+                        // Split column - bottom and top compartments
+                        const bottomH = hBoundary - (-h / 2 + t + baseH);
+                        const topH = h / 2 - t - hBoundary;
+                        heights[`${colLetter}1`] = Math.round(bottomH * 100);
+                        heights[`${colLetter}2`] = Math.round(topH * 100);
+                      } else {
+                        // Single compartment
+                        heights[`${colLetter}1`] = Math.round(innerH * 100);
+                      }
+                    });
+                    return heights;
+                  })()}
+                />
+              )}
             </AccordionContent>
           </AccordionItem>
           {/* Actions and Controls */}

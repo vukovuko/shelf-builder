@@ -29,6 +29,10 @@ export const MIN_SHELF_HEIGHT_CM = 12; // Min 12cm per horizontal section
 export const MAX_VERTICAL_DIVIDERS = 7; // Max 7 dividers = 8 sections
 export const MAX_HORIZONTAL_SHELVES_INNER = 10; // Max 10 shelves within a compartment = 11 sections
 
+// Door constraints (for Step 5)
+export const MIN_DOOR_HEIGHT_CM = 27; // Minimum door height
+export const MAX_DOOR_HEIGHT_CM = 280; // Maximum door height
+
 // ============================================
 // SHELF CONSTRAINTS CONFIG
 // Edit these values to change shelf constraints

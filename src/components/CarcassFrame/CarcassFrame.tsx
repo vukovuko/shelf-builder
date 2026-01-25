@@ -23,6 +23,7 @@ import { TopHeightHandle } from "./TopHeightHandle";
 import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 import { CompartmentClickCircle } from "./CompartmentClickCircle";
+import { DoorClickCircle } from "./DoorClickCircle";
 
 type Material = {
   id: string;
@@ -92,8 +93,27 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const hasBase = useShelfStore((state) => state.hasBase);
     const baseHeight = useShelfStore((state) => state.baseHeight);
 
+    // Door selection state (Step 5)
+    const selectedDoorCompartments = useShelfStore(
+      (state) => state.selectedDoorCompartments,
+    );
+    const doorSelectionDragging = useShelfStore(
+      (state) => state.doorSelectionDragging,
+    );
+    const startDoorSelection = useShelfStore(
+      (state) => state.startDoorSelection,
+    );
+    const updateDoorSelectionDrag = useShelfStore(
+      (state) => state.updateDoorSelectionDrag,
+    );
+    const endDoorSelection = useShelfStore((state) => state.endDoorSelection);
+
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
+    // Check if Step 5 is active (for door selection)
+    const isStep5Active = activeAccordionStep === "item-5";
+    // Combined check for hiding UI elements
+    const hideUIForSteps = isStep2Active || isStep5Active;
 
     // Simple hover handler - only set on enter, not on leave
     // This prevents flickering when moving between compartment and drag handles
@@ -552,8 +572,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     position={[colCenterX, shelfY, carcassZ]}
                     size={[colInnerW, t, carcassD]}
                   />
-                  {/* Only show drag handle when column is hovered AND Step 2 not active */}
-                  {hoveredColumnIndex === colIdx && !isStep2Active && (
+                  {/* Only show drag handle when column is hovered AND not in Step 2/5 */}
+                  {hoveredColumnIndex === colIdx && !hideUIForSteps && (
                     <HorizontalSplitHandle
                       columnIndex={colIdx}
                       shelfIndex={shelfIdx}
@@ -568,8 +588,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 </React.Fragment>
               ))}
 
-              {/* Top height drag handle - HIDE when Step 2 active */}
-              {!isStep2Active && (
+              {/* Top height drag handle - HIDE when Step 2/5 active */}
+              {!hideUIForSteps && (
                 <TopHeightHandle
                   columnIndex={colIdx}
                   x={colCenterX}
@@ -582,8 +602,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 />
               )}
 
-              {/* Column total height label - shown when hovered, HIDE when Step 2 active */}
-              {hoveredColumnIndex === colIdx && !isStep2Active && (
+              {/* Column total height label - shown when hovered, HIDE when Step 2/5 active */}
+              {hoveredColumnIndex === colIdx && !hideUIForSteps && (
                 <Html
                   position={[colCenterX, colH + 0.18, d / 2]}
                   center
@@ -612,14 +632,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const bounds = getCompartmentBounds(compIdx);
                 const compHeightCm = getCompartmentHeightCm(compIdx);
                 const compKey = `${colLetter}${compIdx + 1}`;
-                // HIDE labels when Step 2 is active (show circles instead)
-                const showLabel = compHeightCm >= 10 && !isStep2Active;
+                // HIDE labels when Step 2 or 5 is active (show circles instead)
+                const showLabel = compHeightCm >= 10 && !hideUIForSteps;
                 // Responsive font size based on compartment height
                 const fontSize =
                   compHeightCm < 20 ? 13 : compHeightCm < 25 ? 16 : 18;
 
                 const isCompHovered = hoveredCompartmentKey === compKey;
                 const isCompSelected = selectedCompartmentKey === compKey;
+                // Door selection state for Step 5
+                const isDoorSelected =
+                  selectedDoorCompartments.includes(compKey);
 
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
@@ -629,6 +652,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       onPointerEnter={() => {
                         handleColumnHover(colIdx);
                         if (isStep2Active) setHoveredCompartmentKey(compKey);
+                        if (isStep5Active && doorSelectionDragging) {
+                          updateDoorSelectionDrag(compKey);
+                        }
                       }}
                       onPointerLeave={() => {
                         if (isStep2Active) setHoveredCompartmentKey(null);
@@ -636,16 +662,29 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       onClick={() => {
                         if (isStep2Active) setSelectedCompartmentKey(compKey);
                       }}
+                      onPointerDown={() => {
+                        if (isStep5Active) startDoorSelection(compKey);
+                      }}
+                      onPointerUp={() => {
+                        if (isStep5Active && doorSelectionDragging) {
+                          endDoorSelection();
+                        }
+                      }}
                     >
                       <planeGeometry args={[colInnerW, bounds.height]} />
                       <meshBasicMaterial
                         transparent
                         opacity={
-                          isStep2Active && (isCompHovered || isCompSelected)
+                          (isStep2Active && (isCompHovered || isCompSelected)) ||
+                          (isStep5Active && isDoorSelected)
                             ? 0.15
                             : 0
                         }
-                        color={isCompSelected ? "#89b4fa" : "#cdd6f4"}
+                        color={
+                          isCompSelected || isDoorSelected
+                            ? "#89b4fa"
+                            : "#cdd6f4"
+                        }
                       />
                     </mesh>
 
@@ -661,7 +700,21 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
 
-                    {/* Height label - only show if compartment is large enough AND Step 2 not active */}
+                    {/* Door circle - SHOW when Step 5 active */}
+                    {isStep5Active && (
+                      <DoorClickCircle
+                        compartmentKey={compKey}
+                        position={[
+                          colCenterX,
+                          getCompartmentCenterY(compIdx),
+                          d / 2 + 0.02,
+                        ]}
+                        heightCm={compHeightCm}
+                        columnIndex={colIdx}
+                      />
+                    )}
+
+                    {/* Height label - only show if compartment is large enough AND Step 2/5 not active */}
                     {showLabel && (
                       <Html
                         position={[
@@ -676,13 +729,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         <div
                           style={{
                             pointerEvents: "none",
-                            background: "rgba(255, 255, 255, 0.95)",
-                            padding: "3px 10px",
-                            borderRadius: "var(--radius)",
-                            boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
-                            fontSize,
-                            fontWeight: "500",
-                            color: "#333333",
+                            fontSize: 11,
+                            fontWeight: "400",
+                            color: "#1e1e2e",
                           }}
                         >
                           {`${compHeightCm}cm`}
@@ -964,8 +1013,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       position={[colCenterX, boundary + t / 2, carcassZ]}
                       size={[colInnerW, t, carcassD]}
                     />
-                    {/* Drag handle for module boundary - show when hovered, HIDE when Step 2 active */}
-                    {hoveredColumnIndex === colIdx && !isStep2Active && (
+                    {/* Drag handle for module boundary - show when hovered, HIDE when Step 2/5 active */}
+                    {hoveredColumnIndex === colIdx && !hideUIForSteps && (
                       <ModuleBoundaryHandle
                         columnIndex={colIdx}
                         x={colCenterX}
@@ -1009,8 +1058,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             position={[colCenterX, shelfY, carcassZ]}
                             size={[colInnerW, t, carcassD]}
                           />
-                          {/* Drag handle for top module shelf - show when hovered, HIDE when Step 2 active */}
-                          {hoveredColumnIndex === colIdx && !isStep2Active && (
+                          {/* Drag handle for top module shelf - show when hovered, HIDE when Step 2/5 active */}
+                          {hoveredColumnIndex === colIdx && !hideUIForSteps && (
                             <HorizontalSplitHandle
                               columnIndex={colIdx}
                               shelfIndex={shelfIdx}
@@ -1108,8 +1157,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 position={[seamX + t / 2, seamRightY, carcassZ]}
                 size={[t, seamRightH, carcassD]}
               />
-              {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2 active */}
-              {!isStep2Active && (
+              {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2/5 active */}
+              {!hideUIForSteps && (
                 <SeamHandle
                   seamIndex={idx}
                   x={seamX}
@@ -1125,8 +1174,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           );
         })}
 
-        {/* Column controls bar - positioned below wardrobe, HIDE when Step 2 active or dragging */}
-        {!isStep2Active && !isDragging && <ColumnControlsBar3D depth={d} />}
+        {/* Column controls bar - positioned below wardrobe, HIDE when Step 2/5 active or dragging */}
+        {!hideUIForSteps && !isDragging && <ColumnControlsBar3D depth={d} />}
       </group>
     );
   },

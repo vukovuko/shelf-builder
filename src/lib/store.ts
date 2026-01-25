@@ -119,6 +119,16 @@ interface ShelfState {
   setDoorOption: (key: string, option: DoorOption) => void;
   showDoors: boolean;
   setShowDoors: (show: boolean) => void;
+  // Door multi-select drag state (Step 5)
+  doorSelectionDragging: boolean;
+  doorSelectionStart: string | null;
+  doorSelectionCurrent: string | null;
+  selectedDoorCompartments: string[];
+  startDoorSelection: (compKey: string) => void;
+  updateDoorSelectionDrag: (compKey: string) => void;
+  endDoorSelection: () => void;
+  clearDoorSelection: () => void;
+  setDoorForSelection: (type: DoorOption) => void;
   showInfoButtons: boolean;
   setShowInfoButtons: (show: boolean) => void;
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
@@ -655,6 +665,81 @@ export const useShelfStore = create<ShelfState>((set) => ({
     })),
   showDoors: true,
   setShowDoors: (show) => set({ showDoors: show }),
+  // Door multi-select drag state (Step 5)
+  doorSelectionDragging: false,
+  doorSelectionStart: null,
+  doorSelectionCurrent: null,
+  selectedDoorCompartments: [],
+  startDoorSelection: (compKey) =>
+    set({
+      doorSelectionDragging: true,
+      doorSelectionStart: compKey,
+      doorSelectionCurrent: compKey,
+      selectedDoorCompartments: [compKey],
+    }),
+  updateDoorSelectionDrag: (compKey) =>
+    set((state) => {
+      if (!state.doorSelectionDragging || !state.doorSelectionStart) return state;
+
+      // Parse column letter and compartment index from keys
+      const startMatch = state.doorSelectionStart.match(/^([A-Z]+)(\d+)$/);
+      const currentMatch = compKey.match(/^([A-Z]+)(\d+)$/);
+
+      if (!startMatch || !currentMatch) return state;
+
+      const startCol = startMatch[1];
+      const currentCol = currentMatch[1];
+
+      // Only allow selection within same column
+      if (startCol !== currentCol) return state;
+
+      const startIdx = parseInt(startMatch[2], 10);
+      const currentIdx = parseInt(currentMatch[2], 10);
+
+      // Generate range of compartment keys
+      const minIdx = Math.min(startIdx, currentIdx);
+      const maxIdx = Math.max(startIdx, currentIdx);
+      const selected: string[] = [];
+      for (let i = minIdx; i <= maxIdx; i++) {
+        selected.push(`${startCol}${i}`);
+      }
+
+      return {
+        doorSelectionCurrent: compKey,
+        selectedDoorCompartments: selected,
+      };
+    }),
+  endDoorSelection: () =>
+    set((state) => ({
+      doorSelectionDragging: false,
+      // Keep selectedDoorCompartments for UI to show options
+    })),
+  clearDoorSelection: () =>
+    set({
+      doorSelectionDragging: false,
+      doorSelectionStart: null,
+      doorSelectionCurrent: null,
+      selectedDoorCompartments: [],
+    }),
+  setDoorForSelection: (type) =>
+    set((state) => {
+      if (state.selectedDoorCompartments.length === 0) return state;
+
+      // Set the same door type for all selected compartments
+      const newSelections = { ...state.doorSelections };
+      for (const key of state.selectedDoorCompartments) {
+        newSelections[key] = type;
+      }
+
+      return {
+        doorSelections: newSelections,
+        // Clear selection after applying
+        doorSelectionDragging: false,
+        doorSelectionStart: null,
+        doorSelectionCurrent: null,
+        selectedDoorCompartments: [],
+      };
+    }),
   showInfoButtons: false,
   setShowInfoButtons: (show) => set({ showInfoButtons: show }),
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
@@ -667,6 +752,14 @@ export const useShelfStore = create<ShelfState>((set) => ({
         step !== state.activeAccordionStep
           ? null
           : state.selectedCompartmentKey,
+      // Clear door selection when step changes
+      doorSelectionDragging: false,
+      doorSelectionStart: null,
+      doorSelectionCurrent: null,
+      selectedDoorCompartments:
+        step !== state.activeAccordionStep
+          ? []
+          : state.selectedDoorCompartments,
     })),
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: null,
