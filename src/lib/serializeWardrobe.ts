@@ -25,6 +25,14 @@ export function getWardrobeSnapshot() {
     columnModuleBoundaries: s.columnModuleBoundaries,
     // Per-column top module shelves (Y positions in top module)
     columnTopModuleShelves: s.columnTopModuleShelves,
+    // Door groups (with per-door material and handle settings)
+    doorGroups: s.doorGroups,
+    // Global handle selection
+    globalHandleId: s.globalHandleId,
+    // Global handle finish selection
+    globalHandleFinish: s.globalHandleFinish,
+    // Door settings mode (global vs per-door)
+    doorSettingsMode: s.doorSettingsMode,
   };
 }
 
@@ -75,5 +83,13 @@ export function applyWardrobeSnapshot(data: any) {
     columnHeights: data.columnHeights || {},
     columnModuleBoundaries: data.columnModuleBoundaries || {},
     columnTopModuleShelves: data.columnTopModuleShelves || {},
+    // Door groups with per-door settings
+    doorGroups: data.doorGroups || [],
+    // Global handle (default: "handle_1")
+    globalHandleId: data.globalHandleId || "handle_1",
+    // Global handle finish (default: "chrome")
+    globalHandleFinish: data.globalHandleFinish || "chrome",
+    // Door settings mode (default: "global")
+    doorSettingsMode: data.doorSettingsMode || "global",
   }));
 }

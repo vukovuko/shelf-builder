@@ -1403,6 +1403,12 @@ export function ConfiguratorControls({
                 </p>
               )}
 
+              {/* Note about per-door settings in Step 5 */}
+              <p className="text-xs text-muted-foreground mt-2 px-2 py-2 bg-muted/50 rounded">
+                Materijal za lica/vrata i ručke možete dodatno podesiti po
+                vratima u koraku 5.
+              </p>
+
               {/* Next step button */}
               <Button
                 variant="default"
@@ -1617,7 +1623,11 @@ export function ConfiguratorControls({
                         ? bottomModuleCompartments + topModuleShelves.length + 1
                         : bottomModuleCompartments;
 
-                      for (let compIdx = 0; compIdx < totalCompartments; compIdx++) {
+                      for (
+                        let compIdx = 0;
+                        compIdx < totalCompartments;
+                        compIdx++
+                      ) {
                         const compKey = `${colLetter}${compIdx + 1}`;
                         const mainHeight = heights[compKey];
                         if (!mainHeight) continue;
@@ -1641,12 +1651,17 @@ export function ConfiguratorControls({
                           const numSpaces = shelfCount + 1;
                           const gap = mainHeightM / (shelfCount + 1);
 
-                          for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
+                          for (
+                            let spaceIdx = 0;
+                            spaceIdx < numSpaces;
+                            spaceIdx++
+                          ) {
                             // Calculate space height (account for shelf thickness)
                             const spaceBottomOffset =
                               spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
                             const spaceTopOffset =
-                              (spaceIdx + 1) * gap - (spaceIdx < shelfCount ? t / 2 : 0);
+                              (spaceIdx + 1) * gap -
+                              (spaceIdx < shelfCount ? t / 2 : 0);
                             const spaceHeightCm = Math.round(
                               (spaceTopOffset - spaceBottomOffset) * 100,
                             );

@@ -1,17 +1,41 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   useShelfStore,
   type DoorOption,
   type ShelfState,
   type DoorGroup,
+  type Material,
 } from "@/lib/store";
 import { X, DoorOpen, DoorClosed, Trash2, Square, Layers } from "lucide-react";
 import {
   MIN_DOOR_HEIGHT_CM,
   MAX_DOOR_HEIGHT_CM,
 } from "@/lib/wardrobe-constants";
+import handlesData from "@/lib/handles.json";
+import { MaterialPickerModal } from "./MaterialPickerModal";
+import { HandlePickerModal } from "./HandlePickerModal";
+
+interface HandleFinish {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+}
+
+interface HandleData {
+  id: string;
+  name: string;
+  description: string;
+  mainImage: string;
+  finishes: HandleFinish[];
+}
+
+const handles: HandleData[] = handlesData.handles;
 
 interface DoorOptionsPanelProps {
   selectedKeys: string[];
@@ -31,6 +55,58 @@ export function DoorOptionsPanel({
   const doorSelections = useShelfStore((s: ShelfState) => s.doorSelections);
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const removeDoorGroup = useShelfStore((s: ShelfState) => s.removeDoorGroup);
+
+  // Material and handle settings
+  const materials = useShelfStore((s: ShelfState) => s.materials);
+  const selectedFrontMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedFrontMaterialId,
+  );
+  const setSelectedFrontMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedFrontMaterialId,
+  );
+  const globalHandleId = useShelfStore((s: ShelfState) => s.globalHandleId);
+  const globalHandleFinish = useShelfStore(
+    (s: ShelfState) => s.globalHandleFinish,
+  );
+  const setGlobalHandle = useShelfStore((s: ShelfState) => s.setGlobalHandle);
+  const setGlobalHandleFinish = useShelfStore(
+    (s: ShelfState) => s.setGlobalHandleFinish,
+  );
+  const doorSettingsMode = useShelfStore((s: ShelfState) => s.doorSettingsMode);
+  const setDoorSettingsMode = useShelfStore(
+    (s: ShelfState) => s.setDoorSettingsMode,
+  );
+  const setDoorMaterial = useShelfStore((s: ShelfState) => s.setDoorMaterial);
+  const setDoorHandle = useShelfStore((s: ShelfState) => s.setDoorHandle);
+  const setDoorHandleFinish = useShelfStore(
+    (s: ShelfState) => s.setDoorHandleFinish,
+  );
+
+  // Material picker modal state
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
+  // Handle picker modal state
+  const [isHandleModalOpen, setIsHandleModalOpen] = useState(false);
+  const [pinnedMaterialId, setPinnedMaterialId] = useState<number | undefined>(
+    undefined,
+  );
+
+  // Filter materials for front/door category
+  const frontMaterials = materials.filter((m: Material) =>
+    m.categories.some(
+      (c) =>
+        c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
+    ),
+  );
+
+  // Get the category name for front materials
+  const frontCategory =
+    frontMaterials.length > 0
+      ? (frontMaterials[0].categories.find(
+          (c) =>
+            c.toLowerCase().includes("lica") ||
+            c.toLowerCase().includes("vrata"),
+        ) ?? "Materijal za lica")
+      : "Materijal za lica";
 
   // Calculate total height of selected compartments
   const totalHeightCm = selectedKeys.reduce(
@@ -61,6 +137,28 @@ export function DoorOptionsPanel({
     (key) => (doorSelections[key] ?? "none") === currentDoorType,
   );
 
+  // Get current material and handle for this door
+  const currentMaterialId =
+    doorSettingsMode === "per-door" && existingGroup?.materialId
+      ? existingGroup.materialId
+      : selectedFrontMaterialId;
+  const currentHandleId =
+    doorSettingsMode === "per-door" && existingGroup?.handleId
+      ? existingGroup.handleId
+      : globalHandleId;
+  const currentHandleFinish =
+    doorSettingsMode === "per-door" && existingGroup?.handleFinish
+      ? existingGroup.handleFinish
+      : globalHandleFinish;
+
+  const isGlobalMode = doorSettingsMode === "global";
+
+  // Get selected handle data for preview
+  const selectedHandleData = handles.find((h) => h.id === currentHandleId);
+  const selectedFinishData = selectedHandleData?.finishes.find(
+    (f) => f.id === currentHandleFinish,
+  );
+
   const handleDoorSelect = (type: DoorOption) => {
     setDoorForSelection(type);
   };
@@ -70,6 +168,46 @@ export function DoorOptionsPanel({
       removeDoorGroup(existingGroup.id);
     }
   };
+
+  const handleMaterialSelect = (materialId: number) => {
+    if (isGlobalMode) {
+      // Global mode - update the global front material
+      setSelectedFrontMaterialId(materialId);
+    } else if (existingGroup) {
+      // Per-door mode - update this specific door's material
+      setDoorMaterial(existingGroup.id, materialId);
+    }
+    // Pin this material to first position
+    setPinnedMaterialId(materialId);
+  };
+
+  const handleHandleSelect = (handleId: string, finishId: string) => {
+    if (isGlobalMode) {
+      // Global mode - update the global handle and finish
+      setGlobalHandle(handleId);
+      setGlobalHandleFinish(finishId);
+    } else if (existingGroup) {
+      // Per-door mode - update this specific door's handle and finish
+      setDoorHandle(existingGroup.id, handleId);
+      setDoorHandleFinish(existingGroup.id, finishId);
+    }
+  };
+
+  // Sort materials so pinned one is first
+  const sortedFrontMaterials = [...frontMaterials].sort((a, b) => {
+    if (pinnedMaterialId !== undefined) {
+      if (a.id === pinnedMaterialId) return -1;
+      if (b.id === pinnedMaterialId) return 1;
+    }
+    // Put selected material first if no pinned
+    if (a.id === currentMaterialId) return -1;
+    if (b.id === currentMaterialId) return 1;
+    return 0;
+  });
+
+  // Show only 3 materials in preview
+  const previewMaterials = sortedFrontMaterials.slice(0, 3);
+  const remainingMaterialsCount = frontMaterials.length - 3;
 
   const doorOptions: {
     key: DoorOption;
@@ -157,35 +295,6 @@ export function DoorOptionsPanel({
         </Button>
       </div>
 
-      {/* Existing group indicator */}
-      {isEditingExistingGroup && (
-        <div className="flex items-center gap-2 text-sm text-green-500 bg-green-500/10 px-3 py-2 rounded-md">
-          <DoorOpen size={16} />
-          <span>
-            Trenutni tip:{" "}
-            <strong>
-              {existingGroup.type === "none"
-                ? "Prazno"
-                : existingGroup.type === "left"
-                  ? "Leva vrata"
-                  : existingGroup.type === "right"
-                    ? "Desna vrata"
-                    : existingGroup.type === "double"
-                      ? "Dupla vrata"
-                      : existingGroup.type === "leftMirror"
-                        ? "Leva ogledalo"
-                        : existingGroup.type === "rightMirror"
-                          ? "Desna ogledalo"
-                          : existingGroup.type === "doubleMirror"
-                            ? "Dupla ogledalo"
-                            : existingGroup.type === "drawerStyle"
-                              ? "Fioka"
-                              : existingGroup.type}
-            </strong>
-          </span>
-        </div>
-      )}
-
       {/* Height info */}
       <div className="text-sm text-muted-foreground">
         <span>Ukupna visina: </span>
@@ -237,6 +346,134 @@ export function DoorOptionsPanel({
             {MAX_DOOR_HEIGHT_CM}cm.
           </p>
         </div>
+      )}
+
+      {/* Material and handle settings - only show when door exists */}
+      {isEditingExistingGroup && existingGroup.type !== "none" && (
+        <>
+          {/* Global mode toggle - only for material and handles */}
+          <div className="flex items-center justify-center space-x-2 py-2 px-3 bg-muted/50 rounded-md">
+            <Checkbox
+              id="global-mode"
+              checked={isGlobalMode}
+              onCheckedChange={(checked) =>
+                setDoorSettingsMode(checked ? "global" : "per-door")
+              }
+            />
+            <Label htmlFor="global-mode" className="text-sm cursor-pointer">
+              Primeni materijal i ručke za sva vrata
+            </Label>
+          </div>
+
+          {/* Material selector - Grid preview + popup like Step 3 */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">Materijal za lica</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {previewMaterials.map((material) => (
+                <div key={material.id} className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    className={`rounded-lg border-2 ${
+                      currentMaterialId === material.id
+                        ? "border-primary"
+                        : "border-transparent"
+                    } hover:border-primary h-16 w-full bg-cover bg-center bg-muted`}
+                    style={{
+                      backgroundImage: material.img
+                        ? `url(${material.img})`
+                        : undefined,
+                    }}
+                    onClick={() => handleMaterialSelect(material.id)}
+                    title={material.name}
+                  >
+                    <span className="sr-only">{material.name}</span>
+                  </button>
+                  <span className="text-xs mt-1 text-center truncate w-full">
+                    {material.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {remainingMaterialsCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setIsMaterialModalOpen(true)}
+              >
+                Prikaži više ({remainingMaterialsCount})
+              </Button>
+            )}
+            <MaterialPickerModal
+              open={isMaterialModalOpen}
+              onOpenChange={setIsMaterialModalOpen}
+              category={frontCategory}
+              materials={frontMaterials}
+              selectedId={currentMaterialId}
+              onSelect={(id) => {
+                handleMaterialSelect(id);
+              }}
+            />
+            {!isGlobalMode && (
+              <p className="text-xs text-muted-foreground">
+                Materijal samo za ova vrata
+              </p>
+            )}
+          </div>
+
+          {/* Handle selector - Preview + modal */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">Ručke</h4>
+            {/* Preview of selected handle */}
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+              {selectedFinishData?.image ? (
+                <div
+                  className="w-16 h-16 rounded-md bg-cover bg-center bg-muted border"
+                  style={{
+                    backgroundImage: `url(${selectedFinishData.image})`,
+                  }}
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs">
+                  Ručka
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {selectedHandleData?.name || "Izaberite ručku"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedFinishData?.name || ""}
+                </p>
+                <p className="text-xs font-medium text-primary">
+                  {selectedFinishData
+                    ? `${selectedFinishData.price.toLocaleString("sr-RS")} €`
+                    : ""}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setIsHandleModalOpen(true)}
+            >
+              Izaberi ručku
+            </Button>
+            <HandlePickerModal
+              open={isHandleModalOpen}
+              onOpenChange={setIsHandleModalOpen}
+              selectedHandleId={currentHandleId}
+              selectedFinish={currentHandleFinish}
+              onSelect={handleHandleSelect}
+            />
+            {!isGlobalMode && (
+              <p className="text-xs text-muted-foreground">
+                Ručka samo za ova vrata
+              </p>
+            )}
+          </div>
+        </>
       )}
 
       {/* Remove door button - only show when editing existing group */}

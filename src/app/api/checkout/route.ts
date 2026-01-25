@@ -268,11 +268,34 @@ export async function POST(request: Request) {
         price: pricing.priceBreakdown.back.price,
         materialName: selectedBackMaterial?.name ?? "Nije izabrano",
       },
+      handles: {
+        count: pricing.priceBreakdown.handles.count,
+        price: pricing.priceBreakdown.handles.price,
+      },
     };
 
     // Build cut list data for storage (preserves prices at order time)
+    // Filter out handles since they're not cut materials (stored in priceBreakdown instead)
+    // Cast to database-compatible type (excludes "handles" from materialType)
+    type DbCutListItem = {
+      code: string;
+      desc: string;
+      widthCm: number;
+      heightCm: number;
+      thicknessMm: number;
+      areaM2: number;
+      cost: number;
+      element: string;
+      materialType: "korpus" | "front" | "back";
+    };
     const cutListData = {
-      items: pricing.items,
+      items: pricing.items.filter(
+        (
+          item,
+        ): item is typeof item & {
+          materialType: "korpus" | "front" | "back";
+        } => item.materialType !== "handles",
+      ) as DbCutListItem[],
       pricePerM2: selectedMaterial.price,
       frontPricePerM2: selectedFrontMaterial.price,
       backPricePerM2: selectedBackMaterial?.price ?? 0,

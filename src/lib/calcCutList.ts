@@ -6,6 +6,7 @@ import {
   DRAWER_GAP,
 } from "./wardrobe-constants";
 import { buildBlocksX } from "./wardrobe-utils";
+import handlesData from "@/lib/handles.json";
 
 type PricingMaterial = {
   id: number;
@@ -27,6 +28,17 @@ type CompartmentExtras = {
   led?: boolean;
 };
 
+// Door group with per-door settings
+type DoorGroup = {
+  id: string;
+  type: DoorOption;
+  compartments: string[];
+  column: string;
+  materialId?: number;
+  handleId?: string;
+  handleFinish?: string;
+};
+
 export type WardrobeSnapshot = {
   width: number;
   height: number;
@@ -43,9 +55,16 @@ export type WardrobeSnapshot = {
   verticalBoundaries?: number[]; // X positions of vertical seams (in meters from center)
   columnHorizontalBoundaries?: Record<number, number[]>; // Y positions of shelves per column
   columnModuleBoundaries?: Record<number, number | null>; // Module split Y position per column
+  // Door groups with per-door settings
+  doorGroups?: DoorGroup[];
+  // Global handle settings
+  globalHandleId?: string;
+  globalHandleFinish?: string;
+  // Door settings mode
+  doorSettingsMode?: "global" | "per-door";
 };
 
-export type MaterialType = "korpus" | "front" | "back";
+export type MaterialType = "korpus" | "front" | "back" | "handles";
 
 export type CutListItem = {
   code: string;
@@ -63,6 +82,7 @@ export type PriceBreakdown = {
   korpus: { areaM2: number; price: number };
   front: { areaM2: number; price: number };
   back: { areaM2: number; price: number };
+  handles: { count: number; price: number };
 };
 
 export type CutList = {
@@ -84,6 +104,7 @@ const emptyCutList: CutList = {
     korpus: { areaM2: 0, price: 0 },
     front: { areaM2: 0, price: 0 },
     back: { areaM2: 0, price: 0 },
+    handles: { count: 0, price: 0 },
   },
 };
 
@@ -109,6 +130,12 @@ export function calculateCutList(
     const hasBase = snapshot.hasBase ?? false;
     const baseHeight = snapshot.baseHeight ?? 0;
     const baseH = baseHeight / 100; // Convert to meters
+
+    // Door groups and handle settings
+    const doorGroups = snapshot.doorGroups ?? [];
+    const globalHandleId = snapshot.globalHandleId ?? "handle_1";
+    const globalHandleFinish = snapshot.globalHandleFinish ?? "chrome";
+    const doorSettingsMode = snapshot.doorSettingsMode ?? "global";
 
     // Get materials and prices
     const mat = materials.find(
@@ -254,6 +281,60 @@ export function calculateCutList(
         materialType: "back",
       });
     };
+
+    // Helper to add front item with custom material (for per-door materials)
+    const addFrontWithMaterial = (
+      code: string,
+      desc: string,
+      widthM: number,
+      heightM: number,
+      element: string,
+      customMaterialId?: number,
+    ) => {
+      const area = widthM * heightM;
+      // Use custom material if provided, otherwise fall back to global front material
+      let priceToUse = frontPricePerM2;
+      let thicknessToUse = frontT;
+
+      if (customMaterialId !== undefined) {
+        const customMat = materials.find(
+          (m) => String(m.id) === String(customMaterialId),
+        );
+        if (customMat) {
+          priceToUse = Number(customMat.price ?? frontPricePerM2);
+          thicknessToUse = (Number(customMat.thickness ?? 18) / 1000) as number;
+        }
+      }
+
+      items.push({
+        code,
+        desc,
+        widthCm: widthM * 100,
+        heightCm: heightM * 100,
+        thicknessMm: thicknessToUse * 1000,
+        areaM2: area,
+        cost: area * priceToUse,
+        element,
+        materialType: "front",
+      });
+    };
+
+    // Helper to get handle price from handles.json
+    const getHandlePrice = (handleId: string, finishId: string): number => {
+      const handle = handlesData.handles.find((h) => h.id === handleId);
+      if (!handle) return 0;
+      const finish = handle.finishes.find((f) => f.id === finishId);
+      return finish?.price ?? 0;
+    };
+
+    // Track handles for pricing
+    const handleItems: {
+      handleId: string;
+      finishId: string;
+      count: number;
+      price: number;
+      element: string;
+    }[] = [];
 
     // ==========================================
     // 1. OUTER SIDE PANELS (2 for entire wardrobe)
@@ -464,30 +545,195 @@ export function calculateCutList(
           }
         }
 
-        // Doors (use front material)
-        const doorSel = doorSelections[compKey];
-        if (doorSel && doorSel !== "none") {
-          const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
-          const doorH = compH;
+        // Doors - check doorGroups first (new system), fall back to doorSelections (legacy)
+        // Find if this compartment is part of a door group
+        const doorGroup = doorGroups.find((g) =>
+          g.compartments.includes(compKey),
+        );
 
-          if (doorSel === "double" || doorSel === "doubleMirror") {
-            const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
-            addFront(
-              `${compKey}-VL`,
-              `Vrata leva ${compKey}`,
-              leafW,
-              doorH,
-              compKey,
+        if (doorGroup) {
+          // Use new doorGroups system - only process if this is the FIRST compartment in the group
+          // This prevents adding the door multiple times for multi-compartment groups
+          if (doorGroup.compartments[0] === compKey) {
+            const doorType = doorGroup.type;
+            if (doorType && doorType !== "none") {
+              const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+
+              // Calculate total door height for multi-compartment groups
+              let totalDoorH = compH;
+              if (doorGroup.compartments.length > 1) {
+                // Sum heights of all compartments in the group
+                totalDoorH = doorGroup.compartments.reduce((sum, cKey) => {
+                  // Find this compartment's index and calculate its height
+                  const compMatch = cKey.match(/^([A-Z]+)(\d+)/);
+                  if (compMatch) {
+                    const cIdx = parseInt(compMatch[2]) - 1;
+                    if (cIdx >= 0 && cIdx < numCompartments) {
+                      const cYStart = allYs[cIdx];
+                      const cYEnd = allYs[cIdx + 1];
+                      return sum + Math.max(cYEnd - cYStart - t, 0);
+                    }
+                  }
+                  return sum;
+                }, 0);
+              }
+
+              // Get per-door material if in per-door mode
+              const doorMaterialId =
+                doorSettingsMode === "per-door" &&
+                doorGroup.materialId !== undefined
+                  ? doorGroup.materialId
+                  : undefined;
+
+              // Get handle info for this door
+              const doorHandleId =
+                doorSettingsMode === "per-door" && doorGroup.handleId
+                  ? doorGroup.handleId
+                  : globalHandleId;
+              const doorHandleFinish =
+                doorSettingsMode === "per-door" && doorGroup.handleFinish
+                  ? doorGroup.handleFinish
+                  : globalHandleFinish;
+
+              const groupId = doorGroup.id;
+
+              if (doorType === "double" || doorType === "doubleMirror") {
+                const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+                addFrontWithMaterial(
+                  `${groupId}-VL`,
+                  `Vrata leva ${doorGroup.compartments.join("+")}`,
+                  leafW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                addFrontWithMaterial(
+                  `${groupId}-VD`,
+                  `Vrata desna ${doorGroup.compartments.join("+")}`,
+                  leafW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                // Add 2 handles for double doors
+                const handlePrice = getHandlePrice(
+                  doorHandleId,
+                  doorHandleFinish,
+                );
+                if (handlePrice > 0) {
+                  handleItems.push({
+                    handleId: doorHandleId,
+                    finishId: doorHandleFinish,
+                    count: 2,
+                    price: handlePrice * 2,
+                    element: groupId,
+                  });
+                }
+              } else if (doorType === "drawerStyle") {
+                // Drawer-style door - no handle (push-to-open)
+                addFrontWithMaterial(
+                  `${groupId}-V`,
+                  `Vrata (fioka stil) ${doorGroup.compartments.join("+")}`,
+                  doorW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+              } else {
+                // Single door (left, right, leftMirror, rightMirror)
+                addFrontWithMaterial(
+                  `${groupId}-V`,
+                  `Vrata ${doorGroup.compartments.join("+")}`,
+                  doorW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                // Add 1 handle for single door
+                const handlePrice = getHandlePrice(
+                  doorHandleId,
+                  doorHandleFinish,
+                );
+                if (handlePrice > 0) {
+                  handleItems.push({
+                    handleId: doorHandleId,
+                    finishId: doorHandleFinish,
+                    count: 1,
+                    price: handlePrice,
+                    element: groupId,
+                  });
+                }
+              }
+            }
+          }
+          // Skip if not first compartment - door already added
+        } else {
+          // Legacy doorSelections system (for backward compatibility)
+          const doorSel = doorSelections[compKey];
+          if (doorSel && doorSel !== "none") {
+            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+            const doorH = compH;
+
+            // Get handle price using global settings (legacy mode)
+            const handlePrice = getHandlePrice(
+              globalHandleId,
+              globalHandleFinish,
             );
-            addFront(
-              `${compKey}-VD`,
-              `Vrata desna ${compKey}`,
-              leafW,
-              doorH,
-              compKey,
-            );
-          } else {
-            addFront(`${compKey}-V`, `Vrata ${compKey}`, doorW, doorH, compKey);
+
+            if (doorSel === "double" || doorSel === "doubleMirror") {
+              const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+              addFront(
+                `${compKey}-VL`,
+                `Vrata leva ${compKey}`,
+                leafW,
+                doorH,
+                compKey,
+              );
+              addFront(
+                `${compKey}-VD`,
+                `Vrata desna ${compKey}`,
+                leafW,
+                doorH,
+                compKey,
+              );
+              // Add 2 handles for double doors
+              if (handlePrice > 0) {
+                handleItems.push({
+                  handleId: globalHandleId,
+                  finishId: globalHandleFinish,
+                  count: 2,
+                  price: handlePrice * 2,
+                  element: compKey,
+                });
+              }
+            } else if (doorSel === "drawerStyle") {
+              // Drawer-style door - no handle
+              addFront(
+                `${compKey}-V`,
+                `Vrata (fioka stil) ${compKey}`,
+                doorW,
+                doorH,
+                compKey,
+              );
+            } else {
+              addFront(
+                `${compKey}-V`,
+                `Vrata ${compKey}`,
+                doorW,
+                doorH,
+                compKey,
+              );
+              // Add 1 handle for single door
+              if (handlePrice > 0) {
+                handleItems.push({
+                  handleId: globalHandleId,
+                  finishId: globalHandleFinish,
+                  count: 1,
+                  price: handlePrice,
+                  element: compKey,
+                });
+              }
+            }
           }
         }
 
@@ -511,7 +757,31 @@ export function calculateCutList(
     // Calculate totals
     // ==========================================
     const totalArea = items.reduce((a, b) => a + b.areaM2, 0);
-    const totalCost = items.reduce((a, b) => a + b.cost, 0);
+    const materialCost = items.reduce((a, b) => a + b.cost, 0);
+
+    // Calculate handle totals
+    const totalHandleCount = handleItems.reduce((sum, h) => sum + h.count, 0);
+    const totalHandlePrice = handleItems.reduce((sum, h) => sum + h.price, 0);
+
+    // Add handle items to the cut list for transparency
+    handleItems.forEach((h) => {
+      const handle = handlesData.handles.find((hd) => hd.id === h.handleId);
+      const finish = handle?.finishes.find((f) => f.id === h.finishId);
+      items.push({
+        code: `H-${h.handleId}-${h.finishId}`,
+        desc: `${handle?.name ?? "Ručka"} - ${finish?.name ?? h.finishId} (${h.count}x)`,
+        widthCm: 0,
+        heightCm: 0,
+        thicknessMm: 0,
+        areaM2: 0,
+        cost: h.price,
+        element: h.element,
+        materialType: "handles",
+      });
+    });
+
+    // Total cost includes materials + handles
+    const totalCost = materialCost + totalHandlePrice;
 
     // Group by element
     const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
@@ -550,6 +820,10 @@ export function calculateCutList(
             .filter((it) => it.materialType === "back")
             .reduce((sum, it) => sum + it.cost, 0),
         ),
+      },
+      handles: {
+        count: totalHandleCount,
+        price: Math.round(totalHandlePrice),
       },
     };
 

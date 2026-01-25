@@ -130,8 +130,27 @@ export async function POST(req: Request) {
         (m) => m.id === snapshot.selectedBackMaterialId,
       );
 
+      // Filter out handles since they're not cut materials (accessories, not panels)
+      // Cast to database-compatible type (excludes "handles" from materialType)
+      type DbCutListItem = {
+        code: string;
+        desc: string;
+        widthCm: number;
+        heightCm: number;
+        thicknessMm: number;
+        areaM2: number;
+        cost: number;
+        element: string;
+        materialType: "korpus" | "front" | "back";
+      };
       cutListData = {
-        items: pricing.items,
+        items: pricing.items.filter(
+          (
+            item,
+          ): item is typeof item & {
+            materialType: "korpus" | "front" | "back";
+          } => item.materialType !== "handles",
+        ) as DbCutListItem[],
         pricePerM2: korpusMat?.price ?? 0,
         frontPricePerM2: frontMat?.price ?? 0,
         backPricePerM2: backMat?.price ?? 0,

@@ -44,7 +44,14 @@ export interface DoorGroup {
   type: DoorOption; // "left", "right", "double", etc.
   compartments: string[]; // ["A1", "A2", "A3"] - ordered bottom to top
   column: string; // "A" - column letter (for validation)
+  // Per-door settings (optional - uses global if not set)
+  materialId?: number; // Material ID for this specific door
+  handleId?: string; // Handle ID for this specific door (e.g., "handle_1")
+  handleFinish?: string; // Handle finish for this specific door (e.g., "chrome")
 }
+
+// Door settings mode
+export type DoorSettingsMode = "global" | "per-door";
 
 // Parsed sub-compartment key result
 export interface ParsedSubCompKey {
@@ -199,6 +206,16 @@ export interface ShelfState {
   doorGroups: DoorGroup[];
   getDoorGroupForCompartment: (compKey: string) => DoorGroup | null;
   removeDoorGroup: (groupId: string) => void;
+  // Per-door material and handle settings
+  globalHandleId: string; // Default handle for all doors (e.g., "handle_1")
+  globalHandleFinish: string; // Default handle finish for all doors (e.g., "chrome")
+  doorSettingsMode: DoorSettingsMode; // Toggle between global and per-door
+  setDoorMaterial: (groupId: string, materialId: number) => void;
+  setDoorHandle: (groupId: string, handleId: string) => void;
+  setDoorHandleFinish: (groupId: string, finish: string) => void;
+  setGlobalHandle: (handleId: string) => void;
+  setGlobalHandleFinish: (finish: string) => void;
+  setDoorSettingsMode: (mode: DoorSettingsMode) => void;
   showInfoButtons: boolean;
   setShowInfoButtons: (show: boolean) => void;
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
@@ -742,6 +759,56 @@ export const useShelfStore = create<ShelfState>((set) => ({
   selectedDoorCompartments: [],
   // Door groups (span multiple compartments)
   doorGroups: [],
+  // Per-door material and handle settings
+  globalHandleId: "handle_1", // Default handle for all doors
+  globalHandleFinish: "chrome", // Default handle finish for all doors
+  doorSettingsMode: "global", // Default to global mode
+  setDoorMaterial: (groupId: string, materialId: number) =>
+    set((state) => ({
+      doorGroups: state.doorGroups.map((g: DoorGroup) =>
+        g.id === groupId ? { ...g, materialId } : g,
+      ),
+    })),
+  setDoorHandle: (groupId: string, handleId: string) =>
+    set((state) => ({
+      doorGroups: state.doorGroups.map((g: DoorGroup) =>
+        g.id === groupId ? { ...g, handleId } : g,
+      ),
+    })),
+  setDoorHandleFinish: (groupId: string, finish: string) =>
+    set((state) => ({
+      doorGroups: state.doorGroups.map((g: DoorGroup) =>
+        g.id === groupId ? { ...g, handleFinish: finish } : g,
+      ),
+    })),
+  setGlobalHandle: (handleId: string) => set({ globalHandleId: handleId }),
+  setGlobalHandleFinish: (finish: string) =>
+    set({ globalHandleFinish: finish }),
+  setDoorSettingsMode: (mode: DoorSettingsMode) =>
+    set((state) => {
+      if (mode === "global") {
+        // When switching to global mode, clear per-door settings
+        return {
+          doorSettingsMode: mode,
+          doorGroups: state.doorGroups.map((g: DoorGroup) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { materialId, handleId, handleFinish, ...rest } = g;
+            return rest as DoorGroup;
+          }),
+        };
+      }
+      // When switching to per-door mode, initialize all existing doors with
+      // copies of the current global settings so each can be customized independently
+      return {
+        doorSettingsMode: mode,
+        doorGroups: state.doorGroups.map((g: DoorGroup) => ({
+          ...g,
+          materialId: state.selectedFrontMaterialId,
+          handleId: state.globalHandleId,
+          handleFinish: state.globalHandleFinish,
+        })),
+      };
+    }),
   getDoorGroupForCompartment: (compKey: string): DoorGroup | null => {
     const state = useShelfStore.getState();
     return (
@@ -970,12 +1037,18 @@ export const useShelfStore = create<ShelfState>((set) => ({
         };
       }
 
-      // Create new door group
+      // Create new door group with per-door settings if in per-door mode
       const newGroup: DoorGroup = {
         id: groupId,
         type,
         compartments: selectedComps,
         column,
+        // Include per-door settings when in per-door mode
+        ...(state.doorSettingsMode === "per-door" && {
+          materialId: state.selectedFrontMaterialId,
+          handleId: state.globalHandleId,
+          handleFinish: state.globalHandleFinish,
+        }),
       };
 
       // Also update doorSelections for backward compatibility with cut list
@@ -987,11 +1060,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return {
         doorGroups: [...newGroups, newGroup],
         doorSelections: newSelections,
-        // Clear selection after applying
+        // Keep selection active so user can modify material/handle settings
         doorSelectionDragging: false,
         doorSelectionStart: null,
         doorSelectionCurrent: null,
-        selectedDoorCompartments: [],
+        // Don't clear selectedDoorCompartments - keep panel open for further editing
       };
     }),
   showInfoButtons: false,

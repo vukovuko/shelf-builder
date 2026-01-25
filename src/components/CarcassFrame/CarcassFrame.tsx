@@ -2,7 +2,13 @@
 
 import { Html } from "@react-three/drei";
 import React from "react";
-import { useShelfStore, type ShelfState, type DoorGroup, parseSubCompKey } from "@/lib/store";
+import {
+  useShelfStore,
+  type ShelfState,
+  type DoorGroup,
+  type Material,
+  parseSubCompKey,
+} from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
@@ -24,12 +30,6 @@ import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 import { CompartmentClickCircle } from "./CompartmentClickCircle";
 import { DoorClickCircle } from "./DoorClickCircle";
-
-type Material = {
-  id: string;
-  color?: string;
-  thickness?: number;
-};
 
 interface CarcassFrameProps {
   materials: Material[];
@@ -118,6 +118,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Door groups for 3D rendering
     const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
     const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+    // Front material for doors (global default)
+    const selectedFrontMaterialId = useShelfStore(
+      (state: ShelfState) => state.selectedFrontMaterialId,
+    );
 
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
@@ -888,7 +892,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               <DoorClickCircle
                                 key={subKey}
                                 compartmentKey={subKey}
-                                position={[secCenterX, spaceCenterY, d / 2 + 0.02]}
+                                position={[
+                                  secCenterX,
+                                  spaceCenterY,
+                                  d / 2 + 0.02,
+                                ]}
                                 heightCm={spaceHeightCm}
                                 columnIndex={colIdx}
                               />,
@@ -1370,6 +1378,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             });
             if (colIdx === -1) return null;
 
+            // Get door material - use per-door material if set, otherwise global
+            const doorMaterialId = group.materialId ?? selectedFrontMaterialId;
+            const doorMaterial = materials.find((m) => m.id === doorMaterialId);
+            // Default door color (Catppuccin lavender) if no material found
+            const doorColor = doorMaterial?.img ? "#e8e8e8" : "#b4befe";
+
+            // Check if this is a mirror-type door
+            const isMirror = group.type.includes("Mirror");
+
             const col = columns[colIdx];
             const colCenterX = (col.start + col.end) / 2;
             const colInnerW = col.width - 2 * t;
@@ -1386,7 +1403,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             // Get bounds for compartment by key (supports sub-compartment keys like "A1.0.2")
             const getCompBounds = (key: string) => {
               const parsed = parseSubCompKey(key);
-              if (!parsed) return { bottomY: baseH + t, topY: colH - t, centerX: colCenterX, width: colInnerW };
+              if (!parsed)
+                return {
+                  bottomY: baseH + t,
+                  topY: colH - t,
+                  centerX: colCenterX,
+                  width: colInnerW,
+                };
 
               const compIdx = parsed.compIdx - 1;
 
@@ -1422,11 +1445,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
               // If not a sub-compartment, return main compartment bounds
               if (!parsed.isSubComp) {
-                return { bottomY: compBottomY, topY: compTopY, centerX: colCenterX, width: colInnerW };
+                return {
+                  bottomY: compBottomY,
+                  topY: compTopY,
+                  centerX: colCenterX,
+                  width: colInnerW,
+                };
               }
 
               // Handle sub-compartment: get section and space bounds
-              const cfg = elementConfigs[parsed.compKey] ?? { columns: 1, rowCounts: [0] };
+              const cfg = elementConfigs[parsed.compKey] ?? {
+                columns: 1,
+                rowCounts: [0],
+              };
               const innerCols = Math.max(1, cfg.columns);
               const compInnerH = compTopY - compBottomY;
               const compLeftX = colCenterX - colInnerW / 2;
@@ -1434,8 +1465,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
               // Section X bounds
               const secIdx = parsed.sectionIdx;
-              const secLeftX = compLeftX + secIdx * sectionW + (secIdx > 0 ? t / 2 : 0);
-              const secRightX = compLeftX + (secIdx + 1) * sectionW - (secIdx < innerCols - 1 ? t / 2 : 0);
+              const secLeftX =
+                compLeftX + secIdx * sectionW + (secIdx > 0 ? t / 2 : 0);
+              const secRightX =
+                compLeftX +
+                (secIdx + 1) * sectionW -
+                (secIdx < innerCols - 1 ? t / 2 : 0);
               const secCenterX = (secLeftX + secRightX) / 2;
               const secW = secRightX - secLeftX;
 
@@ -1443,10 +1478,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
               const gap = compInnerH / (shelfCount + 1);
               const spaceIdx = parsed.spaceIdx;
-              const spaceBottomY = compBottomY + spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
-              const spaceTopY = compBottomY + (spaceIdx + 1) * gap - (spaceIdx < shelfCount ? t / 2 : 0);
+              const spaceBottomY =
+                compBottomY + spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
+              const spaceTopY =
+                compBottomY +
+                (spaceIdx + 1) * gap -
+                (spaceIdx < shelfCount ? t / 2 : 0);
 
-              return { bottomY: spaceBottomY, topY: spaceTopY, centerX: secCenterX, width: secW };
+              return {
+                bottomY: spaceBottomY,
+                topY: spaceTopY,
+                centerX: secCenterX,
+                width: secW,
+              };
             };
 
             // Calculate door span bounds
@@ -1481,33 +1525,66 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 <React.Fragment key={group.id}>
                   <mesh position={[doorCenterX - offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
-                    <meshStandardMaterial
-                      color="#b4befe"
-                      roughness={0.5}
-                      metalness={0.1}
-                    />
+                    {isMirror ? (
+                      <meshPhysicalMaterial
+                        color="#4a5568"
+                        roughness={0.05}
+                        metalness={0.95}
+                        clearcoat={1}
+                        clearcoatRoughness={0.1}
+                        reflectivity={1}
+                      />
+                    ) : (
+                      <meshStandardMaterial
+                        color={doorColor}
+                        roughness={0.5}
+                        metalness={0.1}
+                      />
+                    )}
                   </mesh>
                   <mesh position={[doorCenterX + offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
-                    <meshStandardMaterial
-                      color="#b4befe"
-                      roughness={0.5}
-                      metalness={0.1}
-                    />
+                    {isMirror ? (
+                      <meshPhysicalMaterial
+                        color="#4a5568"
+                        roughness={0.05}
+                        metalness={0.95}
+                        clearcoat={1}
+                        clearcoatRoughness={0.1}
+                        reflectivity={1}
+                      />
+                    ) : (
+                      <meshStandardMaterial
+                        color={doorColor}
+                        roughness={0.5}
+                        metalness={0.1}
+                      />
+                    )}
                   </mesh>
                 </React.Fragment>
               );
             }
 
-            // Single door (left, right, or other types)
+            // Single door (left, right, leftMirror, rightMirror, or other types)
             return (
               <mesh key={group.id} position={[doorCenterX, doorCenterY, doorZ]}>
                 <boxGeometry args={[doorW, doorHeight, doorT]} />
-                <meshStandardMaterial
-                  color="#b4befe"
-                  roughness={0.5}
-                  metalness={0.1}
-                />
+                {isMirror ? (
+                  <meshPhysicalMaterial
+                    color="#4a5568"
+                    roughness={0.05}
+                    metalness={0.95}
+                    clearcoat={1}
+                    clearcoatRoughness={0.1}
+                    reflectivity={1}
+                  />
+                ) : (
+                  <meshStandardMaterial
+                    color={doorColor}
+                    roughness={0.5}
+                    metalness={0.1}
+                  />
+                )}
               </mesh>
             );
           })}

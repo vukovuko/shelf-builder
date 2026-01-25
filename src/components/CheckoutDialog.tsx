@@ -45,6 +45,7 @@ interface CheckoutDialogProps {
       korpus: { areaM2: number; price: number };
       front: { areaM2: number; price: number };
       back: { areaM2: number; price: number };
+      handles?: { count: number; price: number };
     };
     dimensions: {
       width: number;
@@ -539,6 +540,31 @@ export function CheckoutDialog({
                           </td>
                         </tr>
                       )}
+                      {/* Ručke */}
+                      {orderData.priceBreakdown.handles &&
+                        orderData.priceBreakdown.handles.count > 0 && (
+                          <tr>
+                            <td className="py-2.5 pr-2">
+                              <div className="text-muted-foreground text-xs">
+                                Ručke
+                              </div>
+                              <div className="font-medium">
+                                {orderData.priceBreakdown.handles.count} kom
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                              -
+                            </td>
+                            <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                              -
+                            </td>
+                            <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                              {formatPrice(
+                                orderData.priceBreakdown.handles.price,
+                              )}
+                            </td>
+                          </tr>
+                        )}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border">
