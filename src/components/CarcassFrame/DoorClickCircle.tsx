@@ -50,18 +50,27 @@ export function DoorClickCircle({
   const canHaveDoor =
     heightCm >= MIN_DOOR_HEIGHT_CM && heightCm <= MAX_DOOR_HEIGHT_CM;
 
+  // Too small = can combine with others to reach minimum
+  const isTooSmall = heightCm < MIN_DOOR_HEIGHT_CM;
+
+  // Too tall = can NEVER have a door (even combining won't help)
+  const isTooTall = heightCm > MAX_DOOR_HEIGHT_CM;
+
   // Show hover state if button is hovered OR if in range during drag
   const showHover = isButtonHovered || isSelected;
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.stopPropagation();
-    if (!canHaveDoor) return;
+    // Only block if TOO TALL (can never have door)
+    // Small compartments CAN be combined, so allow selection
+    if (isTooTall) return;
     startDoorSelection(compartmentKey);
   };
 
   const handlePointerEnter = () => {
     setIsButtonHovered(true);
-    if (doorSelectionDragging && canHaveDoor) {
+    // Allow dragging over small compartments too (they can be combined)
+    if (doorSelectionDragging && !isTooTall) {
       updateDoorSelectionDrag(compartmentKey);
     }
   };
@@ -79,7 +88,8 @@ export function DoorClickCircle({
 
   // Determine icon and colors based on state
   const getIcon = () => {
-    if (!canHaveDoor) {
+    if (isTooTall) {
+      // Red X - can never have door (too tall)
       return <X size={22} color="#f38ba8" />;
     }
     if (isPartOfGroup) {
@@ -91,27 +101,39 @@ export function DoorClickCircle({
         />
       );
     }
+    // Plus icon - orange for small (can combine), white for normal
     return (
       <Plus
         size={22}
-        color={isSelected ? "#1e1e2e" : showHover ? "#89b4fa" : "#cdd6f4"}
+        color={
+          isSelected
+            ? "#1e1e2e"
+            : showHover
+              ? "#89b4fa"
+              : isTooSmall
+                ? "#fab387" // Orange hint for small compartments
+                : "#cdd6f4"
+        }
       />
     );
   };
 
-  // Border color - green tint for existing groups
+  // Border color - green tint for existing groups, orange for small
   const getBorderColor = () => {
-    if (!canHaveDoor) return "2px solid #45475a";
+    if (isTooTall) return "2px solid #45475a";
     if (isSelected) return "3px solid #cba6f7";
     if (isPartOfGroup) {
       return showHover ? "2px solid #89b4fa" : "2px solid #a6e3a1";
+    }
+    if (isTooSmall) {
+      return showHover ? "2px solid #89b4fa" : "2px solid #fab387"; // Orange border
     }
     return showHover ? "2px solid #89b4fa" : "2px solid #585b70";
   };
 
   // Background color - green tint for existing groups
   const getBackgroundColor = () => {
-    if (!canHaveDoor) return "#1e1e2e";
+    if (isTooTall) return "#1e1e2e";
     if (isSelected) return "#cba6f7";
     if (isPartOfGroup) {
       return showHover ? "#45475a" : "#2d4434"; // Dark green background
@@ -126,13 +148,15 @@ export function DoorClickCircle({
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onPointerUp={handlePointerUp}
-        disabled={!canHaveDoor}
+        disabled={isTooTall}
         title={
-          !canHaveDoor
-            ? `Visina: ${heightCm}cm (dozvoljeno: ${MIN_DOOR_HEIGHT_CM}-${MAX_DOOR_HEIGHT_CM}cm)`
-            : isPartOfGroup
-              ? `Deo vrata: ${existingGroup.compartments.join(" + ")} (${existingGroup.type})`
-              : undefined
+          isTooTall
+            ? `Previsoko: ${heightCm}cm (max ${MAX_DOOR_HEIGHT_CM}cm)`
+            : isTooSmall
+              ? `${heightCm}cm - izaberite više pregrada za kombinovanje`
+              : isPartOfGroup
+                ? `Deo vrata: ${existingGroup.compartments.join(" + ")} (${existingGroup.type})`
+                : undefined
         }
         style={{
           width: 44,
@@ -143,13 +167,13 @@ export function DoorClickCircle({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          cursor: canHaveDoor ? "pointer" : "not-allowed",
+          cursor: isTooTall ? "not-allowed" : "pointer",
           transition: "all 0.15s ease",
           boxShadow:
             showHover || isSelected
               ? "0 3px 12px rgba(0,0,0,0.4)"
               : "0 2px 8px rgba(0,0,0,0.3)",
-          opacity: canHaveDoor ? 1 : 0.5,
+          opacity: isTooTall ? 0.5 : 1,
         }}
       >
         {getIcon()}

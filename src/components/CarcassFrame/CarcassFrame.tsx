@@ -2,7 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import React from "react";
-import { useShelfStore, type ShelfState, type DoorGroup } from "@/lib/store";
+import { useShelfStore, type ShelfState, type DoorGroup, parseSubCompKey } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
@@ -655,15 +655,35 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const isDoorSelected =
                   selectedDoorCompartments.includes(compKey);
 
+                // Check if this compartment has subdivisions (for Step 5 event handling)
+                const compCfg = elementConfigs[compKey] ?? {
+                  columns: 1,
+                  rowCounts: [0],
+                };
+                const compInnerCols = Math.max(1, compCfg.columns);
+                const compHasVerticalDividers = compInnerCols > 1;
+                const compHasHorizontalShelves =
+                  compCfg.rowCounts?.some((c) => c > 0) ?? false;
+                // Only ONE type of subdivision = need sub-compartment hit meshes
+                const hasOnlyOneSubdivisionType =
+                  (compHasVerticalDividers && !compHasHorizontalShelves) ||
+                  (!compHasVerticalDividers && compHasHorizontalShelves);
+
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
                     {/* Clickable hit mesh covering entire compartment front */}
+                    {/* For Step 5: only handle events here if NO subdivisions or BOTH types */}
                     <mesh
                       position={[colCenterX, bounds.centerY, d / 2 + 0.005]}
                       onPointerEnter={() => {
                         handleColumnHover(colIdx);
                         if (isStep2Active) setHoveredCompartmentKey(compKey);
-                        if (isStep5Active && doorSelectionDragging) {
+                        // Only handle drag update if NOT using sub-compartment meshes
+                        if (
+                          isStep5Active &&
+                          doorSelectionDragging &&
+                          !hasOnlyOneSubdivisionType
+                        ) {
                           updateDoorSelectionDrag(compKey);
                         }
                       }}
@@ -674,7 +694,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         if (isStep2Active) setSelectedCompartmentKey(compKey);
                       }}
                       onPointerDown={() => {
-                        if (isStep5Active) startDoorSelection(compKey);
+                        // Only handle door selection if NOT using sub-compartment meshes
+                        if (isStep5Active && !hasOnlyOneSubdivisionType)
+                          startDoorSelection(compKey);
                       }}
                       onPointerUp={() => {
                         if (isStep5Active && doorSelectionDragging) {
@@ -712,19 +734,170 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
 
-                    {/* Door circle - SHOW when Step 5 active */}
-                    {isStep5Active && (
-                      <DoorClickCircle
-                        compartmentKey={compKey}
-                        position={[
-                          colCenterX,
-                          getCompartmentCenterY(compIdx),
-                          d / 2 + 0.02,
-                        ]}
-                        heightCm={compHeightCm}
-                        columnIndex={colIdx}
-                      />
-                    )}
+                    {/* Door circles - SHOW when Step 5 active */}
+                    {/* Renders one circle per sub-space if compartment has subdivisions */}
+                    {isStep5Active &&
+                      (() => {
+                        const cfg = elementConfigs[compKey] ?? {
+                          columns: 1,
+                          rowCounts: [0],
+                        };
+                        const innerCols = Math.max(1, cfg.columns);
+
+                        // Get compartment bounds
+                        const { centerY, height: compInnerH } =
+                          getCompartmentBounds(compIdx);
+                        const compBottomY = centerY - compInnerH / 2;
+                        const compLeftX = colCenterX - colInnerW / 2;
+                        const sectionW = colInnerW / innerCols;
+
+                        // Check subdivision types separately
+                        const hasVerticalDividers = innerCols > 1;
+                        const hasHorizontalShelves =
+                          cfg.rowCounts?.some((c) => c > 0) ?? false;
+
+                        // If BOTH types exist OR neither type exists → single button
+                        // Doors can only span ONE dimension (vertical OR horizontal)
+                        // When both exist, it's too complex - treat as single compartment
+                        if (
+                          (hasVerticalDividers && hasHorizontalShelves) ||
+                          (!hasVerticalDividers && !hasHorizontalShelves)
+                        ) {
+                          return (
+                            <>
+                              <DoorClickCircle
+                                compartmentKey={compKey}
+                                position={[colCenterX, centerY, d / 2 + 0.02]}
+                                heightCm={compHeightCm}
+                                columnIndex={colIdx}
+                              />
+                              {/* Hit mesh for drag detection */}
+                              {doorSelectionDragging && (
+                                <mesh
+                                  position={[
+                                    colCenterX,
+                                    centerY,
+                                    d / 2 + 0.015,
+                                  ]}
+                                  onPointerMove={(e) => {
+                                    e.stopPropagation();
+                                    updateDoorSelectionDrag(compKey);
+                                  }}
+                                  onPointerUp={(e) => {
+                                    e.stopPropagation();
+                                    endDoorSelection();
+                                  }}
+                                >
+                                  <planeGeometry
+                                    args={[colInnerW, compInnerH]}
+                                  />
+                                  <meshBasicMaterial transparent opacity={0} />
+                                </mesh>
+                              )}
+                            </>
+                          );
+                        }
+
+                        // Has ONLY ONE type of subdivision - render sub-buttons
+                        const subCircles: React.ReactNode[] = [];
+
+                        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                          const numSpaces = shelfCount + 1;
+
+                          // Section X bounds (account for divider thickness)
+                          const secLeftX =
+                            compLeftX +
+                            secIdx * sectionW +
+                            (secIdx > 0 ? t / 2 : 0);
+                          const secRightX =
+                            compLeftX +
+                            (secIdx + 1) * sectionW -
+                            (secIdx < innerCols - 1 ? t / 2 : 0);
+                          const secCenterX = (secLeftX + secRightX) / 2;
+
+                          // Calculate space positions (distribute evenly)
+                          const usableH = compInnerH;
+                          const gap = usableH / (shelfCount + 1);
+
+                          for (
+                            let spaceIdx = 0;
+                            spaceIdx < numSpaces;
+                            spaceIdx++
+                          ) {
+                            // Space bounds (account for shelf thickness)
+                            const spaceBottomY =
+                              compBottomY +
+                              spaceIdx * gap +
+                              (spaceIdx > 0 ? t / 2 : 0);
+                            const spaceTopY =
+                              compBottomY +
+                              (spaceIdx + 1) * gap -
+                              (spaceIdx < shelfCount ? t / 2 : 0);
+                            const spaceCenterY = (spaceBottomY + spaceTopY) / 2;
+                            const spaceHeightCm = Math.round(
+                              (spaceTopY - spaceBottomY) * 100,
+                            );
+
+                            const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
+                            const spaceWidth = secRightX - secLeftX;
+                            const spaceHeight = spaceTopY - spaceBottomY;
+                            const isSubKeySelected =
+                              selectedDoorCompartments.includes(subKey);
+
+                            // Hit mesh for sub-compartment - ALWAYS rendered
+                            // Handles onPointerDown, onPointerMove, onPointerUp
+                            subCircles.push(
+                              <mesh
+                                key={`hit-${subKey}`}
+                                position={[
+                                  secCenterX,
+                                  spaceCenterY,
+                                  d / 2 + 0.006,
+                                ]}
+                                onPointerDown={(e) => {
+                                  e.stopPropagation();
+                                  startDoorSelection(subKey);
+                                }}
+                                onPointerMove={(e) => {
+                                  if (doorSelectionDragging) {
+                                    e.stopPropagation();
+                                    updateDoorSelectionDrag(subKey);
+                                  }
+                                }}
+                                onPointerUp={(e) => {
+                                  if (doorSelectionDragging) {
+                                    e.stopPropagation();
+                                    endDoorSelection();
+                                  }
+                                }}
+                              >
+                                <planeGeometry
+                                  args={[spaceWidth, spaceHeight]}
+                                />
+                                <meshBasicMaterial
+                                  transparent
+                                  opacity={isSubKeySelected ? 0.15 : 0}
+                                  color="#89b4fa"
+                                />
+                              </mesh>,
+                            );
+
+                            // Door click circle button on top
+                            subCircles.push(
+                              <DoorClickCircle
+                                key={subKey}
+                                compartmentKey={subKey}
+                                position={[secCenterX, spaceCenterY, d / 2 + 0.02]}
+                                heightCm={spaceHeightCm}
+                                columnIndex={colIdx}
+                              />,
+                            );
+                          }
+                        }
+
+                        return <>{subCircles}</>;
+                      })()}
 
                     {/* Height label - only show if compartment is large enough AND Step 2/5 not active */}
                     {showLabel && (
@@ -1210,40 +1383,70 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const topModuleShelves = columnTopModuleShelves[colIdx] || [];
             const bottomModuleCompartments = shelves.length + 1;
 
-            // Get bounds for compartment by key
-            const getCompBounds = (compKey: string) => {
-              const match = compKey.match(/^([A-Z]+)(\d+)$/);
-              if (!match) return { bottomY: baseH + t, topY: colH - t };
-              const compIdx = parseInt(match[2], 10) - 1;
+            // Get bounds for compartment by key (supports sub-compartment keys like "A1.0.2")
+            const getCompBounds = (key: string) => {
+              const parsed = parseSubCompKey(key);
+              if (!parsed) return { bottomY: baseH + t, topY: colH - t, centerX: colCenterX, width: colInnerW };
+
+              const compIdx = parsed.compIdx - 1;
+
+              // Get main compartment bounds first
+              let compBottomY: number;
+              let compTopY: number;
 
               // Check if this is a top module compartment
               if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
                 const topCompIdx = compIdx - bottomModuleCompartments;
-                const bottomY =
+                compBottomY =
                   topCompIdx === 0
                     ? moduleBoundary + t
                     : topModuleShelves[topCompIdx - 1];
-                const topY =
+                compTopY =
                   topCompIdx === topModuleShelves.length
                     ? colH - t
                     : topModuleShelves[topCompIdx];
-                return { bottomY, topY };
+              } else {
+                // Bottom module compartment
+                compBottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
+                if (
+                  hasModuleBoundary &&
+                  compIdx === bottomModuleCompartments - 1
+                ) {
+                  compTopY = moduleBoundary - t;
+                } else if (compIdx === shelves.length) {
+                  compTopY = colH - t;
+                } else {
+                  compTopY = shelves[compIdx];
+                }
               }
 
-              // Bottom module compartment
-              const bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
-              let topY: number;
-              if (
-                hasModuleBoundary &&
-                compIdx === bottomModuleCompartments - 1
-              ) {
-                topY = moduleBoundary - t;
-              } else if (compIdx === shelves.length) {
-                topY = colH - t;
-              } else {
-                topY = shelves[compIdx];
+              // If not a sub-compartment, return main compartment bounds
+              if (!parsed.isSubComp) {
+                return { bottomY: compBottomY, topY: compTopY, centerX: colCenterX, width: colInnerW };
               }
-              return { bottomY, topY };
+
+              // Handle sub-compartment: get section and space bounds
+              const cfg = elementConfigs[parsed.compKey] ?? { columns: 1, rowCounts: [0] };
+              const innerCols = Math.max(1, cfg.columns);
+              const compInnerH = compTopY - compBottomY;
+              const compLeftX = colCenterX - colInnerW / 2;
+              const sectionW = colInnerW / innerCols;
+
+              // Section X bounds
+              const secIdx = parsed.sectionIdx;
+              const secLeftX = compLeftX + secIdx * sectionW + (secIdx > 0 ? t / 2 : 0);
+              const secRightX = compLeftX + (secIdx + 1) * sectionW - (secIdx < innerCols - 1 ? t / 2 : 0);
+              const secCenterX = (secLeftX + secRightX) / 2;
+              const secW = secRightX - secLeftX;
+
+              // Space Y bounds within section
+              const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+              const gap = compInnerH / (shelfCount + 1);
+              const spaceIdx = parsed.spaceIdx;
+              const spaceBottomY = compBottomY + spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
+              const spaceTopY = compBottomY + (spaceIdx + 1) * gap - (spaceIdx < shelfCount ? t / 2 : 0);
+
+              return { bottomY: spaceBottomY, topY: spaceTopY, centerX: secCenterX, width: secW };
             };
 
             // Calculate door span bounds
@@ -1257,9 +1460,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const doorHeight = doorTopY - doorBottomY;
             const doorCenterY = (doorBottomY + doorTopY) / 2;
 
+            // Use centerX and width from bounds (supports sub-compartment sections)
+            const doorCenterX = firstBounds.centerX;
+            const sectionWidth = firstBounds.width;
+
             // Door dimensions
             const doorInset = 0.002; // 2mm clearance
-            const doorW = colInnerW - doorInset * 2;
+            const doorW = sectionWidth - doorInset * 2;
             const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
             const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
 
@@ -1272,7 +1479,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
               return (
                 <React.Fragment key={group.id}>
-                  <mesh position={[colCenterX - offset, doorCenterY, doorZ]}>
+                  <mesh position={[doorCenterX - offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
                     <meshStandardMaterial
                       color="#b4befe"
@@ -1280,7 +1487,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       metalness={0.1}
                     />
                   </mesh>
-                  <mesh position={[colCenterX + offset, doorCenterY, doorZ]}>
+                  <mesh position={[doorCenterX + offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
                     <meshStandardMaterial
                       color="#b4befe"
@@ -1294,7 +1501,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
             // Single door (left, right, or other types)
             return (
-              <mesh key={group.id} position={[colCenterX, doorCenterY, doorZ]}>
+              <mesh key={group.id} position={[doorCenterX, doorCenterY, doorZ]}>
                 <boxGeometry args={[doorW, doorHeight, doorT]} />
                 <meshStandardMaterial
                   color="#b4befe"

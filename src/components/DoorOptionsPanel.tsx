@@ -7,7 +7,7 @@ import {
   type ShelfState,
   type DoorGroup,
 } from "@/lib/store";
-import { X, DoorOpen, DoorClosed, Trash2 } from "lucide-react";
+import { X, DoorOpen, DoorClosed, Trash2, Square, Layers } from "lucide-react";
 import {
   MIN_DOOR_HEIGHT_CM,
   MAX_DOOR_HEIGHT_CM,
@@ -76,16 +76,57 @@ export function DoorOptionsPanel({
     label: string;
     icon?: React.ReactNode;
   }[] = [
+    {
+      key: "none",
+      label: "Prazno",
+      icon: <Square size={16} className="opacity-50" />,
+    },
     { key: "left", label: "Leva vrata", icon: <DoorClosed size={16} /> },
     { key: "right", label: "Desna vrata", icon: <DoorOpen size={16} /> },
+    {
+      key: "drawerStyle",
+      label: "Fioka",
+      icon: <Layers size={16} />,
+    },
     {
       key: "double",
       label: "Dupla vrata",
       icon: (
-        <>
+        <span className="flex gap-0.5">
           <DoorClosed size={14} />
           <DoorOpen size={14} />
-        </>
+        </span>
+      ),
+    },
+    {
+      key: "leftMirror",
+      label: "Leva ogledalo vrata",
+      icon: (
+        <span className="relative">
+          <DoorClosed size={16} />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-400 rounded-full" />
+        </span>
+      ),
+    },
+    {
+      key: "rightMirror",
+      label: "Desna ogledalo vrata",
+      icon: (
+        <span className="relative">
+          <DoorOpen size={16} />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-400 rounded-full" />
+        </span>
+      ),
+    },
+    {
+      key: "doubleMirror",
+      label: "Dupla ogledalo vrata",
+      icon: (
+        <span className="flex gap-0.5 relative">
+          <DoorClosed size={14} />
+          <DoorOpen size={14} />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-400 rounded-full" />
+        </span>
       ),
     },
   ];
@@ -123,13 +164,23 @@ export function DoorOptionsPanel({
           <span>
             Trenutni tip:{" "}
             <strong>
-              {existingGroup.type === "left"
-                ? "Leva"
-                : existingGroup.type === "right"
-                  ? "Desna"
-                  : existingGroup.type === "double"
-                    ? "Dupla"
-                    : existingGroup.type}
+              {existingGroup.type === "none"
+                ? "Prazno"
+                : existingGroup.type === "left"
+                  ? "Leva vrata"
+                  : existingGroup.type === "right"
+                    ? "Desna vrata"
+                    : existingGroup.type === "double"
+                      ? "Dupla vrata"
+                      : existingGroup.type === "leftMirror"
+                        ? "Leva ogledalo"
+                        : existingGroup.type === "rightMirror"
+                          ? "Desna ogledalo"
+                          : existingGroup.type === "doubleMirror"
+                            ? "Dupla ogledalo"
+                            : existingGroup.type === "drawerStyle"
+                              ? "Fioka"
+                              : existingGroup.type}
             </strong>
           </span>
         </div>
@@ -160,7 +211,7 @@ export function DoorOptionsPanel({
               ? "Promenite tip vrata:"
               : "Izaberite tip vrata:"}
           </p>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {doorOptions.map((option) => (
               <Button
                 key={option.key}
@@ -169,14 +220,11 @@ export function DoorOptionsPanel({
                     ? "default"
                     : "outline"
                 }
-                className="justify-start gap-2"
+                className="justify-start gap-2 text-xs px-2"
                 onClick={() => handleDoorSelect(option.key)}
               >
                 {option.icon}
-                {option.label}
-                {allSameDoor && currentDoorType === option.key && (
-                  <span className="ml-auto text-xs opacity-70">izabrano</span>
-                )}
+                <span className="truncate">{option.label}</span>
               </Button>
             ))}
           </div>

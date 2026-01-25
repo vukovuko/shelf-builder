@@ -46,6 +46,64 @@ export interface DoorGroup {
   column: string; // "A" - column letter (for validation)
 }
 
+// Parsed sub-compartment key result
+export interface ParsedSubCompKey {
+  compKey: string; // Base compartment key (e.g., "A1")
+  column: string; // Column letter (e.g., "A")
+  compIdx: number; // Compartment index (e.g., 1)
+  sectionIdx: number; // Section index within compartment (0 if no subdivisions)
+  spaceIdx: number; // Space index within section (0 if no subdivisions)
+  isSubComp: boolean; // true if key has sub-indices (e.g., "A1.0.1")
+}
+
+/**
+ * Parse a compartment or sub-compartment key.
+ * Examples:
+ * - "A1" → { compKey: "A1", column: "A", compIdx: 1, sectionIdx: 0, spaceIdx: 0, isSubComp: false }
+ * - "A1.0.2" → { compKey: "A1", column: "A", compIdx: 1, sectionIdx: 0, spaceIdx: 2, isSubComp: true }
+ */
+export function parseSubCompKey(key: string): ParsedSubCompKey | null {
+  const parts = key.split(".");
+
+  // Parse base compartment key (e.g., "A1")
+  const baseMatch = parts[0].match(/^([A-Z]+)(\d+)$/);
+  if (!baseMatch) return null;
+
+  const column = baseMatch[1];
+  const compIdx = parseInt(baseMatch[2], 10);
+  const compKey = parts[0];
+
+  if (parts.length === 1) {
+    // Simple key like "A1"
+    return {
+      compKey,
+      column,
+      compIdx,
+      sectionIdx: 0,
+      spaceIdx: 0,
+      isSubComp: false,
+    };
+  }
+
+  if (parts.length === 3) {
+    // Sub-compartment key like "A1.0.2"
+    const sectionIdx = parseInt(parts[1], 10);
+    const spaceIdx = parseInt(parts[2], 10);
+    if (isNaN(sectionIdx) || isNaN(spaceIdx)) return null;
+
+    return {
+      compKey,
+      column,
+      compIdx,
+      sectionIdx,
+      spaceIdx,
+      isSubComp: true,
+    };
+  }
+
+  return null; // Invalid format
+}
+
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
@@ -721,6 +779,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         // Re-select existing group (no dragging, just selection)
         return {
           doorSelectionDragging: false,
+          isDragging: false, // Not dragging, just selecting existing group
           doorSelectionStart: null,
           doorSelectionCurrent: null,
           selectedDoorCompartments: [...existingGroup.compartments],
@@ -730,6 +789,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // Start new selection (dragging)
       return {
         doorSelectionDragging: true,
+        isDragging: true, // Disable OrbitControls during drag
         doorSelectionStart: compKey,
         doorSelectionCurrent: compKey,
         selectedDoorCompartments: [compKey],
@@ -740,27 +800,63 @@ export const useShelfStore = create<ShelfState>((set) => ({
       if (!state.doorSelectionDragging || !state.doorSelectionStart)
         return state;
 
-      // Parse column letter and compartment index from keys
-      const startMatch = state.doorSelectionStart.match(/^([A-Z]+)(\d+)$/);
-      const currentMatch = compKey.match(/^([A-Z]+)(\d+)$/);
+      // Parse both keys using the new parseSubCompKey utility
+      const startParsed = parseSubCompKey(state.doorSelectionStart);
+      const currentParsed = parseSubCompKey(compKey);
 
-      if (!startMatch || !currentMatch) return state;
+      if (!startParsed || !currentParsed) return state;
 
-      const startCol = startMatch[1];
-      const currentCol = currentMatch[1];
+      // Must be in the same column
+      if (startParsed.column !== currentParsed.column) return state;
 
-      // Only allow selection within same column
-      if (startCol !== currentCol) return state;
-
-      const startIdx = parseInt(startMatch[2], 10);
-      const currentIdx = parseInt(currentMatch[2], 10);
-
-      // Generate range of compartment keys
-      const minIdx = Math.min(startIdx, currentIdx);
-      const maxIdx = Math.max(startIdx, currentIdx);
       let selected: string[] = [];
-      for (let i = minIdx; i <= maxIdx; i++) {
-        selected.push(`${startCol}${i}`);
+
+      // Case 1: Both are sub-compartments in SAME base compartment AND SAME section
+      // This restricts selection to within one shelf-divided section (vertical stacking only)
+      if (
+        startParsed.isSubComp &&
+        currentParsed.isSubComp &&
+        startParsed.compKey === currentParsed.compKey &&
+        startParsed.sectionIdx === currentParsed.sectionIdx
+      ) {
+        // Generate range of sub-compartment keys within same section
+        const minSpace = Math.min(startParsed.spaceIdx, currentParsed.spaceIdx);
+        const maxSpace = Math.max(startParsed.spaceIdx, currentParsed.spaceIdx);
+        for (let i = minSpace; i <= maxSpace; i++) {
+          selected.push(
+            `${startParsed.compKey}.${startParsed.sectionIdx}.${i}`,
+          );
+        }
+      }
+      // Case 2: Cross-compartment selection (different compIdx, or mixed types)
+      // Include all compartments in the index range, expanding subdivided ones to their sub-keys
+      else {
+        const minCompIdx = Math.min(startParsed.compIdx, currentParsed.compIdx);
+        const maxCompIdx = Math.max(startParsed.compIdx, currentParsed.compIdx);
+        const column = startParsed.column;
+
+        for (let compIdx = minCompIdx; compIdx <= maxCompIdx; compIdx++) {
+          const baseKey = `${column}${compIdx}`;
+          const cfg = state.elementConfigs[baseKey];
+
+          // Check if this compartment has ONLY horizontal shelves (needs sub-keys)
+          const hasOnlyHorizontalShelves =
+            cfg &&
+            (cfg.columns ?? 1) === 1 &&
+            (cfg.rowCounts?.some((c: number) => c > 0) ?? false);
+
+          if (hasOnlyHorizontalShelves) {
+            // Include all sub-compartments for this base key
+            const shelfCount = cfg.rowCounts?.[0] ?? 0;
+            const numSpaces = shelfCount + 1;
+            for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
+              selected.push(`${baseKey}.0.${spaceIdx}`);
+            }
+          } else {
+            // Simple compartment (no subdivisions, or BOTH types → treated as single)
+            selected.push(baseKey);
+          }
+        }
       }
 
       // Auto-expand: if any selected compartment is part of an existing group,
@@ -776,11 +872,21 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Convert back to sorted array
       selected = Array.from(expandedSet).sort((a, b) => {
-        const aMatch = a.match(/^([A-Z]+)(\d+)$/);
-        const bMatch = b.match(/^([A-Z]+)(\d+)$/);
-        if (!aMatch || !bMatch) return 0;
-        if (aMatch[1] !== bMatch[1]) return aMatch[1].localeCompare(bMatch[1]);
-        return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+        const aParsed = parseSubCompKey(a);
+        const bParsed = parseSubCompKey(b);
+        if (!aParsed || !bParsed) return 0;
+
+        // Sort by column first
+        if (aParsed.column !== bParsed.column)
+          return aParsed.column.localeCompare(bParsed.column);
+        // Then by compartment index
+        if (aParsed.compIdx !== bParsed.compIdx)
+          return aParsed.compIdx - bParsed.compIdx;
+        // Then by section index
+        if (aParsed.sectionIdx !== bParsed.sectionIdx)
+          return aParsed.sectionIdx - bParsed.sectionIdx;
+        // Finally by space index
+        return aParsed.spaceIdx - bParsed.spaceIdx;
       });
 
       return {
@@ -791,11 +897,13 @@ export const useShelfStore = create<ShelfState>((set) => ({
   endDoorSelection: () =>
     set((state) => ({
       doorSelectionDragging: false,
+      isDragging: false, // Re-enable OrbitControls after drag ends
       // Keep selectedDoorCompartments for UI to show options
     })),
   clearDoorSelection: () =>
     set({
       doorSelectionDragging: false,
+      isDragging: false, // Re-enable OrbitControls
       doorSelectionStart: null,
       doorSelectionCurrent: null,
       selectedDoorCompartments: [],
@@ -804,17 +912,28 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => {
       if (state.selectedDoorCompartments.length === 0) return state;
 
+      // Sort using parseSubCompKey for proper handling of sub-compartment keys
       const selectedComps = [...state.selectedDoorCompartments].sort((a, b) => {
-        const aMatch = a.match(/^([A-Z]+)(\d+)$/);
-        const bMatch = b.match(/^([A-Z]+)(\d+)$/);
-        if (!aMatch || !bMatch) return 0;
-        if (aMatch[1] !== bMatch[1]) return aMatch[1].localeCompare(bMatch[1]);
-        return parseInt(aMatch[2], 10) - parseInt(bMatch[2], 10);
+        const aParsed = parseSubCompKey(a);
+        const bParsed = parseSubCompKey(b);
+        if (!aParsed || !bParsed) return 0;
+
+        // Sort by column first
+        if (aParsed.column !== bParsed.column)
+          return aParsed.column.localeCompare(bParsed.column);
+        // Then by compartment index
+        if (aParsed.compIdx !== bParsed.compIdx)
+          return aParsed.compIdx - bParsed.compIdx;
+        // Then by section index
+        if (aParsed.sectionIdx !== bParsed.sectionIdx)
+          return aParsed.sectionIdx - bParsed.sectionIdx;
+        // Finally by space index
+        return aParsed.spaceIdx - bParsed.spaceIdx;
       });
 
-      // Get column letter from first compartment
-      const firstMatch = selectedComps[0].match(/^([A-Z]+)(\d+)$/);
-      const column = firstMatch?.[1] ?? "A";
+      // Get column letter from first compartment using parseSubCompKey
+      const firstParsed = parseSubCompKey(selectedComps[0]);
+      const column = firstParsed?.column ?? "A";
 
       // Generate group ID
       const firstComp = selectedComps[0];

@@ -2,6 +2,7 @@
 
 import jsPDF from "jspdf";
 import {
+  ArrowRight,
   ChevronDown,
   DoorClosed,
   DoorOpen,
@@ -1182,7 +1183,13 @@ export function ConfiguratorControls({
                   Prijavite se da biste sačuvali vaš dizajn ormana
                 </DialogDescription>
               </DialogHeader>
-              <AuthForms onSuccess={() => setAuthDialogOpen(false)} />
+              <AuthForms
+                onSuccess={() => {
+                  setAuthDialogOpen(false);
+                  // Refresh to update session and trigger pending state restoration
+                  router.refresh();
+                }}
+              />
             </DialogContent>
           </Dialog>
         )}
@@ -1226,6 +1233,16 @@ export function ConfiguratorControls({
                 max={100}
                 step={1}
               />
+
+              {/* Next step button */}
+              <Button
+                variant="default"
+                className="w-full mt-4 gap-2"
+                onClick={() => setActiveAccordionStep("item-2")}
+              >
+                Sledeći korak
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </AccordionContent>
           </AccordionItem>
 
@@ -1247,6 +1264,16 @@ export function ConfiguratorControls({
                   materials={materials}
                 />
               )}
+
+              {/* Next step button */}
+              <Button
+                variant="default"
+                className="w-full mt-4 gap-2"
+                onClick={() => setActiveAccordionStep("item-3")}
+              >
+                Sledeći korak
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </AccordionContent>
           </AccordionItem>
 
@@ -1375,6 +1402,16 @@ export function ConfiguratorControls({
                   Izaberite materijal za leđa
                 </p>
               )}
+
+              {/* Next step button */}
+              <Button
+                variant="default"
+                className="w-full mt-4 gap-2"
+                onClick={() => setActiveAccordionStep("item-4")}
+              >
+                Sledeći korak
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </AccordionContent>
           </AccordionItem>
 
@@ -1435,6 +1472,16 @@ export function ConfiguratorControls({
                   </Button>
                 </div>
               </div>
+
+              {/* Next step button */}
+              <Button
+                variant="default"
+                className="w-full mt-4 gap-2"
+                onClick={() => setActiveAccordionStep("item-5")}
+              >
+                Sledeći korak
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </AccordionContent>
           </AccordionItem>
 
@@ -1563,6 +1610,52 @@ export function ConfiguratorControls({
                           );
                         }
                       }
+
+                      // Calculate sub-compartment heights for elementConfigs with subdivisions
+                      // Iterate through all compartments in this column
+                      const totalCompartments = hasModuleBoundary
+                        ? bottomModuleCompartments + topModuleShelves.length + 1
+                        : bottomModuleCompartments;
+
+                      for (let compIdx = 0; compIdx < totalCompartments; compIdx++) {
+                        const compKey = `${colLetter}${compIdx + 1}`;
+                        const mainHeight = heights[compKey];
+                        if (!mainHeight) continue;
+
+                        const cfg = elementConfigs[compKey] ?? {
+                          columns: 1,
+                          rowCounts: [0],
+                        };
+                        const innerCols = Math.max(1, cfg.columns);
+                        const hasSubdivisions =
+                          innerCols > 1 ||
+                          (cfg.rowCounts?.some((rc) => rc > 0) ?? false);
+
+                        if (!hasSubdivisions) continue;
+
+                        // Calculate sub-compartment heights for this compartment
+                        const mainHeightM = mainHeight / 100; // Convert back to meters
+
+                        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                          const numSpaces = shelfCount + 1;
+                          const gap = mainHeightM / (shelfCount + 1);
+
+                          for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
+                            // Calculate space height (account for shelf thickness)
+                            const spaceBottomOffset =
+                              spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
+                            const spaceTopOffset =
+                              (spaceIdx + 1) * gap - (spaceIdx < shelfCount ? t / 2 : 0);
+                            const spaceHeightCm = Math.round(
+                              (spaceTopOffset - spaceBottomOffset) * 100,
+                            );
+
+                            const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
+                            heights[subKey] = spaceHeightCm;
+                          }
+                        }
+                      }
                     });
                     return heights;
                   })()}
@@ -1635,22 +1728,6 @@ export function ConfiguratorControls({
                   )}
                   {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
                 </Button>
-                {/* Door visibility toggle - only show if doors exist */}
-                {doorGroups.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowDoors(!showDoors)}
-                    className="hover:text-white px-2"
-                    size="sm"
-                    title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
-                  >
-                    {showDoors ? (
-                      <DoorOpen className="h-4 w-4" />
-                    ) : (
-                      <DoorClosed className="h-4 w-4 opacity-50" />
-                    )}
-                  </Button>
-                )}
               </div>
             </div>
 
