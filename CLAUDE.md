@@ -599,376 +599,97 @@ DRAWER_GAP = 0.01          // 1cm drawer gap
 
 ---
 
----
-title: Minimize Serialization at RSC Boundaries
-impact: HIGH
-impactDescription: reduces data transfer size
-tags: server, rsc, serialization, props
----
+## 15. BlueprintView (2D Technical Drawing / Tehnički Crtež)
 
-## Minimize Serialization at RSC Boundaries
+**CRITICAL: Store coordinates are FLOOR-ORIGIN meters (Y=0 at floor)**
 
-The React Server/Client boundary serializes all object properties. Only pass fields that the client actually uses.
-
-**Incorrect (serializes all 50 fields):**
-
-```tsx
-async function Page() {
-  const user = await fetchUser()  // 50 fields
-  return <Profile user={user} />
-}
-
-'use client'
-function Profile({ user }: { user: User }) {
-  return <div>{user.name}</div>  // uses 1 field
-}
-```
-
-**Correct (serializes only 1 field):**
-
-```tsx
-async function Page() {
-  const user = await fetchUser()
-  return <Profile name={user.name} />
-}
-
-'use client'
-function Profile({ name }: { name: string }) {
-  return <div>{name}</div>
-}
-```
-
----
-title: Parallel Data Fetching with Component Composition
-impact: HIGH
-impactDescription: eliminates server-side waterfalls
-tags: server, rsc, parallel-fetching, composition
----
-
-## Parallel Data Fetching with Component Composition
-
-React Server Components execute sequentially within a tree. Restructure with composition to parallelize data fetching.
-
-**Incorrect (Sidebar waits for Page's fetch to complete):**
-
-```tsx
-export default async function Page() {
-  const header = await fetchHeader()
-  return (
-    <div>
-      <div>{header}</div>
-      <Sidebar />
-    </div>
-  )
-}
-
-async function Sidebar() {
-  const items = await fetchSidebarItems()
-  return <nav>{items.map(renderItem)}</nav>
-}
-```
-
-**Correct (both fetch simultaneously):**
-
-```tsx
-async function Header() {
-  const data = await fetchHeader()
-  return <div>{data}</div>
-}
-
-async function Sidebar() {
-  const items = await fetchSidebarItems()
-  return <nav>{items.map(renderItem)}</nav>
-}
-
-export default function Page() {
-  return (
-    <div>
-      <Header />
-      <Sidebar />
-    </div>
-  )
-}
-```
-
-**Alternative with children prop:**
-
-```tsx
-async function Layout({ children }: { children: ReactNode }) {
-  const header = await fetchHeader()
-  return (
-    <div>
-      <div>{header}</div>
-      {children}
-    </div>
-  )
-}
-
-async function Sidebar() {
-  const items = await fetchSidebarItems()
-  return <nav>{items.map(renderItem)}</nav>
-}
-
-export default function Page() {
-  return (
-    <Layout>
-      <Sidebar />
-    </Layout>
-  )
-}
-```
-
----
-title: Strategic Suspense Boundaries
-impact: HIGH
-impactDescription: faster initial paint
-tags: async, suspense, streaming, layout-shift
----
-
-## Strategic Suspense Boundaries
-
-Instead of awaiting data in async components before returning JSX, use Suspense boundaries to show the wrapper UI faster while data loads.
-
-**Incorrect (wrapper blocked by data fetching):**
-
-```tsx
-async function Page() {
-  const data = await fetchData() // Blocks entire page
-  
-  return (
-    <div>
-      <div>Sidebar</div>
-      <div>Header</div>
-      <div>
-        <DataDisplay data={data} />
-      </div>
-      <div>Footer</div>
-    </div>
-  )
-}
-```
-
-The entire layout waits for data even though only the middle section needs it.
-
-**Correct (wrapper shows immediately, data streams in):**
-
-```tsx
-function Page() {
-  return (
-    <div>
-      <div>Sidebar</div>
-      <div>Header</div>
-      <div>
-        <Suspense fallback={<Skeleton />}>
-          <DataDisplay />
-        </Suspense>
-      </div>
-      <div>Footer</div>
-    </div>
-  )
-}
-
-async function DataDisplay() {
-  const data = await fetchData() // Only blocks this component
-  return <div>{data.content}</div>
-}
-```
-
-Sidebar, Header, and Footer render immediately. Only DataDisplay waits for data.
-
-**When NOT to use this pattern:**
-
-- Critical data needed for layout decisions (affects positioning)
-- SEO-critical content above the fold
-- Small, fast queries where suspense overhead isn't worth it
-- When you want to avoid layout shift (loading → content jump)
-
-**Trade-off:** Faster initial paint vs potential layout shift. Choose based on your UX priorities.
-
----
-title: Prevent Waterfall Chains in API Routes
-impact: CRITICAL
-impactDescription: 2-10× improvement
-tags: api-routes, server-actions, waterfalls, parallelization
----
-
-## Prevent Waterfall Chains in API Routes
-
-In API routes and Server Actions, start independent operations immediately, even if you don't await them yet.
-
-**Incorrect (config waits for auth, data waits for both):**
+CarcassFrame and BlueprintView BOTH use floor-origin. Do NOT add `h/2` to convert!
 
 ```typescript
-export async function GET(request: Request) {
-  const session = await auth()
-  const config = await fetchConfig()
-  const data = await fetchData(session.user.id)
-  return Response.json({ data, config })
-}
+// CORRECT - store values are floor-origin meters
+const shelfYCm = shelfY * 100;  // Just convert m → cm
+
+// WRONG - this adds half height, shifts everything UP
+const shelfYCm = (shelfY + h/2) * 100;  // DON'T DO THIS
 ```
 
-**Correct (auth and config start immediately):**
+**Data sources (all floor-origin meters):**
+- `columnHorizontalBoundaries[colIdx]` - shelf Y positions in bottom module
+- `columnModuleBoundaries[colIdx]` - Y where module splits (for h > 200cm)
+- `columnTopModuleShelves[colIdx]` - shelf Y positions in top module
 
+**Validation required - boundaries can be INVALID after height resize:**
 ```typescript
-export async function GET(request: Request) {
-  const sessionPromise = auth()
-  const configPromise = fetchConfig()
-  const session = await sessionPromise
-  const [config, data] = await Promise.all([
-    configPromise,
-    fetchData(session.user.id)
-  ])
-  return Response.json({ data, config })
-}
+const moduleBoundaryYCm = moduleBoundary * 100;
+const isValid = moduleBoundaryYCm > innerBottom + tCm
+             && moduleBoundaryYCm < innerTop - tCm;
+// Skip rendering if invalid!
 ```
 
-For operations with more complex dependency chains, use `better-all` to automatically maximize parallelism (see Dependency-Based Parallelization).
+**Compartment calculation:**
+- N shelves in bottom module → N+1 compartments
+- If valid module boundary exists AND h > 200cm → add top module compartments
+- Filter shelves: must be within `[innerBottom, moduleBoundaryY or innerTop]`
+
+**mapY function converts floor-origin cm to SVG top-origin:**
+```typescript
+const mapY = (yFromFloorCm) => frontViewY + scaledHeight - yFromFloorCm * scale;
+```
+
+**Debug logging enabled** - check console for `[BlueprintView]` messages showing:
+- Store data at render start
+- Per-column compartment breakdown
+- Module boundary validation (valid/INVALID warnings)
 
 ---
-title: Fix overflow-x-auto in Flexbox/Grid with min-w-0
-impact: HIGH
-impactDescription: enables horizontal scroll in flex children
-tags: css, flexbox, grid, overflow, responsive
+
+## 16. Flexbox min-w-0 Fix
+
+Flex children have implicit `min-width: auto` - breaks `overflow-x-auto`.
+
+```tsx
+// WRONG - table expands parent
+<div className="overflow-x-auto">
+  <table className="min-w-[520px]">...</table>
+</div>
+
+// CORRECT - add min-w-0 to flex children
+<form className="min-w-0">
+  <div className="overflow-x-auto min-w-0">
+    <table className="min-w-[520px]">...</table>
+  </div>
+</form>
+```
+
 ---
 
-## Fix overflow-x-auto in Flexbox/Grid with min-w-0
+## 17. useEffect Dependencies
 
-In Flexbox and Grid, children have implicit `min-width: auto` which prevents them from shrinking below their content's intrinsic width. This breaks `overflow-x-auto` because the container expands to fit content instead of scrolling.
-
-**Incorrect (table expands dialog beyond viewport):**
+Use primitives, not objects:
 
 ```tsx
-<DialogContent>
-  <form>
-    <div className="overflow-x-auto">
-      <table className="min-w-[520px]">  {/* Wide table */}
-        ...
-      </table>
-    </div>
-  </form>
-</DialogContent>
-```
+// WRONG - re-runs on any user field change
+useEffect(() => { ... }, [user])
 
-The table's width propagates up through all flex parents, expanding the dialog.
+// CORRECT - re-runs only when id changes
+useEffect(() => { ... }, [user.id])
 
-**Correct (add min-w-0 to flex children):**
-
-```tsx
-<DialogContent>
-  <form className="min-w-0">                      {/* Can shrink */}
-    <div className="min-w-0">                     {/* Can shrink */}
-      <div className="overflow-x-auto min-w-0">   {/* Can shrink, scrolls */}
-        <table className="min-w-[520px]">         {/* Forces scroll trigger */}
-          ...
-        </table>
-      </div>
-    </div>
-  </form>
-</DialogContent>
-```
-
-**Why it works:**
-
-1. `min-w-0` sets `min-width: 0`, allowing flex children to shrink below content width
-2. This breaks the chain of content-width propagation
-3. `overflow-x-auto` wrapper is now constrained by its parent, not its children
-4. When table > container width, horizontal scroll appears
-
-**Additional tips:**
-
-- Use `table-fixed` + width percentages on `<th>` for predictable column sizing
-- Use `sm:min-w-full` to disable scroll on larger screens
-- Add `break-words` to text cells that should wrap
-
----
-title: Narrow Effect Dependencies
-impact: LOW
-impactDescription: minimizes effect re-runs
-tags: rerender, useEffect, dependencies, optimization
----
-
-## Narrow Effect Dependencies
-
-Specify primitive dependencies instead of objects to minimize effect re-runs.
-
-**Incorrect (re-runs on any user field change):**
-
-```tsx
-useEffect(() => {
-  console.log(user.id)
-}, [user])
-```
-
-**Correct (re-runs only when id changes):**
-
-```tsx
-useEffect(() => {
-  console.log(user.id)
-}, [user.id])
-```
-
-**Derived state pattern:**
-
-```tsx
-// Instead of: re-run on every width pixel change
-useEffect(() => {
-  if (width < 768) enableMobileMode()
-}, [width])
-
-// Better: re-run only on mobile/desktop transition
+// BETTER - derived state for breakpoints
 const isMobile = width < 768
-useEffect(() => {
-  if (isMobile) enableMobileMode()
-}, [isMobile])
+useEffect(() => { ... }, [isMobile])  // not [width]
 ```
 
 ---
-title: Subscribe to Derived State
-impact: MEDIUM
-impactDescription: reduces re-render frequency
-tags: rerender, derived-state, responsive, optimization
----
 
-## Subscribe to Derived State
+## 18. Derived State for Re-renders
 
-Subscribe to derived boolean state rather than continuous values to minimize re-renders.
-
-**Incorrect (re-renders on every pixel change):**
+Subscribe to derived boolean, not continuous value:
 
 ```tsx
-function Component() {
-  const [width, setWidth] = useState(window.innerWidth)
+// WRONG - re-renders every pixel
+const [width, setWidth] = useState(window.innerWidth)
+const isMobile = width < 768
 
-  useEffect(() => {
-    const handler = () => setWidth(window.innerWidth)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
-
-  const isMobile = width < 768
-  return isMobile ? <MobileView /> : <DesktopView />
-}
+// CORRECT - re-renders only at breakpoint
+const isMobile = useMediaQuery('(max-width: 767px)')
 ```
-
-**Correct (re-renders only at breakpoint):**
-
-```tsx
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(
-    () => window.matchMedia(query).matches
-  )
-
-  useEffect(() => {
-    const mql = window.matchMedia(query)
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
-    mql.addEventListener('change', handler)
-    return () => mql.removeEventListener('change', handler)
-  }, [query])
-
-  return matches
-}
-
-function Component() {
-  const isMobile = useMediaQuery('(max-width: 767px)')
-  return isMobile ? <MobileView /> : <DesktopView />
-}

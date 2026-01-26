@@ -1,14 +1,37 @@
 "use client";
 
 import type React from "react";
-import { useShelfStore, type Material } from "@/lib/store";
-import {
-  MAX_SEGMENT_X_CM,
-  TARGET_BOTTOM_HEIGHT_CM,
-  MIN_TOP_HEIGHT_CM,
-  DRAWER_HEIGHT_CM,
-  DRAWER_GAP_CM,
-} from "@/lib/wardrobe-constants";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import { DRAWER_HEIGHT_CM, DRAWER_GAP_CM } from "@/lib/wardrobe-constants";
+
+// Helper to build column blocks from vertical boundaries
+function buildBlocksFromBoundaries(
+  widthCm: number,
+  boundaries: number[] | undefined,
+): { start: number; end: number; width: number }[] {
+  const w = widthCm / 100; // Convert to meters for boundary comparison
+  const result: { start: number; end: number; width: number }[] = [];
+
+  if (!boundaries || boundaries.length === 0) {
+    result.push({ start: 0, end: widthCm, width: widthCm });
+  } else {
+    const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
+    const boundaryCm = sortedBoundaries.map((b) => (b + w / 2) * 100);
+
+    let prevX = 0;
+    for (const bCm of boundaryCm) {
+      if (bCm > prevX && bCm < widthCm) {
+        result.push({ start: prevX, end: bCm, width: bCm - prevX });
+        prevX = bCm;
+      }
+    }
+    if (prevX < widthCm) {
+      result.push({ start: prevX, end: widthCm, width: widthCm - prevX });
+    }
+  }
+
+  return result;
+}
 
 export function BlueprintView() {
   const {
@@ -17,37 +40,48 @@ export function BlueprintView() {
     depth,
     hasBase,
     baseHeight,
-    elementConfigs,
     selectedMaterialId,
-    compartmentExtras,
-    doorSelections,
     materials,
   } = useShelfStore();
 
-  const fmt2 = (n: number) =>
-    Number(n ?? 0).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  // Get store state
+  const verticalBoundaries = useShelfStore(
+    (s: ShelfState) => s.verticalBoundaries,
+  );
+  const columnHorizontalBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnHorizontalBoundaries,
+  );
+  const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
+  const compartmentExtras = useShelfStore(
+    (s: ShelfState) => s.compartmentExtras,
+  );
+  // Module boundaries for tall wardrobes (>200cm)
+  const columnModuleBoundaries = useShelfStore(
+    (s: ShelfState) => s.columnModuleBoundaries,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (s: ShelfState) => s.columnTopModuleShelves,
+  );
+  const columnHeights = useShelfStore((s: ShelfState) => s.columnHeights);
 
   // Material thickness (cm)
   const mat = materials.find((m: Material) => m.id === selectedMaterialId);
   const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
-  const _backTCm = 0.5; // assume 5mm backs for hatch if needed
+  const thicknessMm = Number(mat?.thickness ?? 18);
 
-  // Calculate drawing dimensions and scale
+  // Drawing layout
   const padding = 60;
-  const viewBoxWidth = 800;
-  const viewBoxHeight = 600;
-  const maxDrawingWidth = viewBoxWidth - padding * 2;
-  const maxDrawingHeight = viewBoxHeight - padding * 2;
+  const viewBoxWidth = 1000;
+  const viewBoxHeight = 750;
+  const headerHeight = 60; // Space for title
+  const maxDrawingWidth = viewBoxWidth - padding * 2 - 100;
+  const maxDrawingHeight = viewBoxHeight - padding * 2 - headerHeight - 80;
 
-  // Calculate scale to fit both front and side views
-  const frontViewWidth = Math.max(width, depth);
-  const frontViewHeight = height;
-  const scaleX = maxDrawingWidth / (frontViewWidth + depth + 50); // 50 for spacing between views
-  const scaleY = maxDrawingHeight / frontViewHeight;
-  const scale = Math.min(scaleX, scaleY, 2); // Max scale of 2
+  // Calculate scale
+  const scaleX = maxDrawingWidth / (width + depth + 80);
+  const scaleY = maxDrawingHeight / height;
+  const scale = Math.min(scaleX, scaleY, 2.5);
+  const scaleRatio = Math.round(100 / scale); // For "Razmer 1:X"
 
   // Scaled dimensions
   const scaledWidth = width * scale;
@@ -55,218 +89,303 @@ export function BlueprintView() {
   const scaledDepth = depth * scale;
   const scaledBaseHeight = hasBase ? baseHeight * scale : 0;
 
-  // Positioning - shifted right to prevent clipping
-  const frontViewX = padding + 20;
-  const frontViewY = padding + (maxDrawingHeight - scaledHeight) / 2;
+  // Positioning
+  const frontViewX = padding + 40;
+  const frontViewY = padding + headerHeight + 20;
   const sideViewX = frontViewX + scaledWidth + 50;
   const sideViewY = frontViewY;
 
-  // Calculate element blocks for front view dimensions
-  const nBlocksX = Math.max(1, Math.ceil(width / MAX_SEGMENT_X_CM));
-  const blockWidth = width / nBlocksX;
+  // Build columns
+  const columns = buildBlocksFromBoundaries(width, verticalBoundaries);
 
-  // Calculate Y modules for height segmentation
-  const modulesY = [];
-  if (height > TARGET_BOTTOM_HEIGHT_CM) {
-    const bottomH =
-      height - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM
-        ? height - MIN_TOP_HEIGHT_CM
-        : TARGET_BOTTOM_HEIGHT_CM;
-    modulesY.push({ start: 0, height: bottomH, label: "Bottom" });
-    modulesY.push({ start: bottomH, height: height - bottomH, label: "Top" });
-  } else {
-    modulesY.push({ start: 0, height: height, label: "Single" });
-  }
+  // DEBUG: Log store state for diagnosing rendering issues
+  console.log(`[BlueprintView] === RENDER START ===`);
+  console.log(
+    `[BlueprintView] Wardrobe: ${width}x${height}x${depth}cm, hasBase=${hasBase}, baseHeight=${baseHeight}`,
+  );
+  console.log(
+    `[BlueprintView] Columns: ${columns.length}`,
+    columns.map(
+      (c, i) =>
+        `${String.fromCharCode(65 + i)}:[${c.start.toFixed(1)}-${c.end.toFixed(1)}]cm`,
+    ),
+  );
+  console.log(
+    `[BlueprintView] columnHorizontalBoundaries:`,
+    JSON.stringify(columnHorizontalBoundaries),
+  );
+  console.log(
+    `[BlueprintView] columnModuleBoundaries:`,
+    JSON.stringify(columnModuleBoundaries),
+  );
+  console.log(
+    `[BlueprintView] columnTopModuleShelves:`,
+    JSON.stringify(columnTopModuleShelves),
+  );
+  console.log(`[BlueprintView] columnHeights:`, JSON.stringify(columnHeights));
+  console.log(
+    `[BlueprintView] elementConfigs:`,
+    JSON.stringify(elementConfigs),
+  );
 
-  // Map from a value measured from the bottom (in cm) to SVG Y (top-origin)
-  const mapYFront = (yFromBottomCm: number) =>
-    frontViewY + scaledHeight - yFromBottomCm * scale;
-
-  // Helper function to create dimension line with arrows
-  const createDimensionLine = (
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    label: string,
-    offset: number = 20,
-  ) => {
-    const isVertical = Math.abs(x2 - x1) < Math.abs(y2 - y1);
-    const midX = (x1 + x2) / 2;
-    const midY = (y1 + y2) / 2;
-
-    if (isVertical) {
-      // Vertical dimension line
-      const lineX = x1 + offset;
-      return (
-        <g key={`dim-${label}-${x1}-${y1}`}>
-          {/* Extension lines */}
-          <line
-            x1={x1}
-            y1={y1}
-            x2={lineX}
-            y2={y1}
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-          <line
-            x1={x1}
-            y1={y2}
-            x2={lineX}
-            y2={y2}
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-
-          {/* Main dimension line */}
-          <line
-            x1={lineX}
-            y1={y1}
-            x2={lineX}
-            y2={y2}
-            stroke="#000"
-            strokeWidth="1"
-          />
-
-          {/* Arrows */}
-          <polygon
-            points={`${lineX - 3},${y1 + 8} ${lineX + 3},${
-              y1 + 8
-            } ${lineX},${y1}`}
-            fill="#000"
-          />
-          <polygon
-            points={`${lineX - 3},${y2 - 8} ${lineX + 3},${
-              y2 - 8
-            } ${lineX},${y2}`}
-            fill="#000"
-          />
-
-          {/* Label */}
-          <text
-            x={lineX + 8}
-            y={midY}
-            fontSize="10"
-            textAnchor="start"
-            dominantBaseline="middle"
-            fill="#000"
-            transform={`rotate(-90 ${lineX + 8} ${midY})`}
-          >
-            {label} cm
-          </text>
-        </g>
-      );
-    } else {
-      // Horizontal dimension line
-      const lineY = y1 + offset;
-      return (
-        <g key={`dim-${label}-${x1}-${y1}`}>
-          {/* Extension lines */}
-          <line
-            x1={x1}
-            y1={y1}
-            x2={x1}
-            y2={lineY}
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-          <line
-            x1={x2}
-            y1={y1}
-            x2={x2}
-            y2={lineY}
-            stroke="#666"
-            strokeWidth="0.5"
-          />
-
-          {/* Main dimension line */}
-          <line
-            x1={x1}
-            y1={lineY}
-            x2={x2}
-            y2={lineY}
-            stroke="#000"
-            strokeWidth="1"
-          />
-
-          {/* Arrows */}
-          <polygon
-            points={`${x1 + 8},${lineY - 3} ${x1 + 8},${
-              lineY + 3
-            } ${x1},${lineY}`}
-            fill="#000"
-          />
-          <polygon
-            points={`${x2 - 8},${lineY - 3} ${x2 - 8},${
-              lineY + 3
-            } ${x2},${lineY}`}
-            fill="#000"
-          />
-
-          {/* Label */}
-          <text
-            x={midX}
-            y={lineY - 8}
-            fontSize="10"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#000"
-          >
-            {label} cm
-          </text>
-        </g>
-      );
-    }
+  // Map Y from cm (from floor) to SVG Y (top-origin)
+  // CLAMP to stay within frame
+  const mapY = (yFromFloorCm: number) => {
+    const clamped = Math.max(0, Math.min(height, yFromFloorCm));
+    return frontViewY + scaledHeight - clamped * scale;
   };
 
-  // Helpers
-  const toLetter = (i: number) => {
-    let n = i + 1;
-    let s = "";
-    while (n > 0) {
-      const rem = (n - 1) % 26;
-      s = String.fromCharCode(65 + rem) + s;
-      n = Math.floor((n - 1) / 26);
+  // Split threshold for module boundaries (200cm in meters)
+  const splitThreshold = 2.0;
+
+  // Get compartments for a column - handles BOTH regular shelves AND module boundaries
+  // This matches the logic in CarcassFrame for correct compartment numbering
+  const getCompartmentsForColumn = (colIdx: number) => {
+    const colLetter = String.fromCharCode(65 + colIdx);
+    const colH = (columnHeights[colIdx] ?? height) / 100; // column height in meters
+
+    // Get shelf positions for bottom module
+    const shelves = columnHorizontalBoundaries[colIdx] || [];
+
+    // Inner bounds (inside panels) in cm from floor
+    const innerBottom = hasBase ? baseHeight + tCm : tCm;
+    const innerTop = height - tCm;
+
+    // Check for module boundary (tall wardrobes >200cm)
+    // VALIDATE: Module boundary must be INSIDE wardrobe (between innerBottom and innerTop)
+    // NOTE: columnModuleBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor), NOT center-origin
+    const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+    const rawModuleBoundaryYCm =
+      moduleBoundary !== null
+        ? moduleBoundary * 100 // Already floor-origin, just convert m to cm
+        : null;
+    const isValidModuleBoundary =
+      rawModuleBoundaryYCm !== null &&
+      rawModuleBoundaryYCm > innerBottom + tCm && // Must be above bottom panel + minimum space
+      rawModuleBoundaryYCm < innerTop - tCm; // Must be below top panel - minimum space
+
+    const hasModuleBoundary =
+      moduleBoundary !== null && colH > splitThreshold && isValidModuleBoundary;
+
+    // Get top module shelves if module boundary exists AND is valid
+    const topModuleShelves = hasModuleBoundary
+      ? columnTopModuleShelves[colIdx] || []
+      : [];
+
+    // Module boundary Y in cm from floor (if exists AND valid)
+    const moduleBoundaryYCm = hasModuleBoundary ? rawModuleBoundaryYCm : null;
+
+    const compartments: {
+      key: string;
+      bottomY: number;
+      topY: number;
+      heightCm: number;
+    }[] = [];
+
+    let compNum = 1;
+
+    // === BOTTOM MODULE COMPARTMENTS ===
+    // Convert shelf positions to cm from floor
+    // NOTE: columnHorizontalBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
+    const bottomShelfYsCm = shelves
+      .map((s: number) => s * 100) // Already floor-origin, just convert m to cm
+      .filter(
+        (y: number) => y > innerBottom && y < (moduleBoundaryYCm ?? innerTop),
+      )
+      .sort((a: number, b: number) => a - b);
+
+    // Bottom module top boundary
+    const bottomModuleTop = hasModuleBoundary
+      ? moduleBoundaryYCm! - tCm // below module boundary panel
+      : innerTop;
+
+    let prevY = innerBottom;
+
+    for (const shelfY of bottomShelfYsCm) {
+      if (shelfY > prevY + tCm) {
+        compartments.push({
+          key: `${colLetter}${compNum}`,
+          bottomY: prevY,
+          topY: shelfY - tCm / 2,
+          heightCm: Math.round(shelfY - tCm / 2 - prevY),
+        });
+        compNum++;
+        prevY = shelfY + tCm / 2;
+      }
     }
-    return s;
+
+    // Final compartment in bottom module
+    if (prevY < bottomModuleTop) {
+      compartments.push({
+        key: `${colLetter}${compNum}`,
+        bottomY: prevY,
+        topY: bottomModuleTop,
+        heightCm: Math.round(bottomModuleTop - prevY),
+      });
+      compNum++;
+    }
+
+    // === TOP MODULE COMPARTMENTS (if module boundary exists) ===
+    if (hasModuleBoundary && moduleBoundaryYCm) {
+      const topModuleBottom = moduleBoundaryYCm + tCm; // above module boundary panel
+
+      // Convert top module shelf positions to cm
+      // NOTE: columnTopModuleShelves uses FLOOR-ORIGIN meters (Y=0 at floor)
+      const topShelfYsCm = topModuleShelves
+        .map((s: number) => s * 100) // Already floor-origin, just convert m to cm
+        .filter((y: number) => y > topModuleBottom && y < innerTop)
+        .sort((a: number, b: number) => a - b);
+
+      prevY = topModuleBottom;
+
+      for (const shelfY of topShelfYsCm) {
+        if (shelfY > prevY + tCm) {
+          compartments.push({
+            key: `${colLetter}${compNum}`,
+            bottomY: prevY,
+            topY: shelfY - tCm / 2,
+            heightCm: Math.round(shelfY - tCm / 2 - prevY),
+          });
+          compNum++;
+          prevY = shelfY + tCm / 2;
+        }
+      }
+
+      // Final compartment to top
+      if (prevY < innerTop) {
+        compartments.push({
+          key: `${colLetter}${compNum}`,
+          bottomY: prevY,
+          topY: innerTop,
+          heightCm: Math.round(innerTop - prevY),
+        });
+      }
+    }
+
+    // If no compartments created, create one full-height compartment
+    if (compartments.length === 0) {
+      compartments.push({
+        key: `${colLetter}1`,
+        bottomY: innerBottom,
+        topY: innerTop,
+        heightCm: Math.round(innerTop - innerBottom),
+      });
+    }
+
+    console.log(
+      `[BlueprintView] Column ${colLetter}: ${compartments.length} compartments, ` +
+        `shelves=${shelves.length}, moduleBoundary=${rawModuleBoundaryYCm?.toFixed(1) ?? "none"}cm ` +
+        `(valid=${isValidModuleBoundary}, hasModuleBoundary=${hasModuleBoundary}), ` +
+        `innerBounds=[${innerBottom.toFixed(1)}, ${innerTop.toFixed(1)}]`,
+      compartments.map(
+        (c) =>
+          `${c.key}:[${c.bottomY.toFixed(0)}-${c.topY.toFixed(0)}]=${c.heightCm}cm`,
+      ),
+    );
+
+    return compartments;
   };
+
+  // Global space counter
+  let globalSpaceNum = 1;
 
   return (
     <div className="w-full h-full bg-white flex items-center justify-center">
       <svg
+        id="blueprint-technical-drawing"
         width="100%"
         height="100%"
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-        className="border border-gray-200"
+        style={{ backgroundColor: "white" }}
       >
         <defs>
           <pattern
-            id="hatch"
+            id="diagonalHatch"
+            patternUnits="userSpaceOnUse"
+            width="6"
+            height="6"
+          >
+            <path d="M 0,6 L 6,0" stroke="#555" strokeWidth="0.5" />
+          </pattern>
+          <pattern
+            id="crossHatch"
+            patternUnits="userSpaceOnUse"
+            width="6"
+            height="6"
+          >
+            <path d="M 0,6 L 6,0 M 0,0 L 6,6" stroke="#888" strokeWidth="0.5" />
+          </pattern>
+          <pattern
+            id="drawerHatch"
             patternUnits="userSpaceOnUse"
             width="4"
             height="4"
           >
-            <path
-              d="M 0,4 L 4,0 M -1,1 L 1,-1 M 3,5 L 5,3"
-              stroke="#ccc"
-              strokeWidth="0.5"
-            />
+            <path d="M 0,4 L 4,0" stroke="#a0522d" strokeWidth="0.5" />
           </pattern>
         </defs>
 
-        {/* Front Elevation */}
+        {/* ============================================ */}
+        {/* HEADER - Title and metadata */}
+        {/* ============================================ */}
         <g>
           <text
-            x={frontViewX}
-            y={frontViewY - 20}
-            fontSize="14"
+            x={viewBoxWidth / 2}
+            y={30}
+            fontSize="18"
+            fontFamily="Arial, sans-serif"
             fontWeight="bold"
-            fill="#000"
+            textAnchor="middle"
           >
-            Front Elevation
+            Tehnički crtež - Orman
+          </text>
+          <text x={padding} y={55} fontSize="10" fontFamily="Arial, sans-serif">
+            Dimenzije: {width} × {height} × {depth} cm
+          </text>
+          <text
+            x={padding + 200}
+            y={55}
+            fontSize="10"
+            fontFamily="Arial, sans-serif"
+          >
+            Debljina ploče: {thicknessMm} mm
+          </text>
+          <text
+            x={padding + 380}
+            y={55}
+            fontSize="10"
+            fontFamily="Arial, sans-serif"
+          >
+            Mere u cm
+          </text>
+          <text
+            x={viewBoxWidth - padding}
+            y={55}
+            fontSize="10"
+            fontFamily="Arial, sans-serif"
+            textAnchor="end"
+          >
+            Razmer 1:{scaleRatio}
+          </text>
+        </g>
+
+        {/* ============================================ */}
+        {/* FRONT VIEW */}
+        {/* ============================================ */}
+        <g>
+          {/* Label */}
+          <text
+            x={frontViewX + scaledWidth / 2}
+            y={frontViewY - 10}
+            fontSize="11"
+            fontFamily="Arial, sans-serif"
+            textAnchor="middle"
+            fontStyle="italic"
+          >
+            Pogled spreda
           </text>
 
-          {/* Main frame */}
+          {/* Main outer frame */}
           <rect
             x={frontViewX}
             y={frontViewY}
@@ -277,508 +396,607 @@ export function BlueprintView() {
             strokeWidth="2"
           />
 
-          {/* Base if present */}
+          {/* Base with cross-hatch */}
           {hasBase && scaledBaseHeight > 0 && (
             <rect
               x={frontViewX}
               y={frontViewY + scaledHeight - scaledBaseHeight}
               width={scaledWidth}
               height={scaledBaseHeight}
-              fill="url(#hatch)"
+              fill="url(#crossHatch)"
               stroke="#000"
               strokeWidth="1"
             />
           )}
 
-          {/* Vertical dividers for blocks - stop at base, don't go through it */}
-          {Array.from({ length: nBlocksX - 1 }, (_, i) => {
-            const dividerX = frontViewX + (i + 1) * blockWidth * scale;
-            return (
-              <line
-                key={`divider-${i}`}
-                x1={dividerX}
-                y1={frontViewY}
-                x2={dividerX}
-                y2={frontViewY + scaledHeight - scaledBaseHeight}
-                stroke="#000"
-                strokeWidth="1"
-              />
+          {/* Vertical seams between columns (SOLID lines) */}
+          {(() => {
+            console.log(
+              `[BlueprintView] Main columns: ${columns.length}, drawing ${columns.length - 1} solid seams`,
             );
-          })}
-
-          {/* Horizontal dividers for modules */}
-          {modulesY.length > 1 &&
-            modulesY.slice(0, -1).map((module, i) => {
-              // Horizontal divider at the top of the lower module
-              const dividerY = mapYFront(module.start + module.height);
+            return columns.slice(0, -1).map((col, i) => {
+              const dividerX = frontViewX + col.end * scale;
+              console.log(
+                `[BlueprintView] Main seam ${i}: x=${col.end.toFixed(1)}cm (solid line)`,
+              );
               return (
                 <line
-                  key={`h-divider-${i}`}
-                  x1={frontViewX}
-                  y1={dividerY}
-                  x2={frontViewX + scaledWidth}
-                  y2={dividerY}
+                  key={`vdiv-${i}`}
+                  x1={dividerX}
+                  y1={frontViewY}
+                  x2={dividerX}
+                  y2={frontViewY + scaledHeight - scaledBaseHeight}
                   stroke="#000"
-                  strokeWidth="1"
+                  strokeWidth="1.5"
                 />
               );
-            })}
+            });
+          })()}
 
-          {/* Element labels */}
-          {(() => {
-            const labels: React.ReactNode[] = [];
-            let elementIndex = 0;
+          {/* Per-column content */}
+          {columns.map((col, colIdx) => {
+            const x1 = frontViewX + col.start * scale;
+            const x2 = frontViewX + col.end * scale;
+            const colCenterX = (x1 + x2) / 2;
 
-            modulesY.forEach((module, _moduleIdx) => {
-              for (let blockIdx = 0; blockIdx < nBlocksX; blockIdx++) {
-                const letter = String.fromCharCode(65 + elementIndex); // A, B, C...
-                const labelX =
-                  frontViewX + (blockIdx * blockWidth + blockWidth / 2) * scale;
-                const labelY = mapYFront(module.start + module.height / 2);
+            const compartments = getCompartmentsForColumn(colIdx);
+            const nodes: React.ReactNode[] = [];
 
-                labels.push(
-                  <text
-                    key={`label-${elementIndex}`}
-                    x={labelX}
-                    y={labelY}
-                    fontSize="12"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#000"
-                  >
-                    {letter}
-                  </text>,
+            // Draw main horizontal shelves (bottom module)
+            // NOTE: columnHorizontalBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
+            const shelves = columnHorizontalBoundaries[colIdx] || [];
+            const shelfYsCm = shelves.map((s: number) => s * 100); // Already floor-origin
+            shelfYsCm.forEach((shelfY: number, shIdx: number) => {
+              if (shelfY > 0 && shelfY < height) {
+                nodes.push(
+                  <line
+                    key={`shelf-${colIdx}-${shIdx}`}
+                    x1={x1}
+                    y1={mapY(shelfY)}
+                    x2={x2}
+                    y2={mapY(shelfY)}
+                    stroke="#000"
+                    strokeWidth="1"
+                  />,
                 );
-                elementIndex++;
               }
             });
 
-            return labels;
-          })()}
+            // Draw module boundary line (if exists AND valid) - thicker line for module split
+            // NOTE: columnModuleBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
+            const colH = (columnHeights[colIdx] ?? height) / 100;
+            const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+            const innerBottom = hasBase ? baseHeight + tCm : tCm;
+            const innerTop = height - tCm;
 
-          {/* Internal structure per element */}
-          {(() => {
-            const nodes: React.ReactNode[] = [];
-            let idx = 0;
-            for (let mIdx = 0; mIdx < modulesY.length; mIdx++) {
-              const m = modulesY[mIdx];
-              for (let bIdx = 0; bIdx < nBlocksX; bIdx++) {
-                const letter = toLetter(idx);
-                const ex = frontViewX + bIdx * blockWidth * scale;
-                const eyBottom = m.start * scale; // in cm*scale from bottom
-                const ew = blockWidth * scale;
-                const eh = m.height * scale;
-                // Inner bounds (subtract panel thickness)
-                const ix0 = ex + tCm * scale;
-                const ix1 = ex + ew - tCm * scale;
-                const iy0BaseFromBottom = eyBottom + tCm * scale; // distance from bottom
-                const iy1FromBottom = eyBottom + eh - tCm * scale;
-                const raiseByBase =
-                  hasBase && (modulesY.length === 1 || mIdx === 0)
-                    ? baseHeight * scale
-                    : 0;
-                const iy0FromBottom = iy0BaseFromBottom + raiseByBase;
+            if (moduleBoundary !== null && colH > splitThreshold) {
+              const moduleBoundaryYCm = moduleBoundary * 100; // Already floor-origin
+              // VALIDATE: boundary must be within inner bounds (with margin for panels)
+              const isValidBoundary =
+                moduleBoundaryYCm > innerBottom + tCm &&
+                moduleBoundaryYCm < innerTop - tCm;
 
-                // Columns (compartments) from elementConfigs
-                const cfg = (elementConfigs as any)[letter] ?? {
-                  columns: 1,
-                  rowCounts: [0],
-                };
-                const cols = Math.max(1, Number(cfg.columns) || 1);
-                const colBounds: number[] = [];
-                for (let c = 0; c <= cols; c++) {
-                  const x = ix0 + (c * (ix1 - ix0)) / cols;
-                  colBounds.push(x);
-                }
-                // Draw internal verticals between compartments
-                for (let c = 1; c < cols; c++) {
-                  const x = colBounds[c];
-                  nodes.push(
-                    <line
-                      key={`iv-${letter}-${mIdx}-${c}`}
-                      x1={x}
-                      y1={mapYFront(iy0FromBottom / scale)}
-                      x2={x}
-                      y2={mapYFront(iy1FromBottom / scale)}
-                      stroke="#000"
-                      strokeWidth={1}
-                    />,
-                  );
-                }
-                // Optional central vertical divider (Extras)
-                const extras = (compartmentExtras as any)[letter] ?? {};
-                if (extras.verticalDivider) {
-                  const x = (ix0 + ix1) / 2;
-                  nodes.push(
-                    <line
-                      key={`ivc-${letter}-${mIdx}`}
-                      x1={x}
-                      y1={mapYFront(iy0FromBottom / scale)}
-                      x2={x}
-                      y2={mapYFront(iy1FromBottom / scale)}
-                      stroke="#000"
-                      strokeDasharray="3 2"
-                      strokeWidth={1}
-                    />,
-                  );
-                }
-
-                // Drawers region (full inner width)
-                if (extras.drawers) {
-                  // Work in centimeters to prevent off-by-height errors
-                  const drawerHcm = DRAWER_HEIGHT_CM;
-                  const gapCm = DRAWER_GAP_CM;
-                  const iy0FromBottomCm = iy0FromBottom / scale;
-                  const iy1FromBottomCm = iy1FromBottom / scale;
-                  const innerHForDrawersCm = Math.max(
-                    iy1FromBottomCm - iy0FromBottomCm,
-                    0,
-                  );
-                  const maxAuto = Math.max(
-                    0,
-                    Math.floor(
-                      (innerHForDrawersCm + gapCm) / (drawerHcm + gapCm),
-                    ),
-                  );
-                  const countFromState = Math.max(
-                    0,
-                    Math.floor(Number(extras.drawersCount ?? 0)),
-                  );
-                  const used =
-                    countFromState > 0
-                      ? Math.min(countFromState, maxAuto)
-                      : maxAuto;
-                  for (let d = 0; d < used; d++) {
-                    // Bottom of drawer d measured from inner bottom
-                    const bottomCm = iy0FromBottomCm + d * (drawerHcm + gapCm);
-                    // Top of drawer is one drawer height above bottom, clamped to inner top minus gap
-                    const topCm = Math.min(
-                      bottomCm + drawerHcm,
-                      iy1FromBottomCm - gapCm,
-                    );
-                    const topY = mapYFront(topCm);
-                    const bottomY = mapYFront(bottomCm);
-                    const heightPx = Math.max(0, bottomY - topY);
-                    nodes.push(
-                      <rect
-                        key={`drw-${letter}-${mIdx}-${d}`}
-                        x={ix0}
-                        y={topY}
-                        width={ix1 - ix0}
-                        height={heightPx}
-                        fill="none"
-                        stroke="#000"
-                        strokeWidth={1}
-                      />,
-                    );
-                  }
-                  // Auto shelf directly above drawers if space remains
-                  if (used > 0 && used < maxAuto) {
-                    const lastBottomCm =
-                      iy0FromBottomCm + (used - 1) * (drawerHcm + gapCm);
-                    const lastTopCm = Math.min(
-                      lastBottomCm + drawerHcm,
-                      iy1FromBottomCm - gapCm,
-                    );
-                    const shelfFromBottomCm = lastTopCm + gapCm + tCm;
-                    if (shelfFromBottomCm < iy1FromBottomCm) {
-                      nodes.push(
-                        <line
-                          key={`auto-shelf-${letter}-${mIdx}`}
-                          x1={ix0}
-                          y1={mapYFront(shelfFromBottomCm)}
-                          x2={ix1}
-                          y2={mapYFront(shelfFromBottomCm)}
-                          stroke="#000"
-                          strokeWidth={1}
-                        />,
-                      );
-                    }
-                  }
-                }
-
-                // Shelves per compartment
-                for (let c = 0; c < cols; c++) {
-                  const count = Math.max(
-                    0,
-                    Math.floor(Number(cfg.rowCounts?.[c] ?? 0)),
-                  );
-                  if (count <= 0) continue;
-                  const cx0 = colBounds[c];
-                  const cx1 = colBounds[c + 1];
-                  const availableH = Math.max(iy1FromBottom - iy0FromBottom, 0);
-                  for (let s = 1; s <= count; s++) {
-                    const yFromBottom =
-                      iy0FromBottom + (availableH * s) / (count + 1);
-                    nodes.push(
-                      <line
-                        key={`shelf-${letter}-${mIdx}-${c}-${s}`}
-                        x1={cx0}
-                        y1={mapYFront(yFromBottom / scale)}
-                        x2={cx1}
-                        y2={mapYFront(yFromBottom / scale)}
-                        stroke="#000"
-                        strokeWidth={1}
-                      />,
-                    );
-                  }
-                }
-
-                // Rod indicator
-                if (extras.rod) {
-                  const ryFromBottom =
-                    iy0FromBottom + (iy1FromBottom - iy0FromBottom) * 0.25;
-                  nodes.push(
-                    <line
-                      key={`rod-${letter}-${mIdx}`}
-                      x1={ix0 + 6}
-                      y1={mapYFront(ryFromBottom / scale)}
-                      x2={ix1 - 6}
-                      y2={mapYFront(ryFromBottom / scale)}
-                      stroke="#000"
-                      strokeWidth={2}
-                    />,
-                  );
-                }
-
-                // LED label
-                if (extras.led) {
-                  nodes.push(
-                    <text
-                      key={`led-${letter}-${mIdx}`}
-                      x={(ix0 + ix1) / 2}
-                      y={mapYFront(iy0FromBottom / scale) + 12}
-                      fontSize="10"
-                      textAnchor="middle"
-                      fill="#000"
-                    >
-                      LED
-                    </text>,
-                  );
-                }
-
-                // Doors outline on front
-                const doorSel = (doorSelections as any)[letter];
-                if (doorSel && doorSel !== "none") {
-                  const clearance = 0.1 * scale; // 1mm each side ~0.1cm
-                  const doubleGap = 0.3 * scale; // 3mm
-                  const availW = Math.max(ew - 2 * tCm * scale - clearance, 0);
-                  const leafH = Math.max(eh - 2 * tCm * scale - clearance, 0);
-                  const ox = ex + tCm * scale + clearance / 2;
-                  const oy = mapYFront(
-                    eyBottom / scale + (tCm + clearance / (2 * scale)),
-                  );
-                  if (doorSel === "double" || doorSel === "doubleMirror") {
-                    const leafW = Math.max((availW - doubleGap) / 2, 0);
-                    nodes.push(
-                      <rect
-                        key={`doorL-${letter}-${mIdx}`}
-                        x={ox}
-                        y={oy}
-                        width={leafW}
-                        height={leafH}
-                        fill="none"
-                        stroke="#000"
-                        strokeDasharray="4 2"
-                      />,
-                    );
-                    nodes.push(
-                      <rect
-                        key={`doorR-${letter}-${mIdx}`}
-                        x={ox + leafW + doubleGap}
-                        y={oy}
-                        width={leafW}
-                        height={leafH}
-                        fill="none"
-                        stroke="#000"
-                        strokeDasharray="4 2"
-                      />,
-                    );
-                  } else {
-                    nodes.push(
-                      <rect
-                        key={`door-${letter}-${mIdx}`}
-                        x={ox}
-                        y={oy}
-                        width={availW}
-                        height={leafH}
-                        fill="none"
-                        stroke="#000"
-                        strokeDasharray="4 2"
-                      />,
-                    );
-                  }
-                }
-
-                // Per-element compartment width dimensions (above element)
-                if (cols > 1) {
-                  const yLabel = mapYFront((eyBottom + eh) / scale) - 10; // above element
-                  for (let c = 0; c < cols; c++) {
-                    const x1 = colBounds[c];
-                    const x2 = colBounds[c + 1];
-                    const lab = fmt2((x2 - x1) / scale);
-                    nodes.push(
-                      createDimensionLine(
-                        x1,
-                        yLabel,
-                        x2,
-                        yLabel,
-                        lab,
-                        -12,
-                      ) as any,
-                    );
-                  }
-                }
-
-                idx += 1;
+              if (isValidBoundary) {
+                nodes.push(
+                  <line
+                    key={`module-boundary-${colIdx}`}
+                    x1={x1}
+                    y1={mapY(moduleBoundaryYCm)}
+                    x2={x2}
+                    y2={mapY(moduleBoundaryYCm)}
+                    stroke="#000"
+                    strokeWidth="1.5"
+                  />,
+                );
+                console.log(
+                  `[BlueprintView] Module boundary for column ${colIdx}: y=${moduleBoundaryYCm.toFixed(1)}cm (valid)`,
+                );
+              } else {
+                console.warn(
+                  `[BlueprintView] Module boundary for column ${colIdx} INVALID: y=${moduleBoundaryYCm.toFixed(1)}cm is outside [${innerBottom.toFixed(1)}, ${innerTop.toFixed(1)}]`,
+                );
               }
             }
-            return nodes;
-          })()}
 
-          {/* Front view dimensions */}
+            // Draw top module shelves (only if module boundary is valid)
+            // NOTE: columnTopModuleShelves uses FLOOR-ORIGIN meters (Y=0 at floor)
+            const topModuleShelves = columnTopModuleShelves[colIdx] || [];
+            if (
+              topModuleShelves.length > 0 &&
+              moduleBoundary !== null &&
+              colH > splitThreshold
+            ) {
+              const moduleBoundaryYCmForTopShelves = moduleBoundary * 100; // Already floor-origin
+              const isModuleBoundaryValid =
+                moduleBoundaryYCmForTopShelves > innerBottom + tCm &&
+                moduleBoundaryYCmForTopShelves < innerTop - tCm;
+
+              if (isModuleBoundaryValid) {
+                const topShelfYsCm = topModuleShelves.map(
+                  (s: number) => s * 100,
+                ); // Already floor-origin
+                topShelfYsCm.forEach((shelfY: number, shIdx: number) => {
+                  // Top module shelves must be above the module boundary and below top
+                  if (
+                    shelfY > moduleBoundaryYCmForTopShelves + tCm &&
+                    shelfY < innerTop
+                  ) {
+                    nodes.push(
+                      <line
+                        key={`top-shelf-${colIdx}-${shIdx}`}
+                        x1={x1}
+                        y1={mapY(shelfY)}
+                        x2={x2}
+                        y2={mapY(shelfY)}
+                        stroke="#000"
+                        strokeWidth="1"
+                      />,
+                    );
+                  }
+                });
+              }
+            }
+
+            // Draw compartment contents
+            compartments.forEach((comp) => {
+              const compKey = comp.key;
+              const cfg = elementConfigs[compKey] ?? {
+                columns: 1,
+                rowCounts: [0],
+              };
+              const extras = compartmentExtras[compKey] ?? {};
+              const innerCols = Math.max(1, cfg.columns);
+
+              // Debug logging to verify data
+              console.log(
+                `[BlueprintView] Compartment ${compKey}: columns=${cfg.columns}, innerCols=${innerCols}, rowCounts=${JSON.stringify(cfg.rowCounts)}, bounds=[${comp.bottomY.toFixed(1)}, ${comp.topY.toFixed(1)}]`,
+              );
+              const compX1 = x1;
+              const compX2 = x2;
+              const compW = compX2 - compX1;
+              const sectionW = compW / innerCols;
+
+              // Clamp compartment bounds to be within frame
+              const safeBottomY = Math.max(0, Math.min(height, comp.bottomY));
+              const safeTopY = Math.max(0, Math.min(height, comp.topY));
+
+              if (safeTopY <= safeBottomY) return; // Skip invalid compartments
+
+              // Draw inner vertical dividers (DASHED lines)
+              if (innerCols > 1) {
+                console.log(
+                  `[BlueprintView] Compartment ${compKey}: drawing ${innerCols - 1} inner dividers (dashed)`,
+                );
+                for (let divIdx = 1; divIdx < innerCols; divIdx++) {
+                  const divX = compX1 + divIdx * sectionW;
+                  console.log(
+                    `[BlueprintView] Inner divider ${compKey}-${divIdx}: x=${((divX - frontViewX) / scale).toFixed(1)}cm (dashed)`,
+                  );
+                  nodes.push(
+                    <line
+                      key={`vd-${compKey}-${divIdx}`}
+                      x1={divX}
+                      y1={mapY(safeTopY)}
+                      x2={divX}
+                      y2={mapY(safeBottomY)}
+                      stroke="#666"
+                      strokeWidth="0.75"
+                      strokeDasharray="3,2"
+                    />,
+                  );
+                }
+              }
+
+              // Draw inner shelves per section
+              for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                if (shelfCount <= 0) {
+                  console.log(
+                    `[BlueprintView] Section ${compKey}-${secIdx}: 0 shelves (skipped)`,
+                  );
+                  continue;
+                }
+
+                const secX1 = compX1 + secIdx * sectionW + 2;
+                const secX2 = compX1 + (secIdx + 1) * sectionW - 2;
+                const usableH = safeTopY - safeBottomY;
+                const gap = usableH / (shelfCount + 1);
+
+                console.log(
+                  `[BlueprintView] Section ${compKey}-${secIdx}: drawing ${shelfCount} shelves, x=[${((secX1 - frontViewX) / scale).toFixed(1)}, ${((secX2 - frontViewX) / scale).toFixed(1)}]cm`,
+                );
+
+                for (let shIdx = 1; shIdx <= shelfCount; shIdx++) {
+                  const shelfY = safeBottomY + shIdx * gap;
+                  nodes.push(
+                    <line
+                      key={`ish-${compKey}-${secIdx}-${shIdx}`}
+                      x1={secX1}
+                      y1={mapY(shelfY)}
+                      x2={secX2}
+                      y2={mapY(shelfY)}
+                      stroke="#666"
+                      strokeWidth="0.75"
+                    />,
+                  );
+                }
+              }
+
+              // Draw drawers
+              if (
+                extras.drawers &&
+                extras.drawersCount &&
+                extras.drawersCount > 0
+              ) {
+                const drawerH = DRAWER_HEIGHT_CM;
+                const drawerGap = DRAWER_GAP_CM;
+                const numDrawers = Math.min(extras.drawersCount, 10);
+
+                for (let drIdx = 0; drIdx < numDrawers; drIdx++) {
+                  const drawerBottomY =
+                    safeBottomY + drIdx * (drawerH + drawerGap) + 1;
+                  const drawerTopY = drawerBottomY + drawerH;
+
+                  if (drawerTopY <= safeTopY) {
+                    nodes.push(
+                      <rect
+                        key={`drawer-${compKey}-${drIdx}`}
+                        x={compX1 + 4}
+                        y={mapY(drawerTopY)}
+                        width={compW - 8}
+                        height={(drawerTopY - drawerBottomY) * scale}
+                        fill="url(#drawerHatch)"
+                        stroke="#8b4513"
+                        strokeWidth="0.5"
+                      />,
+                    );
+                  }
+                }
+              }
+
+              // Draw rod
+              if (extras.rod) {
+                const rodY = safeBottomY + (safeTopY - safeBottomY) * 0.8;
+                nodes.push(
+                  <g key={`rod-${compKey}`}>
+                    <line
+                      x1={compX1 + 8}
+                      y1={mapY(rodY)}
+                      x2={compX2 - 8}
+                      y2={mapY(rodY)}
+                      stroke="#444"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx={compX1 + 8}
+                      cy={mapY(rodY)}
+                      r="2.5"
+                      fill="#666"
+                    />
+                    <circle
+                      cx={compX2 - 8}
+                      cy={mapY(rodY)}
+                      r="2.5"
+                      fill="#666"
+                    />
+                  </g>,
+                );
+              }
+
+              // Numbered label in corner
+              const spaceNum = globalSpaceNum++;
+              const labelX = compX1 + 4;
+              const labelY = mapY(safeTopY) + 4;
+              nodes.push(
+                <g key={`label-${compKey}`}>
+                  <rect
+                    x={labelX}
+                    y={labelY}
+                    width={16}
+                    height={12}
+                    fill="white"
+                    stroke="#000"
+                    strokeWidth="0.5"
+                  />
+                  <text
+                    x={labelX + 8}
+                    y={labelY + 9}
+                    fontSize="8"
+                    fontFamily="Arial, sans-serif"
+                    textAnchor="middle"
+                  >
+                    {spaceNum}
+                  </text>
+                </g>,
+              );
+
+              // Height label centered (if tall enough)
+              if (comp.heightCm > 20) {
+                nodes.push(
+                  <text
+                    key={`h-${compKey}`}
+                    x={colCenterX}
+                    y={mapY((safeBottomY + safeTopY) / 2)}
+                    fontSize="11"
+                    fontFamily="Arial, sans-serif"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {comp.heightCm}
+                  </text>,
+                );
+              }
+            });
+
+            return <g key={`col-${colIdx}`}>{nodes}</g>;
+          })}
+
+          {/* ============================================ */}
+          {/* EXTERNAL DIMENSIONS */}
+          {/* ============================================ */}
+
+          {/* Overall height - left side */}
+          <g>
+            <line
+              x1={frontViewX - 25}
+              y1={frontViewY}
+              x2={frontViewX - 25}
+              y2={frontViewY + scaledHeight}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={frontViewX - 30}
+              y1={frontViewY}
+              x2={frontViewX - 20}
+              y2={frontViewY}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={frontViewX - 30}
+              y1={frontViewY + scaledHeight}
+              x2={frontViewX - 20}
+              y2={frontViewY + scaledHeight}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <text
+              x={frontViewX - 35}
+              y={frontViewY + scaledHeight / 2}
+              fontSize="11"
+              fontFamily="Arial, sans-serif"
+              textAnchor="middle"
+              transform={`rotate(-90 ${frontViewX - 35} ${frontViewY + scaledHeight / 2})`}
+            >
+              {height} cm
+            </text>
+          </g>
+
+          {/* Base height */}
+          {hasBase && baseHeight > 0 && (
+            <g>
+              <line
+                x1={frontViewX - 12}
+                y1={mapY(baseHeight)}
+                x2={frontViewX - 12}
+                y2={frontViewY + scaledHeight}
+                stroke="#000"
+                strokeWidth="0.5"
+              />
+              <text
+                x={frontViewX - 8}
+                y={mapY(baseHeight / 2)}
+                fontSize="9"
+                fontFamily="Arial, sans-serif"
+                textAnchor="start"
+                dominantBaseline="middle"
+              >
+                {baseHeight}
+              </text>
+            </g>
+          )}
+
+          {/* Column widths at bottom */}
+          {columns.map((col, i) => {
+            const colX1 = frontViewX + col.start * scale;
+            const colX2 = frontViewX + col.end * scale;
+            const centerX = (colX1 + colX2) / 2;
+            const y = frontViewY + scaledHeight + 18;
+
+            return (
+              <g key={`colwidth-${i}`}>
+                <line
+                  x1={colX1}
+                  y1={frontViewY + scaledHeight + 5}
+                  x2={colX1}
+                  y2={frontViewY + scaledHeight + 12}
+                  stroke="#000"
+                  strokeWidth="0.5"
+                />
+                <line
+                  x1={colX2}
+                  y1={frontViewY + scaledHeight + 5}
+                  x2={colX2}
+                  y2={frontViewY + scaledHeight + 12}
+                  stroke="#000"
+                  strokeWidth="0.5"
+                />
+                <line
+                  x1={colX1}
+                  y1={y - 10}
+                  x2={colX2}
+                  y2={y - 10}
+                  stroke="#000"
+                  strokeWidth="0.5"
+                />
+                <text
+                  x={centerX}
+                  y={y}
+                  fontSize="10"
+                  fontFamily="Arial, sans-serif"
+                  textAnchor="middle"
+                >
+                  {Math.round(col.width)}
+                </text>
+              </g>
+            );
+          })}
+
           {/* Overall width */}
-          {createDimensionLine(
-            frontViewX,
-            frontViewY + scaledHeight + 40,
-            frontViewX + scaledWidth,
-            frontViewY + scaledHeight + 40,
-            fmt2(width),
-          )}
-
-          {/* Block widths */}
-          {Array.from({ length: nBlocksX }, (_, i) => {
-            const x1 = frontViewX + i * blockWidth * scale;
-            const x2 = frontViewX + (i + 1) * blockWidth * scale;
-            return createDimensionLine(
-              x1,
-              frontViewY + scaledHeight + 65,
-              x2,
-              frontViewY + scaledHeight + 65,
-              fmt2(blockWidth),
-            );
-          })}
-
-          {/* Overall height */}
-          {createDimensionLine(
-            frontViewX - 40,
-            mapYFront(height),
-            frontViewX - 40,
-            mapYFront(0),
-            fmt2(height),
-          )}
-
-          {/* Module heights */}
-          {modulesY.map((module, _i) => {
-            const y1 = mapYFront(module.start + module.height);
-            const y2 = mapYFront(module.start);
-            return createDimensionLine(
-              frontViewX - 65,
-              y1,
-              frontViewX - 65,
-              y2,
-              fmt2(module.height),
-            );
-          })}
-
-          {/* Base height if present */}
-          {hasBase &&
-            baseHeight > 0 &&
-            createDimensionLine(
-              frontViewX - 90,
-              mapYFront(baseHeight),
-              frontViewX - 90,
-              mapYFront(0),
-              fmt2(baseHeight),
-            )}
+          <g>
+            <line
+              x1={frontViewX}
+              y1={frontViewY + scaledHeight + 32}
+              x2={frontViewX + scaledWidth}
+              y2={frontViewY + scaledHeight + 32}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={frontViewX}
+              y1={frontViewY + scaledHeight + 27}
+              x2={frontViewX}
+              y2={frontViewY + scaledHeight + 37}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={frontViewX + scaledWidth}
+              y1={frontViewY + scaledHeight + 27}
+              x2={frontViewX + scaledWidth}
+              y2={frontViewY + scaledHeight + 37}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <text
+              x={frontViewX + scaledWidth / 2}
+              y={frontViewY + scaledHeight + 48}
+              fontSize="12"
+              fontFamily="Arial, sans-serif"
+              textAnchor="middle"
+            >
+              {width} cm
+            </text>
+          </g>
         </g>
 
-        {/* Side Elevation */}
+        {/* ============================================ */}
+        {/* SIDE VIEW */}
+        {/* ============================================ */}
         <g>
+          {/* Label */}
           <text
-            x={sideViewX}
-            y={sideViewY - 20}
-            fontSize="14"
-            fontWeight="bold"
-            fill="#000"
+            x={sideViewX + scaledDepth / 2}
+            y={sideViewY - 10}
+            fontSize="11"
+            fontFamily="Arial, sans-serif"
+            textAnchor="middle"
+            fontStyle="italic"
           >
-            Side Elevation
+            Pogled sa strane
           </text>
 
-          {/* Main frame */}
+          {/* Main rectangle with hatching */}
           <rect
             x={sideViewX}
             y={sideViewY}
             width={scaledDepth}
             height={scaledHeight}
-            fill="none"
+            fill="url(#diagonalHatch)"
             stroke="#000"
             strokeWidth="2"
           />
 
-          {/* Base if present */}
+          {/* Base */}
           {hasBase && scaledBaseHeight > 0 && (
             <rect
               x={sideViewX}
               y={sideViewY + scaledHeight - scaledBaseHeight}
               width={scaledDepth}
               height={scaledBaseHeight}
-              fill="url(#hatch)"
+              fill="url(#crossHatch)"
               stroke="#000"
               strokeWidth="1"
             />
           )}
 
-          {/* Horizontal dividers for modules */}
-          {modulesY.length > 1 &&
-            modulesY.slice(0, -1).map((module, i) => {
-              const dividerY =
-                sideViewY + (module.start + module.height) * scale;
-              return (
-                <line
-                  key={`side-h-divider-${i}`}
-                  x1={sideViewX}
-                  y1={dividerY}
-                  x2={sideViewX + scaledDepth}
-                  y2={dividerY}
-                  stroke="#000"
-                  strokeWidth="1"
-                />
-              );
-            })}
+          {/* Height dimension */}
+          <g>
+            <line
+              x1={sideViewX + scaledDepth + 18}
+              y1={sideViewY}
+              x2={sideViewX + scaledDepth + 18}
+              y2={sideViewY + scaledHeight}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={sideViewX + scaledDepth + 13}
+              y1={sideViewY}
+              x2={sideViewX + scaledDepth + 23}
+              y2={sideViewY}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={sideViewX + scaledDepth + 13}
+              y1={sideViewY + scaledHeight}
+              x2={sideViewX + scaledDepth + 23}
+              y2={sideViewY + scaledHeight}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <text
+              x={sideViewX + scaledDepth + 28}
+              y={sideViewY + scaledHeight / 2}
+              fontSize="11"
+              fontFamily="Arial, sans-serif"
+              textAnchor="middle"
+              transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${sideViewY + scaledHeight / 2})`}
+            >
+              {height} cm
+            </text>
+          </g>
 
-          {/* Side view dimensions */}
-          {/* Overall depth */}
-          {createDimensionLine(
-            sideViewX,
-            sideViewY + scaledHeight + 40,
-            sideViewX + scaledDepth,
-            sideViewY + scaledHeight + 40,
-            depth.toString(),
-          )}
-
-          {/* Overall height */}
-          {createDimensionLine(
-            sideViewX - 40,
-            sideViewY,
-            sideViewX - 40,
-            sideViewY + scaledHeight,
-            height.toString(),
-          )}
+          {/* Depth dimension */}
+          <g>
+            <line
+              x1={sideViewX}
+              y1={sideViewY + scaledHeight + 18}
+              x2={sideViewX + scaledDepth}
+              y2={sideViewY + scaledHeight + 18}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={sideViewX}
+              y1={sideViewY + scaledHeight + 13}
+              x2={sideViewX}
+              y2={sideViewY + scaledHeight + 23}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <line
+              x1={sideViewX + scaledDepth}
+              y1={sideViewY + scaledHeight + 13}
+              x2={sideViewX + scaledDepth}
+              y2={sideViewY + scaledHeight + 23}
+              stroke="#000"
+              strokeWidth="0.75"
+            />
+            <text
+              x={sideViewX + scaledDepth / 2}
+              y={sideViewY + scaledHeight + 34}
+              fontSize="11"
+              fontFamily="Arial, sans-serif"
+              textAnchor="middle"
+            >
+              {depth} cm
+            </text>
+          </g>
         </g>
-
-        {/* Title */}
-        <text
-          x={viewBoxWidth / 2}
-          y={30}
-          fontSize="16"
-          fontWeight="bold"
-          textAnchor="middle"
-          fill="#000"
-        >
-          Wardrobe Technical Drawing
-        </text>
       </svg>
     </div>
   );

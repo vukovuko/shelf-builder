@@ -1,4 +1,4 @@
-import type { DoorOption } from "@/lib/store";
+import { parseSubCompKey, type DoorOption } from "@/lib/store";
 import {
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
@@ -55,6 +55,7 @@ export type WardrobeSnapshot = {
   verticalBoundaries?: number[]; // X positions of vertical seams (in meters from center)
   columnHorizontalBoundaries?: Record<number, number[]>; // Y positions of shelves per column
   columnModuleBoundaries?: Record<number, number | null>; // Module split Y position per column
+  columnTopModuleShelves?: Record<number, number[]>; // Y positions of shelves in top module per column
   // Door groups with per-door settings
   doorGroups?: DoorGroup[];
   // Global handle settings
@@ -194,6 +195,9 @@ export function calculateCutList(
     const verticalBoundaries = snapshot.verticalBoundaries ?? [];
     const columnHorizontalBoundaries =
       snapshot.columnHorizontalBoundaries ?? {};
+    // Module boundaries for wardrobes > 200cm (top/bottom module split)
+    const columnModuleBoundaries = snapshot.columnModuleBoundaries ?? {};
+    const columnTopModuleShelves = snapshot.columnTopModuleShelves ?? {};
 
     // Build columns using actual boundaries
     const columns = buildBlocksX(
@@ -435,140 +439,171 @@ export function calculateCutList(
     // ==========================================
     // 5. PER-COMPARTMENT: Inner structure, doors, drawers, back panels
     // ==========================================
-    columns.forEach((col, colIdx) => {
-      const colLetter = String.fromCharCode(65 + colIdx);
-      const innerW = Math.max(col.width - 2 * t, 0);
-      const shelfYs = columnHorizontalBoundaries[colIdx] || [];
-      const numCompartments = shelfYs.length + 1;
+    // Helper function to process a single compartment (used for both bottom and top modules)
+    const processCompartment = (
+      colLetter: string,
+      colIdx: number,
+      compKey: string,
+      compH: number,
+      innerW: number,
+      col: { start: number; end: number; width: number },
+      allYs: number[],
+      numCompartments: number,
+    ) => {
+      // Get element config for this compartment
+      const cfg = elementConfigs[compKey] ?? { columns: 1, rowCounts: [0] };
+      const innerCols = Math.max(1, (cfg.columns as number) | 0);
 
-      // Calculate compartment heights
-      const yBottom = -h / 2 + t + (hasBase ? baseH : 0);
-      const yTop = h / 2 - t;
-      const sortedYs = [...shelfYs].sort((a, b) => a - b);
-      const allYs = [yBottom, ...sortedYs, yTop];
+      // Calculate inner section widths
+      const sectionW = innerW / innerCols;
 
-      for (let compIdx = 0; compIdx < numCompartments; compIdx++) {
-        const compKey = `${colLetter}${compIdx + 1}`;
-        const compYStart = allYs[compIdx];
-        const compYEnd = allYs[compIdx + 1];
-        const compH = Math.max(compYEnd - compYStart - t, 0); // Account for shelf thickness
-
-        // Get element config for this compartment
-        const cfg = elementConfigs[compKey] ?? { columns: 1, rowCounts: [0] };
-        const innerCols = Math.max(1, (cfg.columns as number) | 0);
-
-        // Calculate inner section widths
-        const sectionW = innerW / innerCols;
-
-        // Inner vertical dividers (from elementConfigs)
-        if (innerCols > 1) {
-          for (let divIdx = 1; divIdx < innerCols; divIdx++) {
-            addKorpus(
-              `${compKey}-VD${divIdx}`,
-              `Vertikalni divider ${compKey} (${divIdx})`,
-              carcassD,
-              compH,
-              compKey,
-            );
-          }
-        }
-
-        // Inner shelves per section (from rowCounts)
-        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
-          const shelfCount = Math.max(
-            0,
-            Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
-          );
-          const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
-
-          for (let shelfNum = 0; shelfNum < shelfCount; shelfNum++) {
-            addKorpus(
-              `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
-              `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
-              secW,
-              carcassD,
-              compKey,
-            );
-          }
-        }
-
-        // Extras: center vertical divider
-        const extras = compartmentExtras[compKey] ?? {};
-        if (extras.verticalDivider && innerCols === 1) {
+      // Inner vertical dividers (from elementConfigs)
+      if (innerCols > 1) {
+        for (let divIdx = 1; divIdx < innerCols; divIdx++) {
           addKorpus(
-            `${compKey}-VDC`,
-            `Vertikalni divider (srednji) ${compKey}`,
+            `${compKey}-VD${divIdx}`,
+            `Vertikalni divider ${compKey} (${divIdx})`,
             carcassD,
             compH,
             compKey,
           );
         }
+      }
 
-        // Drawers (use front material)
-        if (extras.drawers) {
-          const drawerH = DRAWER_HEIGHT;
-          const gap = DRAWER_GAP;
-          const per = drawerH + gap;
-          const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
-          const countFromState = Math.max(
-            0,
-            Math.floor(extras.drawersCount ?? 0),
+      // Inner shelves per section (from rowCounts)
+      for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+        const shelfCount = Math.max(
+          0,
+          Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
+        );
+        const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
+
+        for (let shelfNum = 0; shelfNum < shelfCount; shelfNum++) {
+          addKorpus(
+            `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
+            `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+            secW,
+            carcassD,
+            compKey,
           );
-          const usedCount =
-            countFromState > 0
-              ? Math.min(countFromState, maxDrawers)
-              : maxDrawers;
+        }
+      }
 
-          for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
-            addFront(
-              `${compKey}-F${drwIdx + 1}`,
-              `Fioka ${compKey} (${drwIdx + 1})`,
+      // Extras: center vertical divider
+      const extras = compartmentExtras[compKey] ?? {};
+      if (extras.verticalDivider && innerCols === 1) {
+        addKorpus(
+          `${compKey}-VDC`,
+          `Vertikalni divider (srednji) ${compKey}`,
+          carcassD,
+          compH,
+          compKey,
+        );
+      }
+
+      // Drawers (use front material)
+      if (extras.drawers) {
+        const drawerH = DRAWER_HEIGHT;
+        const gap = DRAWER_GAP;
+        const per = drawerH + gap;
+        const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
+        const countFromState = Math.max(
+          0,
+          Math.floor(extras.drawersCount ?? 0),
+        );
+        const usedCount =
+          countFromState > 0
+            ? Math.min(countFromState, maxDrawers)
+            : maxDrawers;
+
+        for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
+          addFront(
+            `${compKey}-F${drwIdx + 1}`,
+            `Fioka ${compKey} (${drwIdx + 1})`,
+            innerW,
+            drawerH,
+            compKey,
+          );
+        }
+
+        // Auto-shelf above drawers if space remains
+        if (usedCount > 0 && usedCount < maxDrawers) {
+          const drawersTopY = usedCount * per;
+          const remaining = compH - drawersTopY;
+          if (remaining >= t) {
+            addKorpus(
+              `${compKey}-PA`,
+              `Polica iznad fioka ${compKey}`,
               innerW,
-              drawerH,
+              carcassD,
               compKey,
             );
           }
-
-          // Auto-shelf above drawers if space remains
-          if (usedCount > 0 && usedCount < maxDrawers) {
-            const drawersTopY = usedCount * per;
-            const remaining = compH - drawersTopY;
-            if (remaining >= t) {
-              addKorpus(
-                `${compKey}-PA`,
-                `Polica iznad fioka ${compKey}`,
-                innerW,
-                carcassD,
-                compKey,
-              );
-            }
-          }
         }
+      }
 
-        // Doors - check doorGroups first (new system), fall back to doorSelections (legacy)
-        // Find if this compartment is part of a door group
-        const doorGroup = doorGroups.find((g) =>
-          g.compartments.includes(compKey),
-        );
+      // Doors - check doorGroups first (new system), fall back to doorSelections (legacy)
+      // Find if this compartment is part of a door group
+      // Check both exact match and base key (strip sub-indices)
+      const doorGroup = doorGroups.find((g) =>
+        g.compartments.some((gCompKey) => {
+          // Direct match
+          if (gCompKey === compKey) return true;
+          // Check if group uses sub-key that belongs to this compartment
+          const parsed = parseSubCompKey(gCompKey);
+          return parsed && parsed.compKey === compKey;
+        }),
+      );
 
-        if (doorGroup) {
-          // Use new doorGroups system - only process if this is the FIRST compartment in the group
-          // This prevents adding the door multiple times for multi-compartment groups
-          if (doorGroup.compartments[0] === compKey) {
-            const doorType = doorGroup.type;
-            if (doorType && doorType !== "none") {
-              const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+      if (doorGroup) {
+        // Use new doorGroups system - only process if this is the FIRST compartment in the group
+        // This prevents adding the door multiple times for multi-compartment groups
+        const firstCompKey = doorGroup.compartments[0];
+        const firstParsed = parseSubCompKey(firstCompKey);
+        const isFirstComp = firstParsed
+          ? firstParsed.compKey === compKey
+          : firstCompKey === compKey;
 
-              // Calculate total door height for multi-compartment groups
-              let totalDoorH = compH;
-              if (doorGroup.compartments.length > 1) {
-                // Sum heights of all compartments in the group
+        if (isFirstComp) {
+          const doorType = doorGroup.type;
+          if (doorType && doorType !== "none") {
+            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+
+            // Calculate total door height for multi-compartment groups
+            let totalDoorH = compH;
+            if (doorGroup.compartments.length > 1) {
+              // Check if all compartments share the same base key (all sub-compartments of current compartment)
+              const allSameBase = doorGroup.compartments.every((cKey) => {
+                const parsed = parseSubCompKey(cKey);
+                return parsed && parsed.compKey === compKey;
+              });
+
+              if (allSameBase) {
+                // All sub-compartments of the current base compartment
+                // Door spans the entire base compartment, so use compH
+                totalDoorH = compH;
+              } else {
+                // Multiple different base compartments - sum unique heights
+                const uniqueBaseKeys = new Set<string>();
                 totalDoorH = doorGroup.compartments.reduce((sum, cKey) => {
-                  // Find this compartment's index and calculate its height
-                  const compMatch = cKey.match(/^([A-Z]+)(\d+)/);
+                  const parsed = parseSubCompKey(cKey);
+                  const baseKey = parsed ? parsed.compKey : cKey;
+
+                  // Only add height once per unique base key
+                  if (uniqueBaseKeys.has(baseKey)) {
+                    return sum;
+                  }
+                  uniqueBaseKeys.add(baseKey);
+
+                  const compMatch = baseKey.match(/^([A-Z]+)(\d+)/);
                   if (compMatch) {
                     const cIdx = parseInt(compMatch[2]) - 1;
-                    if (cIdx >= 0 && cIdx < numCompartments) {
+                    if (
+                      cIdx >= 0 &&
+                      cIdx < numCompartments &&
+                      allYs[cIdx] !== undefined &&
+                      allYs[cIdx + 1] !== undefined
+                    ) {
                       const cYStart = allYs[cIdx];
                       const cYEnd = allYs[cIdx + 1];
                       return sum + Math.max(cYEnd - cYStart - t, 0);
@@ -577,157 +612,122 @@ export function calculateCutList(
                   return sum;
                 }, 0);
               }
-
-              // Get per-door material if in per-door mode
-              const doorMaterialId =
-                doorSettingsMode === "per-door" &&
-                doorGroup.materialId !== undefined
-                  ? doorGroup.materialId
-                  : undefined;
-
-              // Get handle info for this door
-              const doorHandleId =
-                doorSettingsMode === "per-door" && doorGroup.handleId
-                  ? doorGroup.handleId
-                  : globalHandleId;
-              const doorHandleFinish =
-                doorSettingsMode === "per-door" && doorGroup.handleFinish
-                  ? doorGroup.handleFinish
-                  : globalHandleFinish;
-
-              const groupId = doorGroup.id;
-
-              if (doorType === "double" || doorType === "doubleMirror") {
-                const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
-                addFrontWithMaterial(
-                  `${groupId}-VL`,
-                  `Vrata leva ${doorGroup.compartments.join("+")}`,
-                  leafW,
-                  totalDoorH,
-                  compKey,
-                  doorMaterialId,
-                );
-                addFrontWithMaterial(
-                  `${groupId}-VD`,
-                  `Vrata desna ${doorGroup.compartments.join("+")}`,
-                  leafW,
-                  totalDoorH,
-                  compKey,
-                  doorMaterialId,
-                );
-                // Add 2 handles for double doors
-                const handlePrice = getHandlePrice(
-                  doorHandleId,
-                  doorHandleFinish,
-                );
-                if (handlePrice > 0) {
-                  handleItems.push({
-                    handleId: doorHandleId,
-                    finishId: doorHandleFinish,
-                    count: 2,
-                    price: handlePrice * 2,
-                    element: groupId,
-                  });
-                }
-              } else if (doorType === "drawerStyle") {
-                // Drawer-style door - no handle (push-to-open)
-                addFrontWithMaterial(
-                  `${groupId}-V`,
-                  `Vrata (fioka stil) ${doorGroup.compartments.join("+")}`,
-                  doorW,
-                  totalDoorH,
-                  compKey,
-                  doorMaterialId,
-                );
-              } else {
-                // Single door (left, right, leftMirror, rightMirror)
-                addFrontWithMaterial(
-                  `${groupId}-V`,
-                  `Vrata ${doorGroup.compartments.join("+")}`,
-                  doorW,
-                  totalDoorH,
-                  compKey,
-                  doorMaterialId,
-                );
-                // Add 1 handle for single door
-                const handlePrice = getHandlePrice(
-                  doorHandleId,
-                  doorHandleFinish,
-                );
-                if (handlePrice > 0) {
-                  handleItems.push({
-                    handleId: doorHandleId,
-                    finishId: doorHandleFinish,
-                    count: 1,
-                    price: handlePrice,
-                    element: groupId,
-                  });
-                }
-              }
             }
-          }
-          // Skip if not first compartment - door already added
-        } else {
-          // Legacy doorSelections system (for backward compatibility)
-          const doorSel = doorSelections[compKey];
-          if (doorSel && doorSel !== "none") {
-            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
-            const doorH = compH;
 
-            // Get handle price using global settings (legacy mode)
-            const handlePrice = getHandlePrice(
-              globalHandleId,
-              globalHandleFinish,
-            );
+            // Get per-door material if in per-door mode
+            const doorMaterialId =
+              doorSettingsMode === "per-door" &&
+              doorGroup.materialId !== undefined
+                ? doorGroup.materialId
+                : undefined;
 
-            if (doorSel === "double" || doorSel === "doubleMirror") {
+            // Get handle info for this door
+            const doorHandleId =
+              doorSettingsMode === "per-door" && doorGroup.handleId
+                ? doorGroup.handleId
+                : globalHandleId;
+            const doorHandleFinish =
+              doorSettingsMode === "per-door" && doorGroup.handleFinish
+                ? doorGroup.handleFinish
+                : globalHandleFinish;
+
+            const groupId = doorGroup.id;
+
+            // Format compartment label - simplify sub-compartments to base key
+            const uniqueBaseKeys = new Set<string>();
+            doorGroup.compartments.forEach((cKey) => {
+              const parsed = parseSubCompKey(cKey);
+              uniqueBaseKeys.add(parsed ? parsed.compKey : cKey);
+            });
+            const compartmentLabel = Array.from(uniqueBaseKeys).join("+");
+
+            // Human-readable door type names
+            const getDoorTypeLabel = (type: string): string => {
+              switch (type) {
+                case "left":
+                  return "leva";
+                case "right":
+                  return "desna";
+                case "double":
+                  return "dvokrilna";
+                case "leftMirror":
+                  return "leva sa ogledalom";
+                case "rightMirror":
+                  return "desna sa ogledalom";
+                case "doubleMirror":
+                  return "dvokrilna sa ogledalom";
+                case "drawerStyle":
+                  return "fioka stil";
+                default:
+                  return type;
+              }
+            };
+            const doorTypeLabel = getDoorTypeLabel(doorType);
+
+            if (doorType === "double" || doorType === "doubleMirror") {
               const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
-              addFront(
+              const isMirror = doorType === "doubleMirror";
+              addFrontWithMaterial(
                 `${compKey}-VL`,
-                `Vrata leva ${compKey}`,
+                `Vrata ${compartmentLabel} levo krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
-                doorH,
+                totalDoorH,
                 compKey,
+                doorMaterialId,
               );
-              addFront(
+              addFrontWithMaterial(
                 `${compKey}-VD`,
-                `Vrata desna ${compKey}`,
+                `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
-                doorH,
+                totalDoorH,
                 compKey,
+                doorMaterialId,
               );
               // Add 2 handles for double doors
+              const handlePrice = getHandlePrice(
+                doorHandleId,
+                doorHandleFinish,
+              );
               if (handlePrice > 0) {
                 handleItems.push({
-                  handleId: globalHandleId,
-                  finishId: globalHandleFinish,
+                  handleId: doorHandleId,
+                  finishId: doorHandleFinish,
                   count: 2,
                   price: handlePrice * 2,
                   element: compKey,
                 });
               }
-            } else if (doorSel === "drawerStyle") {
-              // Drawer-style door - no handle
-              addFront(
+            } else if (doorType === "drawerStyle") {
+              // Drawer-style door - no handle (push-to-open)
+              addFrontWithMaterial(
                 `${compKey}-V`,
-                `Vrata (fioka stil) ${compKey}`,
+                `Vrata ${compartmentLabel} (${doorTypeLabel})`,
                 doorW,
-                doorH,
+                totalDoorH,
                 compKey,
+                doorMaterialId,
               );
             } else {
-              addFront(
+              // Single door (left, right, leftMirror, rightMirror)
+              const isMirror =
+                doorType === "leftMirror" || doorType === "rightMirror";
+              addFrontWithMaterial(
                 `${compKey}-V`,
-                `Vrata ${compKey}`,
+                `Vrata ${compartmentLabel} (${doorTypeLabel})`,
                 doorW,
-                doorH,
+                totalDoorH,
                 compKey,
+                doorMaterialId,
               );
               // Add 1 handle for single door
+              const handlePrice = getHandlePrice(
+                doorHandleId,
+                doorHandleFinish,
+              );
               if (handlePrice > 0) {
                 handleItems.push({
-                  handleId: globalHandleId,
-                  finishId: globalHandleFinish,
+                  handleId: doorHandleId,
+                  finishId: doorHandleFinish,
                   count: 1,
                   price: handlePrice,
                   element: compKey,
@@ -736,18 +736,201 @@ export function calculateCutList(
             }
           }
         }
+        // Skip if not first compartment - door already added
+      } else {
+        // Legacy doorSelections system (for backward compatibility)
+        const doorSel = doorSelections[compKey];
+        if (doorSel && doorSel !== "none") {
+          const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+          const doorH = compH;
 
-        // Back panel per compartment (use back material)
-        const backClearance = 2 / 1000; // 2mm
-        const backW = Math.max(col.width - backClearance, 0);
-        const backH = Math.max(compH - backClearance, 0);
-        if (backW > 0 && backH > 0) {
-          addBack(
-            `${compKey}-Z`,
-            `Zadnji panel ${compKey}`,
-            backW,
-            backH,
+          // Get handle price using global settings (legacy mode)
+          const handlePrice = getHandlePrice(
+            globalHandleId,
+            globalHandleFinish,
+          );
+
+          // Human-readable door type for legacy
+          const getLegacyDoorTypeLabel = (type: string): string => {
+            switch (type) {
+              case "left":
+                return "leva";
+              case "right":
+                return "desna";
+              case "double":
+                return "dvokrilna";
+              case "leftMirror":
+                return "leva sa ogledalom";
+              case "rightMirror":
+                return "desna sa ogledalom";
+              case "doubleMirror":
+                return "dvokrilna sa ogledalom";
+              case "drawerStyle":
+                return "fioka stil";
+              default:
+                return type;
+            }
+          };
+
+          if (doorSel === "double" || doorSel === "doubleMirror") {
+            const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+            const isMirror = doorSel === "doubleMirror";
+            addFront(
+              `${compKey}-VL`,
+              `Vrata ${compKey} levo krilo${isMirror ? " (ogledalo)" : ""}`,
+              leafW,
+              doorH,
+              compKey,
+            );
+            addFront(
+              `${compKey}-VD`,
+              `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
+              leafW,
+              doorH,
+              compKey,
+            );
+            // Add 2 handles for double doors
+            if (handlePrice > 0) {
+              handleItems.push({
+                handleId: globalHandleId,
+                finishId: globalHandleFinish,
+                count: 2,
+                price: handlePrice * 2,
+                element: compKey,
+              });
+            }
+          } else if (doorSel === "drawerStyle") {
+            // Drawer-style door - no handle
+            addFront(
+              `${compKey}-V`,
+              `Vrata ${compKey} (fioka stil)`,
+              doorW,
+              doorH,
+              compKey,
+            );
+          } else {
+            addFront(
+              `${compKey}-V`,
+              `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
+              doorW,
+              doorH,
+              compKey,
+            );
+            // Add 1 handle for single door
+            if (handlePrice > 0) {
+              handleItems.push({
+                handleId: globalHandleId,
+                finishId: globalHandleFinish,
+                count: 1,
+                price: handlePrice,
+                element: compKey,
+              });
+            }
+          }
+        }
+      }
+
+      // Back panel per compartment (use back material)
+      const backClearance = 2 / 1000; // 2mm
+      const backW = Math.max(col.width - backClearance, 0);
+      const backH = Math.max(compH - backClearance, 0);
+      if (backW > 0 && backH > 0) {
+        addBack(
+          `${compKey}-Z`,
+          `Zadnji panel ${compKey}`,
+          backW,
+          backH,
+          compKey,
+        );
+      }
+    };
+
+    // Calculate module boundary Y position (used when store value not set)
+    // This is the Y coordinate where modules split (in center-origin coordinates)
+    const calculatedModuleBoundaryY = -h / 2 + bottomModuleH;
+
+    // Process all columns
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const innerW = Math.max(col.width - 2 * t, 0);
+
+      // Check if this column has a module boundary (for wardrobes > 200cm)
+      // Use store value if available, otherwise fall back to calculated position
+      const storeModuleBoundary = columnModuleBoundaries[colIdx];
+      const hasStoreModuleBoundary =
+        storeModuleBoundary !== undefined && storeModuleBoundary !== null;
+
+      // Use store value if set, otherwise use calculated value when needsModuleSplit
+      const moduleBoundary = hasStoreModuleBoundary
+        ? storeModuleBoundary
+        : needsModuleSplit
+          ? calculatedModuleBoundaryY
+          : null;
+      const hasModuleSplit = moduleBoundary !== null;
+
+      // ============================================
+      // BOTTOM MODULE COMPARTMENTS
+      // ============================================
+      const bottomShelfYs = columnHorizontalBoundaries[colIdx] || [];
+      const bottomNumComps = bottomShelfYs.length + 1;
+
+      // Bottom module bounds
+      const bottomYStart = -h / 2 + t + (hasBase ? baseH : 0);
+      const bottomYEnd = hasModuleSplit
+        ? moduleBoundary - t // Module boundary minus panel thickness
+        : h / 2 - t; // Full height if no split
+
+      const bottomSortedYs = [...bottomShelfYs].sort((a, b) => a - b);
+      const bottomAllYs = [bottomYStart, ...bottomSortedYs, bottomYEnd];
+
+      for (let compIdx = 0; compIdx < bottomNumComps; compIdx++) {
+        const compKey = `${colLetter}${compIdx + 1}`;
+        const compYStart = bottomAllYs[compIdx];
+        const compYEnd = bottomAllYs[compIdx + 1];
+        const compH = Math.max(compYEnd - compYStart - t, 0);
+
+        processCompartment(
+          colLetter,
+          colIdx,
+          compKey,
+          compH,
+          innerW,
+          col,
+          bottomAllYs,
+          bottomNumComps,
+        );
+      }
+
+      // ============================================
+      // TOP MODULE COMPARTMENTS (if module split exists)
+      // ============================================
+      if (hasModuleSplit) {
+        const topShelfYs = columnTopModuleShelves[colIdx] || [];
+        const topNumComps = topShelfYs.length + 1;
+
+        // Top module bounds
+        const topYStart = moduleBoundary + t; // After module boundary panel
+        const topYEnd = h / 2 - t; // Wardrobe top
+
+        const topSortedYs = [...topShelfYs].sort((a, b) => a - b);
+        const topAllYs = [topYStart, ...topSortedYs, topYEnd];
+
+        for (let compIdx = 0; compIdx < topNumComps; compIdx++) {
+          // Top module compartments continue numbering (e.g., A2, A3, etc.)
+          const compKey = `${colLetter}${bottomNumComps + compIdx + 1}`;
+          const compYStart = topAllYs[compIdx];
+          const compYEnd = topAllYs[compIdx + 1];
+          const compH = Math.max(compYEnd - compYStart - t, 0);
+
+          processCompartment(
+            colLetter,
+            colIdx,
             compKey,
+            compH,
+            innerW,
+            col,
+            topAllYs,
+            topNumComps,
           );
         }
       }

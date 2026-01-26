@@ -70,12 +70,35 @@ export function applyWardrobeSnapshot(data: any) {
     // null/undefined values are skipped (no shelves)
   });
 
+  // Migrate old doorSelections to new doorGroups format
+  // Only migrate if doorGroups doesn't exist or is empty, but doorSelections has data
+  let doorGroups = data.doorGroups || [];
+  const doorSelections = data.doorSelections || {};
+
+  if (doorGroups.length === 0 && Object.keys(doorSelections).length > 0) {
+    // Convert each doorSelection entry to a doorGroup
+    // Each old entry becomes a single-compartment door group
+    doorGroups = Object.entries(doorSelections)
+      .filter(([, type]) => type && type !== "none")
+      .map(([compKey, type]) => {
+        // Parse column letter from compKey (e.g., "A1" -> "A")
+        const match = compKey.match(/^([A-Z]+)/);
+        const column = match ? match[1] : "A";
+        return {
+          id: `door-${compKey}`,
+          type: type as string,
+          compartments: [compKey],
+          column,
+        };
+      });
+  }
+
   (useShelfStore as any).setState((prev: any) => ({
     compartmentExtras: {
       ...prev.compartmentExtras,
       ...(data.compartmentExtras || {}),
     },
-    doorSelections: { ...data.doorSelections },
+    doorSelections: { ...doorSelections },
     hasBase: data.hasBase,
     baseHeight: data.baseHeight,
     verticalBoundaries: data.verticalBoundaries || [],
@@ -83,8 +106,8 @@ export function applyWardrobeSnapshot(data: any) {
     columnHeights: data.columnHeights || {},
     columnModuleBoundaries: data.columnModuleBoundaries || {},
     columnTopModuleShelves: data.columnTopModuleShelves || {},
-    // Door groups with per-door settings
-    doorGroups: data.doorGroups || [],
+    // Door groups with per-door settings (migrated from old format if needed)
+    doorGroups,
     // Global handle (default: "handle_1")
     globalHandleId: data.globalHandleId || "handle_1",
     // Global handle finish (default: "chrome")

@@ -5,8 +5,14 @@ import type React from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
-import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import {
+  applyWardrobeSnapshot,
+  getWardrobeSnapshot,
+} from "@/lib/serializeWardrobe";
 import { useShelfStore, type ShelfState } from "@/lib/store";
+
+const AUTOSAVE_KEY = "wardrobeAutoSave";
+const AUTOSAVE_DEBOUNCE_MS = 1000;
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
@@ -63,6 +69,38 @@ function LoadFromUrl() {
   return null;
 }
 
+// Auto-save wardrobe state to localStorage
+function AutoSave() {
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Subscribe to store changes and auto-save
+    const unsubscribe = useShelfStore.subscribe(() => {
+      // Debounce saves to avoid excessive writes
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        try {
+          const snapshot = getWardrobeSnapshot();
+          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot));
+        } catch (e) {
+          console.error("Failed to auto-save wardrobe state", e);
+        }
+      }, AUTOSAVE_DEBOUNCE_MS);
+    });
+
+    return () => {
+      unsubscribe();
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  return null;
+}
+
 interface DesignPageProps {
   wardrobeRef?: React.RefObject<any>;
   isLoggedIn?: boolean;
@@ -75,30 +113,55 @@ export default function DesignPage({
   const [hasRestoredState, setHasRestoredState] = useState(false);
   const [isSceneLoading, setIsSceneLoading] = useState(true);
 
-  // State persistence: Restore pending work after login
+  // State persistence: Restore from localStorage on mount
+  // Priority: 1. URL load param (handled by LoadFromUrl)
+  //           2. pendingWardrobeState (login flow)
+  //           3. wardrobeAutoSave (page refresh)
   useEffect(() => {
-    if (isLoggedIn && !hasRestoredState) {
-      const pendingState = localStorage.getItem("pendingWardrobeState");
-      if (pendingState) {
-        try {
-          const state = JSON.parse(pendingState);
+    if (hasRestoredState) return;
 
-          // Validate parsed state
-          if (!state || typeof state !== "object") {
-            throw new Error("Invalid state");
-          }
+    // Check for URL load param - if present, LoadFromUrl will handle it
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("load")) {
+      setHasRestoredState(true);
+      return;
+    }
 
+    // Try pendingWardrobeState first (login flow takes priority)
+    const pendingState = localStorage.getItem("pendingWardrobeState");
+    if (pendingState) {
+      try {
+        const state = JSON.parse(pendingState);
+        if (state && typeof state === "object") {
           applyWardrobeSnapshot(state);
           localStorage.removeItem("pendingWardrobeState");
-          toast.success("Dobrodošli nazad! Vaš rad je sačuvan.");
-        } catch (_e) {
-          // Just clear invalid data, don't crash
-          localStorage.removeItem("pendingWardrobeState");
+          if (isLoggedIn) {
+            toast.success("Dobrodošli nazad! Vaš rad je sačuvan.");
+          }
+          setHasRestoredState(true);
+          return;
         }
+      } catch (_e) {
+        localStorage.removeItem("pendingWardrobeState");
       }
-      setHasRestoredState(true);
     }
-  }, [isLoggedIn, hasRestoredState]);
+
+    // Try auto-save (page refresh recovery)
+    const autoSave = localStorage.getItem(AUTOSAVE_KEY);
+    if (autoSave) {
+      try {
+        const state = JSON.parse(autoSave);
+        if (state && typeof state === "object") {
+          applyWardrobeSnapshot(state);
+          // Don't show toast for auto-restore - it's seamless
+        }
+      } catch (_e) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
+    }
+
+    setHasRestoredState(true);
+  }, [hasRestoredState, isLoggedIn]);
 
   // Hide loading overlay after scene initializes
   useEffect(() => {
@@ -132,6 +195,8 @@ export default function DesignPage({
       <Suspense fallback={null}>
         <LoadFromUrl />
       </Suspense>
+      {/* Auto-save wardrobe state */}
+      <AutoSave />
       {/* Scene stays mounted and stable */}
       <Scene wardrobeRef={wardrobeRef!} />
     </>

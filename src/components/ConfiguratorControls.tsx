@@ -66,7 +66,13 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import {
+  useShelfStore,
+  parseSubCompKey,
+  type Material,
+  type ShelfState,
+} from "@/lib/store";
+import handlesData from "@/lib/handles.json";
 import {
   toLetters,
   buildBlocksX,
@@ -383,33 +389,77 @@ export function ConfiguratorControls({
     useShelfStore.getState().setShowDimensions(prevDims);
   }, [cameraMode, setCameraMode]);
 
-  // Download 2D technical drawing (only edges, white fill, no shadows)
+  // Download 2D technical drawing - exports the engineering-style SVG from BlueprintView
   const handleDownloadTechnical2D = React.useCallback(async () => {
-    const prevDims = useShelfStore.getState().showDimensions;
-    useShelfStore.getState().setShowDimensions(true);
-    setShowEdgesOnly(true);
-    useShelfStore.getState().triggerFitToView();
-    if (cameraMode !== "2D") {
-      setCameraMode("2D");
-    }
-    // Wait for scene to fully re-render with edges-only mode
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const prevViewMode = useShelfStore.getState().viewMode;
+
+    // Switch to Sizing view mode which shows the BlueprintView SVG
+    useShelfStore.getState().setViewMode("Sizing");
+
+    // Wait for the view to render
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
-    const canvas = document.querySelector("canvas");
-    if (!canvas) {
-      setShowEdgesOnly(false);
-      useShelfStore.getState().setShowDimensions(prevDims);
+
+    // Find the SVG element from BlueprintView by its id
+    const svgElement = document.querySelector("#blueprint-technical-drawing");
+    if (!svgElement) {
+      console.error("SVG element not found");
+      useShelfStore.getState().setViewMode(prevViewMode);
       return;
     }
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = "wardrobe-technical-2d.jpg";
-    link.click();
-    setShowEdgesOnly(false);
-    useShelfStore.getState().setShowDimensions(prevDims);
-  }, [cameraMode, setCameraMode, setShowEdgesOnly]);
+
+    // Clone SVG and prepare for export
+    const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
+
+    // Get the viewBox dimensions
+    const viewBox = svgClone.getAttribute("viewBox") || "0 0 1000 700";
+    const [, , vbWidth, vbHeight] = viewBox.split(" ").map(Number);
+
+    // Set explicit dimensions for the export
+    svgClone.setAttribute("width", String(vbWidth * 2));
+    svgClone.setAttribute("height", String(vbHeight * 2));
+    svgClone.style.backgroundColor = "white";
+
+    // Serialize SVG to string
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    // Create an image from SVG and convert to PNG for better compatibility
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = vbWidth * 2;
+      canvas.height = vbHeight * 2;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // Download as PNG
+        const pngUrl = canvas.toDataURL("image/png", 1.0);
+        const link = document.createElement("a");
+        link.href = pngUrl;
+        link.download = "tehnicki-crtez-2d.png";
+        link.click();
+      }
+      URL.revokeObjectURL(svgUrl);
+
+      // Restore previous view mode
+      useShelfStore.getState().setViewMode(prevViewMode);
+    };
+    img.onerror = () => {
+      console.error("Failed to load SVG as image");
+      URL.revokeObjectURL(svgUrl);
+      useShelfStore.getState().setViewMode(prevViewMode);
+    };
+    img.src = svgUrl;
+  }, []);
 
   const {
     width,
@@ -576,6 +626,16 @@ export function ConfiguratorControls({
     (state: ShelfState) => state.doorSelections,
   );
   const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
+  // Handle settings for cut list pricing
+  const globalHandleId = useShelfStore(
+    (state: ShelfState) => state.globalHandleId,
+  );
+  const globalHandleFinish = useShelfStore(
+    (state: ShelfState) => state.globalHandleFinish,
+  );
+  const doorSettingsMode = useShelfStore(
+    (state: ShelfState) => state.doorSettingsMode,
+  );
   const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
   const setShowDoors = useShelfStore((state: ShelfState) => state.setShowDoors);
   // Door multi-select state for Step 5
@@ -619,6 +679,11 @@ export function ConfiguratorControls({
           verticalBoundaries,
           columnHorizontalBoundaries,
           columnModuleBoundaries,
+          // Door groups and handle settings for pricing
+          doorGroups,
+          globalHandleId,
+          globalHandleFinish,
+          doorSettingsMode,
         },
         materials,
       ),
@@ -639,6 +704,11 @@ export function ConfiguratorControls({
       verticalBoundaries,
       columnHorizontalBoundaries,
       columnModuleBoundaries,
+      // Door groups and handle settings
+      doorGroups,
+      globalHandleId,
+      globalHandleFinish,
+      doorSettingsMode,
     ],
   );
 
@@ -783,14 +853,6 @@ export function ConfiguratorControls({
         // Schematic drawing style: thin stroke, no fill
         doc.setDrawColor(40);
         doc.setLineWidth(0.2);
-        // Draw a vector schematic of the element (front view) above the table
-        // Box size
-        const boxW = 90; // mm
-        const boxH = 60; // mm
-        const boxX = margin;
-        const boxY = margin + 10;
-        // Outer box
-        doc.rect(boxX, boxY, boxW, boxH, "S");
         // Internal layout using elementConfigs and extras
         const elementConfigs = useShelfStore.getState().elementConfigs;
         const compartmentExtras = useShelfStore.getState().compartmentExtras;
@@ -804,6 +866,40 @@ export function ConfiguratorControls({
           hCm: elementHcm,
           rowIdx,
         } = getElementDimsCm(letter);
+
+        // ===============================================
+        // PROPORTIONAL BOX SIZE CALCULATION
+        // ===============================================
+        // Max available space on PDF
+        const maxBoxW = 140; // mm - max available width (leave room for dims on right)
+        const maxBoxH = 65; // mm - max available height before table
+
+        // Calculate aspect ratio of actual element
+        const aspectRatio = elementWcm / elementHcm;
+
+        // Fit to available space while preserving aspect ratio
+        let boxW: number;
+        let boxH: number;
+
+        if (aspectRatio > maxBoxW / maxBoxH) {
+          // Width-constrained (wide element)
+          boxW = maxBoxW;
+          boxH = maxBoxW / aspectRatio;
+        } else {
+          // Height-constrained (tall element)
+          boxH = maxBoxH;
+          boxW = maxBoxH * aspectRatio;
+        }
+
+        // Ensure minimum readable size
+        boxW = Math.max(boxW, 35);
+        boxH = Math.max(boxH, 25);
+
+        const boxX = margin;
+        const boxY = margin + 10;
+        // Outer box
+        doc.rect(boxX, boxY, boxW, boxH, "S");
+
         const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
         const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
         // Material thickness in cm from selected material
@@ -991,33 +1087,136 @@ export function ConfiguratorControls({
             });
           }
         }
+
+        // ===============================================
+        // DOOR TYPE LABEL & HANDLE INFORMATION
+        // ===============================================
+        const doorGroups = useShelfStore.getState().doorGroups;
+        const globalHandleId =
+          useShelfStore.getState().globalHandleId || "handle_1";
+        const globalHandleFinish =
+          useShelfStore.getState().globalHandleFinish || "chrome";
+        const doorSettingsMode =
+          useShelfStore.getState().doorSettingsMode || "global";
+
+        // Find door group for this element
+        const elementDoorGroup = doorGroups.find(
+          (g: { compartments: string[] }) =>
+            g.compartments.some((c: string) => {
+              const parsed = parseSubCompKey(c);
+              return (parsed ? parsed.compKey : c).startsWith(letter);
+            }),
+        );
+
+        // Track Y position for door/handle info (to the right of the schematic)
+        const infoStartX = boxX + boxW + 20; // Right of schematic + dimension line space
+        let infoY = boxY + 3;
+
+        // Door type label
+        if (elementDoorGroup && (elementDoorGroup as any).type !== "none") {
+          const doorTypeLabels: Record<string, string> = {
+            left: "Leva vrata",
+            right: "Desna vrata",
+            double: "Dvokrilna vrata",
+            leftMirror: "Leva vrata (ogledalo)",
+            rightMirror: "Desna vrata (ogledalo)",
+            doubleMirror: "Dvokrilna vrata (ogledalo)",
+            drawerStyle: "Vrata fioka stil",
+          };
+          const doorLabel =
+            doorTypeLabels[(elementDoorGroup as any).type] ||
+            (elementDoorGroup as any).type;
+
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text("Vrata:", infoStartX, infoY);
+          doc.setFont("helvetica", "normal");
+          doc.text(doorLabel, infoStartX + 16, infoY);
+          infoY += 6;
+
+          // Handle info
+          const handleId =
+            doorSettingsMode === "per-door" &&
+            (elementDoorGroup as any).handleId
+              ? (elementDoorGroup as any).handleId
+              : globalHandleId;
+          const handleFinish =
+            doorSettingsMode === "per-door" &&
+            (elementDoorGroup as any).handleFinish
+              ? (elementDoorGroup as any).handleFinish
+              : globalHandleFinish;
+
+          const handleData = (handlesData as any).handles.find(
+            (h: any) => h.id === handleId,
+          );
+          const finishData = handleData?.finishes?.find(
+            (f: any) => f.id === handleFinish,
+          );
+
+          if (handleData && finishData) {
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.text("Rucka:", infoStartX, infoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(`${handleData.name}`, infoStartX + 16, infoY);
+            infoY += 5;
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Zavrsna:", infoStartX, infoY);
+            doc.setFont("helvetica", "normal");
+            doc.text(`${finishData.name}`, infoStartX + 18, infoY);
+            infoY += 5;
+
+            // Handle count and price
+            const doorType = (elementDoorGroup as any).type;
+            const handleCount =
+              doorType === "double" || doorType === "doubleMirror" ? 2 : 1;
+            const totalHandlePrice = finishData.price * handleCount;
+
+            doc.setFont("helvetica", "bold");
+            doc.text("Cena:", infoStartX, infoY);
+            doc.setFont("helvetica", "normal");
+            const priceText =
+              handleCount > 1
+                ? `${handleCount}x ${finishData.price.toFixed(2)} = ${totalHandlePrice.toFixed(2)} EUR`
+                : `${totalHandlePrice.toFixed(2)} EUR`;
+            doc.text(priceText, infoStartX + 13, infoY);
+          }
+        }
+
         const rows = cutList.grouped[letter];
         // Table headers
         const headers = [
           "Oznaka",
           "Opis",
-          "Širina (cm)",
-          "Visina (cm)",
-          "Debljina (mm)",
-          "Kvadratura (m²)",
+          "Sirina",
+          "Visina",
+          "Debljina",
+          "m2",
           "Cena",
         ];
-        // Tighter column layout to reduce total table width
-        const colX = [margin, 40, 85, 115, 140, 165, 185];
+        // Improved column layout - more space for Opis, tighter numeric columns
+        const colX = [margin, 35, 95, 120, 143, 164, 182];
         const colW = [
-          colX[1] - colX[0],
-          colX[2] - colX[1],
-          colX[3] - colX[2],
-          colX[4] - colX[3],
-          colX[5] - colX[4],
-          colX[6] - colX[5],
-          210 - margin - colX[6],
+          colX[1] - colX[0], // 23 - Oznaka
+          colX[2] - colX[1], // 60 - Opis (wider for door descriptions)
+          colX[3] - colX[2], // 25 - Sirina
+          colX[4] - colX[3], // 23 - Visina
+          colX[5] - colX[4], // 21 - Debljina
+          colX[6] - colX[5], // 18 - m2
+          210 - margin - colX[6], // ~16 - Cena
         ];
+        // Numeric column indices (right-align these)
+        const numericCols = [2, 3, 4, 5, 6];
+
         let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         headers.forEach((h, i) => {
-          doc.text(h, colX[i] + 2, y);
+          const isNumeric = numericCols.includes(i);
+          const xPos = isNumeric ? colX[i] + colW[i] - 2 : colX[i] + 2;
+          const align = isNumeric ? "right" : "left";
+          doc.text(h, xPos, y, { align: align as any });
           doc.rect(colX[i], y - 5, colW[i], 7, "S");
         });
         doc.setFont("helvetica", "normal");
@@ -1036,20 +1235,20 @@ export function ConfiguratorControls({
           // Wrap description if too long
           const descLines = doc.splitTextToSize(line[1], colW[1] - 4);
           const rowH = Math.max(7, (descLines.length || 1) * 4 + 3);
-          doc.rect(colX[0], y - 5, colW[0], rowH, "S");
-          doc.text(line[0], colX[0] + 2, y);
-          doc.rect(colX[1], y - 5, colW[1], rowH, "S");
-          doc.text(descLines, colX[1] + 2, y);
-          doc.rect(colX[2], y - 5, colW[2], rowH, "S");
-          doc.text(line[2], colX[2] + 2, y);
-          doc.rect(colX[3], y - 5, colW[3], rowH, "S");
-          doc.text(line[3], colX[3] + 2, y);
-          doc.rect(colX[4], y - 5, colW[4], rowH, "S");
-          doc.text(line[4], colX[4] + 2, y);
-          doc.rect(colX[5], y - 5, colW[5], rowH, "S");
-          doc.text(line[5], colX[5] + 2, y);
-          doc.rect(colX[6], y - 5, colW[6], rowH, "S");
-          doc.text(line[6], colX[6] + 2, y);
+
+          // Draw cells and content with proper alignment
+          for (let i = 0; i < 7; i++) {
+            doc.rect(colX[i], y - 5, colW[i], rowH, "S");
+            const isNumeric = numericCols.includes(i);
+            const xPos = isNumeric ? colX[i] + colW[i] - 2 : colX[i] + 2;
+            const align = isNumeric ? "right" : "left";
+            if (i === 1) {
+              // Description column - uses wrapped text
+              doc.text(descLines, colX[1] + 2, y);
+            } else {
+              doc.text(line[i], xPos, y, { align: align as any });
+            }
+          }
           y += rowH + 2;
           // Page break if near bottom
           if (y > pageH - margin - 10) {
@@ -1066,10 +1265,47 @@ export function ConfiguratorControls({
           (a: number, b: any) => a + (b.cost ?? 0),
           0,
         );
+
+        // Calculate handle cost for this element
+        let elementHandleCost = 0;
+        if (elementDoorGroup && (elementDoorGroup as any).type !== "none") {
+          const handleId =
+            doorSettingsMode === "per-door" &&
+            (elementDoorGroup as any).handleId
+              ? (elementDoorGroup as any).handleId
+              : globalHandleId;
+          const handleFinish =
+            doorSettingsMode === "per-door" &&
+            (elementDoorGroup as any).handleFinish
+              ? (elementDoorGroup as any).handleFinish
+              : globalHandleFinish;
+
+          const handleData = (handlesData as any).handles.find(
+            (h: any) => h.id === handleId,
+          );
+          const finishData = handleData?.finishes?.find(
+            (f: any) => f.id === handleFinish,
+          );
+
+          if (finishData) {
+            const doorType = (elementDoorGroup as any).type;
+            const handleCount =
+              doorType === "double" || doorType === "doubleMirror" ? 2 : 1;
+            elementHandleCost = finishData.price * handleCount;
+          }
+        }
+
         y += 8;
         doc.setFont("helvetica", "bold");
-        doc.text(`Ukupna kvadratura: ${fmt2(elementArea)} m²`, margin, y);
-        doc.text(`Ukupna cena: ${fmt2(elementCost)}`, margin + 90, y);
+        doc.text(`Ukupna kvadratura: ${fmt2(elementArea)} m2`, margin, y);
+        doc.text(`Cena materijala: ${fmt2(elementCost)}`, margin + 70, y);
+        if (elementHandleCost > 0) {
+          doc.text(
+            `Rucke: ${elementHandleCost.toFixed(2)} EUR`,
+            margin + 135,
+            y,
+          );
+        }
         doc.setFont("helvetica", "normal");
       });
       doc.save("specifikacija-elemenata.pdf");
