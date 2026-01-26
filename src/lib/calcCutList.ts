@@ -6,7 +6,21 @@ import {
   DRAWER_GAP,
 } from "./wardrobe-constants";
 import { buildBlocksX } from "./wardrobe-utils";
-import handlesData from "@/lib/handles.json";
+
+// Handle types for pricing (from database)
+type PricingHandleFinish = {
+  id: number;
+  legacyId: string | null;
+  name: string;
+  price: number; // Selling price in RSD
+};
+
+type PricingHandle = {
+  id: number;
+  legacyId: string | null;
+  name: string;
+  finishes: PricingHandleFinish[];
+};
 
 type PricingMaterial = {
   id: number;
@@ -119,6 +133,7 @@ const emptyCutList: CutList = {
 export function calculateCutList(
   snapshot: WardrobeSnapshot,
   materials: PricingMaterial[],
+  handles: PricingHandle[] = [],
 ): CutList {
   try {
     if (!snapshot || materials.length === 0) {
@@ -323,11 +338,17 @@ export function calculateCutList(
       });
     };
 
-    // Helper to get handle price from handles.json
+    // Helper to get handle price from handles array (database)
     const getHandlePrice = (handleId: string, finishId: string): number => {
-      const handle = handlesData.handles.find((h) => h.id === handleId);
+      // Find handle by legacyId first (for backward compatibility), then by id
+      const handle = handles.find(
+        (h) => h.legacyId === handleId || String(h.id) === handleId,
+      );
       if (!handle) return 0;
-      const finish = handle.finishes.find((f) => f.id === finishId);
+      // Find finish by legacyId first, then by id
+      const finish = handle.finishes.find(
+        (f) => f.legacyId === finishId || String(f.id) === finishId,
+      );
       return finish?.price ?? 0;
     };
 
@@ -948,8 +969,12 @@ export function calculateCutList(
 
     // Add handle items to the cut list for transparency
     handleItems.forEach((h) => {
-      const handle = handlesData.handles.find((hd) => hd.id === h.handleId);
-      const finish = handle?.finishes.find((f) => f.id === h.finishId);
+      const handle = handles.find(
+        (hd) => hd.legacyId === h.handleId || String(hd.id) === h.handleId,
+      );
+      const finish = handle?.finishes.find(
+        (f) => f.legacyId === h.finishId || String(f.id) === h.finishId,
+      );
       items.push({
         code: `H-${h.handleId}-${h.finishId}`,
         desc: `${handle?.name ?? "Ručka"} - ${finish?.name ?? h.finishId} (${h.count}x)`,

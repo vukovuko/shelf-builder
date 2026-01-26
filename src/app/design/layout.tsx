@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
-import { materials, user } from "@/db/schema";
+import { materials, handles, handleFinishes, user } from "@/db/schema";
 import { DesignLayoutClient } from "./DesignLayoutClient";
 
 export default async function DesignLayout({
@@ -10,12 +10,13 @@ export default async function DesignLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch session and materials in parallel (only published materials for design page)
-  const [session, dbMaterials] = await Promise.all([
+  // Fetch session, materials, and handles in parallel (only published for design page)
+  const [session, dbMaterials, dbHandles] = await Promise.all([
     auth.api.getSession({
       headers: await headers(),
     }),
     db.select().from(materials).where(eq(materials.published, true)),
+    db.select().from(handles).where(eq(handles.published, true)),
   ]);
 
   // Serialize session for client (only pass what's needed)
@@ -44,6 +45,34 @@ export default async function DesignLayout({
     published: m.published,
   }));
 
+  // Fetch finishes for each handle and serialize
+  const serializedHandles = await Promise.all(
+    dbHandles.map(async (h) => {
+      const finishes = await db
+        .select()
+        .from(handleFinishes)
+        .where(eq(handleFinishes.handleId, h.id));
+
+      return {
+        id: h.id,
+        legacyId: h.legacyId,
+        name: h.name,
+        description: h.description,
+        mainImage: h.mainImage,
+        published: h.published,
+        finishes: finishes.map((f) => ({
+          id: f.id,
+          handleId: f.handleId,
+          legacyId: f.legacyId,
+          name: f.name,
+          image: f.image,
+          price: f.price,
+          costPrice: f.costPrice,
+        })),
+      };
+    }),
+  );
+
   // Check if user is admin
   let isAdmin = false;
   if (session?.user?.id) {
@@ -59,6 +88,7 @@ export default async function DesignLayout({
     <DesignLayoutClient
       initialSession={initialSession}
       initialMaterials={serializedMaterials}
+      initialHandles={serializedHandles}
       isAdmin={isAdmin}
     >
       {children}

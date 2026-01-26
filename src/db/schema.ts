@@ -6,6 +6,7 @@ import {
   json,
   pgEnum,
   pgTable,
+  real,
   serial,
   text,
   timestamp,
@@ -210,6 +211,51 @@ export const materials = pgTable("material", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
+
+// Handles table (door handles/ručke)
+export const handles = pgTable("handle", {
+  id: serial("id").primaryKey(),
+  legacyId: text("legacyId").unique(), // "handle_1" etc for backward compatibility
+  name: text("name").notNull(), // "Ručka 1"
+  description: text("description"), // "Standard ručka 128mm"
+  mainImage: text("mainImage"), // R2 URL or path
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+// Handle finishes table (chrome, aluminium, etc)
+export const handleFinishes = pgTable(
+  "handleFinish",
+  {
+    id: serial("id").primaryKey(),
+    handleId: integer("handleId")
+      .notNull()
+      .references(() => handles.id, { onDelete: "cascade" }),
+    legacyId: text("legacyId"), // "chrome" etc for backward compatibility
+    name: text("name").notNull(), // "Chrome"
+    image: text("image"), // R2 URL or path
+    price: integer("price").notNull(), // Selling price in RSD (prodajna cena)
+    costPrice: integer("costPrice").notNull().default(0), // Cost price in RSD (nabavna cena)
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    handleIdIdx: index("handle_finish_handle_id_idx").on(table.handleId),
+  }),
+);
+
+// Handle relations
+export const handleRelations = relations(handles, ({ many }) => ({
+  finishes: many(handleFinishes),
+}));
+
+export const handleFinishRelations = relations(handleFinishes, ({ one }) => ({
+  handle: one(handles, {
+    fields: [handleFinishes.handleId],
+    references: [handles.id],
+  }),
+}));
 
 // Orders table
 export const orders = pgTable(

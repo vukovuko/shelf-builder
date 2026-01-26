@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,24 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import handlesData from "@/lib/handles.json";
-
-interface HandleFinish {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-}
-
-interface Handle {
-  id: string;
-  name: string;
-  description: string;
-  mainImage: string;
-  finishes: HandleFinish[];
-}
-
-const handles: Handle[] = handlesData.handles;
+import { useShelfStore } from "@/lib/store";
 
 interface HandlePickerModalProps {
   open: boolean;
@@ -44,6 +27,9 @@ export function HandlePickerModal({
   selectedFinish,
   onSelect,
 }: HandlePickerModalProps) {
+  // Get handles from store (database)
+  const storeHandles = useShelfStore((s) => s.handles);
+
   // Local state for selection (before saving)
   const [localHandleId, setLocalHandleId] = useState<string>(
     selectedHandleId || "handle_1",
@@ -52,26 +38,53 @@ export function HandlePickerModal({
     selectedFinish || "chrome",
   );
 
+  // Get default handle ID (first available or "handle_1")
+  const defaultHandleId = useMemo(() => {
+    if (storeHandles.length > 0) {
+      return storeHandles[0].legacyId || String(storeHandles[0].id);
+    }
+    return "handle_1";
+  }, [storeHandles]);
+
   // Reset local state when modal opens
   useEffect(() => {
     if (open) {
-      setLocalHandleId(selectedHandleId || "handle_1");
+      setLocalHandleId(selectedHandleId || defaultHandleId);
       setLocalFinish(selectedFinish || "chrome");
     }
-  }, [open, selectedHandleId, selectedFinish]);
+  }, [open, selectedHandleId, selectedFinish, defaultHandleId]);
+
+  // Helper to find handle by id or legacyId
+  const findHandle = (handleId: string) => {
+    return storeHandles.find(
+      (h) => h.legacyId === handleId || String(h.id) === handleId,
+    );
+  };
+
+  // Helper to get handle's effective ID (prefer legacyId for backward compatibility)
+  const getHandleEffectiveId = (handle: (typeof storeHandles)[0]) => {
+    return handle.legacyId || String(handle.id);
+  };
+
+  // Helper to get finish's effective ID (prefer legacyId for backward compatibility)
+  const getFinishEffectiveId = (
+    finish: (typeof storeHandles)[0]["finishes"][0],
+  ) => {
+    return finish.legacyId || String(finish.id);
+  };
 
   // Get the currently selected handle's data
-  const selectedHandle = handles.find((h) => h.id === localHandleId);
+  const selectedHandle = findHandle(localHandleId);
   const availableFinishes = selectedHandle?.finishes || [];
 
   // When handle changes, auto-select first available finish if current isn't available
   useEffect(() => {
     if (selectedHandle) {
       const finishExists = selectedHandle.finishes.some(
-        (f) => f.id === localFinish,
+        (f) => getFinishEffectiveId(f) === localFinish,
       );
       if (!finishExists && selectedHandle.finishes.length > 0) {
-        setLocalFinish(selectedHandle.finishes[0].id);
+        setLocalFinish(getFinishEffectiveId(selectedHandle.finishes[0]));
       }
     }
   }, [localHandleId, selectedHandle, localFinish]);
@@ -83,7 +96,7 @@ export function HandlePickerModal({
 
   // Get the selected finish for price display
   const selectedFinishData = availableFinishes.find(
-    (f) => f.id === localFinish,
+    (f) => getFinishEffectiveId(f) === localFinish,
   );
 
   return (
@@ -105,34 +118,37 @@ export function HandlePickerModal({
                 Ručke
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                {handles.map((handle) => (
-                  <button
-                    key={handle.id}
-                    type="button"
-                    onClick={() => setLocalHandleId(handle.id)}
-                    className={cn(
-                      "flex flex-col rounded-lg border-2 overflow-hidden transition-all bg-card text-left hover:shadow-md",
-                      localHandleId === handle.id
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/50",
-                    )}
-                  >
-                    <div
-                      className="aspect-square bg-cover bg-center bg-muted"
-                      style={{
-                        backgroundImage: handle.mainImage
-                          ? `url(${handle.mainImage})`
-                          : undefined,
-                      }}
-                    />
-                    <div className="p-3 space-y-1">
-                      <p className="text-sm font-medium">{handle.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {handle.description}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+                {storeHandles.map((handle) => {
+                  const effectiveId = getHandleEffectiveId(handle);
+                  return (
+                    <button
+                      key={handle.id}
+                      type="button"
+                      onClick={() => setLocalHandleId(effectiveId)}
+                      className={cn(
+                        "flex flex-col rounded-lg border-2 overflow-hidden transition-all bg-card text-left hover:shadow-md",
+                        localHandleId === effectiveId
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-border hover:border-primary/50",
+                      )}
+                    >
+                      <div
+                        className="aspect-square bg-cover bg-center bg-muted"
+                        style={{
+                          backgroundImage: handle.mainImage
+                            ? `url(${handle.mainImage})`
+                            : undefined,
+                        }}
+                      />
+                      <div className="p-3 space-y-1">
+                        <p className="text-sm font-medium">{handle.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {handle.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -143,38 +159,43 @@ export function HandlePickerModal({
               </h3>
               {availableFinishes.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {availableFinishes.map((finish) => (
-                    <button
-                      key={finish.id}
-                      type="button"
-                      onClick={() => setLocalFinish(finish.id)}
-                      className={cn(
-                        "flex flex-col rounded-lg border-2 overflow-hidden transition-all bg-card text-left hover:shadow-md",
-                        localFinish === finish.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/50",
-                      )}
-                    >
-                      <div
-                        className="aspect-square bg-cover bg-center bg-muted"
-                        style={{
-                          backgroundImage: finish.image
-                            ? `url(${finish.image})`
-                            : undefined,
-                        }}
-                      />
-                      <div className="p-2 space-y-0.5">
-                        <p className="text-sm font-medium">{finish.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {finish.price.toLocaleString("sr-RS")} €
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                  {availableFinishes.map((finish) => {
+                    const effectiveId = getFinishEffectiveId(finish);
+                    return (
+                      <button
+                        key={finish.id}
+                        type="button"
+                        onClick={() => setLocalFinish(effectiveId)}
+                        className={cn(
+                          "flex flex-col rounded-lg border-2 overflow-hidden transition-all bg-card text-left hover:shadow-md",
+                          localFinish === effectiveId
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/50",
+                        )}
+                      >
+                        <div
+                          className="aspect-square bg-cover bg-center bg-muted"
+                          style={{
+                            backgroundImage: finish.image
+                              ? `url(${finish.image})`
+                              : undefined,
+                          }}
+                        />
+                        <div className="p-2 space-y-0.5">
+                          <p className="text-sm font-medium">{finish.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {finish.price.toLocaleString("sr-RS")} RSD
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Izaberite ručku za prikaz završnih obrada
+                  {storeHandles.length === 0
+                    ? "Učitavanje ručki..."
+                    : "Izaberite ručku za prikaz završnih obrada"}
                 </div>
               )}
             </div>
@@ -191,7 +212,7 @@ export function HandlePickerModal({
                 <span>{selectedFinishData.name}</span>
                 {" • "}
                 <span className="font-medium">
-                  {selectedFinishData.price.toLocaleString("sr-RS")} €
+                  {selectedFinishData.price.toLocaleString("sr-RS")} RSD
                 </span>
               </>
             )}

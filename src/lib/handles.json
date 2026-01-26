@@ -4,25 +4,28 @@
       "id": "handle_1",
       "name": "Ručka 1",
       "description": "Standard ručka 128mm",
-      "mainImage": "/handles/handle_1/handle_1.png",
+      "mainImage": "handle_1.png",
       "finishes": [
         {
           "id": "chrome",
           "name": "Chrome",
-          "image": "/handles/handle_1/chrome.png",
-          "price": 5.0
+          "image": "chrome.png",
+          "price": 590,
+          "costPrice": 0
         },
         {
           "id": "aluminium",
           "name": "Aluminium",
-          "image": "/handles/handle_1/aluminium.png",
-          "price": 6.0
+          "image": "aluminium.png",
+          "price": 650,
+          "costPrice": 0
         },
         {
           "id": "brushed_steel",
           "name": "Brushed Steel",
-          "image": "/handles/handle_1/brushed_steel.png",
-          "price": 7.0
+          "image": "brushed_steel.png",
+          "price": 720,
+          "costPrice": 0
         }
       ]
     },
@@ -30,31 +33,35 @@
       "id": "handle_2",
       "name": "Ručka 2",
       "description": "Modern ručka 160mm",
-      "mainImage": "/handles/handle_2/handle_2.png",
+      "mainImage": "handle_2.png",
       "finishes": [
         {
           "id": "chrome",
           "name": "Chrome",
-          "image": "/handles/handle_2/chrome_2.png",
-          "price": 8.0
+          "image": "chrome_2.png",
+          "price": 850,
+          "costPrice": 0
         },
         {
           "id": "aluminium",
           "name": "Aluminium",
-          "image": "/handles/handle_2/aluminium_2.png",
-          "price": 9.0
+          "image": "aluminium_2.png",
+          "price": 920,
+          "costPrice": 0
         },
         {
           "id": "black_matt",
           "name": "Black Matt",
-          "image": "/handles/handle_2/black_matt.png",
-          "price": 10.0
+          "image": "black_matt.png",
+          "price": 1100,
+          "costPrice": 0
         },
         {
           "id": "white_matt",
           "name": "White Matt",
-          "image": "/handles/handle_2/white_matt.png",
-          "price": 10.0
+          "image": "white_matt.png",
+          "price": 1100,
+          "costPrice": 0
         }
       ]
     },
@@ -62,31 +69,35 @@
       "id": "handle_3",
       "name": "Ručka 3",
       "description": "Premium ručka 192mm",
-      "mainImage": "/handles/handle_3/handle_3.png",
+      "mainImage": "handle_3.png",
       "finishes": [
         {
           "id": "chrome",
           "name": "Chrome",
-          "image": "/handles/handle_3/chrome_3.png",
-          "price": 12.0
+          "image": "chrome_3.png",
+          "price": 1250,
+          "costPrice": 0
         },
         {
           "id": "aluminium",
           "name": "Aluminium",
-          "image": "/handles/handle_3/aluminium_3.png",
-          "price": 13.0
+          "image": "aluminium_3.png",
+          "price": 1350,
+          "costPrice": 0
         },
         {
           "id": "black_matt",
           "name": "Black Matt",
-          "image": "/handles/handle_3/black_matt_3.png",
-          "price": 14.0
+          "image": "black_matt_3.png",
+          "price": 1450,
+          "costPrice": 0
         },
         {
           "id": "white_matt",
           "name": "White Matt",
-          "image": "/handles/handle_3/white_matt_3.png",
-          "price": 14.0
+          "image": "white_matt_3.png",
+          "price": 1450,
+          "costPrice": 0
         }
       ]
     },
@@ -94,25 +105,28 @@
       "id": "handle_4",
       "name": "Ručka 4",
       "description": "Minimalist ručka 128mm",
-      "mainImage": "/handles/handle_4/handle_4.png",
+      "mainImage": "handle_4.png",
       "finishes": [
         {
           "id": "chrome",
           "name": "Chrome",
-          "image": "/handles/handle_4/chrome_4.png",
-          "price": 15.0
+          "image": "chrome_4.png",
+          "price": 1550,
+          "costPrice": 0
         },
         {
           "id": "aluminium",
           "name": "Aluminium",
-          "image": "/handles/handle_4/aluminium_4.png",
-          "price": 16.0
+          "image": "aluminium_4.png",
+          "price": 1650,
+          "costPrice": 0
         },
         {
           "id": "brushed_steel",
           "name": "Brushed Steel",
-          "image": "/handles/handle_4/brushed_steel_4.png",
-          "price": 17.0
+          "image": "brushed_steel_4.png",
+          "price": 1750,
+          "costPrice": 0
         }
       ]
     }

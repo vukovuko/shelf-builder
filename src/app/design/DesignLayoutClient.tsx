@@ -6,7 +6,7 @@ import { ArrowLeft, DoorOpen, DoorClosed } from "lucide-react";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { Button } from "@/components/ui/button";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import { useShelfStore, type Material, type Handle, type ShelfState } from "@/lib/store";
 
 function useLockBodyScroll(locked: boolean) {
   React.useEffect(() => {
@@ -30,6 +30,7 @@ interface DesignLayoutClientProps {
     };
   } | null;
   initialMaterials: Material[];
+  initialHandles: Handle[];
   isAdmin?: boolean;
 }
 
@@ -37,17 +38,22 @@ export function DesignLayoutClient({
   children,
   initialSession,
   initialMaterials,
+  initialHandles,
   isAdmin = false,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   useLockBodyScroll(drawerOpen);
 
-  // Set materials in store on mount
+  // Set materials and handles in store on mount
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
+  const setHandles = useShelfStore((state: ShelfState) => state.setHandles);
   React.useEffect(() => {
     setMaterials(initialMaterials);
   }, [initialMaterials, setMaterials]);
+  React.useEffect(() => {
+    setHandles(initialHandles);
+  }, [initialHandles, setHandles]);
 
   // Track order context for "back to order" button
   const fromOrderId = useShelfStore((state: ShelfState) => state.fromOrderId);

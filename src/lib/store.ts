@@ -27,6 +27,28 @@ export interface Material {
   published: boolean;
 }
 
+// Handle finish type for database handle finishes
+export interface HandleFinish {
+  id: number;
+  handleId: number;
+  legacyId: string | null;
+  name: string;
+  image: string | null;
+  price: number; // Selling price in RSD (prodajna cena)
+  costPrice: number; // Cost price in RSD (nabavna cena)
+}
+
+// Handle type for database handles
+export interface Handle {
+  id: number;
+  legacyId: string | null;
+  name: string;
+  description: string | null;
+  mainImage: string | null;
+  published: boolean;
+  finishes: HandleFinish[];
+}
+
 // Door configuration options per element (UI only for now)
 export type DoorOption =
   | "none"
@@ -142,6 +164,9 @@ export interface ShelfState {
   // Materials from database
   materials: Material[];
   setMaterials: (materials: Material[]) => void;
+  // Handles from database
+  handles: Handle[];
+  setHandles: (handles: Handle[]) => void;
   setWidth: (width: number) => void;
   setHeight: (height: number) => void;
   setDepth: (depth: number) => void;
@@ -355,6 +380,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
         selectedBackMaterialId,
       };
     }),
+  // Handles from database
+  handles: [],
+  setHandles: (handles) => set({ handles }),
   setWidth: (newWidth) =>
     set((state) => {
       const newWidthM = newWidth / 100;

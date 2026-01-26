@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Package,
   LayoutTemplate,
+  DoorOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,6 +54,11 @@ const navItems = [
     title: "Materijali",
     href: "/admin/materials",
     icon: Package,
+  },
+  {
+    title: "Ručke",
+    href: "/admin/handles",
+    icon: DoorOpen,
   },
 ];
 
