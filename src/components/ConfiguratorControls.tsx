@@ -348,24 +348,20 @@ export function ConfiguratorControls({
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;
-    const prevMode = useShelfStore.getState().viewMode;
 
-    // 1. Set edges mode and 2D view
-    useShelfStore.getState().setShowDimensions(true);
+    // 1. Set edges mode (HIDE dimension lines for clean edges)
+    useShelfStore.getState().setShowDimensions(false);
     setShowEdgesOnly(true);
-    if (cameraMode !== "2D") {
-      setCameraMode("2D");
-    }
 
-    // 2. Wait for mode change to apply
+    // 2. Wait for edges mode to apply
     await new Promise((resolve) => setTimeout(resolve, 100));
     await new Promise(requestAnimationFrame);
 
-    // 3. Trigger fit to view after mode is set
-    useShelfStore.getState().triggerFitToView();
+    // 3. Force camera to exact front view (Y=0, looking straight at center)
+    useShelfStore.getState().triggerForceFrontView();
 
-    // 4. Wait for camera fit animation to complete (Bounds animation)
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // 4. Wait for camera and render to complete
+    await new Promise((resolve) => setTimeout(resolve, 200));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
 
@@ -382,7 +378,7 @@ export function ConfiguratorControls({
     link.click();
     setShowEdgesOnly(false);
     useShelfStore.getState().setShowDimensions(prevDims);
-  }, [cameraMode, setCameraMode, setShowEdgesOnly]);
+  }, [setShowEdgesOnly]);
 
   const handleDownloadFrontView = React.useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;

@@ -71,6 +71,8 @@ function StoreInvalidator() {
   const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
   // Dimension lines toggle
   const showDimensions = useShelfStore((s: ShelfState) => s.showDimensions);
+  // Edges only mode (for download)
+  const showEdgesOnly = useShelfStore((s: ShelfState) => s.showEdgesOnly);
   // Fit request trigger
   const fitRequestId = useShelfStore((s: ShelfState) => s.fitRequestId);
 
@@ -100,6 +102,7 @@ function StoreInvalidator() {
     doorGroups,
     showDoors,
     showDimensions,
+    showEdgesOnly,
     fitRequestId,
     invalidate,
   ]);
@@ -156,49 +159,65 @@ function ViewModeController({
   const width = useShelfStore((s: ShelfState) => s.width);
   const height = useShelfStore((s: ShelfState) => s.height);
   const depth = useShelfStore((s: ShelfState) => s.depth);
+  const forceFrontViewId = useShelfStore((s: ShelfState) => s.forceFrontViewId);
   const prevViewMode = useRef<ViewMode>(viewMode);
+  const lastForceFrontViewId = useRef(forceFrontViewId);
 
+  // Helper to position camera at front view
+  const setCameraFrontView = React.useCallback(() => {
+    const w = width / 100; // Convert cm to meters
+    const h = height / 100;
+    const d = depth / 100;
+
+    const perspCam = camera as THREE.PerspectiveCamera;
+    const fovRad = (perspCam.fov * Math.PI) / 180;
+
+    // Get canvas aspect ratio for proper width calculation
+    const aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
+
+    // Distance needed to fit width (accounting for aspect ratio)
+    const distanceForWidth = w / 2 / Math.tan(fovRad / 2) / aspect;
+
+    // Distance needed to fit height
+    const distanceForHeight = h / 2 / Math.tan(fovRad / 2);
+
+    // Use whichever requires more distance (ensures both fit)
+    const margin = 1.2; // 20% margin for breathing room
+    const distance = Math.max(distanceForWidth, distanceForHeight) * margin;
+
+    // Position camera in front, ensuring it's beyond the object
+    camera.position.set(0, 0, Math.max(distance, d / 2 + 0.5));
+    camera.rotation.set(0, 0, 0);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+
+    // Reset OrbitControls target and rotation
+    if (controlsRef.current) {
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+
+    invalidate();
+  }, [camera, gl, width, height, depth, controlsRef, invalidate]);
+
+  // Handle viewMode changes (2D/3D toggle)
   useEffect(() => {
     // Only act when viewMode changes
     if (prevViewMode.current === viewMode) return;
     prevViewMode.current = viewMode;
 
     if (viewMode === "2D") {
-      const w = width / 100; // Convert cm to meters
-      const h = height / 100;
-      const d = depth / 100;
-
-      const perspCam = camera as THREE.PerspectiveCamera;
-      const fovRad = (perspCam.fov * Math.PI) / 180;
-
-      // Get canvas aspect ratio for proper width calculation
-      const aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
-
-      // Distance needed to fit width (accounting for aspect ratio)
-      const distanceForWidth = w / 2 / Math.tan(fovRad / 2) / aspect;
-
-      // Distance needed to fit height
-      const distanceForHeight = h / 2 / Math.tan(fovRad / 2);
-
-      // Use whichever requires more distance (ensures both fit)
-      const margin = 1.2; // 20% margin for breathing room
-      const distance = Math.max(distanceForWidth, distanceForHeight) * margin;
-
-      // Position camera in front, ensuring it's beyond the object
-      camera.position.set(0, 0, Math.max(distance, d / 2 + 0.5));
-      camera.rotation.set(0, 0, 0);
-      camera.lookAt(0, 0, 0);
-      camera.updateProjectionMatrix();
-
-      // Reset OrbitControls target and rotation
-      if (controlsRef.current) {
-        controlsRef.current.target.set(0, 0, 0);
-        controlsRef.current.update();
-      }
-
-      invalidate();
+      setCameraFrontView();
     }
-  }, [viewMode, camera, gl, width, height, depth, controlsRef, invalidate]);
+  }, [viewMode, setCameraFrontView]);
+
+  // Force front view when triggered (for Ivice download - after Bounds.fit())
+  useEffect(() => {
+    if (forceFrontViewId !== lastForceFrontViewId.current) {
+      lastForceFrontViewId.current = forceFrontViewId;
+      setCameraFrontView();
+    }
+  }, [forceFrontViewId, setCameraFrontView]);
 
   return null;
 }
@@ -258,9 +277,11 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           args={[showEdgesOnly ? "#ffffff" : "#2d2a3e"]}
         />
 
-        {/* Basic lighting */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        {/* Basic lighting - flat lighting in edges mode for clean download */}
+        <ambientLight intensity={showEdgesOnly ? 1.0 : 0.6} />
+        {!showEdgesOnly && (
+          <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        )}
 
         {!showEdgesOnly && <Environment preset="apartment" />}
 

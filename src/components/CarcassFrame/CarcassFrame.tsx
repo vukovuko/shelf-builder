@@ -122,6 +122,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Door groups for 3D rendering
     const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
     const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+    // Edges only mode (for "Preuzmi Ivice" download)
+    const showEdgesOnly = useShelfStore(
+      (state: ShelfState) => state.showEdgesOnly,
+    );
     // Front material for doors (global default)
     const selectedFrontMaterialId = useShelfStore(
       (state: ShelfState) => state.selectedFrontMaterialId,
@@ -350,16 +354,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         <Panel
           position={[-w / 2 + t / 2, sideL_H / 2, carcassZ]}
           size={[t, sideL_H, carcassD]}
+          showEdgesOnly={showEdgesOnly}
         />
 
         {/* Side R - height of last column */}
         <Panel
           position={[w / 2 - t / 2, sideR_H / 2, carcassZ]}
           size={[t, sideR_H, carcassD]}
+          showEdgesOnly={showEdgesOnly}
         />
 
-        {/* Front and back sokl panels - only when base is enabled */}
-        {baseH > 0 && (
+        {/* Front and back sokl panels - only when base is enabled, hidden in edges mode */}
+        {baseH > 0 && !showEdgesOnly && (
           <>
             {/* Front sokl panel - covers base gap from front */}
             <Panel
@@ -581,11 +587,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               <Panel
                 position={[colCenterX, colH - t / 2, carcassZ]}
                 size={[colInnerW, t, carcassD]}
+                showEdgesOnly={showEdgesOnly}
               />
               {/* Bottom panel of column - raised by baseH when base enabled */}
               <Panel
                 position={[colCenterX, baseH + t / 2, carcassZ]}
                 size={[colInnerW, t, carcassD]}
+                showEdgesOnly={showEdgesOnly}
               />
 
               {/* Horizontal shelves - one panel per shelf */}
@@ -594,6 +602,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   <Panel
                     position={[colCenterX, shelfY, carcassZ]}
                     size={[colInnerW, t, carcassD]}
+                    showEdgesOnly={showEdgesOnly}
                   />
                   {/* Only show drag handle when column is hovered AND not in Step 2/5 */}
                   {hoveredColumnIndex === colIdx && !hideUIForSteps && (
@@ -973,6 +982,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               carcassZ,
                             ]}
                             size={[t, compInnerH, carcassD]}
+                            showEdgesOnly={showEdgesOnly}
                           />,
                         );
                       }
@@ -1024,6 +1034,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               key={`sh-${compKey}-${secIdx}-${shIdx}`}
                               position={[secCenterX, shelfY, carcassZ]}
                               size={[secW, t, carcassD]}
+                              showEdgesOnly={showEdgesOnly}
                             />,
                           );
                         }
@@ -1032,8 +1043,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       return <>{shelfPanels}</>;
                     })()}
 
-                    {/* Per-section drawer fronts from elementConfigs */}
-                    {(() => {
+                    {/* Per-section drawer fronts from elementConfigs - hidden in edges mode */}
+                    {!showEdgesOnly && (() => {
                       const compKey = `${colLetter}${compIdx + 1}`;
                       const cfg = elementConfigs[compKey] ?? {
                         columns: 1,
@@ -1153,18 +1164,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 );
               })}
 
-              {/* Back panels - ONE PER MODULE (each module has its own back) */}
-              {getColumnModules(colIdx).map((mod, modIdx) => (
-                <Panel
-                  key={`back-${colIdx}-${modIdx}`}
-                  position={[
-                    colCenterX,
-                    mod.yStart + mod.height / 2,
-                    -d / 2 + backT / 2,
-                  ]}
-                  size={[colInnerW + t, mod.height, backT]}
-                />
-              ))}
+              {/* Back panels - ONE PER MODULE (each module has its own back) - hidden in edges mode */}
+              {!showEdgesOnly &&
+                getColumnModules(colIdx).map((mod, modIdx) => (
+                  <Panel
+                    key={`back-${colIdx}-${modIdx}`}
+                    position={[
+                      colCenterX,
+                      mod.yStart + mod.height / 2,
+                      -d / 2 + backT / 2,
+                    ]}
+                    size={[colInnerW + t, mod.height, backT]}
+                  />
+                ))}
 
               {/* Module boundary panels (TWO panels touching when boundary exists) + drag handle */}
               {(() => {
@@ -1208,11 +1220,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     <Panel
                       position={[colCenterX, boundary - t / 2, carcassZ]}
                       size={[colInnerW, t, carcassD]}
+                      showEdgesOnly={showEdgesOnly}
                     />
                     {/* Bottom panel of top module */}
                     <Panel
                       position={[colCenterX, boundary + t / 2, carcassZ]}
                       size={[colInnerW, t, carcassD]}
+                      showEdgesOnly={showEdgesOnly}
                     />
                     {/* Drag handle for module boundary - show when hovered, HIDE when Step 2/5 active */}
                     {hoveredColumnIndex === colIdx && !hideUIForSteps && (
@@ -1258,6 +1272,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           <Panel
                             position={[colCenterX, shelfY, carcassZ]}
                             size={[colInnerW, t, carcassD]}
+                            showEdgesOnly={showEdgesOnly}
                           />
                           {/* Drag handle for top module shelf - show when hovered, HIDE when Step 2/5 active */}
                           {hoveredColumnIndex === colIdx && !hideUIForSteps && (
@@ -1352,11 +1367,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               <Panel
                 position={[seamX - t / 2, seamLeftY, carcassZ]}
                 size={[t, seamLeftH, carcassD]}
+                showEdgesOnly={showEdgesOnly}
               />
               {/* Right seam panel - belongs to RIGHT column, shortened when base enabled */}
               <Panel
                 position={[seamX + t / 2, seamRightY, carcassZ]}
                 size={[t, seamRightH, carcassD]}
+                showEdgesOnly={showEdgesOnly}
               />
               {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2/5 active */}
               {!hideUIForSteps && (
@@ -1375,9 +1392,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           );
         })}
 
-        {/* Door panels - render for each door group (only on Step 5 when showDoors is true) */}
+        {/* Door panels - render for each door group (only on Step 5 when showDoors is true), hidden in edges mode */}
         {showDoors &&
           isStep5Active &&
+          !showEdgesOnly &&
           doorGroups.map((group: DoorGroup) => {
             // Find which column this door belongs to
             const colIdx = columns.findIndex((_, idx) => {

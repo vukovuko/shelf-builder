@@ -1,15 +1,20 @@
 "use client";
 
-import React from "react";
-import { Edges } from "@react-three/drei";
+import React, { useMemo } from "react";
+import { Edges, Line } from "@react-three/drei";
 
 interface PanelProps {
   position: [number, number, number];
   size: [number, number, number];
+  showEdgesOnly?: boolean;
 }
 
 // Custom comparison for arrays - prevents re-render if values are same
 function areEqual(prev: PanelProps, next: PanelProps): boolean {
+  // Compare showEdgesOnly
+  if (prev.showEdgesOnly !== next.showEdgesOnly) {
+    return false;
+  }
   // Compare position array values
   if (
     prev.position[0] !== next.position[0] ||
@@ -31,7 +36,11 @@ function areEqual(prev: PanelProps, next: PanelProps): boolean {
 
 // A simple, reusable panel component. It's just a mesh with a box geometry.
 // Wrapped in React.memo to prevent re-renders when position/size values unchanged
-export const Panel = React.memo(function Panel({ position, size }: PanelProps) {
+export const Panel = React.memo(function Panel({
+  position,
+  size,
+  showEdgesOnly = false,
+}: PanelProps) {
   // Validate and sanitize size to prevent NaN or invalid values
   const safeSize = size.map((v) => {
     if (typeof v !== "number" || Number.isNaN(v) || !Number.isFinite(v))
@@ -45,6 +54,30 @@ export const Panel = React.memo(function Panel({ position, size }: PanelProps) {
 
   const geoKey = `${safeSize[0]}-${safeSize[1]}-${safeSize[2]}`;
 
+  // Edges-only mode: render as rectangle outline (for "Preuzmi Ivice" download)
+  // Uses Line to draw explicit black rectangle edges
+  const edgePoints = useMemo(() => {
+    const hw = safeSize[0] / 2; // half width
+    const hh = safeSize[1] / 2; // half height
+    // Rectangle corners (closed loop)
+    return [
+      [-hw, -hh, 0],
+      [hw, -hh, 0],
+      [hw, hh, 0],
+      [-hw, hh, 0],
+      [-hw, -hh, 0], // Close the loop
+    ] as [number, number, number][];
+  }, [safeSize[0], safeSize[1]]);
+
+  if (showEdgesOnly) {
+    return (
+      <group position={safePosition}>
+        <Line points={edgePoints} color="#000000" lineWidth={1} />
+      </group>
+    );
+  }
+
+  // Normal 3D mode
   return (
     <mesh position={safePosition} castShadow receiveShadow>
       <boxGeometry key={geoKey} args={safeSize} />

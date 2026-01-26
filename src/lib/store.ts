@@ -185,6 +185,9 @@ export interface ShelfState {
   // One-shot camera fit trigger
   fitRequestId: number;
   triggerFitToView: () => void;
+  // Force front view (for Ivice download - resets camera after Bounds fit)
+  forceFrontViewId: number;
+  triggerForceFrontView: () => void;
   // Per-element configuration
   selectedElementKey: string | null;
   setSelectedElementKey: (key: string | null) => void;
@@ -600,6 +603,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
   fitRequestId: 0,
   triggerFitToView: () =>
     set((state) => ({ fitRequestId: state.fitRequestId + 1 })),
+  // Force front view trigger (for Ivice download)
+  forceFrontViewId: 0,
+  triggerForceFrontView: () =>
+    set((state) => ({ forceFrontViewId: state.forceFrontViewId + 1 })),
   // Per-element configuration defaults
   selectedElementKey: null,
   setSelectedElementKey: (key) => set({ selectedElementKey: key }),
