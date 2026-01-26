@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Upload, X, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -85,6 +85,58 @@ export function MaterialDetailClient({
     initialMaterial.categories.map((c) => ({ value: c, label: c })),
   );
   const [published, setPublished] = useState(initialMaterial.published);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload file to R2
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/materials/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Upload failed");
+      }
+
+      const { url } = await res.json();
+      setImg(url);
+      toast.success("Slika uploadovana");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadFile(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      uploadFile(file);
+    }
+  };
 
   // Track if anything changed
   const hasChanges = useMemo(() => {
@@ -376,12 +428,57 @@ export function MaterialDetailClient({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="img">URL slike</Label>
-              <Input
-                id="img"
-                value={img}
-                onChange={(e) => setImg(e.target.value)}
-                placeholder="npr. /img/slika1.jpg"
+              <Label>Slika materijala</Label>
+
+              {/* Current image preview */}
+              {img && (
+                <div className="relative w-32 h-32 mb-2">
+                  <img
+                    src={img}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImg("")}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* Drag-and-drop zone */}
+              <div
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  uploading
+                    ? "border-muted bg-muted/50"
+                    : "border-muted-foreground/25 hover:border-primary hover:bg-muted/50"
+                }`}
+              >
+                {uploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Prevuci sliku ili klikni za upload
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPG, PNG ili WebP (max 5MB)
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                hidden
+                accept="image/jpeg,image/png,image/webp"
               />
             </div>
           </div>

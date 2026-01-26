@@ -47,6 +47,9 @@ interface DataTableProps<TData, TValue> {
   onPageChange?: (pageIndex: number) => void;
   // Custom meta to pass to table
   meta?: Record<string, unknown>;
+  // Controlled selection for cross-page persistence
+  selectedItems?: TData[];
+  onSelectionChange?: (items: TData[]) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -66,6 +69,8 @@ export function DataTable<TData, TValue>({
   totalCount,
   onPageChange,
   meta: customMeta,
+  selectedItems,
+  onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -135,9 +140,65 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const selectedRows = table
-    .getFilteredSelectedRowModel()
-    .rows.map((row) => row.original);
+  // Track if we're updating from external selectedItems to prevent loops
+  const isExternalUpdate = React.useRef(false);
+
+  // Sync rowSelection state when data or selectedItems changes (restore checkboxes)
+  React.useEffect(() => {
+    if (!selectedItems || !getRowId) return;
+
+    isExternalUpdate.current = true;
+    const selectedIds = new Set(selectedItems.map((item) => getRowId(item)));
+    const newRowSelection: RowSelectionState = {};
+
+    data.forEach((row) => {
+      const id = getRowId(row);
+      if (selectedIds.has(id)) {
+        newRowSelection[id] = true;
+      }
+    });
+
+    setRowSelection(newRowSelection);
+    // Reset flag after state update
+    setTimeout(() => {
+      isExternalUpdate.current = false;
+    }, 0);
+  }, [data, selectedItems, getRowId]);
+
+  // When row selection changes, merge with existing selectedItems and notify parent
+  React.useEffect(() => {
+    if (!onSelectionChange || !getRowId || isExternalUpdate.current) return;
+
+    // Get current page selected items
+    const currentPageSelected = table
+      .getFilteredSelectedRowModel()
+      .rows.map((row) => row.original);
+
+    // Get IDs of current page items
+    const currentPageIds = new Set(data.map((d) => getRowId(d)));
+
+    // Keep items from other pages + current page selections
+    const otherPageItems = (selectedItems ?? []).filter(
+      (item) => !currentPageIds.has(getRowId(item))
+    );
+
+    const newSelection = [...otherPageItems, ...currentPageSelected];
+
+    // Only update if selection actually changed
+    const newIds = new Set(newSelection.map((item) => getRowId(item)));
+    const oldIds = new Set((selectedItems ?? []).map((item) => getRowId(item)));
+
+    if (
+      newIds.size !== oldIds.size ||
+      [...newIds].some((id) => !oldIds.has(id))
+    ) {
+      onSelectionChange(newSelection);
+    }
+  }, [rowSelection, data, selectedItems, onSelectionChange, getRowId, table]);
+
+  // Use controlled selectedItems if provided, otherwise current page only
+  const selectedRows = selectedItems ??
+    table.getFilteredSelectedRowModel().rows.map((row) => row.original);
 
   const hasSearch = searchKey || onSearchChange;
 

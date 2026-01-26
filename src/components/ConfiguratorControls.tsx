@@ -72,7 +72,6 @@ import {
   type Material,
   type ShelfState,
 } from "@/lib/store";
-import handlesData from "@/lib/handles.json";
 import {
   toLetters,
   buildBlocksX,
@@ -633,6 +632,7 @@ export function ConfiguratorControls({
   const globalHandleFinish = useShelfStore(
     (state: ShelfState) => state.globalHandleFinish,
   );
+  const storeHandles = useShelfStore((state: ShelfState) => state.handles);
   const doorSettingsMode = useShelfStore(
     (state: ShelfState) => state.doorSettingsMode,
   );
@@ -686,6 +686,7 @@ export function ConfiguratorControls({
           doorSettingsMode,
         },
         materials,
+        storeHandles,
       ),
     [
       width,
@@ -700,6 +701,7 @@ export function ConfiguratorControls({
       hasBase,
       baseHeight,
       materials,
+      storeHandles,
       // Structural boundaries
       verticalBoundaries,
       columnHorizontalBoundaries,
@@ -1146,11 +1148,13 @@ export function ConfiguratorControls({
               ? (elementDoorGroup as any).handleFinish
               : globalHandleFinish;
 
-          const handleData = (handlesData as any).handles.find(
-            (h: any) => h.id === handleId,
+          const handleData = storeHandles.find(
+            (h) =>
+              h.legacyId === handleId || String(h.id) === handleId,
           );
           const finishData = handleData?.finishes?.find(
-            (f: any) => f.id === handleFinish,
+            (f) =>
+              f.legacyId === handleFinish || String(f.id) === handleFinish,
           );
 
           if (handleData && finishData) {
@@ -1178,8 +1182,8 @@ export function ConfiguratorControls({
             doc.setFont("helvetica", "normal");
             const priceText =
               handleCount > 1
-                ? `${handleCount}x ${finishData.price.toFixed(2)} = ${totalHandlePrice.toFixed(2)} EUR`
-                : `${totalHandlePrice.toFixed(2)} EUR`;
+                ? `${handleCount}x ${finishData.price.toLocaleString("sr-RS")} = ${totalHandlePrice.toLocaleString("sr-RS")} RSD`
+                : `${totalHandlePrice.toLocaleString("sr-RS")} RSD`;
             doc.text(priceText, infoStartX + 13, infoY);
           }
         }
@@ -1280,11 +1284,13 @@ export function ConfiguratorControls({
               ? (elementDoorGroup as any).handleFinish
               : globalHandleFinish;
 
-          const handleData = (handlesData as any).handles.find(
-            (h: any) => h.id === handleId,
+          const handleData = storeHandles.find(
+            (h) =>
+              h.legacyId === handleId || String(h.id) === handleId,
           );
           const finishData = handleData?.finishes?.find(
-            (f: any) => f.id === handleFinish,
+            (f) =>
+              f.legacyId === handleFinish || String(f.id) === handleFinish,
           );
 
           if (finishData) {
@@ -1301,7 +1307,7 @@ export function ConfiguratorControls({
         doc.text(`Cena materijala: ${fmt2(elementCost)}`, margin + 70, y);
         if (elementHandleCost > 0) {
           doc.text(
-            `Rucke: ${elementHandleCost.toFixed(2)} EUR`,
+            `Rucke: ${elementHandleCost.toLocaleString("sr-RS")} RSD`,
             margin + 135,
             y,
           );

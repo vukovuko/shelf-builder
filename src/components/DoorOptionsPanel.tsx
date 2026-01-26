@@ -16,26 +16,8 @@ import {
   MIN_DOOR_HEIGHT_CM,
   MAX_DOOR_HEIGHT_CM,
 } from "@/lib/wardrobe-constants";
-import handlesData from "@/lib/handles.json";
 import { MaterialPickerModal } from "./MaterialPickerModal";
 import { HandlePickerModal } from "./HandlePickerModal";
-
-interface HandleFinish {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-}
-
-interface HandleData {
-  id: string;
-  name: string;
-  description: string;
-  mainImage: string;
-  finishes: HandleFinish[];
-}
-
-const handles: HandleData[] = handlesData.handles;
 
 interface DoorOptionsPanelProps {
   selectedKeys: string[];
@@ -58,6 +40,7 @@ export function DoorOptionsPanel({
 
   // Material and handle settings
   const materials = useShelfStore((s: ShelfState) => s.materials);
+  const storeHandles = useShelfStore((s: ShelfState) => s.handles);
   const selectedFrontMaterialId = useShelfStore(
     (s: ShelfState) => s.selectedFrontMaterialId,
   );
@@ -153,10 +136,13 @@ export function DoorOptionsPanel({
 
   const isGlobalMode = doorSettingsMode === "global";
 
-  // Get selected handle data for preview
-  const selectedHandleData = handles.find((h) => h.id === currentHandleId);
+  // Get selected handle data for preview (supports both legacyId and numeric id)
+  const selectedHandleData = storeHandles.find(
+    (h) => h.legacyId === currentHandleId || String(h.id) === currentHandleId,
+  );
   const selectedFinishData = selectedHandleData?.finishes.find(
-    (f) => f.id === currentHandleFinish,
+    (f) =>
+      f.legacyId === currentHandleFinish || String(f.id) === currentHandleFinish,
   );
 
   const handleDoorSelect = (type: DoorOption) => {
@@ -447,7 +433,7 @@ export function DoorOptionsPanel({
                 </p>
                 <p className="text-xs font-medium text-primary">
                   {selectedFinishData
-                    ? `${selectedFinishData.price.toLocaleString("sr-RS")} €`
+                    ? `${selectedFinishData.price.toLocaleString("sr-RS")} RSD`
                     : ""}
                 </p>
               </div>

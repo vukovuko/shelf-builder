@@ -77,6 +77,25 @@ export const columns: ColumnDef<Material>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: "img",
+    header: "Slika",
+    cell: ({ row }) => {
+      const img = row.getValue("img") as string | null;
+      return img ? (
+        <img
+          src={img}
+          alt={row.getValue("name")}
+          className="w-8 h-8 object-cover rounded"
+        />
+      ) : (
+        <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-[10px] text-gray-500">
+          -
+        </div>
+      );
+    },
+    enableSorting: false,
+  },
+  {
     accessorKey: "name",
     header: ({ column }) => {
       return (
@@ -124,14 +143,6 @@ export const columns: ColumnDef<Material>[] = [
           {published ? "Objavljeno" : "Draft"}
         </div>
       );
-    },
-  },
-  {
-    accessorKey: "thickness",
-    header: "Debljina",
-    cell: ({ row }) => {
-      const thickness = row.getValue("thickness") as number | null;
-      return thickness ? `${thickness}mm` : "-";
     },
   },
   {

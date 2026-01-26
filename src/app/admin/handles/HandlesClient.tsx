@@ -140,6 +140,7 @@ export function HandlesClient({
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
         toast.success(`${toPublish.length} ručki objavljeno`);
+        setSelectedHandles([]);
         router.refresh();
       } else {
         toast.error("Greška pri objavljivanju nekih ručki");
@@ -174,6 +175,7 @@ export function HandlesClient({
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
         toast.success(`${toDraft.length} ručki vraćeno u draft`);
+        setSelectedHandles([]);
         router.refresh();
       } else {
         toast.error("Greška pri vraćanju nekih ručki u draft");
@@ -217,6 +219,8 @@ export function HandlesClient({
         onRowClick={(handle) => router.push(`/admin/handles/${handle.id}`)}
         enableRowSelection
         getRowId={(handle) => String(handle.id)}
+        selectedItems={selectedHandles}
+        onSelectionChange={setSelectedHandles}
         bulkActions={(selected) => (
           <div
             className={cn(

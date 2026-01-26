@@ -143,6 +143,7 @@ export function MaterialsClient({
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
         toast.success(`${toPublish.length} materijala objavljeno`);
+        setSelectedMaterials([]);
         router.refresh();
       } else {
         toast.error("Greška pri objavljivanju nekih materijala");
@@ -177,6 +178,7 @@ export function MaterialsClient({
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
         toast.success(`${toDraft.length} materijala vraćeno u draft`);
+        setSelectedMaterials([]);
         router.refresh();
       } else {
         toast.error("Greška pri vraćanju nekih materijala u draft");
@@ -222,6 +224,8 @@ export function MaterialsClient({
         }
         enableRowSelection
         getRowId={(material) => String(material.id)}
+        selectedItems={selectedMaterials}
+        onSelectionChange={setSelectedMaterials}
         bulkActions={(selected) => (
           <div
             className={cn(
