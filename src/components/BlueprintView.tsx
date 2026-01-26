@@ -620,6 +620,32 @@ export function BlueprintView() {
                     />,
                   );
                 }
+
+                // Draw height labels for spaces between inner shelves
+                const minDisplayHeight = 10; // Only show if space >= 10cm
+                if (gap >= minDisplayHeight) {
+                  for (let spaceIdx = 0; spaceIdx <= shelfCount; spaceIdx++) {
+                    const spaceBottomY = safeBottomY + spaceIdx * gap;
+                    const spaceTopY = safeBottomY + (spaceIdx + 1) * gap;
+                    const spaceMidY = (spaceBottomY + spaceTopY) / 2;
+                    const spaceMidX = (secX1 + secX2) / 2;
+                    const spaceHeightCm = Math.round(gap);
+
+                    nodes.push(
+                      <text
+                        key={`ish-h-${compKey}-${secIdx}-${spaceIdx}`}
+                        x={spaceMidX}
+                        y={mapY(spaceMidY)}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="8"
+                        fill="#666"
+                      >
+                        {spaceHeightCm}
+                      </text>,
+                    );
+                  }
+                }
               }
 
               // Draw drawers
