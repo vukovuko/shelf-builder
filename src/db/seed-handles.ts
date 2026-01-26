@@ -84,7 +84,9 @@ async function seedHandles() {
     }));
 
     await db.insert(handleFinishes).values(finishRecords);
-    console.log(`  → Inserted ${finishRecords.length} finishes (prices in RSD)`);
+    console.log(
+      `  → Inserted ${finishRecords.length} finishes (prices in RSD)`,
+    );
   }
 
   console.log("\nDone! All handles seeded successfully.");

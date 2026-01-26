@@ -6,7 +6,12 @@ import { ArrowLeft, DoorOpen, DoorClosed } from "lucide-react";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { Button } from "@/components/ui/button";
-import { useShelfStore, type Material, type Handle, type ShelfState } from "@/lib/store";
+import {
+  useShelfStore,
+  type Material,
+  type Handle,
+  type ShelfState,
+} from "@/lib/store";
 
 function useLockBodyScroll(locked: boolean) {
   React.useEffect(() => {

@@ -283,7 +283,11 @@ export function HandleDetailClient({
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={deleting} className="shrink-0">
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              className="shrink-0"
+            >
               <Trash2 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">
                 {deleting ? "Brisanje..." : "Obriši"}
@@ -411,7 +415,9 @@ export function HandleDetailClient({
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{finish.name}</TableCell>
-                  <TableCell>{finish.price.toLocaleString("sr-RS")} RSD</TableCell>
+                  <TableCell>
+                    {finish.price.toLocaleString("sr-RS")} RSD
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button
@@ -517,7 +523,11 @@ export function HandleDetailClient({
               onClick={handleFinishSubmit}
               disabled={savingFinish || !finishName || !finishPrice}
             >
-              {savingFinish ? "Čuvanje..." : editingFinish ? "Sačuvaj" : "Dodaj"}
+              {savingFinish
+                ? "Čuvanje..."
+                : editingFinish
+                  ? "Sačuvaj"
+                  : "Dodaj"}
             </Button>
           </DialogFooter>
         </DialogContent>

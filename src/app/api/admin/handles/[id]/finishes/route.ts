@@ -5,10 +5,7 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/roles";
 import { z } from "zod";
 
-const handleIdSchema = z.coerce
-  .number()
-  .int()
-  .positive("Neispravan ID ručke");
+const handleIdSchema = z.coerce.number().int().positive("Neispravan ID ručke");
 
 const createFinishSchema = z.object({
   name: z.string().min(1, "Naziv završne obrade je obavezan"),

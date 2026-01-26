@@ -57,7 +57,13 @@ export function DimensionControl({
           <Input
             type="number"
             value={value}
-            onChange={(e) => setValue(Number(e.target.value))}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setValue(Math.max(min, Math.min(max, val)));
+            }}
             className="w-24 text-center pr-8 bg-input border-border"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

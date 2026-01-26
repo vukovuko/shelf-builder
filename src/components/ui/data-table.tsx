@@ -179,7 +179,7 @@ export function DataTable<TData, TValue>({
 
     // Keep items from other pages + current page selections
     const otherPageItems = (selectedItems ?? []).filter(
-      (item) => !currentPageIds.has(getRowId(item))
+      (item) => !currentPageIds.has(getRowId(item)),
     );
 
     const newSelection = [...otherPageItems, ...currentPageSelected];
@@ -197,7 +197,8 @@ export function DataTable<TData, TValue>({
   }, [rowSelection, data, selectedItems, onSelectionChange, getRowId, table]);
 
   // Use controlled selectedItems if provided, otherwise current page only
-  const selectedRows = selectedItems ??
+  const selectedRows =
+    selectedItems ??
     table.getFilteredSelectedRowModel().rows.map((row) => row.original);
 
   const hasSearch = searchKey || onSearchChange;

@@ -142,7 +142,8 @@ export function DoorOptionsPanel({
   );
   const selectedFinishData = selectedHandleData?.finishes.find(
     (f) =>
-      f.legacyId === currentHandleFinish || String(f.id) === currentHandleFinish,
+      f.legacyId === currentHandleFinish ||
+      String(f.id) === currentHandleFinish,
   );
 
   const handleDoorSelect = (type: DoorOption) => {

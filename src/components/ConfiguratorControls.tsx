@@ -1149,12 +1149,10 @@ export function ConfiguratorControls({
               : globalHandleFinish;
 
           const handleData = storeHandles.find(
-            (h) =>
-              h.legacyId === handleId || String(h.id) === handleId,
+            (h) => h.legacyId === handleId || String(h.id) === handleId,
           );
           const finishData = handleData?.finishes?.find(
-            (f) =>
-              f.legacyId === handleFinish || String(f.id) === handleFinish,
+            (f) => f.legacyId === handleFinish || String(f.id) === handleFinish,
           );
 
           if (handleData && finishData) {
@@ -1285,12 +1283,10 @@ export function ConfiguratorControls({
               : globalHandleFinish;
 
           const handleData = storeHandles.find(
-            (h) =>
-              h.legacyId === handleId || String(h.id) === handleId,
+            (h) => h.legacyId === handleId || String(h.id) === handleId,
           );
           const finishData = handleData?.finishes?.find(
-            (f) =>
-              f.legacyId === handleFinish || String(f.id) === handleFinish,
+            (f) => f.legacyId === handleFinish || String(f.id) === handleFinish,
           );
 
           if (finishData) {
