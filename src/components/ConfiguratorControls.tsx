@@ -579,12 +579,8 @@ export function ConfiguratorControls({
     (state: ShelfState) => state.selectedCompartmentKey,
   );
 
-  // State for global info toggle
-  const [allInfoShown, setAllInfoShown] = React.useState(false);
+  // State for cut list modal
   const [showCutList, setShowCutList] = React.useState(false);
-  const setShowInfoButtons = useShelfStore(
-    (state: ShelfState) => state.setShowInfoButtons,
-  );
 
   // Track loaded wardrobe for update functionality
   const loadedWardrobeId = useShelfStore(
@@ -1316,26 +1312,6 @@ export function ConfiguratorControls({
     }
   }, [cutList, fmt2]);
 
-  // Reset info button state if wardrobe structure changes
-  const rowCounts = useShelfStore((state: ShelfState) => state.rowCounts);
-  React.useEffect(() => {
-    setAllInfoShown(false);
-    setShowInfoButtons(false);
-    // Always reset overlays to hidden on structure change
-    if (wardrobeRef?.current?.toggleAllInfo) {
-      wardrobeRef.current.toggleAllInfo(false);
-    }
-  }, [rowCounts, wardrobeRef, setShowInfoButtons]);
-
-  const handleToggleAllInfo = () => {
-    const newState = !allInfoShown;
-    setShowInfoButtons(newState);
-    setAllInfoShown(newState);
-    if (wardrobeRef?.current?.toggleAllInfo) {
-      wardrobeRef.current.toggleAllInfo(newState);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full">
       {/* Sticky Auth Section at top */}
@@ -1954,34 +1930,19 @@ export function ConfiguratorControls({
               <p className="text-xs font-medium text-muted-foreground px-1">
                 Prikaz
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={handleToggleAllInfo}
-                  className="flex-1 hover:text-white"
-                  size="sm"
-                >
-                  {allInfoShown ? (
-                    <EyeOff className="h-4 w-4 mr-1" />
-                  ) : (
-                    <Eye className="h-4 w-4 mr-1" />
-                  )}
-                  {allInfoShown ? "Sakrij Info" : "Prikaži Info"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowDimensions(!showDimensions)}
-                  className="flex-1 hover:text-white"
-                  size="sm"
-                >
-                  {showDimensions ? (
-                    <EyeOff className="h-4 w-4 mr-1" />
-                  ) : (
-                    <Eye className="h-4 w-4 mr-1" />
-                  )}
-                  {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
-                </Button>
-              </div>
+              <Button
+                variant={showDimensions ? "secondary" : "ghost"}
+                onClick={() => setShowDimensions(!showDimensions)}
+                className="w-full justify-start"
+                size="sm"
+              >
+                {showDimensions ? (
+                  <EyeOff className="h-4 w-4 mr-2" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
+                {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
+              </Button>
             </div>
 
             {/* Reports & Data */}

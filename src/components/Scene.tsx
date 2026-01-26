@@ -69,6 +69,8 @@ function StoreInvalidator() {
   // Door groups for 3D rendering
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
+  // Dimension lines toggle
+  const showDimensions = useShelfStore((s: ShelfState) => s.showDimensions);
 
   useEffect(() => {
     invalidate();
@@ -95,6 +97,7 @@ function StoreInvalidator() {
     doorSelectionDragging,
     doorGroups,
     showDoors,
+    showDimensions,
     invalidate,
   ]);
 

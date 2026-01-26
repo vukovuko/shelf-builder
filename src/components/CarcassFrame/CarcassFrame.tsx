@@ -30,6 +30,7 @@ import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 import { CompartmentClickCircle } from "./CompartmentClickCircle";
 import { DoorClickCircle } from "./DoorClickCircle";
+import { DimensionLines3D } from "../DimensionLines3D";
 
 interface CarcassFrameProps {
   materials: Material[];
@@ -98,6 +99,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     );
     const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
     const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
+    const showDimensions = useShelfStore(
+      (state: ShelfState) => state.showDimensions,
+    );
 
     // Door selection state (Step 5)
     const selectedDoorCompartments = useShelfStore(
@@ -1591,6 +1595,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
         {/* Column controls bar - positioned below wardrobe, HIDE when Step 2/5 active or dragging */}
         {!hideUIForSteps && !isDragging && <ColumnControlsBar3D depth={d} />}
+
+        {/* 3D Dimension lines (kotiranje) - shown when "Prikaži Mere" is enabled */}
+        {showDimensions && (
+          <DimensionLines3D
+            width={w}
+            height={height / 100}
+            depth={d}
+            panelThickness={t}
+            hasBase={hasBase}
+            baseHeight={baseH}
+          />
+        )}
       </group>
     );
   },
