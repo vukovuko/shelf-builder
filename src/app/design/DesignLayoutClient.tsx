@@ -240,9 +240,7 @@ export function DesignLayoutClient({
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                handleBackClick(`/admin/orders/${fromOrderId}`)
-              }
+              onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Nazad na #{fromOrderNumber}</span>
@@ -314,9 +312,7 @@ export function DesignLayoutClient({
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                handleBackClick(`/admin/orders/${fromOrderId}`)
-              }
+              onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Nazad na #{fromOrderNumber}

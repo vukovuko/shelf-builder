@@ -32,7 +32,9 @@ function LoadFromUrl() {
   const setFromOrder = useShelfStore((s: ShelfState) => s.setFromOrder);
   const clearFromOrder = useShelfStore((s: ShelfState) => s.clearFromOrder);
   const setFromWardrobe = useShelfStore((s: ShelfState) => s.setFromWardrobe);
-  const clearFromWardrobe = useShelfStore((s: ShelfState) => s.clearFromWardrobe);
+  const clearFromWardrobe = useShelfStore(
+    (s: ShelfState) => s.clearFromWardrobe,
+  );
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 
@@ -104,7 +106,18 @@ function LoadFromUrl() {
     }
 
     loadWardrobe();
-  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder, clearFromOrder, fromWardrobeId, wardrobeName, setFromWardrobe, clearFromWardrobe]);
+  }, [
+    loadId,
+    setLoadedWardrobe,
+    fromOrderId,
+    orderNum,
+    setFromOrder,
+    clearFromOrder,
+    fromWardrobeId,
+    wardrobeName,
+    setFromWardrobe,
+    clearFromWardrobe,
+  ]);
 
   return null;
 }

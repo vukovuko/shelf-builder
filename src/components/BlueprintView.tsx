@@ -421,23 +421,25 @@ export function BlueprintView() {
           })}
 
           {/* Base with cross-hatch - per column */}
-          {hasBase && scaledBaseHeight > 0 && columns.map((col, colIdx) => {
-            const colX = frontViewX + col.start * scale;
-            const colW = col.width * scale;
+          {hasBase &&
+            scaledBaseHeight > 0 &&
+            columns.map((col, colIdx) => {
+              const colX = frontViewX + col.start * scale;
+              const colW = col.width * scale;
 
-            return (
-              <rect
-                key={`base-${colIdx}`}
-                x={colX}
-                y={frontViewY + scaledHeight - scaledBaseHeight}
-                width={colW}
-                height={scaledBaseHeight}
-                fill="url(#crossHatch)"
-                stroke="#000"
-                strokeWidth="1"
-              />
-            );
-          })}
+              return (
+                <rect
+                  key={`base-${colIdx}`}
+                  x={colX}
+                  y={frontViewY + scaledHeight - scaledBaseHeight}
+                  width={colW}
+                  height={scaledBaseHeight}
+                  fill="url(#crossHatch)"
+                  stroke="#000"
+                  strokeWidth="1"
+                />
+              );
+            })}
 
           {/* Vertical seams between columns (SOLID lines) */}
           {/* Seams extend to the MINIMUM height of adjacent columns */}
@@ -598,8 +600,14 @@ export function BlueprintView() {
               const sectionW = compW / innerCols;
 
               // Clamp compartment bounds to be within column frame
-              const safeBottomY = Math.max(0, Math.min(colHForCompartments, comp.bottomY));
-              const safeTopY = Math.max(0, Math.min(colHForCompartments, comp.topY));
+              const safeBottomY = Math.max(
+                0,
+                Math.min(colHForCompartments, comp.bottomY),
+              );
+              const safeTopY = Math.max(
+                0,
+                Math.min(colHForCompartments, comp.topY),
+              );
 
               if (safeTopY <= safeBottomY) return; // Skip invalid compartments
 
@@ -806,13 +814,15 @@ export function BlueprintView() {
           {/* Overall max height on left side - ALWAYS shown */}
           {(() => {
             // Calculate max column height
-            const maxColHeight = Math.max(...columns.map((_, i) => columnHeights[i] ?? height));
+            const maxColHeight = Math.max(
+              ...columns.map((_, i) => columnHeights[i] ?? height),
+            );
             const scaledMaxHeight = maxColHeight * scale;
             const maxYOffset = scaledHeight - scaledMaxHeight;
 
             // Check if columns have varying heights
             const hasVaryingHeights = columns.some(
-              (_, i) => (columnHeights[i] ?? height) !== maxColHeight
+              (_, i) => (columnHeights[i] ?? height) !== maxColHeight,
             );
 
             return (
@@ -856,29 +866,30 @@ export function BlueprintView() {
                 </g>
 
                 {/* ADDITIONALLY show per-column heights above columns if they vary */}
-                {hasVaryingHeights && columns.map((col, i) => {
-                  const colH = columnHeights[i] ?? height;
-                  const scaledColH = colH * scale;
-                  const yOffset = scaledHeight - scaledColH;
-                  const colX1 = frontViewX + col.start * scale;
-                  const colX2 = frontViewX + col.end * scale;
-                  const centerX = (colX1 + colX2) / 2;
+                {hasVaryingHeights &&
+                  columns.map((col, i) => {
+                    const colH = columnHeights[i] ?? height;
+                    const scaledColH = colH * scale;
+                    const yOffset = scaledHeight - scaledColH;
+                    const colX1 = frontViewX + col.start * scale;
+                    const colX2 = frontViewX + col.end * scale;
+                    const centerX = (colX1 + colX2) / 2;
 
-                  return (
-                    <g key={`colheight-${i}`}>
-                      {/* Height label above each column */}
-                      <text
-                        x={centerX}
-                        y={frontViewY + yOffset - 5}
-                        fontSize="9"
-                        fontFamily="Arial, sans-serif"
-                        textAnchor="middle"
-                      >
-                        {Math.round(colH)}
-                      </text>
-                    </g>
-                  );
-                })}
+                    return (
+                      <g key={`colheight-${i}`}>
+                        {/* Height label above each column */}
+                        <text
+                          x={centerX}
+                          y={frontViewY + yOffset - 5}
+                          fontSize="9"
+                          fontFamily="Arial, sans-serif"
+                          textAnchor="middle"
+                        >
+                          {Math.round(colH)}
+                        </text>
+                      </g>
+                    );
+                  })}
               </>
             );
           })()}
@@ -996,7 +1007,9 @@ export function BlueprintView() {
         {/* ============================================ */}
         {(() => {
           // Use max column height for side view
-          const maxColHeight = Math.max(...columns.map((_, i) => columnHeights[i] ?? height));
+          const maxColHeight = Math.max(
+            ...columns.map((_, i) => columnHeights[i] ?? height),
+          );
           const scaledMaxHeight = maxColHeight * scale;
           const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
 
@@ -1076,42 +1089,42 @@ export function BlueprintView() {
                 </text>
               </g>
 
-          {/* Depth dimension */}
-          <g>
-            <line
-              x1={sideViewX}
-              y1={sideViewY + scaledHeight + 18}
-              x2={sideViewX + scaledDepth}
-              y2={sideViewY + scaledHeight + 18}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={sideViewX}
-              y1={sideViewY + scaledHeight + 13}
-              x2={sideViewX}
-              y2={sideViewY + scaledHeight + 23}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={sideViewX + scaledDepth}
-              y1={sideViewY + scaledHeight + 13}
-              x2={sideViewX + scaledDepth}
-              y2={sideViewY + scaledHeight + 23}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <text
-              x={sideViewX + scaledDepth / 2}
-              y={sideViewY + scaledHeight + 34}
-              fontSize="11"
-              fontFamily="Arial, sans-serif"
-              textAnchor="middle"
-            >
-              {depth} cm
-            </text>
-          </g>
+              {/* Depth dimension */}
+              <g>
+                <line
+                  x1={sideViewX}
+                  y1={sideViewY + scaledHeight + 18}
+                  x2={sideViewX + scaledDepth}
+                  y2={sideViewY + scaledHeight + 18}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <line
+                  x1={sideViewX}
+                  y1={sideViewY + scaledHeight + 13}
+                  x2={sideViewX}
+                  y2={sideViewY + scaledHeight + 23}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <line
+                  x1={sideViewX + scaledDepth}
+                  y1={sideViewY + scaledHeight + 13}
+                  x2={sideViewX + scaledDepth}
+                  y2={sideViewY + scaledHeight + 23}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <text
+                  x={sideViewX + scaledDepth / 2}
+                  y={sideViewY + scaledHeight + 34}
+                  fontSize="11"
+                  fontFamily="Arial, sans-serif"
+                  textAnchor="middle"
+                >
+                  {depth} cm
+                </text>
+              </g>
             </g>
           );
         })()}

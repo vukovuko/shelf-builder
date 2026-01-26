@@ -259,7 +259,10 @@ export interface ShelfState {
   // Track wardrobe context when editing from wardrobe preview page
   fromWardrobeId: string | null;
   fromWardrobeName: string | null;
-  setFromWardrobe: (wardrobeId: string | null, wardrobeName: string | null) => void;
+  setFromWardrobe: (
+    wardrobeId: string | null,
+    wardrobeName: string | null,
+  ) => void;
   clearFromWardrobe: () => void;
   // Track last saved snapshot for unsaved changes detection
   lastSavedSnapshot: Record<string, unknown> | null;
@@ -1147,7 +1150,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
   fromWardrobeName: null,
   setFromWardrobe: (wardrobeId, wardrobeName) =>
     set({ fromWardrobeId: wardrobeId, fromWardrobeName: wardrobeName }),
-  clearFromWardrobe: () => set({ fromWardrobeId: null, fromWardrobeName: null }),
+  clearFromWardrobe: () =>
+    set({ fromWardrobeId: null, fromWardrobeName: null }),
   // Track last saved snapshot for unsaved changes detection
   lastSavedSnapshot: null,
   setLastSavedSnapshot: (snapshot) => set({ lastSavedSnapshot: snapshot }),

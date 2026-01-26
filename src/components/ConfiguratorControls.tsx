@@ -1443,11 +1443,7 @@ export function ConfiguratorControls({
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text(`UKUPNA KVADRATURA: ${fmt2(cutList.totalArea)} m2`, margin, y);
-      doc.text(
-        `UKUPNA CENA: ${fmt2(cutList.totalCost)} RSD`,
-        margin,
-        y + 7,
-      );
+      doc.text(`UKUPNA CENA: ${fmt2(cutList.totalCost)} RSD`, margin, y + 7);
 
       doc.save("tabela-ploca.pdf");
     } catch (e) {
@@ -2255,8 +2251,12 @@ export function ConfiguratorControls({
                           <tr className="border-b">
                             <th className="text-left py-1 pr-2">Oznaka</th>
                             <th className="text-left py-1 pr-2">Opis</th>
-                            <th className="text-right py-1 pr-2">Širina (cm)</th>
-                            <th className="text-right py-1 pr-2">Visina (cm)</th>
+                            <th className="text-right py-1 pr-2">
+                              Širina (cm)
+                            </th>
+                            <th className="text-right py-1 pr-2">
+                              Visina (cm)
+                            </th>
                             <th className="text-right py-1 pr-2">
                               Debljina (mm)
                             </th>

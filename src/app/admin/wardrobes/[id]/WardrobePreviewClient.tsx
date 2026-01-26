@@ -597,7 +597,8 @@ export function WardrobePreviewClient({
         doc.setLineWidth(0.2);
 
         const storeElementConfigs = useShelfStore.getState().elementConfigs;
-        const storeCompartmentExtras = useShelfStore.getState().compartmentExtras;
+        const storeCompartmentExtras =
+          useShelfStore.getState().compartmentExtras;
         const cfg = (storeElementConfigs as any)[letter] ?? {
           columns: 1,
           rowCounts: [0],
@@ -641,7 +642,9 @@ export function WardrobePreviewClient({
         const tOffsetYmm = tCm / cmPerMmY;
         const appliesBase =
           storeHasBase && (heightCm <= TARGET_BOTTOM_HEIGHT_CM || rowIdx === 0);
-        const baseMm = appliesBase ? Math.max(0, storeBaseHeight / cmPerMmY) : 0;
+        const baseMm = appliesBase
+          ? Math.max(0, storeBaseHeight / cmPerMmY)
+          : 0;
         const innerTopMmY = boxY + tOffsetYmm;
         const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
         const innerLeftMmX = boxX + tOffsetXmm;
