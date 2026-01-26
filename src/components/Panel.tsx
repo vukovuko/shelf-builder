@@ -70,8 +70,9 @@ export const Panel = React.memo(function Panel({
   }, [safeSize[0], safeSize[1]]);
 
   if (showEdgesOnly) {
+    // Flatten Z to 0 for true 2D front projection (depth = 0)
     return (
-      <group position={safePosition}>
+      <group position={[safePosition[0], safePosition[1], 0]}>
         <Line points={edgePoints} color="#000000" lineWidth={1} />
       </group>
     );
