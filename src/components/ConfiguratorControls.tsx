@@ -2,6 +2,7 @@
 
 import jsPDF from "jspdf";
 import {
+  ArrowLeft,
   ArrowRight,
   ChevronDown,
   DoorClosed,
@@ -1312,6 +1313,119 @@ export function ConfiguratorControls({
     }
   }, [cutList, fmt2]);
 
+  // Export cut list tables to PDF (simpler version without schematic drawings)
+  const handleExportCutListPDF = React.useCallback(() => {
+    try {
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const pageH = 297;
+      const margin = 12;
+
+      // Title
+      doc.setFontSize(16);
+      doc.text("Tabela ploca (Cut list)", margin, margin + 4);
+
+      // Price per m²
+      doc.setFontSize(10);
+      doc.text(
+        `Cena materijala: ${fmt2(cutList.pricePerM2)} RSD/m2`,
+        margin,
+        margin + 12,
+      );
+
+      let y = margin + 20;
+      const elementKeys = Object.keys(cutList.grouped).sort();
+
+      elementKeys.forEach((letter, idx) => {
+        // Check if we need a new page before starting element
+        if (idx > 0 && y > pageH - 60) {
+          doc.addPage();
+          y = margin;
+        }
+
+        // Element header
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Element ${letter}`, margin, y);
+        y += 6;
+
+        // Table headers
+        const headers = [
+          "Oznaka",
+          "Opis",
+          "S (cm)",
+          "V (cm)",
+          "Deb",
+          "m2",
+          "Cena",
+        ];
+        const colX = [margin, 30, 80, 105, 130, 150, 170];
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        headers.forEach((h, i) => {
+          doc.text(h, colX[i], y);
+        });
+        y += 5;
+
+        // Underline headers
+        doc.setLineWidth(0.1);
+        doc.line(margin, y - 3, 210 - margin, y - 3);
+
+        // Table rows
+        doc.setFont("helvetica", "normal");
+        const rows = cutList.grouped[letter];
+        rows.forEach((it: any) => {
+          if (y > pageH - 20) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(it.code || "", colX[0], y);
+          const desc = doc.splitTextToSize(it.desc || "", 45);
+          doc.text(desc[0] || "", colX[1], y);
+          doc.text(fmt2(it.widthCm), colX[2], y);
+          doc.text(fmt2(it.heightCm), colX[3], y);
+          doc.text(fmt2(it.thicknessMm), colX[4], y);
+          doc.text(fmt2(it.areaM2), colX[5], y);
+          doc.text(fmt2(it.cost), colX[6], y);
+          y += 5;
+        });
+
+        // Element totals
+        const elemArea = rows.reduce(
+          (a: number, b: any) => a + (b.areaM2 || 0),
+          0,
+        );
+        const elemCost = rows.reduce(
+          (a: number, b: any) => a + (b.cost || 0),
+          0,
+        );
+        y += 2;
+        doc.setFont("helvetica", "bold");
+        doc.text(
+          `Ukupno: ${fmt2(elemArea)} m2 | ${fmt2(elemCost)} RSD`,
+          margin,
+          y,
+        );
+        y += 10;
+      });
+
+      // Grand totals
+      y += 5;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(`UKUPNA KVADRATURA: ${fmt2(cutList.totalArea)} m2`, margin, y);
+      doc.text(
+        `UKUPNA CENA: ${fmt2(cutList.totalCost)} RSD`,
+        margin,
+        y + 7,
+      );
+
+      doc.save("tabela-ploca.pdf");
+    } catch (e) {
+      console.error("PDF export failed", e);
+    }
+  }, [cutList, fmt2]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Sticky Auth Section at top */}
@@ -1411,6 +1525,31 @@ export function ConfiguratorControls({
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        {/* Back to Order banner - shown when editing from order context */}
+        {fromOrderId && fromOrderNumber && (
+          <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-muted-foreground">
+                Uređivanje za porudžbinu{" "}
+                <span className="font-semibold text-foreground">
+                  #{fromOrderNumber}
+                </span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="border-accent text-accent hover:bg-accent hover:text-white"
+              >
+                <Link href={`/admin/orders/${fromOrderId}`}>
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                  Nazad
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <Accordion
           type="single"
           collapsible
@@ -2045,72 +2184,95 @@ export function ConfiguratorControls({
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowCutList(false)}
           />
-          <div className="relative bg-background border rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] overflow-auto p-4">
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-background border rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] flex flex-col">
+            {/* Sticky Header */}
+            <div className="flex items-center justify-between p-4 border-b bg-background rounded-t-lg flex-shrink-0">
               <h3 className="text-lg font-semibold">Tabela ploča (Cut list)</h3>
-              <Button variant="outline" onClick={() => setShowCutList(false)}>
-                Zatvori
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Cena materijala (po m²): {fmt2(cutList.pricePerM2)}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCutListPDF}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportElementSpecs}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Specifikacija
+                </Button>
+                <Button variant="outline" onClick={() => setShowCutList(false)}>
+                  Zatvori
+                </Button>
               </div>
-              {Object.keys(cutList.grouped).map((letter) => (
-                <div key={letter} className="space-y-2">
-                  <div className="font-semibold">Element {letter}</div>
-                  <div className="overflow-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-1 pr-2">Oznaka</th>
-                          <th className="text-left py-1 pr-2">Opis</th>
-                          <th className="text-right py-1 pr-2">Širina (cm)</th>
-                          <th className="text-right py-1 pr-2">Visina (cm)</th>
-                          <th className="text-right py-1 pr-2">
-                            Debljina (mm)
-                          </th>
-                          <th className="text-right py-1 pr-2">
-                            Kvadratura (m²)
-                          </th>
-                          <th className="text-right py-1 pr-2">Cena</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cutList.grouped[letter].map((it: any, i: number) => (
-                          <tr
-                            key={`${it.code}-${i}`}
-                            className="border-b last:border-0"
-                          >
-                            <td className="py-1 pr-2 whitespace-nowrap">
-                              {it.code}
-                            </td>
-                            <td className="py-1 pr-2">{it.desc}</td>
-                            <td className="py-1 pr-2 text-right">
-                              {fmt2(it.widthCm)}
-                            </td>
-                            <td className="py-1 pr-2 text-right">
-                              {fmt2(it.heightCm)}
-                            </td>
-                            <td className="py-1 pr-2 text-right">
-                              {fmt2(it.thicknessMm)}
-                            </td>
-                            <td className="py-1 pr-2 text-right">
-                              {fmt2(it.areaM2)}
-                            </td>
-                            <td className="py-1 pr-2 text-right">
-                              {fmt2(it.cost)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Cena materijala (po m²): {fmt2(cutList.pricePerM2)}
                 </div>
-              ))}
-              <div className="flex justify-end gap-8 text-sm font-semibold">
-                <div>Ukupna kvadratura: {fmt2(cutList.totalArea)} m²</div>
-                <div>Ukupna cena: {fmt2(cutList.totalCost)}</div>
+                {Object.keys(cutList.grouped).map((letter) => (
+                  <div key={letter} className="space-y-2">
+                    <div className="font-semibold">Element {letter}</div>
+                    <div className="overflow-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-1 pr-2">Oznaka</th>
+                            <th className="text-left py-1 pr-2">Opis</th>
+                            <th className="text-right py-1 pr-2">Širina (cm)</th>
+                            <th className="text-right py-1 pr-2">Visina (cm)</th>
+                            <th className="text-right py-1 pr-2">
+                              Debljina (mm)
+                            </th>
+                            <th className="text-right py-1 pr-2">
+                              Kvadratura (m²)
+                            </th>
+                            <th className="text-right py-1 pr-2">Cena</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cutList.grouped[letter].map((it: any, i: number) => (
+                            <tr
+                              key={`${it.code}-${i}`}
+                              className="border-b last:border-0"
+                            >
+                              <td className="py-1 pr-2 whitespace-nowrap">
+                                {it.code}
+                              </td>
+                              <td className="py-1 pr-2">{it.desc}</td>
+                              <td className="py-1 pr-2 text-right">
+                                {fmt2(it.widthCm)}
+                              </td>
+                              <td className="py-1 pr-2 text-right">
+                                {fmt2(it.heightCm)}
+                              </td>
+                              <td className="py-1 pr-2 text-right">
+                                {fmt2(it.thicknessMm)}
+                              </td>
+                              <td className="py-1 pr-2 text-right">
+                                {fmt2(it.areaM2)}
+                              </td>
+                              <td className="py-1 pr-2 text-right">
+                                {fmt2(it.cost)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-end gap-8 text-sm font-semibold">
+                  <div>Ukupna kvadratura: {fmt2(cutList.totalArea)} m²</div>
+                  <div>Ukupna cena: {fmt2(cutList.totalCost)}</div>
+                </div>
               </div>
             </div>
           </div>

@@ -14,6 +14,10 @@ import { useShelfStore, type ShelfState } from "@/lib/store";
 const AUTOSAVE_KEY = "wardrobeAutoSave";
 const AUTOSAVE_DEBOUNCE_MS = 1000;
 
+// Module-level flag to coordinate between LoadFromUrl and AutoSave
+// This prevents AutoSave from saving stale data while a URL load is in progress
+let isLoadingFromUrl = false;
+
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
   const searchParams = useSearchParams();
@@ -24,6 +28,7 @@ function LoadFromUrl() {
     (s: ShelfState) => s.setLoadedWardrobe,
   );
   const setFromOrder = useShelfStore((s: ShelfState) => s.setFromOrder);
+  const clearFromOrder = useShelfStore((s: ShelfState) => s.clearFromOrder);
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 
@@ -33,12 +38,27 @@ function LoadFromUrl() {
 
       // Mark as loaded immediately to prevent double execution
       hasLoadedRef.current = true;
+      isLoadingFromUrl = true;
+
+      // Clear localStorage autosave when explicitly loading from URL
+      // This prevents stale data from showing if the fetch fails
+      localStorage.removeItem(AUTOSAVE_KEY);
 
       try {
-        const res = await fetch(`/api/wardrobes/${loadId}`);
+        const res = await fetch(`/api/wardrobes/${loadId}`, {
+          credentials: "include", // Ensure cookies are sent with request
+        });
         if (!res.ok) {
-          toast.error("Greška pri učitavanju ormana");
+          // Better error message for different status codes
+          if (res.status === 401) {
+            toast.error("Sesija je istekla. Prijavite se ponovo.");
+          } else if (res.status === 404) {
+            toast.error("Orman nije pronađen");
+          } else {
+            toast.error("Greška pri učitavanju ormana");
+          }
           hasLoadedRef.current = false; // Reset on error so user can retry
+          isLoadingFromUrl = false;
           return;
         }
 
@@ -51,6 +71,9 @@ function LoadFromUrl() {
         // Track order context if coming from order detail page
         if (fromOrderId && orderNum) {
           setFromOrder(fromOrderId, parseInt(orderNum, 10));
+        } else {
+          // Clear any stale order context when loading without order params
+          clearFromOrder();
         }
 
         toast.success(`Učitano: ${wardrobe.name}`);
@@ -60,11 +83,13 @@ function LoadFromUrl() {
         console.error("Failed to load wardrobe", e);
         toast.error("Greška pri učitavanju ormana");
         hasLoadedRef.current = false; // Reset on error so user can retry
+      } finally {
+        isLoadingFromUrl = false;
       }
     }
 
     loadWardrobe();
-  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder]);
+  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder, clearFromOrder]);
 
   return null;
 }
@@ -76,11 +101,17 @@ function AutoSave() {
   useEffect(() => {
     // Subscribe to store changes and auto-save
     const unsubscribe = useShelfStore.subscribe(() => {
+      // Skip autosave while loading from URL to prevent race conditions
+      if (isLoadingFromUrl) return;
+
       // Debounce saves to avoid excessive writes
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
+        // Double-check loading flag before saving
+        if (isLoadingFromUrl) return;
+
         try {
           const snapshot = getWardrobeSnapshot();
           localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot));

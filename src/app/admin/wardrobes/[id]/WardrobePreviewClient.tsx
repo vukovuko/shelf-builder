@@ -17,6 +17,7 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,8 +37,20 @@ import {
 } from "@/components/ui/accordion";
 import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import {
+  useShelfStore,
+  parseSubCompKey,
+  type Material,
+  type ShelfState,
+} from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import {
+  DRAWER_HEIGHT_CM,
+  DRAWER_GAP_CM,
+  MAX_SEGMENT_X_CM,
+  TARGET_BOTTOM_HEIGHT_CM,
+  MIN_TOP_HEIGHT_CM,
+} from "@/lib/wardrobe-constants";
 
 interface CutListItem {
   code: string;
@@ -60,6 +73,12 @@ interface CutList {
   totalCost: number;
 }
 
+interface LinkedOrder {
+  id: string;
+  orderNumber: number;
+  status: string;
+}
+
 interface WardrobePreviewClientProps {
   wardrobe: {
     id: string;
@@ -74,6 +93,7 @@ interface WardrobePreviewClientProps {
     isModel: boolean | null;
   };
   materials: Material[];
+  linkedOrders: LinkedOrder[];
 }
 
 function CutListDisplay({ cutList }: { cutList: CutList }) {
@@ -209,6 +229,7 @@ function CutListDisplay({ cutList }: { cutList: CutList }) {
 export function WardrobePreviewClient({
   wardrobe,
   materials,
+  linkedOrders,
 }: WardrobePreviewClientProps) {
   const wardrobeRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -301,14 +322,16 @@ export function WardrobePreviewClient({
     useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise((resolve) => setTimeout(resolve, 300));
     }
+    // Wait for scene to fully re-render with camera positioned
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       useShelfStore.getState().setShowDimensions(prevDims);
       return;
     }
-    await new Promise(requestAnimationFrame);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
     const link = document.createElement("a");
     link.href = dataUrl;
@@ -344,32 +367,77 @@ export function WardrobePreviewClient({
     useShelfStore.getState().setShowDimensions(prevDims);
   }, [cameraMode, setCameraMode, setShowEdgesOnly, wardrobe.name]);
 
+  // Download 2D technical drawing - exports the engineering-style SVG from BlueprintView
   const handleDownloadTechnical2D = useCallback(async () => {
-    const prevDims = useShelfStore.getState().showDimensions;
-    useShelfStore.getState().setShowDimensions(true);
-    setShowEdgesOnly(true);
-    useShelfStore.getState().triggerFitToView();
-    if (cameraMode !== "2D") {
-      setCameraMode("2D");
-    }
-    // Wait for scene to fully re-render with edges-only mode
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const prevViewMode = useShelfStore.getState().viewMode;
+
+    // Switch to Sizing view mode which shows the BlueprintView SVG
+    useShelfStore.getState().setViewMode("Sizing");
+
+    // Wait for the view to render
+    await new Promise((resolve) => setTimeout(resolve, 300));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
-    const canvas = document.querySelector("canvas");
-    if (!canvas) {
-      setShowEdgesOnly(false);
-      useShelfStore.getState().setShowDimensions(prevDims);
+
+    // Find the SVG element from BlueprintView by its id
+    const svgElement = document.querySelector("#blueprint-technical-drawing");
+    if (!svgElement) {
+      console.error("SVG element not found");
+      useShelfStore.getState().setViewMode(prevViewMode);
       return;
     }
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `${wardrobe.name}-technical-2d.jpg`;
-    link.click();
-    setShowEdgesOnly(false);
-    useShelfStore.getState().setShowDimensions(prevDims);
-  }, [cameraMode, setCameraMode, setShowEdgesOnly, wardrobe.name]);
+
+    // Clone SVG and prepare for export
+    const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
+
+    // Get the viewBox dimensions
+    const viewBox = svgClone.getAttribute("viewBox") || "0 0 1000 700";
+    const [, , vbWidth, vbHeight] = viewBox.split(" ").map(Number);
+
+    // Set explicit dimensions for the export
+    svgClone.setAttribute("width", String(vbWidth * 2));
+    svgClone.setAttribute("height", String(vbHeight * 2));
+    svgClone.style.backgroundColor = "white";
+
+    // Serialize SVG to string
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    // Create an image from SVG and convert to PNG for better compatibility
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = vbWidth * 2;
+      canvas.height = vbHeight * 2;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        // Download as PNG
+        const pngUrl = canvas.toDataURL("image/png", 1.0);
+        const link = document.createElement("a");
+        link.href = pngUrl;
+        link.download = `${wardrobe.name}-tehnicki-crtez-2d.png`;
+        link.click();
+      }
+      URL.revokeObjectURL(svgUrl);
+
+      // Restore previous view mode
+      useShelfStore.getState().setViewMode(prevViewMode);
+    };
+    img.onerror = () => {
+      console.error("Failed to load SVG as image");
+      URL.revokeObjectURL(svgUrl);
+      useShelfStore.getState().setViewMode(prevViewMode);
+    };
+    img.src = svgUrl;
+  }, [wardrobe.name]);
 
   // CSV export handler
   const handleExportCSV = useCallback(() => {
@@ -381,9 +449,10 @@ export function WardrobePreviewClient({
     }
   }, [wardrobe.cutList, wardrobe.name]);
 
-  // PDF export handler (simplified version using stored cutList)
+  // PDF export handler with schematic drawings (matching /design page)
   const handleExportPDF = useCallback(() => {
-    if (!wardrobe.cutList) return;
+    // Use calculated cutList from store state (has grouped property)
+    if (!cutList || !cutList.grouped) return;
 
     try {
       const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -391,18 +460,108 @@ export function WardrobePreviewClient({
       const margin = 12;
       const baseFont = 11;
 
-      // Group items by element
-      const grouped = wardrobe.cutList.items.reduce(
-        (acc, item) => {
-          if (!acc[item.element]) acc[item.element] = [];
-          acc[item.element].push(item);
-          return acc;
-        },
-        {} as Record<string, CutListItem[]>,
+      // Sizing helpers from store
+      const widthCm = useShelfStore.getState().width;
+      const heightCm = useShelfStore.getState().height;
+      const storeHasBase = useShelfStore.getState().hasBase;
+      const storeBaseHeight = useShelfStore.getState().baseHeight;
+      const nBlocksX = Math.max(1, Math.ceil(widthCm / MAX_SEGMENT_X_CM));
+      const hasSplitY = heightCm > TARGET_BOTTOM_HEIGHT_CM;
+      let bottomModuleCm = Math.min(TARGET_BOTTOM_HEIGHT_CM, heightCm);
+      const topModuleCm = hasSplitY
+        ? Math.max(MIN_TOP_HEIGHT_CM, heightCm - TARGET_BOTTOM_HEIGHT_CM)
+        : 0;
+      if (hasSplitY && heightCm - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM) {
+        bottomModuleCm = heightCm - topModuleCm;
+      }
+      const nModulesY = hasSplitY ? 2 : 1;
+
+      // Precompute block widths
+      const equalBlockW = widthCm / nBlocksX;
+      const blockWidthsCm: number[] = Array.from(
+        { length: nBlocksX },
+        () => equalBlockW,
       );
 
-      const elementKeys = Object.keys(grouped).sort();
+      // Letter index helpers
+      const fromLetters = (s: string) => {
+        let n = 0;
+        for (let i = 0; i < s.length; i++) {
+          n = n * 26 + (s.charCodeAt(i) - 64);
+        }
+        return n - 1;
+      };
 
+      const getElementDimsCm = (letter: string) => {
+        const idx = fromLetters(letter);
+        const rowIdx = Math.floor(idx / nBlocksX);
+        const colIdx = idx % nBlocksX;
+        const wCm = blockWidthsCm[colIdx] ?? widthCm;
+        const hCm =
+          nModulesY === 1
+            ? heightCm
+            : rowIdx === 0
+              ? bottomModuleCm
+              : topModuleCm;
+        return { wCm, hCm, rowIdx, colIdx };
+      };
+
+      // Draw helpers
+      const drawDimH = (
+        x1: number,
+        y: number,
+        x2: number,
+        label: string,
+        options?: { arrows?: boolean; ext?: number; font?: number },
+      ) => {
+        const ext = options?.ext ?? 3;
+        const font = options?.font ?? 9;
+        doc.line(x1, y - ext, x1, y + ext);
+        doc.line(x2, y - ext, x2, y + ext);
+        doc.line(x1, y, x2, y);
+        if (options?.arrows !== false) {
+          doc.line(x1, y, x1 + 1.8, y - 1.2);
+          doc.line(x1, y, x1 + 1.8, y + 1.2);
+          doc.line(x2, y, x2 - 1.8, y - 1.2);
+          doc.line(x2, y, x2 - 1.8, y + 1.2);
+        }
+        const cx = (x1 + x2) / 2;
+        doc.setFontSize(font);
+        doc.text(label, cx, y - 1.5, {
+          align: "center",
+          baseline: "bottom" as any,
+        });
+        doc.setFontSize(baseFont);
+      };
+
+      const drawDimV = (
+        x: number,
+        y1: number,
+        y2: number,
+        label: string,
+        options?: { arrows?: boolean; ext?: number; font?: number },
+      ) => {
+        const ext = options?.ext ?? 3;
+        const font = options?.font ?? 9;
+        doc.line(x - ext, y1, x + ext, y1);
+        doc.line(x - ext, y2, x + ext, y2);
+        doc.line(x, y1, x, y2);
+        if (options?.arrows !== false) {
+          doc.line(x, y1, x - 1.2, y1 + 1.8);
+          doc.line(x, y1, x + 1.2, y1 + 1.8);
+          doc.line(x, y2, x - 1.2, y2 - 1.8);
+          doc.line(x, y2, x + 1.2, y2 - 1.8);
+        }
+        const cy = (y1 + y2) / 2;
+        doc.setFontSize(font);
+        doc.text(label, x + 2.5, cy, {
+          align: "left",
+          baseline: "middle" as any,
+        });
+        doc.setFontSize(baseFont);
+      };
+
+      const elementKeys = Object.keys(cutList.grouped).sort();
       if (elementKeys.length === 0) {
         doc.text("Nema elemenata za specifikaciju.", margin, margin);
       }
@@ -413,19 +572,280 @@ export function WardrobePreviewClient({
         doc.text(`Specifikacija elementa ${letter}`, margin, margin + 4);
         doc.setFontSize(baseFont);
 
-        const rows = grouped[letter];
+        // Schematic drawing
+        doc.setDrawColor(40);
+        doc.setLineWidth(0.2);
 
-        // Table headers
+        const storeElementConfigs = useShelfStore.getState().elementConfigs;
+        const storeCompartmentExtras = useShelfStore.getState().compartmentExtras;
+        const cfg = (storeElementConfigs as any)[letter] ?? {
+          columns: 1,
+          rowCounts: [0],
+        };
+        const cols = Math.max(1, Number(cfg.columns) || 1);
+        const {
+          wCm: elementWcm,
+          hCm: elementHcm,
+          rowIdx,
+        } = getElementDimsCm(letter);
+
+        // Proportional box size
+        const maxBoxW = 140;
+        const maxBoxH = 65;
+        const aspectRatio = elementWcm / elementHcm;
+        let boxW: number;
+        let boxH: number;
+
+        if (aspectRatio > maxBoxW / maxBoxH) {
+          boxW = maxBoxW;
+          boxH = maxBoxW / aspectRatio;
+        } else {
+          boxH = maxBoxH;
+          boxW = maxBoxH * aspectRatio;
+        }
+        boxW = Math.max(boxW, 35);
+        boxH = Math.max(boxH, 25);
+
+        const boxX = margin;
+        const boxY = margin + 10;
+        doc.rect(boxX, boxY, boxW, boxH, "S");
+
+        const cmPerMmX = elementWcm / boxW;
+        const cmPerMmY = elementHcm / boxH;
+        const currentMaterialId = useShelfStore.getState().selectedMaterialId;
+        const mat = materials.find(
+          (m) => String(m.id) === String(currentMaterialId),
+        );
+        const tCm = Number(mat?.thickness ?? 18) / 10;
+        const tOffsetXmm = tCm / cmPerMmX;
+        const tOffsetYmm = tCm / cmPerMmY;
+        const appliesBase =
+          storeHasBase && (heightCm <= TARGET_BOTTOM_HEIGHT_CM || rowIdx === 0);
+        const baseMm = appliesBase ? Math.max(0, storeBaseHeight / cmPerMmY) : 0;
+        const innerTopMmY = boxY + tOffsetYmm;
+        const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
+        const innerLeftMmX = boxX + tOffsetXmm;
+        const innerRightMmX = boxX + boxW - tOffsetXmm;
+
+        // Draw base
+        if (appliesBase && baseMm > 0) {
+          const by = boxY + boxH - baseMm;
+          doc.setFillColor("#e6e6e6");
+          doc.rect(
+            innerLeftMmX,
+            by,
+            innerRightMmX - innerLeftMmX,
+            baseMm,
+            "FD",
+          );
+          doc.setFillColor("#ffffff");
+          doc.setFontSize(8);
+          doc.text(
+            `${fmt2(storeBaseHeight)} cm`,
+            innerRightMmX - 6,
+            by + baseMm / 2,
+            { align: "right", baseline: "middle" as any },
+          );
+          doc.setFontSize(baseFont);
+        }
+
+        // Vertical dividers
+        for (let c = 1; c < cols; c++) {
+          const x = innerLeftMmX + (c * (innerRightMmX - innerLeftMmX)) / cols;
+          doc.line(x, boxY + 1, x, boxY + boxH - 1);
+        }
+
+        // Shelves per compartment
+        for (let c = 0; c < cols; c++) {
+          const count = Math.max(
+            0,
+            Math.floor(Number(cfg.rowCounts?.[c] ?? 0)),
+          );
+          if (count <= 0) continue;
+          const compX0 = boxX + (c * boxW) / cols + 1;
+          const compX1 = boxX + ((c + 1) * boxW) / cols - 1;
+          const innerH = Math.max(innerBottomMmY - innerTopMmY, 0);
+          const gapMm = innerH / (count + 1);
+          const gapCm = gapMm * cmPerMmY;
+          for (let s = 1; s <= count; s++) {
+            const y = innerTopMmY + s * gapMm;
+            doc.line(compX0, y, compX1, y);
+          }
+          if (c === 0) {
+            const dimXLeft = boxX - 6;
+            drawDimV(
+              dimXLeft,
+              innerTopMmY,
+              innerTopMmY + gapMm,
+              `${fmt2(gapCm)} cm × ${count + 1}`,
+              { arrows: true, ext: 2.5, font: 8 },
+            );
+          }
+        }
+
+        // Drawers
+        const extras = (storeCompartmentExtras as any)[letter] ?? {};
+        if (extras.drawers) {
+          const drawerHcm = DRAWER_HEIGHT_CM;
+          const gapCm = DRAWER_GAP_CM;
+          const drawerHMm = drawerHcm / cmPerMmY;
+          const gapMm = gapCm / cmPerMmY;
+          const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
+          const maxAuto = Math.max(
+            0,
+            Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)),
+          );
+          const countFromState = Math.max(
+            0,
+            Math.floor(Number(extras.drawersCount ?? 0)),
+          );
+          const used =
+            countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+          let lastTopOffsetMm = 0;
+          for (let d = 0; d < used; d++) {
+            const bottomOffsetMm = d * (drawerHMm + gapMm);
+            const topOffsetMm = Math.min(
+              bottomOffsetMm + drawerHMm,
+              innerHMm - gapMm,
+            );
+            lastTopOffsetMm = topOffsetMm;
+            const yTop = innerBottomMmY - topOffsetMm;
+            const yBottom = innerBottomMmY - bottomOffsetMm;
+            const hMm = Math.max(0, yBottom - yTop);
+            if (yTop < innerTopMmY) break;
+            doc.rect(
+              innerLeftMmX + 1,
+              yTop,
+              innerRightMmX - innerLeftMmX - 2,
+              hMm,
+              "S",
+            );
+            const hCm = hMm * cmPerMmY;
+            doc.setFontSize(8);
+            doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + hMm / 2, {
+              align: "center",
+              baseline: "middle" as any,
+            });
+            doc.setFontSize(baseFont);
+          }
+          if (used > 0 && used < maxAuto) {
+            const shelfOffsetMm = lastTopOffsetMm + gapMm + tCm / cmPerMmY;
+            if (shelfOffsetMm < innerHMm) {
+              const shelfY = innerBottomMmY - shelfOffsetMm;
+              doc.line(innerLeftMmX, shelfY, innerRightMmX, shelfY);
+            }
+          }
+        }
+
+        // Rod indicator
+        if (extras.rod) {
+          const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
+          const yRod = innerBottomMmY - innerHMm * 0.25;
+          const inset = 2;
+          doc.setLineWidth(0.4);
+          doc.line(innerLeftMmX + inset, yRod, innerRightMmX - inset, yRod);
+          doc.setLineWidth(0.2);
+        }
+
+        // LED label
+        if (extras.led) {
+          const yLabel = innerTopMmY + 3;
+          doc.setFontSize(7.5);
+          doc.text("LED", (innerLeftMmX + innerRightMmX) / 2, yLabel, {
+            align: "center",
+            baseline: "top" as any,
+          });
+          doc.setFontSize(baseFont);
+        }
+
+        // Vertical divider (dashed)
+        if (extras.verticalDivider) {
+          const x = boxX + boxW / 2;
+          const dashLen = 2;
+          const gapLen = 2;
+          let yy = boxY + 1;
+          while (yy < boxY + boxH - 1) {
+            const y2 = Math.min(yy + dashLen, boxY + boxH - 1);
+            doc.line(x, yy, x, y2);
+            yy = y2 + gapLen;
+          }
+        }
+
+        // Dimension lines
+        const dimY = boxY + boxH + 6;
+        drawDimH(boxX, dimY, boxX + boxW, `${fmt2(elementWcm)} cm`, {
+          arrows: true,
+          ext: 3,
+          font: 9,
+        });
+        const dimX = boxX + boxW + 8;
+        drawDimV(dimX, boxY, boxY + boxH, `${fmt2(elementHcm)} cm`, {
+          arrows: true,
+          ext: 3,
+          font: 9,
+        });
+
+        // Per-compartment widths
+        if (cols > 1) {
+          const compY = dimY + 6;
+          for (let c = 0; c < cols; c++) {
+            const x0 = boxX + (c * boxW) / cols;
+            const x1 = boxX + ((c + 1) * boxW) / cols;
+            drawDimH(x0, compY, x1, `${fmt2(elementWcm / cols)} cm`, {
+              arrows: true,
+              ext: 2.5,
+              font: 8,
+            });
+          }
+        }
+
+        // Door type label
+        const doorGroups = useShelfStore.getState().doorGroups;
+        const elementDoorGroup = doorGroups.find(
+          (g: { compartments: string[] }) =>
+            g.compartments.some((c: string) => {
+              const parsed = parseSubCompKey(c);
+              return (parsed ? parsed.compKey : c).startsWith(letter);
+            }),
+        );
+
+        const infoStartX = boxX + boxW + 20;
+        let infoY = boxY + 3;
+
+        if (elementDoorGroup && (elementDoorGroup as any).type !== "none") {
+          const doorTypeLabels: Record<string, string> = {
+            left: "Leva vrata",
+            right: "Desna vrata",
+            double: "Dvokrilna vrata",
+            leftMirror: "Leva vrata (ogledalo)",
+            rightMirror: "Desna vrata (ogledalo)",
+            doubleMirror: "Dvokrilna vrata (ogledalo)",
+            drawerStyle: "Vrata fioka stil",
+          };
+          const doorLabel =
+            doorTypeLabels[(elementDoorGroup as any).type] ||
+            (elementDoorGroup as any).type;
+
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text("Vrata:", infoStartX, infoY);
+          doc.setFont("helvetica", "normal");
+          doc.text(doorLabel, infoStartX + 16, infoY);
+          infoY += 6;
+        }
+
+        // Table
+        const rows = cutList.grouped[letter] || [];
         const headers = [
           "Oznaka",
           "Opis",
-          "Š (cm)",
-          "V (cm)",
-          "Deb (mm)",
-          "m²",
+          "Sirina",
+          "Visina",
+          "Debljina",
+          "m2",
           "Cena",
         ];
-        const colX = [margin, 35, 80, 105, 130, 155, 175];
+        const colX = [margin, 35, 95, 120, 143, 164, 182];
         const colW = [
           colX[1] - colX[0],
           colX[2] - colX[1],
@@ -435,19 +855,23 @@ export function WardrobePreviewClient({
           colX[6] - colX[5],
           210 - margin - colX[6],
         ];
+        const numericCols = [2, 3, 4, 5, 6];
 
-        let y = margin + 16;
+        let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         headers.forEach((h, i) => {
-          doc.text(h, colX[i] + 2, y);
+          const isNumeric = numericCols.includes(i);
+          const xPos = isNumeric ? colX[i] + colW[i] - 2 : colX[i] + 2;
+          const align = isNumeric ? "right" : "left";
+          doc.text(h, xPos, y, { align: align as any });
           doc.rect(colX[i], y - 5, colW[i], 7, "S");
         });
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         y += 8;
 
-        rows.forEach((it) => {
+        rows.forEach((it: any) => {
           const line = [
             it.code ?? "",
             String(it.desc ?? ""),
@@ -457,38 +881,40 @@ export function WardrobePreviewClient({
             fmt2(it.areaM2 ?? 0),
             fmt2(it.cost ?? 0),
           ];
-          // Wrap description if too long
           const descLines = doc.splitTextToSize(line[1], colW[1] - 4);
           const rowH = Math.max(7, (descLines.length || 1) * 4 + 3);
-          doc.rect(colX[0], y - 5, colW[0], rowH, "S");
-          doc.text(line[0], colX[0] + 2, y);
-          doc.rect(colX[1], y - 5, colW[1], rowH, "S");
-          doc.text(descLines, colX[1] + 2, y);
-          doc.rect(colX[2], y - 5, colW[2], rowH, "S");
-          doc.text(line[2], colX[2] + 2, y);
-          doc.rect(colX[3], y - 5, colW[3], rowH, "S");
-          doc.text(line[3], colX[3] + 2, y);
-          doc.rect(colX[4], y - 5, colW[4], rowH, "S");
-          doc.text(line[4], colX[4] + 2, y);
-          doc.rect(colX[5], y - 5, colW[5], rowH, "S");
-          doc.text(line[5], colX[5] + 2, y);
-          doc.rect(colX[6], y - 5, colW[6], rowH, "S");
-          doc.text(line[6], colX[6] + 2, y);
+
+          for (let i = 0; i < 7; i++) {
+            doc.rect(colX[i], y - 5, colW[i], rowH, "S");
+            const isNumeric = numericCols.includes(i);
+            const xPos = isNumeric ? colX[i] + colW[i] - 2 : colX[i] + 2;
+            const align = isNumeric ? "right" : "left";
+            if (i === 1) {
+              doc.text(descLines, colX[1] + 2, y);
+            } else {
+              doc.text(line[i], xPos, y, { align: align as any });
+            }
+          }
           y += rowH + 2;
-          // Page break if near bottom
           if (y > pageH - margin - 10) {
             doc.addPage();
             y = margin + 10;
           }
         });
 
-        // Footer totals for the element
-        const elementArea = rows.reduce((a, b) => a + (b.areaM2 ?? 0), 0);
-        const elementCost = rows.reduce((a, b) => a + (b.cost ?? 0), 0);
+        // Footer totals
+        const elementArea = rows.reduce(
+          (a: number, b: any) => a + (b.areaM2 ?? 0),
+          0,
+        );
+        const elementCost = rows.reduce(
+          (a: number, b: any) => a + (b.cost ?? 0),
+          0,
+        );
         y += 8;
         doc.setFont("helvetica", "bold");
-        doc.text(`Ukupna kvadratura: ${fmt2(elementArea)} m²`, margin, y);
-        doc.text(`Ukupna cena: ${fmt2(elementCost)} RSD`, margin + 90, y);
+        doc.text(`Ukupna kvadratura: ${fmt2(elementArea)} m2`, margin, y);
+        doc.text(`Cena materijala: ${fmt2(elementCost)}`, margin + 70, y);
         doc.setFont("helvetica", "normal");
       });
 
@@ -496,12 +922,16 @@ export function WardrobePreviewClient({
     } catch (e) {
       console.error("PDF export failed", e);
     }
-  }, [wardrobe.cutList, wardrobe.name, fmt2]);
+  }, [cutList, wardrobe.name, fmt2, materials]);
 
   // Load materials and wardrobe data on mount
   useEffect(() => {
     // Set materials first
     setMaterials(materials);
+
+    // CRITICAL: Reset store to defaults before applying wardrobe data
+    // This prevents stale state from previous wardrobes polluting the view
+    useShelfStore.getState().resetToDefaults();
 
     // Then apply wardrobe snapshot
     if (wardrobe.data) {
@@ -510,6 +940,17 @@ export function WardrobePreviewClient({
 
     setIsLoaded(true);
   }, [materials, wardrobe.data, setMaterials]);
+
+  // Enable preview mode (disables editing controls) on mount
+  const setIsPreviewMode = useShelfStore(
+    (state: ShelfState) => state.setIsPreviewMode,
+  );
+  useEffect(() => {
+    setIsPreviewMode(true);
+    return () => {
+      setIsPreviewMode(false);
+    };
+  }, [setIsPreviewMode]);
 
   const handleDownloadThumbnail = () => {
     if (wardrobe.thumbnail) {
@@ -558,11 +999,39 @@ export function WardrobePreviewClient({
               </Popover>
               {wardrobe.isModel && <Badge variant="secondary">Model</Badge>}
             </div>
-            <p className="text-sm text-muted-foreground">Pregled ormana</p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Pregled ormana</span>
+              {linkedOrders.length > 0 && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <Link
+                    href={`/admin/orders/${linkedOrders[0].id}`}
+                    className="text-orange-600 hover:text-orange-700 hover:underline font-medium"
+                  >
+                    Porudžbina #{linkedOrders[0].orderNumber}
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ViewModeToggle />
+          {linkedOrders.length > 0 ? (
+            <Button variant="default" asChild>
+              <Link href={`/admin/orders/${linkedOrders[0].id}`}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Uredi preko porudžbine #{linkedOrders[0].orderNumber}
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="default" asChild>
+              <Link href={`/design?load=${wardrobe.id}`}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Izmeni dizajn
+              </Link>
+            </Button>
+          )}
           {wardrobe.thumbnail && (
             <Button variant="outline" onClick={handleDownloadThumbnail}>
               <Download className="h-4 w-4 mr-2" />

@@ -126,13 +126,17 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const selectedFrontMaterialId = useShelfStore(
       (state: ShelfState) => state.selectedFrontMaterialId,
     );
+    // Preview mode - hides all interactive controls in admin preview
+    const isPreviewMode = useShelfStore(
+      (state: ShelfState) => state.isPreviewMode,
+    );
 
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
     // Check if Step 5 is active (for door selection)
     const isStep5Active = activeAccordionStep === "item-5";
-    // Combined check for hiding UI elements
-    const hideUIForSteps = isStep2Active || isStep5Active;
+    // Combined check for hiding UI elements (including preview mode)
+    const hideUIForSteps = isStep2Active || isStep5Active || isPreviewMode;
 
     // Simple hover handler - only set on enter, not on leave
     // This prevents flickering when moving between compartment and drag handles

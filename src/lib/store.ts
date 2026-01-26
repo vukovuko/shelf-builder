@@ -308,6 +308,11 @@ export interface ShelfState {
     shelfIndex: number,
     newY: number,
   ) => void;
+  // Preview mode - disables all editing controls in admin preview pages
+  isPreviewMode: boolean;
+  setIsPreviewMode: (val: boolean) => void;
+  // Reset store to initial defaults (for loading fresh wardrobes in admin preview)
+  resetToDefaults: () => void;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -1609,6 +1614,119 @@ export const useShelfStore = create<ShelfState>((set) => ({
           ...state.columnTopModuleShelves,
           [colIndex]: shelves,
         },
+      };
+    }),
+
+  // Preview mode - disables all editing controls in admin preview pages
+  isPreviewMode: false,
+  setIsPreviewMode: (val) => set({ isPreviewMode: val }),
+
+  // Reset store to initial defaults (for loading fresh wardrobes in admin preview)
+  // This prevents stale state from polluting views when navigating between wardrobes
+  resetToDefaults: () =>
+    set((state) => {
+      // Default dimensions
+      const defaultWidth = 210;
+      const defaultHeight = 201;
+      const defaultDepth = 60;
+      const defaultWidthM = defaultWidth / 100;
+      const defaultHeightM = defaultHeight / 100;
+
+      // Compute default vertical boundaries for 210cm width
+      const defaultVerticalBoundaries = getDefaultBoundariesX(defaultWidthM);
+      const columnCount = defaultVerticalBoundaries.length + 1;
+
+      // Compute default module boundaries for 201cm height (> 200cm threshold)
+      const defaultModuleBoundaries: Record<number, number> = {};
+      if (defaultHeightM > TARGET_BOTTOM_HEIGHT) {
+        const initialBoundary = Math.min(
+          MAX_MODULE_HEIGHT,
+          defaultHeightM - MIN_TOP_HEIGHT,
+        );
+        for (let i = 0; i < columnCount; i++) {
+          defaultModuleBoundaries[i] = initialBoundary;
+        }
+      }
+
+      return {
+        // Dimensions
+        width: defaultWidth,
+        height: defaultHeight,
+        depth: defaultDepth,
+        panelThickness: 2,
+        numberOfColumns: 2,
+        columnWidths: [1, 1],
+
+        // View state
+        viewMode: "3D" as ViewMode,
+        showDimensions: false,
+        showEdgesOnly: false,
+        showInfoButtons: false,
+        showDoors: true,
+
+        // Material selections - keep materials array but reset IDs
+        // (setMaterials will auto-select appropriate materials)
+        selectedMaterial: "default",
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: undefined,
+        selectedBackMaterialId: undefined,
+        // Preserve materials and handles (loaded from DB)
+        materials: state.materials,
+        handles: state.handles,
+
+        // Row/shelf config
+        rowCounts: [0, 0],
+
+        // Element configurations
+        selectedElementKey: null,
+        elementConfigs: {},
+
+        // Base/plinth
+        hasBase: false,
+        baseHeight: 3,
+
+        // Extras
+        extrasMode: false,
+        selectedCompartmentKey: null,
+        hoveredCompartmentKey: null,
+        compartmentExtras: {},
+
+        // Doors
+        selectedDoorElementKey: null,
+        doorSelections: {},
+        doorSelectionDragging: false,
+        doorSelectionStart: null,
+        doorSelectionCurrent: null,
+        selectedDoorCompartments: [],
+        doorGroups: [],
+        globalHandleId: "handle_1",
+        globalHandleFinish: "chrome",
+        doorSettingsMode: "global" as DoorSettingsMode,
+
+        // UI state
+        activeAccordionStep: "item-1",
+
+        // Loaded wardrobe tracking - clear on reset
+        loadedWardrobeId: null,
+        loadedWardrobeIsModel: false,
+
+        // Order context - clear on reset
+        fromOrderId: null,
+        fromOrderNumber: null,
+
+        // Structural boundaries
+        verticalBoundaries: defaultVerticalBoundaries,
+        columnHorizontalBoundaries: {},
+        columnHeights: {},
+        columnModuleBoundaries: defaultModuleBoundaries,
+        columnTopModuleShelves: {},
+
+        // Interaction state
+        isDragging: false,
+        hoveredColumnIndex: null,
+
+        // Keep isPreviewMode as-is (controlled by the page)
+        isPreviewMode: state.isPreviewMode,
       };
     }),
 }));

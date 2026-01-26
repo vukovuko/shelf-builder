@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
-import { wardrobes, user, materials } from "@/db/schema";
+import { wardrobes, user, materials, orders } from "@/db/schema";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
 import { WardrobePreviewClient } from "./WardrobePreviewClient";
 
@@ -43,6 +43,16 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
 
   // Fetch all materials
   const dbMaterials = await db.select().from(materials);
+
+  // Query linked orders (orders that use this wardrobe)
+  const linkedOrders = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+    })
+    .from(orders)
+    .where(eq(orders.wardrobeId, wardrobe.id));
 
   const serializedMaterials = dbMaterials.map((m) => ({
     id: m.id,
@@ -89,6 +99,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
         isModel: wardrobe.isModel,
       }}
       materials={serializedMaterials}
+      linkedOrders={linkedOrders}
     />
   );
 }

@@ -21,11 +21,20 @@ export async function GET(
       return NextResponse.json({ error: "Nevažeći ID" }, { status: 400 });
     }
 
+    const reqHeaders = await headers();
     const session = await auth.api.getSession({
-      headers: await headers(),
+      headers: reqHeaders,
     });
 
     if (!session) {
+      // Debug: log to understand why session is null
+      const cookie = reqHeaders.get("cookie");
+      console.error(
+        "[GET /api/wardrobes/:id] No session found. Cookie present:",
+        !!cookie,
+        "Cookie length:",
+        cookie?.length ?? 0,
+      );
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
