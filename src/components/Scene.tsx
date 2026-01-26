@@ -71,6 +71,8 @@ function StoreInvalidator() {
   const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
   // Dimension lines toggle
   const showDimensions = useShelfStore((s: ShelfState) => s.showDimensions);
+  // Fit request trigger
+  const fitRequestId = useShelfStore((s: ShelfState) => s.fitRequestId);
 
   useEffect(() => {
     invalidate();
@@ -98,6 +100,7 @@ function StoreInvalidator() {
     doorGroups,
     showDoors,
     showDimensions,
+    fitRequestId,
     invalidate,
   ]);
 
@@ -105,7 +108,7 @@ function StoreInvalidator() {
 }
 
 /**
- * CameraFitter - Auto-fits camera when wardrobe dimensions change
+ * CameraFitter - Auto-fits camera when wardrobe dimensions change or fit is requested
  * Must be placed inside Bounds component to access useBounds hook
  */
 function CameraFitter() {
@@ -113,18 +116,28 @@ function CameraFitter() {
   const width = useShelfStore((s: ShelfState) => s.width);
   const height = useShelfStore((s: ShelfState) => s.height);
   const depth = useShelfStore((s: ShelfState) => s.depth);
+  const fitRequestId = useShelfStore((s: ShelfState) => s.fitRequestId);
 
   // Track if this is the first render (skip initial fit - Bounds handles that)
   const isFirstRender = useRef(true);
+  const lastFitRequestId = useRef(fitRequestId);
 
+  // Re-fit when dimensions change
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    // Re-fit camera when dimensions change
     bounds.refresh().fit();
   }, [width, height, depth, bounds]);
+
+  // Re-fit when explicitly requested via triggerFitToView()
+  useEffect(() => {
+    if (fitRequestId !== lastFitRequestId.current) {
+      lastFitRequestId.current = fitRequestId;
+      bounds.refresh().fit();
+    }
+  }, [fitRequestId, bounds]);
 
   return null;
 }

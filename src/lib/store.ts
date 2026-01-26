@@ -256,6 +256,14 @@ export interface ShelfState {
   fromOrderNumber: number | null;
   setFromOrder: (orderId: string | null, orderNumber: number | null) => void;
   clearFromOrder: () => void;
+  // Track wardrobe context when editing from wardrobe preview page
+  fromWardrobeId: string | null;
+  fromWardrobeName: string | null;
+  setFromWardrobe: (wardrobeId: string | null, wardrobeName: string | null) => void;
+  clearFromWardrobe: () => void;
+  // Track last saved snapshot for unsaved changes detection
+  lastSavedSnapshot: Record<string, unknown> | null;
+  setLastSavedSnapshot: (snapshot: Record<string, unknown> | null) => void;
   // Vertical structural boundaries (seam X positions in meters from center)
   // Empty array = auto-calculate equal segments
   // These seams span FULL HEIGHT of the wardrobe
@@ -1134,6 +1142,15 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setFromOrder: (orderId, orderNumber) =>
     set({ fromOrderId: orderId, fromOrderNumber: orderNumber }),
   clearFromOrder: () => set({ fromOrderId: null, fromOrderNumber: null }),
+  // Track wardrobe context when editing from wardrobe preview page
+  fromWardrobeId: null,
+  fromWardrobeName: null,
+  setFromWardrobe: (wardrobeId, wardrobeName) =>
+    set({ fromWardrobeId: wardrobeId, fromWardrobeName: wardrobeName }),
+  clearFromWardrobe: () => set({ fromWardrobeId: null, fromWardrobeName: null }),
+  // Track last saved snapshot for unsaved changes detection
+  lastSavedSnapshot: null,
+  setLastSavedSnapshot: (snapshot) => set({ lastSavedSnapshot: snapshot }),
   // Vertical structural boundaries (seam X positions in meters from center)
   // Initialize based on default width (210cm → 3 columns)
   // These seams span FULL HEIGHT of the wardrobe
@@ -1713,6 +1730,13 @@ export const useShelfStore = create<ShelfState>((set) => ({
         // Order context - clear on reset
         fromOrderId: null,
         fromOrderNumber: null,
+
+        // Wardrobe context - clear on reset
+        fromWardrobeId: null,
+        fromWardrobeName: null,
+
+        // Saved snapshot - clear on reset
+        lastSavedSnapshot: null,
 
         // Structural boundaries
         verticalBoundaries: defaultVerticalBoundaries,

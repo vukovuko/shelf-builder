@@ -218,6 +218,9 @@ export function ConfiguratorControls({
           return;
         }
 
+        // Mark as saved for unsaved changes detection
+        useShelfStore.getState().setLastSavedSnapshot(snapshot);
+
         // Show appropriate success message
         if (fromOrderId && fromOrderNumber) {
           toast.success(`Orman za porudžbinu #${fromOrderNumber} je ažuriran`);
@@ -251,6 +254,9 @@ export function ConfiguratorControls({
 
       // Clear loaded wardrobe since we created a new one
       clearLoadedWardrobe();
+
+      // Mark as saved for unsaved changes detection
+      useShelfStore.getState().setLastSavedSnapshot(snapshot);
 
       toast.success(`"${wardrobeName}" je sačuvan`, {
         action: {
@@ -342,16 +348,27 @@ export function ConfiguratorControls({
   // Download front edges only as JPG
   const handleDownloadFrontEdges = React.useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;
+    const prevMode = useShelfStore.getState().viewMode;
+
+    // 1. Set edges mode and 2D view
     useShelfStore.getState().setShowDimensions(true);
     setShowEdgesOnly(true);
-    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
     }
-    // Wait for scene to fully re-render with edges-only mode
-    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 2. Wait for mode change to apply
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise(requestAnimationFrame);
+
+    // 3. Trigger fit to view after mode is set
+    useShelfStore.getState().triggerFitToView();
+
+    // 4. Wait for camera fit animation to complete (Bounds animation)
+    await new Promise((resolve) => setTimeout(resolve, 600));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
+
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       setShowEdgesOnly(false);
@@ -369,18 +386,30 @@ export function ConfiguratorControls({
 
   const handleDownloadFrontView = React.useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;
+
+    // 1. Set dimensions and 2D view
     useShelfStore.getState().setShowDimensions(true);
-    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
-      await new Promise((resolve) => setTimeout(resolve, 300));
     }
+
+    // 2. Wait for mode change to apply
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise(requestAnimationFrame);
+
+    // 3. Trigger fit to view after mode is set
+    useShelfStore.getState().triggerFitToView();
+
+    // 4. Wait for camera fit animation to complete (Bounds animation)
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       useShelfStore.getState().setShowDimensions(prevDims);
       return;
     }
-    await new Promise(requestAnimationFrame);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
     const link = document.createElement("a");
     link.href = dataUrl;

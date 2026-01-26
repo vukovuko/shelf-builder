@@ -135,6 +135,16 @@ export function BlueprintView() {
     return frontViewY + scaledHeight - clamped * scale;
   };
 
+  // Map Y for a specific column (accounts for different column heights)
+  // Columns with shorter heights are drawn with bottom aligned to wardrobe bottom
+  const mapYForColumn = (yFromFloorCm: number, colIdx: number) => {
+    const colH = columnHeights[colIdx] ?? height;
+    const clamped = Math.max(0, Math.min(colH, yFromFloorCm));
+    // All columns share the same bottom (floor level), so we use wardrobe height for Y calculation
+    // but clamp to column height
+    return frontViewY + scaledHeight - clamped * scale;
+  };
+
   // Split threshold for module boundaries (200cm in meters)
   const splitThreshold = 2.0;
 
@@ -142,14 +152,16 @@ export function BlueprintView() {
   // This matches the logic in CarcassFrame for correct compartment numbering
   const getCompartmentsForColumn = (colIdx: number) => {
     const colLetter = String.fromCharCode(65 + colIdx);
-    const colH = (columnHeights[colIdx] ?? height) / 100; // column height in meters
+    const colHCm = columnHeights[colIdx] ?? height; // column height in cm
+    const colH = colHCm / 100; // column height in meters
 
     // Get shelf positions for bottom module
     const shelves = columnHorizontalBoundaries[colIdx] || [];
 
     // Inner bounds (inside panels) in cm from floor
+    // Use COLUMN height for innerTop, not wardrobe height!
     const innerBottom = hasBase ? baseHeight + tCm : tCm;
-    const innerTop = height - tCm;
+    const innerTop = colHCm - tCm; // Column-specific top
 
     // Check for module boundary (tall wardrobes >200cm)
     // VALIDATE: Module boundary must be INSIDE wardrobe (between innerBottom and innerTop)
@@ -385,45 +397,70 @@ export function BlueprintView() {
             Pogled spreda
           </text>
 
-          {/* Main outer frame */}
-          <rect
-            x={frontViewX}
-            y={frontViewY}
-            width={scaledWidth}
-            height={scaledHeight}
-            fill="none"
-            stroke="#000"
-            strokeWidth="2"
-          />
+          {/* Per-column frames with individual heights */}
+          {columns.map((col, colIdx) => {
+            const colH = columnHeights[colIdx] ?? height;
+            const scaledColH = colH * scale;
+            const colX = frontViewX + col.start * scale;
+            const colW = col.width * scale;
+            // Y offset: shorter columns start lower (bottom-aligned)
+            const yOffset = scaledHeight - scaledColH;
 
-          {/* Base with cross-hatch */}
-          {hasBase && scaledBaseHeight > 0 && (
-            <rect
-              x={frontViewX}
-              y={frontViewY + scaledHeight - scaledBaseHeight}
-              width={scaledWidth}
-              height={scaledBaseHeight}
-              fill="url(#crossHatch)"
-              stroke="#000"
-              strokeWidth="1"
-            />
-          )}
+            return (
+              <rect
+                key={`col-frame-${colIdx}`}
+                x={colX}
+                y={frontViewY + yOffset}
+                width={colW}
+                height={scaledColH}
+                fill="none"
+                stroke="#000"
+                strokeWidth="2"
+              />
+            );
+          })}
+
+          {/* Base with cross-hatch - per column */}
+          {hasBase && scaledBaseHeight > 0 && columns.map((col, colIdx) => {
+            const colX = frontViewX + col.start * scale;
+            const colW = col.width * scale;
+
+            return (
+              <rect
+                key={`base-${colIdx}`}
+                x={colX}
+                y={frontViewY + scaledHeight - scaledBaseHeight}
+                width={colW}
+                height={scaledBaseHeight}
+                fill="url(#crossHatch)"
+                stroke="#000"
+                strokeWidth="1"
+              />
+            );
+          })}
 
           {/* Vertical seams between columns (SOLID lines) */}
+          {/* Seams extend to the MINIMUM height of adjacent columns */}
           {(() => {
             console.log(
               `[BlueprintView] Main columns: ${columns.length}, drawing ${columns.length - 1} solid seams`,
             );
             return columns.slice(0, -1).map((col, i) => {
+              const leftColH = columnHeights[i] ?? height;
+              const rightColH = columnHeights[i + 1] ?? height;
+              const seamH = Math.min(leftColH, rightColH); // Use minimum of adjacent columns
+              const scaledSeamH = seamH * scale;
+              const yOffset = scaledHeight - scaledSeamH; // Bottom-aligned offset
+
               const dividerX = frontViewX + col.end * scale;
               console.log(
-                `[BlueprintView] Main seam ${i}: x=${col.end.toFixed(1)}cm (solid line)`,
+                `[BlueprintView] Main seam ${i}: x=${col.end.toFixed(1)}cm, seamH=${seamH}cm (solid line)`,
               );
               return (
                 <line
                   key={`vdiv-${i}`}
                   x1={dividerX}
-                  y1={frontViewY}
+                  y1={frontViewY + yOffset}
                   x2={dividerX}
                   y2={frontViewY + scaledHeight - scaledBaseHeight}
                   stroke="#000"
@@ -444,17 +481,19 @@ export function BlueprintView() {
 
             // Draw main horizontal shelves (bottom module)
             // NOTE: columnHorizontalBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
+            const colHForShelves = columnHeights[colIdx] ?? height;
             const shelves = columnHorizontalBoundaries[colIdx] || [];
             const shelfYsCm = shelves.map((s: number) => s * 100); // Already floor-origin
             shelfYsCm.forEach((shelfY: number, shIdx: number) => {
-              if (shelfY > 0 && shelfY < height) {
+              // Only draw shelves within this column's height
+              if (shelfY > 0 && shelfY < colHForShelves) {
                 nodes.push(
                   <line
                     key={`shelf-${colIdx}-${shIdx}`}
                     x1={x1}
-                    y1={mapY(shelfY)}
+                    y1={mapYForColumn(shelfY, colIdx)}
                     x2={x2}
-                    y2={mapY(shelfY)}
+                    y2={mapYForColumn(shelfY, colIdx)}
                     stroke="#000"
                     strokeWidth="1"
                   />,
@@ -464,26 +503,27 @@ export function BlueprintView() {
 
             // Draw module boundary line (if exists AND valid) - thicker line for module split
             // NOTE: columnModuleBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
-            const colH = (columnHeights[colIdx] ?? height) / 100;
+            const colHMeters = (columnHeights[colIdx] ?? height) / 100;
+            const colHCmForBoundary = columnHeights[colIdx] ?? height;
             const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-            const innerBottom = hasBase ? baseHeight + tCm : tCm;
-            const innerTop = height - tCm;
+            const innerBottomForBoundary = hasBase ? baseHeight + tCm : tCm;
+            const innerTopForBoundary = colHCmForBoundary - tCm; // Use column-specific height
 
-            if (moduleBoundary !== null && colH > splitThreshold) {
+            if (moduleBoundary !== null && colHMeters > splitThreshold) {
               const moduleBoundaryYCm = moduleBoundary * 100; // Already floor-origin
               // VALIDATE: boundary must be within inner bounds (with margin for panels)
               const isValidBoundary =
-                moduleBoundaryYCm > innerBottom + tCm &&
-                moduleBoundaryYCm < innerTop - tCm;
+                moduleBoundaryYCm > innerBottomForBoundary + tCm &&
+                moduleBoundaryYCm < innerTopForBoundary - tCm;
 
               if (isValidBoundary) {
                 nodes.push(
                   <line
                     key={`module-boundary-${colIdx}`}
                     x1={x1}
-                    y1={mapY(moduleBoundaryYCm)}
+                    y1={mapYForColumn(moduleBoundaryYCm, colIdx)}
                     x2={x2}
-                    y2={mapY(moduleBoundaryYCm)}
+                    y2={mapYForColumn(moduleBoundaryYCm, colIdx)}
                     stroke="#000"
                     strokeWidth="1.5"
                   />,
@@ -493,7 +533,7 @@ export function BlueprintView() {
                 );
               } else {
                 console.warn(
-                  `[BlueprintView] Module boundary for column ${colIdx} INVALID: y=${moduleBoundaryYCm.toFixed(1)}cm is outside [${innerBottom.toFixed(1)}, ${innerTop.toFixed(1)}]`,
+                  `[BlueprintView] Module boundary for column ${colIdx} INVALID: y=${moduleBoundaryYCm.toFixed(1)}cm is outside [${innerBottomForBoundary.toFixed(1)}, ${innerTopForBoundary.toFixed(1)}]`,
                 );
               }
             }
@@ -504,12 +544,12 @@ export function BlueprintView() {
             if (
               topModuleShelves.length > 0 &&
               moduleBoundary !== null &&
-              colH > splitThreshold
+              colHMeters > splitThreshold
             ) {
               const moduleBoundaryYCmForTopShelves = moduleBoundary * 100; // Already floor-origin
               const isModuleBoundaryValid =
-                moduleBoundaryYCmForTopShelves > innerBottom + tCm &&
-                moduleBoundaryYCmForTopShelves < innerTop - tCm;
+                moduleBoundaryYCmForTopShelves > innerBottomForBoundary + tCm &&
+                moduleBoundaryYCmForTopShelves < innerTopForBoundary - tCm;
 
               if (isModuleBoundaryValid) {
                 const topShelfYsCm = topModuleShelves.map(
@@ -519,15 +559,15 @@ export function BlueprintView() {
                   // Top module shelves must be above the module boundary and below top
                   if (
                     shelfY > moduleBoundaryYCmForTopShelves + tCm &&
-                    shelfY < innerTop
+                    shelfY < innerTopForBoundary
                   ) {
                     nodes.push(
                       <line
                         key={`top-shelf-${colIdx}-${shIdx}`}
                         x1={x1}
-                        y1={mapY(shelfY)}
+                        y1={mapYForColumn(shelfY, colIdx)}
                         x2={x2}
-                        y2={mapY(shelfY)}
+                        y2={mapYForColumn(shelfY, colIdx)}
                         stroke="#000"
                         strokeWidth="1"
                       />,
@@ -538,6 +578,7 @@ export function BlueprintView() {
             }
 
             // Draw compartment contents
+            const colHForCompartments = columnHeights[colIdx] ?? height;
             compartments.forEach((comp) => {
               const compKey = comp.key;
               const cfg = elementConfigs[compKey] ?? {
@@ -556,9 +597,9 @@ export function BlueprintView() {
               const compW = compX2 - compX1;
               const sectionW = compW / innerCols;
 
-              // Clamp compartment bounds to be within frame
-              const safeBottomY = Math.max(0, Math.min(height, comp.bottomY));
-              const safeTopY = Math.max(0, Math.min(height, comp.topY));
+              // Clamp compartment bounds to be within column frame
+              const safeBottomY = Math.max(0, Math.min(colHForCompartments, comp.bottomY));
+              const safeTopY = Math.max(0, Math.min(colHForCompartments, comp.topY));
 
               if (safeTopY <= safeBottomY) return; // Skip invalid compartments
 
@@ -576,9 +617,9 @@ export function BlueprintView() {
                     <line
                       key={`vd-${compKey}-${divIdx}`}
                       x1={divX}
-                      y1={mapY(safeTopY)}
+                      y1={mapYForColumn(safeTopY, colIdx)}
                       x2={divX}
-                      y2={mapY(safeBottomY)}
+                      y2={mapYForColumn(safeBottomY, colIdx)}
                       stroke="#666"
                       strokeWidth="0.75"
                       strokeDasharray="3,2"
@@ -612,9 +653,9 @@ export function BlueprintView() {
                     <line
                       key={`ish-${compKey}-${secIdx}-${shIdx}`}
                       x1={secX1}
-                      y1={mapY(shelfY)}
+                      y1={mapYForColumn(shelfY, colIdx)}
                       x2={secX2}
-                      y2={mapY(shelfY)}
+                      y2={mapYForColumn(shelfY, colIdx)}
                       stroke="#666"
                       strokeWidth="0.75"
                     />,
@@ -635,7 +676,7 @@ export function BlueprintView() {
                       <text
                         key={`ish-h-${compKey}-${secIdx}-${spaceIdx}`}
                         x={spaceMidX}
-                        y={mapY(spaceMidY)}
+                        y={mapYForColumn(spaceMidY, colIdx)}
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fontSize="8"
@@ -668,7 +709,7 @@ export function BlueprintView() {
                       <rect
                         key={`drawer-${compKey}-${drIdx}`}
                         x={compX1 + 4}
-                        y={mapY(drawerTopY)}
+                        y={mapYForColumn(drawerTopY, colIdx)}
                         width={compW - 8}
                         height={(drawerTopY - drawerBottomY) * scale}
                         fill="url(#drawerHatch)"
@@ -687,22 +728,22 @@ export function BlueprintView() {
                   <g key={`rod-${compKey}`}>
                     <line
                       x1={compX1 + 8}
-                      y1={mapY(rodY)}
+                      y1={mapYForColumn(rodY, colIdx)}
                       x2={compX2 - 8}
-                      y2={mapY(rodY)}
+                      y2={mapYForColumn(rodY, colIdx)}
                       stroke="#444"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                     <circle
                       cx={compX1 + 8}
-                      cy={mapY(rodY)}
+                      cy={mapYForColumn(rodY, colIdx)}
                       r="2.5"
                       fill="#666"
                     />
                     <circle
                       cx={compX2 - 8}
-                      cy={mapY(rodY)}
+                      cy={mapYForColumn(rodY, colIdx)}
                       r="2.5"
                       fill="#666"
                     />
@@ -713,7 +754,7 @@ export function BlueprintView() {
               // Numbered label in corner
               const spaceNum = globalSpaceNum++;
               const labelX = compX1 + 4;
-              const labelY = mapY(safeTopY) + 4;
+              const labelY = mapYForColumn(safeTopY, colIdx) + 4;
               nodes.push(
                 <g key={`label-${compKey}`}>
                   <rect
@@ -743,7 +784,7 @@ export function BlueprintView() {
                   <text
                     key={`h-${compKey}`}
                     x={colCenterX}
-                    y={mapY((safeBottomY + safeTopY) / 2)}
+                    y={mapYForColumn((safeBottomY + safeTopY) / 2, colIdx)}
                     fontSize="11"
                     fontFamily="Arial, sans-serif"
                     textAnchor="middle"
@@ -762,43 +803,85 @@ export function BlueprintView() {
           {/* EXTERNAL DIMENSIONS */}
           {/* ============================================ */}
 
-          {/* Overall height - left side */}
-          <g>
-            <line
-              x1={frontViewX - 25}
-              y1={frontViewY}
-              x2={frontViewX - 25}
-              y2={frontViewY + scaledHeight}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={frontViewX - 30}
-              y1={frontViewY}
-              x2={frontViewX - 20}
-              y2={frontViewY}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={frontViewX - 30}
-              y1={frontViewY + scaledHeight}
-              x2={frontViewX - 20}
-              y2={frontViewY + scaledHeight}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <text
-              x={frontViewX - 35}
-              y={frontViewY + scaledHeight / 2}
-              fontSize="11"
-              fontFamily="Arial, sans-serif"
-              textAnchor="middle"
-              transform={`rotate(-90 ${frontViewX - 35} ${frontViewY + scaledHeight / 2})`}
-            >
-              {height} cm
-            </text>
-          </g>
+          {/* Overall max height on left side - ALWAYS shown */}
+          {(() => {
+            // Calculate max column height
+            const maxColHeight = Math.max(...columns.map((_, i) => columnHeights[i] ?? height));
+            const scaledMaxHeight = maxColHeight * scale;
+            const maxYOffset = scaledHeight - scaledMaxHeight;
+
+            // Check if columns have varying heights
+            const hasVaryingHeights = columns.some(
+              (_, i) => (columnHeights[i] ?? height) !== maxColHeight
+            );
+
+            return (
+              <>
+                {/* ALWAYS show overall max height on left */}
+                <g>
+                  <line
+                    x1={frontViewX - 25}
+                    y1={frontViewY + maxYOffset}
+                    x2={frontViewX - 25}
+                    y2={frontViewY + scaledHeight}
+                    stroke="#000"
+                    strokeWidth="0.75"
+                  />
+                  <line
+                    x1={frontViewX - 30}
+                    y1={frontViewY + maxYOffset}
+                    x2={frontViewX - 20}
+                    y2={frontViewY + maxYOffset}
+                    stroke="#000"
+                    strokeWidth="0.75"
+                  />
+                  <line
+                    x1={frontViewX - 30}
+                    y1={frontViewY + scaledHeight}
+                    x2={frontViewX - 20}
+                    y2={frontViewY + scaledHeight}
+                    stroke="#000"
+                    strokeWidth="0.75"
+                  />
+                  <text
+                    x={frontViewX - 35}
+                    y={frontViewY + maxYOffset + scaledMaxHeight / 2}
+                    fontSize="11"
+                    fontFamily="Arial, sans-serif"
+                    textAnchor="middle"
+                    transform={`rotate(-90 ${frontViewX - 35} ${frontViewY + maxYOffset + scaledMaxHeight / 2})`}
+                  >
+                    {Math.round(maxColHeight)} cm
+                  </text>
+                </g>
+
+                {/* ADDITIONALLY show per-column heights above columns if they vary */}
+                {hasVaryingHeights && columns.map((col, i) => {
+                  const colH = columnHeights[i] ?? height;
+                  const scaledColH = colH * scale;
+                  const yOffset = scaledHeight - scaledColH;
+                  const colX1 = frontViewX + col.start * scale;
+                  const colX2 = frontViewX + col.end * scale;
+                  const centerX = (colX1 + colX2) / 2;
+
+                  return (
+                    <g key={`colheight-${i}`}>
+                      {/* Height label above each column */}
+                      <text
+                        x={centerX}
+                        y={frontViewY + yOffset - 5}
+                        fontSize="9"
+                        fontFamily="Arial, sans-serif"
+                        textAnchor="middle"
+                      >
+                        {Math.round(colH)}
+                      </text>
+                    </g>
+                  );
+                })}
+              </>
+            );
+          })()}
 
           {/* Base height */}
           {hasBase && baseHeight > 0 && (
@@ -911,80 +994,87 @@ export function BlueprintView() {
         {/* ============================================ */}
         {/* SIDE VIEW */}
         {/* ============================================ */}
-        <g>
-          {/* Label */}
-          <text
-            x={sideViewX + scaledDepth / 2}
-            y={sideViewY - 10}
-            fontSize="11"
-            fontFamily="Arial, sans-serif"
-            textAnchor="middle"
-            fontStyle="italic"
-          >
-            Pogled sa strane
-          </text>
+        {(() => {
+          // Use max column height for side view
+          const maxColHeight = Math.max(...columns.map((_, i) => columnHeights[i] ?? height));
+          const scaledMaxHeight = maxColHeight * scale;
+          const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
 
-          {/* Main rectangle with hatching */}
-          <rect
-            x={sideViewX}
-            y={sideViewY}
-            width={scaledDepth}
-            height={scaledHeight}
-            fill="url(#diagonalHatch)"
-            stroke="#000"
-            strokeWidth="2"
-          />
+          return (
+            <g>
+              {/* Label */}
+              <text
+                x={sideViewX + scaledDepth / 2}
+                y={sideViewY - 10}
+                fontSize="11"
+                fontFamily="Arial, sans-serif"
+                textAnchor="middle"
+                fontStyle="italic"
+              >
+                Pogled sa strane
+              </text>
 
-          {/* Base */}
-          {hasBase && scaledBaseHeight > 0 && (
-            <rect
-              x={sideViewX}
-              y={sideViewY + scaledHeight - scaledBaseHeight}
-              width={scaledDepth}
-              height={scaledBaseHeight}
-              fill="url(#crossHatch)"
-              stroke="#000"
-              strokeWidth="1"
-            />
-          )}
+              {/* Main rectangle with hatching - uses max column height */}
+              <rect
+                x={sideViewX}
+                y={sideViewY + sideYOffset}
+                width={scaledDepth}
+                height={scaledMaxHeight}
+                fill="url(#diagonalHatch)"
+                stroke="#000"
+                strokeWidth="2"
+              />
 
-          {/* Height dimension */}
-          <g>
-            <line
-              x1={sideViewX + scaledDepth + 18}
-              y1={sideViewY}
-              x2={sideViewX + scaledDepth + 18}
-              y2={sideViewY + scaledHeight}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={sideViewX + scaledDepth + 13}
-              y1={sideViewY}
-              x2={sideViewX + scaledDepth + 23}
-              y2={sideViewY}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <line
-              x1={sideViewX + scaledDepth + 13}
-              y1={sideViewY + scaledHeight}
-              x2={sideViewX + scaledDepth + 23}
-              y2={sideViewY + scaledHeight}
-              stroke="#000"
-              strokeWidth="0.75"
-            />
-            <text
-              x={sideViewX + scaledDepth + 28}
-              y={sideViewY + scaledHeight / 2}
-              fontSize="11"
-              fontFamily="Arial, sans-serif"
-              textAnchor="middle"
-              transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${sideViewY + scaledHeight / 2})`}
-            >
-              {height} cm
-            </text>
-          </g>
+              {/* Base */}
+              {hasBase && scaledBaseHeight > 0 && (
+                <rect
+                  x={sideViewX}
+                  y={sideViewY + scaledHeight - scaledBaseHeight}
+                  width={scaledDepth}
+                  height={scaledBaseHeight}
+                  fill="url(#crossHatch)"
+                  stroke="#000"
+                  strokeWidth="1"
+                />
+              )}
+
+              {/* Height dimension - uses max column height */}
+              <g>
+                <line
+                  x1={sideViewX + scaledDepth + 18}
+                  y1={sideViewY + sideYOffset}
+                  x2={sideViewX + scaledDepth + 18}
+                  y2={sideViewY + scaledHeight}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <line
+                  x1={sideViewX + scaledDepth + 13}
+                  y1={sideViewY + sideYOffset}
+                  x2={sideViewX + scaledDepth + 23}
+                  y2={sideViewY + sideYOffset}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <line
+                  x1={sideViewX + scaledDepth + 13}
+                  y1={sideViewY + scaledHeight}
+                  x2={sideViewX + scaledDepth + 23}
+                  y2={sideViewY + scaledHeight}
+                  stroke="#000"
+                  strokeWidth="0.75"
+                />
+                <text
+                  x={sideViewX + scaledDepth + 28}
+                  y={sideViewY + sideYOffset + scaledMaxHeight / 2}
+                  fontSize="11"
+                  fontFamily="Arial, sans-serif"
+                  textAnchor="middle"
+                  transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${sideViewY + sideYOffset + scaledMaxHeight / 2})`}
+                >
+                  {Math.round(maxColHeight)} cm
+                </text>
+              </g>
 
           {/* Depth dimension */}
           <g>
@@ -1022,7 +1112,9 @@ export function BlueprintView() {
               {depth} cm
             </text>
           </g>
-        </g>
+            </g>
+          );
+        })()}
       </svg>
     </div>
   );

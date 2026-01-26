@@ -24,11 +24,15 @@ function LoadFromUrl() {
   const loadId = searchParams.get("load");
   const fromOrderId = searchParams.get("fromOrder");
   const orderNum = searchParams.get("orderNum");
+  const fromWardrobeId = searchParams.get("fromWardrobe");
+  const wardrobeName = searchParams.get("wardrobeName");
   const setLoadedWardrobe = useShelfStore(
     (s: ShelfState) => s.setLoadedWardrobe,
   );
   const setFromOrder = useShelfStore((s: ShelfState) => s.setFromOrder);
   const clearFromOrder = useShelfStore((s: ShelfState) => s.clearFromOrder);
+  const setFromWardrobe = useShelfStore((s: ShelfState) => s.setFromWardrobe);
+  const clearFromWardrobe = useShelfStore((s: ShelfState) => s.clearFromWardrobe);
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 
@@ -76,6 +80,17 @@ function LoadFromUrl() {
           clearFromOrder();
         }
 
+        // Track wardrobe context if coming from wardrobe preview page
+        if (fromWardrobeId && wardrobeName) {
+          setFromWardrobe(fromWardrobeId, decodeURIComponent(wardrobeName));
+        } else {
+          // Clear any stale wardrobe context when loading without wardrobe params
+          clearFromWardrobe();
+        }
+
+        // Save snapshot for unsaved changes detection
+        useShelfStore.getState().setLastSavedSnapshot(wardrobe.data);
+
         toast.success(`Učitano: ${wardrobe.name}`);
 
         window.history.replaceState({}, "", "/design");
@@ -89,7 +104,7 @@ function LoadFromUrl() {
     }
 
     loadWardrobe();
-  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder, clearFromOrder]);
+  }, [loadId, setLoadedWardrobe, fromOrderId, orderNum, setFromOrder, clearFromOrder, fromWardrobeId, wardrobeName, setFromWardrobe, clearFromWardrobe]);
 
   return null;
 }

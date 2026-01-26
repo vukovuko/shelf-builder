@@ -318,15 +318,25 @@ export function WardrobePreviewClient({
   // Image download handlers
   const handleDownloadFrontView = useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;
+
+    // 1. Set dimensions and 2D view
     useShelfStore.getState().setShowDimensions(true);
-    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
     }
-    // Wait for scene to fully re-render with camera positioned
-    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 2. Wait for mode change to apply
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise(requestAnimationFrame);
+
+    // 3. Trigger fit to view after mode is set
+    useShelfStore.getState().triggerFitToView();
+
+    // 4. Wait for camera fit animation to complete (Bounds animation)
+    await new Promise((resolve) => setTimeout(resolve, 600));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
+
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       useShelfStore.getState().setShowDimensions(prevDims);
@@ -342,16 +352,26 @@ export function WardrobePreviewClient({
 
   const handleDownloadFrontEdges = useCallback(async () => {
     const prevDims = useShelfStore.getState().showDimensions;
+
+    // 1. Set edges mode and 2D view
     useShelfStore.getState().setShowDimensions(true);
     setShowEdgesOnly(true);
-    useShelfStore.getState().triggerFitToView();
     if (cameraMode !== "2D") {
       setCameraMode("2D");
     }
-    // Wait for scene to fully re-render with edges-only mode
-    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 2. Wait for mode change to apply
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise(requestAnimationFrame);
+
+    // 3. Trigger fit to view after mode is set
+    useShelfStore.getState().triggerFitToView();
+
+    // 4. Wait for camera fit animation to complete (Bounds animation)
+    await new Promise((resolve) => setTimeout(resolve, 600));
     await new Promise(requestAnimationFrame);
     await new Promise(requestAnimationFrame);
+
     const canvas = document.querySelector("canvas");
     if (!canvas) {
       setShowEdgesOnly(false);
@@ -941,6 +961,55 @@ export function WardrobePreviewClient({
     setIsLoaded(true);
   }, [materials, wardrobe.data, setMaterials]);
 
+  // Detect bfcache restore and reload page to get fresh data
+  // This fixes stale data showing when user presses browser back button
+  useEffect(() => {
+    // Track when page was loaded
+    const loadTime = Date.now();
+
+    // Handle bfcache restore
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // event.persisted is true when page is restored from bfcache
+      if (event.persisted) {
+        console.log("[WardrobePreview] bfcache restore detected, reloading");
+        window.location.reload();
+      }
+    };
+
+    // Handle visibility change - reload if returning after being hidden for a while
+    // This catches Next.js App Router's in-memory cache restoration
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const hiddenDuration = Date.now() - loadTime;
+        // If page was hidden for more than 5 seconds and is now visible,
+        // reload to get fresh data
+        if (hiddenDuration > 5000) {
+          console.log(
+            "[WardrobePreview] Page became visible after being away, reloading",
+          );
+          window.location.reload();
+        }
+      }
+    };
+
+    // Handle popstate (browser back/forward) - this catches cases where
+    // bfcache/visibilitychange don't fire
+    const handlePopState = () => {
+      console.log("[WardrobePreview] popstate detected, reloading");
+      window.location.reload();
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   // Enable preview mode (disables editing controls) on mount
   const setIsPreviewMode = useShelfStore(
     (state: ShelfState) => state.setIsPreviewMode,
@@ -1026,7 +1095,9 @@ export function WardrobePreviewClient({
             </Button>
           ) : (
             <Button variant="default" asChild>
-              <Link href={`/design?load=${wardrobe.id}`}>
+              <Link
+                href={`/design?load=${wardrobe.id}&fromWardrobe=${wardrobe.id}&wardrobeName=${encodeURIComponent(wardrobe.name)}`}
+              >
                 <Pencil className="h-4 w-4 mr-2" />
                 Izmeni dizajn
               </Link>
