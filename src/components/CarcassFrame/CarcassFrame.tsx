@@ -276,7 +276,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Get modules for a column (stacked units with their own back panels)
     // When height > 200cm, column splits into top and bottom modules
-    // Back panels start at baseH (not floor) when base is enabled
+    // Back panels extend to floor (Y=0) to cover base area from behind
     const getColumnModules = (
       colIdx: number,
     ): Array<{ yStart: number; yEnd: number; height: number }> => {
@@ -285,14 +285,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       // No boundary or height <= 200cm = single module
       if (boundary === null || colH <= splitThreshold) {
-        // Back panel starts at baseH, reduced height
-        return [{ yStart: baseH, yEnd: colH, height: colH - baseH }];
+        // Back panel extends to floor
+        return [{ yStart: 0, yEnd: colH, height: colH }];
       }
 
       // Two stacked modules
       return [
-        // Bottom module - starts at baseH, reduced height
-        { yStart: baseH, yEnd: boundary, height: boundary - baseH },
+        // Bottom module - extends to floor
+        { yStart: 0, yEnd: boundary, height: boundary },
         // Top module - unchanged (above base area)
         { yStart: boundary, yEnd: colH, height: colH - boundary },
       ];
@@ -416,20 +416,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           />
         )}
 
-        {/* Front and back sokl panels - only when base is enabled, hidden in edges mode */}
+        {/* Front sokl panel - only when base is enabled, hidden in edges mode */}
+        {/* Back is covered by back panels (ledja) which extend to floor */}
         {baseH > 0 && !showEdgesOnly && (
-          <>
-            {/* Front sokl panel - covers base gap from front */}
-            <Panel
-              position={[0, baseH / 2, d / 2 - t / 2]}
-              size={[w - 2 * t, baseH, t]}
-            />
-            {/* Back sokl panel - covers base gap from back */}
-            <Panel
-              position={[0, baseH / 2, -d / 2 + backT / 2]}
-              size={[w - 2 * t, baseH, backT]}
-            />
-          </>
+          <Panel
+            position={[0, baseH / 2, d / 2 - t / 2]}
+            size={[w - 2 * t, baseH, t]}
+          />
         )}
 
         {/* Per-column Top & Bottom panels + Horizontal shelves + Labels + TopHeightHandle */}
@@ -1285,7 +1278,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           // Drawer front dimensions
                           const drawerInset = 0.0015; // 1.5mm per side = 3mm total gap
                           const drawerW = secW - drawerInset * 2;
-                          const MIN_DRAWER_SIZE = 0.10; // 10cm minimum drawer dimension
+                          const MIN_DRAWER_SIZE = 0.1; // 10cm minimum drawer dimension
                           // External drawers at door Z level, internal drawers inside
                           const drawerZ = isExternal
                             ? d / 2 + 0.009 // 9mm in front (like door)
