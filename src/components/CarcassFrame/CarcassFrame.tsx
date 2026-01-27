@@ -1044,122 +1044,129 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     })()}
 
                     {/* Per-section drawer fronts from elementConfigs - hidden in edges mode */}
-                    {!showEdgesOnly && (() => {
-                      const compKey = `${colLetter}${compIdx + 1}`;
-                      const cfg = elementConfigs[compKey] ?? {
-                        columns: 1,
-                        rowCounts: [0],
-                        drawerCounts: [0],
-                      };
-                      const innerCols = Math.max(1, cfg.columns);
+                    {!showEdgesOnly &&
+                      (() => {
+                        const compKey = `${colLetter}${compIdx + 1}`;
+                        const cfg = elementConfigs[compKey] ?? {
+                          columns: 1,
+                          rowCounts: [0],
+                          drawerCounts: [0],
+                        };
+                        const innerCols = Math.max(1, cfg.columns);
 
-                      // Use getCompartmentBounds to get correct bounds
-                      const { centerY, height: compInnerH } =
-                        getCompartmentBounds(compIdx);
-                      const compBottomY = centerY - compInnerH / 2;
+                        // Use getCompartmentBounds to get correct bounds
+                        const { centerY, height: compInnerH } =
+                          getCompartmentBounds(compIdx);
+                        const compBottomY = centerY - compInnerH / 2;
 
-                      const compLeftX = colCenterX - colInnerW / 2;
-                      const sectionW = colInnerW / innerCols;
+                        const compLeftX = colCenterX - colInnerW / 2;
+                        const sectionW = colInnerW / innerCols;
 
-                      const drawerPanels: React.ReactNode[] = [];
-                      for (let secIdx = 0; secIdx < innerCols; secIdx++) {
-                        const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
-                        const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
-                        if (drawerCount <= 0 || shelfCount <= 0) continue;
+                        const drawerPanels: React.ReactNode[] = [];
+                        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                          const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
+                          if (drawerCount <= 0 || shelfCount <= 0) continue;
 
-                        // Section X bounds (account for divider thickness)
-                        const secLeftX =
-                          compLeftX +
-                          secIdx * sectionW +
-                          (secIdx > 0 ? t / 2 : 0);
-                        const secRightX =
-                          compLeftX +
-                          (secIdx + 1) * sectionW -
-                          (secIdx < innerCols - 1 ? t / 2 : 0);
-                        const secCenterX = (secLeftX + secRightX) / 2;
-                        const secW = secRightX - secLeftX;
+                          // Section X bounds (account for divider thickness)
+                          const secLeftX =
+                            compLeftX +
+                            secIdx * sectionW +
+                            (secIdx > 0 ? t / 2 : 0);
+                          const secRightX =
+                            compLeftX +
+                            (secIdx + 1) * sectionW -
+                            (secIdx < innerCols - 1 ? t / 2 : 0);
+                          const secCenterX = (secLeftX + secRightX) / 2;
+                          const secW = secRightX - secLeftX;
 
-                        // Calculate space positions (N shelves = N+1 spaces)
-                        const usableH = compInnerH;
-                        const gap = usableH / (shelfCount + 1);
+                          // Calculate space positions (N shelves = N+1 spaces)
+                          const usableH = compInnerH;
+                          const gap = usableH / (shelfCount + 1);
 
-                        // Drawer front dimensions
-                        const drawerInset = 0.002; // 2mm inset from section edges
-                        const drawerW = secW - drawerInset * 2;
-                        const drawerZ = d / 2 + 0.009; // 9mm in front of carcass (door thickness)
+                          // Drawer front dimensions
+                          const drawerInset = 0.002; // 2mm inset from section edges
+                          const drawerW = secW - drawerInset * 2;
+                          const drawerZ = d / 2 + 0.009; // 9mm in front of carcass (door thickness)
 
-                        // Render drawers from bottom up (space 1 = bottom)
-                        for (
-                          let drIdx = 0;
-                          drIdx < Math.min(drawerCount, shelfCount + 1);
-                          drIdx++
-                        ) {
-                          // Space N is between shelf N-1 and shelf N (or bottom/top panel)
-                          const spaceBottomY =
-                            compBottomY + drIdx * gap + t / 2;
-                          const spaceTopY =
-                            compBottomY + (drIdx + 1) * gap - t / 2;
-                          const drawerCenterY = (spaceBottomY + spaceTopY) / 2;
-                          const actualDrawerH = Math.max(
-                            0.02,
-                            spaceTopY - spaceBottomY - 0.004,
-                          );
+                          // Render drawers from bottom up (space 1 = bottom)
+                          for (
+                            let drIdx = 0;
+                            drIdx < Math.min(drawerCount, shelfCount + 1);
+                            drIdx++
+                          ) {
+                            // Space N is between shelf N-1 and shelf N (or bottom/top panel)
+                            const spaceBottomY =
+                              compBottomY + drIdx * gap + t / 2;
+                            const spaceTopY =
+                              compBottomY + (drIdx + 1) * gap - t / 2;
+                            const drawerCenterY =
+                              (spaceBottomY + spaceTopY) / 2;
+                            const actualDrawerH = Math.max(
+                              0.02,
+                              spaceTopY - spaceBottomY - 0.004,
+                            );
 
-                          drawerPanels.push(
+                            drawerPanels.push(
+                              <mesh
+                                key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                                position={[secCenterX, drawerCenterY, drawerZ]}
+                              >
+                                <boxGeometry
+                                  args={[
+                                    drawerW,
+                                    actualDrawerH,
+                                    DEFAULT_PANEL_THICKNESS_M,
+                                  ]}
+                                />
+                                <meshStandardMaterial
+                                  color="#d4c4b0"
+                                  roughness={0.7}
+                                  metalness={0}
+                                />
+                              </mesh>,
+                            );
+                          }
+                        }
+
+                        // Rod (šipka za ofingere) - horizontal cylinder at 75% height
+                        const extras = compartmentExtras[compKey] ?? {};
+                        let rodElement: React.ReactNode = null;
+                        if (extras.rod) {
+                          const rodRadius = 0.015; // 3cm diameter = 1.5cm radius
+                          const rodY = compBottomY + compInnerH * 0.75; // 75% up from bottom
+                          const rodLength = colInnerW - 0.01; // Slightly shorter than compartment width
+                          rodElement = (
                             <mesh
-                              key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                              position={[secCenterX, drawerCenterY, drawerZ]}
+                              key={`rod-${compKey}`}
+                              position={[
+                                colCenterX,
+                                rodY,
+                                d / 2 - carcassD / 2,
+                              ]}
+                              rotation={[0, 0, Math.PI / 2]} // Rotate to horizontal
                             >
-                              <boxGeometry
-                                args={[
-                                  drawerW,
-                                  actualDrawerH,
-                                  DEFAULT_PANEL_THICKNESS_M,
-                                ]}
+                              <cylinderGeometry
+                                args={[rodRadius, rodRadius, rodLength, 16]}
                               />
                               <meshStandardMaterial
-                                color="#d4c4b0"
-                                roughness={0.7}
-                                metalness={0}
+                                color="#888888"
+                                roughness={0.3}
+                                metalness={0.8}
                               />
-                            </mesh>,
+                            </mesh>
                           );
                         }
-                      }
 
-                      // Rod (šipka za ofingere) - horizontal cylinder at 75% height
-                      const extras = compartmentExtras[compKey] ?? {};
-                      let rodElement: React.ReactNode = null;
-                      if (extras.rod) {
-                        const rodRadius = 0.015; // 3cm diameter = 1.5cm radius
-                        const rodY = compBottomY + compInnerH * 0.75; // 75% up from bottom
-                        const rodLength = colInnerW - 0.01; // Slightly shorter than compartment width
-                        rodElement = (
-                          <mesh
-                            key={`rod-${compKey}`}
-                            position={[colCenterX, rodY, d / 2 - carcassD / 2]}
-                            rotation={[0, 0, Math.PI / 2]} // Rotate to horizontal
-                          >
-                            <cylinderGeometry
-                              args={[rodRadius, rodRadius, rodLength, 16]}
-                            />
-                            <meshStandardMaterial
-                              color="#888888"
-                              roughness={0.3}
-                              metalness={0.8}
-                            />
-                          </mesh>
+                        if (drawerPanels.length === 0 && !rodElement)
+                          return null;
+                        return (
+                          <>
+                            {drawerPanels}
+                            {rodElement}
+                          </>
                         );
-                      }
-
-                      if (drawerPanels.length === 0 && !rodElement) return null;
-                      return (
-                        <>
-                          {drawerPanels}
-                          {rodElement}
-                        </>
-                      );
-                    })()}
+                      })()}
                   </React.Fragment>
                 );
               })}
