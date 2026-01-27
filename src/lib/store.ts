@@ -1341,6 +1341,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
       // Handle module boundary auto-initialization and scaling
       let newModuleBoundaries = state.columnModuleBoundaries;
       let newTopModuleShelves = state.columnTopModuleShelves;
+      let newElementConfigs = state.elementConfigs;
+      let newCompartmentExtras = state.compartmentExtras;
       const existingModuleBoundary = state.columnModuleBoundaries[colIdx];
 
       if (newHeightM > TARGET_BOTTOM_HEIGHT) {
@@ -1409,7 +1411,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
           }
         }
       } else {
-        // Height below threshold - remove module boundary AND clear top module shelves
+        // Height below threshold - remove module boundary AND clear top module configs
         if (
           existingModuleBoundary !== undefined &&
           existingModuleBoundary !== null
@@ -1423,6 +1425,23 @@ export const useShelfStore = create<ShelfState>((set) => ({
             ...newTopModuleShelves,
             [colIdx]: [],
           };
+
+          // Clear elementConfigs and compartmentExtras for TOP module compartments
+          // These compartments no longer exist when height <= 200cm
+          const colLetter = String.fromCharCode(65 + colIdx); // 0=A, 1=B, 2=C
+          const bottomShelves = state.columnHorizontalBoundaries[colIdx] || [];
+          const bottomCompartments = bottomShelves.length + 1;
+          const topCompKey = `${colLetter}${bottomCompartments + 1}`;
+
+          // Clear configs for the top module compartment
+          if (state.elementConfigs[topCompKey]) {
+            newElementConfigs = { ...newElementConfigs };
+            delete newElementConfigs[topCompKey];
+          }
+          if (state.compartmentExtras[topCompKey]) {
+            newCompartmentExtras = { ...newCompartmentExtras };
+            delete newCompartmentExtras[topCompKey];
+          }
         }
       }
 
@@ -1477,6 +1496,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnHorizontalBoundaries: newColumnBoundaries,
         columnModuleBoundaries: newModuleBoundaries,
         columnTopModuleShelves: newTopModuleShelves,
+        elementConfigs: newElementConfigs,
+        compartmentExtras: newCompartmentExtras,
       };
     }),
   resetColumnHeights: () => set({ columnHeights: {} }),
