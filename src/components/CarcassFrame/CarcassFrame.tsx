@@ -174,6 +174,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const carcassD = d - backT;
     // Carcass panels Z offset (shifted forward so back panel fits behind)
     const carcassZ = backT / 2;
+    // Vertical elements Z offset - 2mm back to prevent edge bleeding through horizontal panels
+    const verticalZ = carcassZ - 0.002;
 
     // Initialize boundaries if empty but width requires multiple columns
     const defaultBoundaries = React.useMemo(
@@ -351,16 +353,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     return (
       <group position={[0, 0, 0]}>
-        {/* Side L - height of first column */}
+        {/* Side L - height of first column (verticalZ to prevent edge bleeding) */}
         <Panel
-          position={[-w / 2 + t / 2, sideL_H / 2, carcassZ]}
+          position={[-w / 2 + t / 2, sideL_H / 2, verticalZ]}
           size={[t, sideL_H, carcassD]}
           showEdgesOnly={showEdgesOnly}
         />
 
-        {/* Side R - height of last column */}
+        {/* Side R - height of last column (verticalZ to prevent edge bleeding) */}
         <Panel
-          position={[w / 2 - t / 2, sideR_H / 2, carcassZ]}
+          position={[w / 2 - t / 2, sideR_H / 2, verticalZ]}
           size={[t, sideR_H, carcassD]}
           showEdgesOnly={showEdgesOnly}
         />
@@ -1113,7 +1115,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                       const compLeftX = colCenterX - colInnerW / 2;
 
-                      // Vertical dividers
+                      // Vertical dividers (verticalZ to prevent edge bleeding)
                       const dividerPanels = [];
                       for (let divIdx = 1; divIdx < innerCols; divIdx++) {
                         const divX =
@@ -1124,7 +1126,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             position={[
                               divX,
                               (compBottomY + compTopY) / 2,
-                              carcassZ,
+                              verticalZ,
                             ]}
                             size={[t, compInnerH, carcassD]}
                             showEdgesOnly={showEdgesOnly}
@@ -1567,15 +1569,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
           return (
             <React.Fragment key={`seam-${idx}`}>
-              {/* Left seam panel - belongs to LEFT column, shortened when base enabled */}
+              {/* Left seam panel - belongs to LEFT column (verticalZ to prevent edge bleeding) */}
               <Panel
-                position={[seamX - t / 2, seamLeftY, carcassZ]}
+                position={[seamX - t / 2, seamLeftY, verticalZ]}
                 size={[t, seamLeftH, carcassD]}
                 showEdgesOnly={showEdgesOnly}
               />
-              {/* Right seam panel - belongs to RIGHT column, shortened when base enabled */}
+              {/* Right seam panel - belongs to RIGHT column (verticalZ to prevent edge bleeding) */}
               <Panel
-                position={[seamX + t / 2, seamRightY, carcassZ]}
+                position={[seamX + t / 2, seamRightY, verticalZ]}
                 size={[t, seamRightH, carcassD]}
                 showEdgesOnly={showEdgesOnly}
               />
