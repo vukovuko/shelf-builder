@@ -174,8 +174,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const carcassD = d - backT;
     // Carcass panels Z offset (shifted forward so back panel fits behind)
     const carcassZ = backT / 2;
-    // Vertical elements Z offset - 2mm back to prevent edge bleeding through horizontal panels
-    const verticalZ = carcassZ - 0.002;
+    // Vertical elements Z offset - 1mm back to prevent edge bleeding (balanced: visible back edges)
+    const verticalZ = carcassZ - 0.001;
 
     // Initialize boundaries if empty but width requires multiple columns
     const defaultBoundaries = React.useMemo(
@@ -351,21 +351,70 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const sideL_H = getColumnHeight(0);
     const sideR_H = getColumnHeight(columns.length - 1);
 
+    // Module boundaries for side panels (for splitting into top/bottom modules)
+    const sideL_ModuleBoundary = columnModuleBoundaries[0] ?? null;
+    const sideR_ModuleBoundary =
+      columnModuleBoundaries[columns.length - 1] ?? null;
+
     return (
       <group position={[0, 0, 0]}>
         {/* Side L - height of first column (verticalZ to prevent edge bleeding) */}
-        <Panel
-          position={[-w / 2 + t / 2, sideL_H / 2, verticalZ]}
-          size={[t, sideL_H, carcassD]}
-          showEdgesOnly={showEdgesOnly}
-        />
+        {/* Split into two panels if module boundary exists */}
+        {sideL_ModuleBoundary && sideL_ModuleBoundary > 0 ? (
+          <>
+            {/* Side L - Bottom module */}
+            <Panel
+              position={[-w / 2 + t / 2, sideL_ModuleBoundary / 2, verticalZ]}
+              size={[t, sideL_ModuleBoundary, carcassD]}
+              showEdgesOnly={showEdgesOnly}
+            />
+            {/* Side L - Top module */}
+            <Panel
+              position={[
+                -w / 2 + t / 2,
+                sideL_ModuleBoundary + (sideL_H - sideL_ModuleBoundary) / 2,
+                verticalZ,
+              ]}
+              size={[t, sideL_H - sideL_ModuleBoundary, carcassD]}
+              showEdgesOnly={showEdgesOnly}
+            />
+          </>
+        ) : (
+          <Panel
+            position={[-w / 2 + t / 2, sideL_H / 2, verticalZ]}
+            size={[t, sideL_H, carcassD]}
+            showEdgesOnly={showEdgesOnly}
+          />
+        )}
 
         {/* Side R - height of last column (verticalZ to prevent edge bleeding) */}
-        <Panel
-          position={[w / 2 - t / 2, sideR_H / 2, verticalZ]}
-          size={[t, sideR_H, carcassD]}
-          showEdgesOnly={showEdgesOnly}
-        />
+        {/* Split into two panels if module boundary exists */}
+        {sideR_ModuleBoundary && sideR_ModuleBoundary > 0 ? (
+          <>
+            {/* Side R - Bottom module */}
+            <Panel
+              position={[w / 2 - t / 2, sideR_ModuleBoundary / 2, verticalZ]}
+              size={[t, sideR_ModuleBoundary, carcassD]}
+              showEdgesOnly={showEdgesOnly}
+            />
+            {/* Side R - Top module */}
+            <Panel
+              position={[
+                w / 2 - t / 2,
+                sideR_ModuleBoundary + (sideR_H - sideR_ModuleBoundary) / 2,
+                verticalZ,
+              ]}
+              size={[t, sideR_H - sideR_ModuleBoundary, carcassD]}
+              showEdgesOnly={showEdgesOnly}
+            />
+          </>
+        ) : (
+          <Panel
+            position={[w / 2 - t / 2, sideR_H / 2, verticalZ]}
+            size={[t, sideR_H, carcassD]}
+            showEdgesOnly={showEdgesOnly}
+          />
+        )}
 
         {/* Front and back sokl panels - only when base is enabled, hidden in edges mode */}
         {baseH > 0 && !showEdgesOnly && (
@@ -1116,7 +1165,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       const compLeftX = colCenterX - colInnerW / 2;
 
                       // Vertical dividers (verticalZ to prevent edge bleeding)
+                      // Bottom compartment dividers extend to floor through base
                       const dividerPanels = [];
+                      const dividerBottomY =
+                        compIdx === 0 && baseH > 0 ? 0 : compBottomY;
+                      const dividerH = compTopY - dividerBottomY;
                       for (let divIdx = 1; divIdx < innerCols; divIdx++) {
                         const divX =
                           compLeftX + (divIdx * colInnerW) / innerCols;
@@ -1125,10 +1178,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             key={`vd-${compKey}-${divIdx}`}
                             position={[
                               divX,
-                              (compBottomY + compTopY) / 2,
+                              (dividerBottomY + compTopY) / 2,
                               verticalZ,
                             ]}
-                            size={[t, compInnerH, carcassD]}
+                            size={[t, dividerH, carcassD]}
                             showEdgesOnly={showEdgesOnly}
                           />,
                         );
@@ -1230,8 +1283,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const secW = secRightX - secLeftX;
 
                           // Drawer front dimensions
-                          const drawerInset = 0.002; // 2mm inset from section edges
+                          const drawerInset = 0.0015; // 1.5mm per side = 3mm total gap
                           const drawerW = secW - drawerInset * 2;
+                          const MIN_DRAWER_SIZE = 0.10; // 10cm minimum drawer dimension
                           // External drawers at door Z level, internal drawers inside
                           const drawerZ = isExternal
                             ? d / 2 + 0.009 // 9mm in front (like door)
@@ -1255,6 +1309,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 0.02,
                                 drawerH - 0.004,
                               );
+
+                              // Skip drawer if below minimum 10x10cm size
+                              if (
+                                drawerW < MIN_DRAWER_SIZE ||
+                                actualDrawerH < MIN_DRAWER_SIZE
+                              )
+                                continue;
 
                               drawerPanels.push(
                                 <mesh
@@ -1300,6 +1361,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 0.02,
                                 spaceTopY - spaceBottomY - 0.004,
                               );
+
+                              // Skip drawer if below minimum 10x10cm size
+                              if (
+                                drawerW < MIN_DRAWER_SIZE ||
+                                actualDrawerH < MIN_DRAWER_SIZE
+                              )
+                                continue;
 
                               drawerPanels.push(
                                 <mesh
@@ -1560,12 +1628,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             rightCol.end - rightMinWidth,
           );
 
-          // Seam heights reduced by baseH (seams don't extend into base space)
-          const seamLeftH = leftH - baseH;
-          const seamRightH = rightH - baseH;
-          // Seam Y positions (centered above base)
-          const seamLeftY = baseH + seamLeftH / 2;
-          const seamRightY = baseH + seamRightH / 2;
+          // Seam heights - full height to floor (seams extend through base)
+          const seamLeftH = leftH;
+          const seamRightH = rightH;
+          // Seam Y positions (centered from floor)
+          const seamLeftY = seamLeftH / 2;
+          const seamRightY = seamRightH / 2;
 
           return (
             <React.Fragment key={`seam-${idx}`}>

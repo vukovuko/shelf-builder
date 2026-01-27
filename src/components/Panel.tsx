@@ -87,8 +87,8 @@ export const Panel = React.memo(function Panel({
         roughness={0.85}
         metalness={0}
         polygonOffset
-        polygonOffsetFactor={2}
-        polygonOffsetUnits={2}
+        polygonOffsetFactor={1.5}
+        polygonOffsetUnits={1.5}
       />
       <Edges key={`e-${geoKey}`} threshold={15} color="#4a4458" />
     </mesh>
