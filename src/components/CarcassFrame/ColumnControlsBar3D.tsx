@@ -59,6 +59,9 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const setColumnTopModuleShelfCount = useShelfStore(
     (s: ShelfState) => s.setColumnTopModuleShelfCount,
   );
+  const moveColumnModuleBoundary = useShelfStore(
+    (s: ShelfState) => s.moveColumnModuleBoundary,
+  );
 
   // Track if mouse is over the bar
   const isBarHoveredRef = useRef(false);
@@ -211,6 +214,61 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     }
   };
 
+  // Module height constraints (both modules must stay within these)
+  const minModuleHeightCm = 20;
+  const maxModuleHeightCm = 200;
+
+  // Can increase/decrease module heights (linked - one increases, other decreases)
+  const canIncreaseBottomHeight =
+    hasModuleBoundary &&
+    bottomModuleHeightCm < maxModuleHeightCm &&
+    topModuleHeightCm > minModuleHeightCm;
+  const canDecreaseBottomHeight =
+    hasModuleBoundary &&
+    bottomModuleHeightCm > minModuleHeightCm &&
+    topModuleHeightCm < maxModuleHeightCm;
+  const canIncreaseTopHeight = canDecreaseBottomHeight; // Inverse
+  const canDecreaseTopHeight = canIncreaseBottomHeight; // Inverse
+
+  const handleModuleHeightChange = (
+    module: "bottom" | "top",
+    newHeightCm: number,
+  ) => {
+    if (!hasModuleBoundary) return;
+
+    let newBoundaryY: number;
+    if (module === "bottom") {
+      // Bottom module height = boundary position (in meters)
+      newBoundaryY =
+        Math.max(minModuleHeightCm, Math.min(maxModuleHeightCm, newHeightCm)) /
+        100;
+      // Ensure top module also stays valid
+      const topWouldBe = currentHeightCm - newBoundaryY * 100;
+      if (topWouldBe < minModuleHeightCm) {
+        newBoundaryY = (currentHeightCm - minModuleHeightCm) / 100;
+      }
+      if (topWouldBe > maxModuleHeightCm) {
+        newBoundaryY = (currentHeightCm - maxModuleHeightCm) / 100;
+      }
+    } else {
+      // Top module height change → adjust boundary inversely
+      const clampedTopHeight = Math.max(
+        minModuleHeightCm,
+        Math.min(maxModuleHeightCm, newHeightCm),
+      );
+      newBoundaryY = (currentHeightCm - clampedTopHeight) / 100;
+      // Ensure bottom module stays valid
+      if (newBoundaryY * 100 < minModuleHeightCm) {
+        newBoundaryY = minModuleHeightCm / 100;
+      }
+      if (newBoundaryY * 100 > maxModuleHeightCm) {
+        newBoundaryY = maxModuleHeightCm / 100;
+      }
+    }
+
+    moveColumnModuleBoundary(displayColumn, newBoundaryY);
+  };
+
   // === Width control logic ===
   const hasMultipleColumns = columns.length > 1;
   const currentWidthCm = Math.round(col.width * 100);
@@ -287,7 +345,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           boxShadow: "var(--shadow-lg)",
           border: "1px solid #e0e0e0",
           padding: "4px 0 2px 0",
-          minWidth: 180,
+          minWidth: hasModuleBoundary ? 320 : 180,
           color: "#000000",
         }}
         onMouseEnter={handleBarMouseEnter}
@@ -313,110 +371,42 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
           />
         </div>
 
-        {/* Controls - responsive layout */}
-        <div
-          className="column-controls-grid"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            padding: "4px 12px 8px 12px",
-          }}
-        >
-          {/* Width control - only show if multiple columns */}
-          {hasMultipleColumns && (
+        {/* Controls - split layout when two modules exist */}
+        {hasModuleBoundary ? (
+          // SPLIT LAYOUT: Two modules side by side
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              padding: "4px 8px 8px 8px",
+            }}
+          >
+            {/* Total height control at top */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                gap: 8,
+                justifyContent: "center",
+                gap: 6,
+                paddingBottom: 6,
+                borderBottom: "1px solid #e0e0e0",
               }}
             >
-              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
-                Širina
+              <span style={{ fontSize: 11, color: "#666" }}>
+                Ukupna visina:
               </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <button
-                  style={{
-                    width: 24,
-                    height: 24,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "1px solid #cccccc",
-                    borderRadius: "var(--radius)",
-                    background: "#f5f5f5",
-                    color: "#000000",
-                    fontSize: 14,
-                    cursor: canDecreaseWidth ? "pointer" : "not-allowed",
-                    opacity: canDecreaseWidth ? 1 : 0.4,
-                  }}
-                  onClick={() => handleWidthChange(-1)}
-                  disabled={!canDecreaseWidth}
-                >
-                  -
-                </button>
-                <span
-                  style={{
-                    minWidth: 50,
-                    textAlign: "center",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "#000000",
-                  }}
-                >
-                  {currentWidthCm} cm
-                </span>
-                <button
-                  style={{
-                    width: 24,
-                    height: 24,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "1px solid #cccccc",
-                    borderRadius: "var(--radius)",
-                    background: "#f5f5f5",
-                    color: "#000000",
-                    fontSize: 14,
-                    cursor: canIncreaseWidth ? "pointer" : "not-allowed",
-                    opacity: canIncreaseWidth ? 1 : 0.4,
-                  }}
-                  onClick={() => handleWidthChange(1)}
-                  disabled={!canIncreaseWidth}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Height control */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
-              Visina
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <button
                 style={{
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid #cccccc",
-                  borderRadius: "var(--radius)",
+                  border: "1px solid #ccc",
+                  borderRadius: 4,
                   background: "#f5f5f5",
-                  color: "#000000",
-                  fontSize: 14,
+                  fontSize: 13,
                   cursor: canDecreaseHeight ? "pointer" : "not-allowed",
                   opacity: canDecreaseHeight ? 1 : 0.4,
                 }}
@@ -427,27 +417,25 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               </button>
               <span
                 style={{
-                  minWidth: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  minWidth: 45,
                   textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "#000000",
                 }}
               >
-                {Math.round(currentHeightCm)} cm
+                {Math.round(currentHeightCm)}cm
               </span>
               <button
                 style={{
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid #cccccc",
-                  borderRadius: "var(--radius)",
+                  border: "1px solid #ccc",
+                  borderRadius: 4,
                   background: "#f5f5f5",
-                  color: "#000000",
-                  fontSize: 14,
+                  fontSize: 13,
                   cursor: canIncreaseHeight ? "pointer" : "not-allowed",
                   opacity: canIncreaseHeight ? 1 : 0.4,
                 }}
@@ -457,77 +445,465 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 +
               </button>
             </div>
-          </div>
 
-          {/* Shelf count control (bottom module when split exists) */}
+            {/* Two modules side by side */}
+            <div style={{ display: "flex", gap: 0 }}>
+              {/* LEFT: Donji modul */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  paddingRight: 12,
+                  borderRight: "1px solid #e0e0e0",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#3b82f6",
+                    marginBottom: 2,
+                  }}
+                >
+                  Donji modul
+                </span>
+
+                {/* Width control */}
+                {hasMultipleColumns && (
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    <span style={{ fontSize: 11, color: "#666", width: 42 }}>
+                      Širina
+                    </span>
+                    <button
+                      style={{
+                        width: 22,
+                        height: 22,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid #ccc",
+                        borderRadius: 4,
+                        background: "#f5f5f5",
+                        fontSize: 13,
+                        cursor: canDecreaseWidth ? "pointer" : "not-allowed",
+                        opacity: canDecreaseWidth ? 1 : 0.4,
+                      }}
+                      onClick={() => handleWidthChange(-1)}
+                      disabled={!canDecreaseWidth}
+                    >
+                      -
+                    </button>
+                    <span
+                      style={{
+                        width: 42,
+                        textAlign: "center",
+                        fontSize: 11,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {currentWidthCm}cm
+                    </span>
+                    <button
+                      style={{
+                        width: 22,
+                        height: 22,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid #ccc",
+                        borderRadius: 4,
+                        background: "#f5f5f5",
+                        fontSize: 13,
+                        cursor: canIncreaseWidth ? "pointer" : "not-allowed",
+                        opacity: canIncreaseWidth ? 1 : 0.4,
+                      }}
+                      onClick={() => handleWidthChange(1)}
+                      disabled={!canIncreaseWidth}
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+
+                {/* Bottom module height */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#666", width: 42 }}>
+                    Visina
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canDecreaseBottomHeight
+                        ? "pointer"
+                        : "not-allowed",
+                      opacity: canDecreaseBottomHeight ? 1 : 0.4,
+                    }}
+                    onClick={() =>
+                      handleModuleHeightChange(
+                        "bottom",
+                        bottomModuleHeightCm - 1,
+                      )
+                    }
+                    disabled={!canDecreaseBottomHeight}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    value={bottomModuleHeightCm}
+                    onChange={(e) =>
+                      handleModuleHeightChange(
+                        "bottom",
+                        parseInt(e.target.value) || 0,
+                      )
+                    }
+                    min={minModuleHeightCm}
+                    max={Math.min(
+                      maxModuleHeightCm,
+                      currentHeightCm - minModuleHeightCm,
+                    )}
+                    style={{
+                      width: 42,
+                      height: 22,
+                      textAlign: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: "#3b82f6",
+                      padding: "2px 4px",
+                    }}
+                  />
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canIncreaseBottomHeight
+                        ? "pointer"
+                        : "not-allowed",
+                      opacity: canIncreaseBottomHeight ? 1 : 0.4,
+                    }}
+                    onClick={() =>
+                      handleModuleHeightChange(
+                        "bottom",
+                        bottomModuleHeightCm + 1,
+                      )
+                    }
+                    disabled={!canIncreaseBottomHeight}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Bottom module shelves */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#666", width: 42 }}>
+                    Police
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canDecreaseShelves ? "pointer" : "not-allowed",
+                      opacity: canDecreaseShelves ? 1 : 0.4,
+                    }}
+                    onClick={() => handleShelfCountChange(-1)}
+                    disabled={!canDecreaseShelves}
+                  >
+                    -
+                  </button>
+                  <span
+                    style={{
+                      width: 42,
+                      textAlign: "center",
+                      fontSize: 11,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {shelfCount}
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canIncreaseShelves ? "pointer" : "not-allowed",
+                      opacity: canIncreaseShelves ? 1 : 0.4,
+                    }}
+                    onClick={() => handleShelfCountChange(1)}
+                    disabled={!canIncreaseShelves}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* RIGHT: Gornji modul */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  paddingLeft: 12,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#a855f7",
+                    marginBottom: 2,
+                  }}
+                >
+                  Gornji modul
+                </span>
+
+                {/* Placeholder row for alignment (matches width row on left) */}
+                {hasMultipleColumns && <div style={{ height: 22 }} />}
+
+                {/* Top module height */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#666", width: 42 }}>
+                    Visina
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canDecreaseTopHeight ? "pointer" : "not-allowed",
+                      opacity: canDecreaseTopHeight ? 1 : 0.4,
+                    }}
+                    onClick={() =>
+                      handleModuleHeightChange("top", topModuleHeightCm - 1)
+                    }
+                    disabled={!canDecreaseTopHeight}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    value={topModuleHeightCm}
+                    onChange={(e) =>
+                      handleModuleHeightChange(
+                        "top",
+                        parseInt(e.target.value) || 0,
+                      )
+                    }
+                    min={minModuleHeightCm}
+                    max={Math.min(
+                      maxModuleHeightCm,
+                      currentHeightCm - minModuleHeightCm,
+                    )}
+                    style={{
+                      width: 42,
+                      height: 22,
+                      textAlign: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      color: "#a855f7",
+                      padding: "2px 4px",
+                    }}
+                  />
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canIncreaseTopHeight ? "pointer" : "not-allowed",
+                      opacity: canIncreaseTopHeight ? 1 : 0.4,
+                    }}
+                    onClick={() =>
+                      handleModuleHeightChange("top", topModuleHeightCm + 1)
+                    }
+                    disabled={!canIncreaseTopHeight}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Top module shelves */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "#666", width: 42 }}>
+                    Police
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canDecreaseTopShelves ? "pointer" : "not-allowed",
+                      opacity: canDecreaseTopShelves ? 1 : 0.4,
+                    }}
+                    onClick={() => handleTopModuleShelfCountChange(-1)}
+                    disabled={!canDecreaseTopShelves}
+                  >
+                    -
+                  </button>
+                  <span
+                    style={{
+                      width: 42,
+                      textAlign: "center",
+                      fontSize: 11,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {topModuleShelfCount}
+                  </span>
+                  <button
+                    style={{
+                      width: 22,
+                      height: 22,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #ccc",
+                      borderRadius: 4,
+                      background: "#f5f5f5",
+                      fontSize: 13,
+                      cursor: canIncreaseTopShelves ? "pointer" : "not-allowed",
+                      opacity: canIncreaseTopShelves ? 1 : 0.4,
+                    }}
+                    onClick={() => handleTopModuleShelfCountChange(1)}
+                    disabled={!canIncreaseTopShelves}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // SINGLE MODULE LAYOUT (no split)
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
+              flexDirection: "column",
+              gap: 6,
+              padding: "4px 12px 8px 12px",
             }}
           >
-            <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
-              {hasModuleBoundary ? "Police ↓" : "Police"}
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <button
+            {/* Width control - only show if multiple columns */}
+            {hasMultipleColumns && (
+              <div
                 style={{
-                  width: 24,
-                  height: 24,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid #cccccc",
-                  borderRadius: "var(--radius)",
-                  background: "#f5f5f5",
-                  color: "#000000",
-                  fontSize: 14,
-                  cursor: canDecreaseShelves ? "pointer" : "not-allowed",
-                  opacity: canDecreaseShelves ? 1 : 0.4,
-                }}
-                onClick={() => handleShelfCountChange(-1)}
-                disabled={!canDecreaseShelves}
-              >
-                -
-              </button>
-              <span
-                style={{
-                  minWidth: 50,
-                  textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "#000000",
+                  justifyContent: "space-between",
+                  gap: 8,
                 }}
               >
-                {shelfCount}
-              </span>
-              <button
-                style={{
-                  width: 24,
-                  height: 24,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid #cccccc",
-                  borderRadius: "var(--radius)",
-                  background: "#f5f5f5",
-                  color: "#000000",
-                  fontSize: 14,
-                  cursor: canIncreaseShelves ? "pointer" : "not-allowed",
-                  opacity: canIncreaseShelves ? 1 : 0.4,
-                }}
-                onClick={() => handleShelfCountChange(1)}
-                disabled={!canIncreaseShelves}
-              >
-                +
-              </button>
-            </div>
-          </div>
+                <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+                  Širina
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #cccccc",
+                      borderRadius: "var(--radius)",
+                      background: "#f5f5f5",
+                      color: "#000000",
+                      fontSize: 14,
+                      cursor: canDecreaseWidth ? "pointer" : "not-allowed",
+                      opacity: canDecreaseWidth ? 1 : 0.4,
+                    }}
+                    onClick={() => handleWidthChange(-1)}
+                    disabled={!canDecreaseWidth}
+                  >
+                    -
+                  </button>
+                  <span
+                    style={{
+                      minWidth: 50,
+                      textAlign: "center",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "#000000",
+                    }}
+                  >
+                    {currentWidthCm} cm
+                  </span>
+                  <button
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #cccccc",
+                      borderRadius: "var(--radius)",
+                      background: "#f5f5f5",
+                      color: "#000000",
+                      fontSize: 14,
+                      cursor: canIncreaseWidth ? "pointer" : "not-allowed",
+                      opacity: canIncreaseWidth ? 1 : 0.4,
+                    }}
+                    onClick={() => handleWidthChange(1)}
+                    disabled={!canIncreaseWidth}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
 
-          {/* Top module shelf count control - only show when module boundary exists */}
-          {hasModuleBoundary && (
+            {/* Height control */}
             <div
               style={{
                 display: "flex",
@@ -537,7 +913,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               }}
             >
               <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
-                Police ↑
+                Visina
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
@@ -552,11 +928,11 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     background: "#f5f5f5",
                     color: "#000000",
                     fontSize: 14,
-                    cursor: canDecreaseTopShelves ? "pointer" : "not-allowed",
-                    opacity: canDecreaseTopShelves ? 1 : 0.4,
+                    cursor: canDecreaseHeight ? "pointer" : "not-allowed",
+                    opacity: canDecreaseHeight ? 1 : 0.4,
                   }}
-                  onClick={() => handleTopModuleShelfCountChange(-1)}
-                  disabled={!canDecreaseTopShelves}
+                  onClick={() => handleHeightChange(-1)}
+                  disabled={!canDecreaseHeight}
                 >
                   -
                 </button>
@@ -569,7 +945,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     color: "#000000",
                   }}
                 >
-                  {topModuleShelfCount}
+                  {Math.round(currentHeightCm)} cm
                 </span>
                 <button
                   style={{
@@ -583,47 +959,85 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     background: "#f5f5f5",
                     color: "#000000",
                     fontSize: 14,
-                    cursor: canIncreaseTopShelves ? "pointer" : "not-allowed",
-                    opacity: canIncreaseTopShelves ? 1 : 0.4,
+                    cursor: canIncreaseHeight ? "pointer" : "not-allowed",
+                    opacity: canIncreaseHeight ? 1 : 0.4,
                   }}
-                  onClick={() => handleTopModuleShelfCountChange(1)}
-                  disabled={!canIncreaseTopShelves}
+                  onClick={() => handleHeightChange(1)}
+                  disabled={!canIncreaseHeight}
                 >
                   +
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Module boundary info - only show when there's a module split */}
-          {hasModuleBoundary && (
+            {/* Shelf count control */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 8,
-                borderTop: "1px solid #45475a",
-                paddingTop: 6,
-                marginTop: 2,
               }}
             >
-              <span style={{ fontSize: 12, color: "#cba6f7", minWidth: 50 }}>
-                Modul
+              <span style={{ fontSize: 12, color: "#000000", minWidth: 50 }}>
+                Police
               </span>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: "#cba6f7",
-                }}
-              >
-                {Math.round(moduleBoundary * 100)} +{" "}
-                {Math.round(currentHeightCm - moduleBoundary * 100)} cm
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canDecreaseShelves ? "pointer" : "not-allowed",
+                    opacity: canDecreaseShelves ? 1 : 0.4,
+                  }}
+                  onClick={() => handleShelfCountChange(-1)}
+                  disabled={!canDecreaseShelves}
+                >
+                  -
+                </button>
+                <span
+                  style={{
+                    minWidth: 50,
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#000000",
+                  }}
+                >
+                  {shelfCount}
+                </span>
+                <button
+                  style={{
+                    width: 24,
+                    height: 24,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #cccccc",
+                    borderRadius: "var(--radius)",
+                    background: "#f5f5f5",
+                    color: "#000000",
+                    fontSize: 14,
+                    cursor: canIncreaseShelves ? "pointer" : "not-allowed",
+                    opacity: canIncreaseShelves ? 1 : 0.4,
+                  }}
+                  onClick={() => handleShelfCountChange(1)}
+                  disabled={!canIncreaseShelves}
+                >
+                  +
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Html>
   );
