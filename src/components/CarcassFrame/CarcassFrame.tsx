@@ -30,6 +30,7 @@ import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 import { CompartmentClickCircle } from "./CompartmentClickCircle";
 import { DoorClickCircle } from "./DoorClickCircle";
+import { SelectionBorderLines } from "./SelectionBorderLines";
 import { DimensionLines3D } from "../DimensionLines3D";
 
 interface CarcassFrameProps {
@@ -743,6 +744,77 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     </mesh>
 
+                    {/* Dashed border - ONLY around SELECTED compartments (while dragging) */}
+                    {isDoorSelected &&
+                      !hasOnlyOneSubdivisionType &&
+                      (() => {
+                        // KEY-BASED neighbor detection for main compartments
+                        let hasNeighborAbove = false;
+                        let hasNeighborBelow = false;
+                        const compNum = compIdx + 1; // compKey is colLetter + compNum
+
+                        // Check if main compartment ABOVE is selected
+                        const compAboveKey = `${colLetter}${compNum + 1}`;
+                        if (selectedDoorCompartments.includes(compAboveKey)) {
+                          hasNeighborAbove = true;
+                        }
+
+                        // Check if main compartment BELOW is selected
+                        if (compNum > 1) {
+                          const compBelowKey = `${colLetter}${compNum - 1}`;
+                          if (selectedDoorCompartments.includes(compBelowKey)) {
+                            hasNeighborBelow = true;
+                          }
+                        }
+
+                        // Check if any sub-compartment of adjacent compartments touches this one
+                        for (const key of selectedDoorCompartments) {
+                          const parsed = parseSubCompKey(key);
+                          if (!parsed || !parsed.isSubComp) continue;
+                          // Must be in same column
+                          if (parsed.compKey.charAt(0) !== colLetter) continue;
+
+                          // Get parent compartment number
+                          const parentCompNum = parseInt(
+                            parsed.compKey.slice(1),
+                            10,
+                          );
+
+                          // Get shelfCount for this sub-compartment's section
+                          const parentCfg = elementConfigs[parsed.compKey];
+                          const shelfCount =
+                            parentCfg?.rowCounts?.[parsed.sectionIdx] ?? 0;
+
+                          // If sub-comp is TOPMOST in its parent, and parent is directly BELOW me
+                          if (
+                            parsed.spaceIdx === shelfCount &&
+                            parentCompNum === compNum - 1
+                          ) {
+                            hasNeighborBelow = true;
+                          }
+
+                          // If sub-comp is BOTTOMMOST in its parent, and parent is directly ABOVE me
+                          if (
+                            parsed.spaceIdx === 0 &&
+                            parentCompNum === compNum + 1
+                          ) {
+                            hasNeighborAbove = true;
+                          }
+                        }
+
+                        return (
+                          <SelectionBorderLines
+                            left={colCenterX - colInnerW / 2}
+                            right={colCenterX + colInnerW / 2}
+                            bottom={bounds.centerY - bounds.height / 2}
+                            top={bounds.centerY + bounds.height / 2}
+                            z={d / 2 + 0.012}
+                            showTop={!hasNeighborAbove}
+                            showBottom={!hasNeighborBelow}
+                          />
+                        );
+                      })()}
+
                     {/* Clickable circle - SHOW when Step 2 active */}
                     {isStep2Active && (
                       <CompartmentClickCircle
@@ -918,6 +990,62 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 columnIndex={colIdx}
                               />,
                             );
+
+                            // Dashed border - ONLY around SELECTED sub-compartments
+                            // Uses KEY-BASED neighbor detection (reliable)
+                            if (isSubKeySelected) {
+                              // PRIMARY: Check adjacent sub-compartments within same section by key
+                              const neighborAboveKey = `${compKey}.${secIdx}.${spaceIdx + 1}`;
+                              const neighborBelowKey = `${compKey}.${secIdx}.${spaceIdx - 1}`;
+                              let hasNeighborAbove =
+                                selectedDoorCompartments.includes(
+                                  neighborAboveKey,
+                                );
+                              let hasNeighborBelow =
+                                selectedDoorCompartments.includes(
+                                  neighborBelowKey,
+                                );
+
+                              // SECONDARY: Check if main compartment above/below is selected
+                              // Extract compartment number from compKey (e.g., "A2" -> 2)
+                              const compNum = parseInt(compKey.slice(1), 10);
+
+                              // If this is the TOPMOST sub-space, check if main comp ABOVE is selected
+                              if (spaceIdx === shelfCount) {
+                                const compAboveKey = `${colLetter}${compNum + 1}`;
+                                if (
+                                  selectedDoorCompartments.includes(
+                                    compAboveKey,
+                                  )
+                                ) {
+                                  hasNeighborAbove = true;
+                                }
+                              }
+                              // If this is the BOTTOMMOST sub-space, check if main comp BELOW is selected
+                              if (spaceIdx === 0 && compNum > 1) {
+                                const compBelowKey = `${colLetter}${compNum - 1}`;
+                                if (
+                                  selectedDoorCompartments.includes(
+                                    compBelowKey,
+                                  )
+                                ) {
+                                  hasNeighborBelow = true;
+                                }
+                              }
+
+                              subCircles.push(
+                                <SelectionBorderLines
+                                  key={`border-${subKey}`}
+                                  left={secLeftX}
+                                  right={secRightX}
+                                  bottom={spaceBottomY}
+                                  top={spaceTopY}
+                                  z={d / 2 + 0.012}
+                                  showTop={!hasNeighborAbove}
+                                  showBottom={!hasNeighborBelow}
+                                />,
+                              );
+                            }
                           }
                         }
 

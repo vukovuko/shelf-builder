@@ -693,3 +693,79 @@ const isMobile = width < 768
 // CORRECT - re-renders only at breakpoint
 const isMobile = useMediaQuery('(max-width: 767px)')
 ```
+
+---
+
+## 19. Selection Border Lines (Step 5 Door Selection)
+
+**CRITICAL: Use KEY-BASED neighbor detection, NOT Y-coordinate comparison!**
+
+When showing dashed borders around selected compartments in Step 5, adjacent selected compartments should merge their borders (hide internal lines). The WRONG approach is to pre-compute Y-coordinates in a useMemo and compare them - this causes calculation mismatches between the pre-computed bounds and render-time bounds.
+
+### The Problem with Y-Coordinate Approach
+
+```tsx
+// WRONG - causes calculation mismatches!
+const selectedBoundsMap = useMemo(() => {
+  // Pre-compute bounds for all selected compartments
+  // These often DON'T match the actual render-time bounds
+}, [deps]);
+
+const checkNeighbors = (myKey) => {
+  // Compare Y-coordinates with tolerance
+  if (Math.abs(otherBounds.top - myBounds.bottom) < 0.002) { ... }
+};
+```
+
+This approach fails because:
+- Bounds calculated in useMemo vs render loop can differ slightly
+- Floating-point comparison is unreliable even with tolerance
+- Complex calculation logic is duplicated and error-prone
+
+### The Correct KEY-BASED Approach
+
+```tsx
+// CORRECT - use compartment keys directly!
+
+// For sub-compartments (A2.0.3):
+const neighborAboveKey = `${compKey}.${secIdx}.${spaceIdx + 1}`;  // A2.0.4
+const neighborBelowKey = `${compKey}.${secIdx}.${spaceIdx - 1}`;  // A2.0.2
+let hasNeighborAbove = selectedDoorCompartments.includes(neighborAboveKey);
+let hasNeighborBelow = selectedDoorCompartments.includes(neighborBelowKey);
+
+// For TOPMOST sub-compartment, also check main compartment ABOVE
+if (spaceIdx === shelfCount) {
+  const compAboveKey = `${colLetter}${compNum + 1}`;
+  if (selectedDoorCompartments.includes(compAboveKey)) {
+    hasNeighborAbove = true;
+  }
+}
+
+// For BOTTOMMOST sub-compartment, also check main compartment BELOW
+if (spaceIdx === 0 && compNum > 1) {
+  const compBelowKey = `${colLetter}${compNum - 1}`;
+  if (selectedDoorCompartments.includes(compBelowKey)) {
+    hasNeighborBelow = true;
+  }
+}
+```
+
+### Key Naming Convention
+
+- Main compartment: `A1`, `A2`, `B1`, etc. (column letter + compartment number)
+- Sub-compartment: `A2.0.3` (compKey.sectionIdx.spaceIdx)
+  - `compKey` = parent compartment (e.g., "A2")
+  - `sectionIdx` = vertical section (0 for single column)
+  - `spaceIdx` = space index from bottom (0 = bottom, shelfCount = top)
+
+### Why Key-Based Works
+
+1. **Keys are exact strings** - no floating-point comparison issues
+2. **Compartment relationships are structural** - A2.0.4 is ALWAYS above A2.0.3
+3. **No duplicate calculations** - use the keys that already exist
+4. **Simple logic** - just check if adjacent key is in selection array
+
+### Files
+
+- `src/components/CarcassFrame/SelectionBorderLines.tsx` - Dashed border component
+- `src/components/CarcassFrame/CarcassFrame.tsx` - Border rendering in Step 5
