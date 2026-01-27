@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
 import {
@@ -52,6 +53,9 @@ export function CompartmentExtrasPanel({
   );
   const setElementDrawerCount = useShelfStore(
     (s: ShelfState) => s.setElementDrawerCount,
+  );
+  const setElementDrawerExternal = useShelfStore(
+    (s: ShelfState) => s.setElementDrawerExternal,
   );
 
   const compartmentExtras = useShelfStore(
@@ -272,6 +276,41 @@ export function CompartmentExtrasPanel({
             +
           </Button>
         </div>
+
+        {/* "Whole compartment is a drawer" - only when NO dividers AND NO shelves */}
+        {config.columns === 1 && (config.rowCounts?.[0] ?? 0) === 0 && (
+          <div className="mt-3 pt-3 border-t space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="whole-drawer"
+                checked={(config.drawerCounts?.[0] ?? 0) > 0}
+                onCheckedChange={(checked) =>
+                  setElementDrawerCount(compartmentKey, 0, checked ? 1 : 0)
+                }
+              />
+              <label htmlFor="whole-drawer" className="text-sm cursor-pointer">
+                Cela pregrada je fioka
+              </label>
+            </div>
+            {(config.drawerCounts?.[0] ?? 0) > 0 && (
+              <div className="flex items-center gap-2 ml-6">
+                <Checkbox
+                  id="whole-drawer-external"
+                  checked={config.drawersExternal?.[0] ?? true}
+                  onCheckedChange={(checked) =>
+                    setElementDrawerExternal(compartmentKey, 0, !!checked)
+                  }
+                />
+                <label
+                  htmlFor="whole-drawer-external"
+                  className="text-xs text-muted-foreground cursor-pointer"
+                >
+                  Spoljašnja fioka (zamenjuje vrata)
+                </label>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Section: Per-section config (shelves + drawers) */}
@@ -281,7 +320,6 @@ export function CompartmentExtrasPanel({
           {Array.from({ length: config.columns }).map((_, idx) => {
             const shelfCount = config.rowCounts?.[idx] ?? 0;
             const drawerCount = config.drawerCounts?.[idx] ?? 0;
-            const maxDrawersForSection = shelfCount + 1;
             return (
               <div key={idx} className="space-y-2 p-2 bg-muted/30 rounded">
                 <span className="text-xs font-medium text-muted-foreground">
@@ -335,68 +373,149 @@ export function CompartmentExtrasPanel({
                   </Button>
                   <span className="text-xs w-4 text-right">{shelfCount}</span>
                 </div>
-                {/* Drawers - only show if there are shelves */}
-                {shelfCount > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-14">
-                      Fioke:
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        setElementDrawerCount(
-                          compartmentKey,
-                          idx,
-                          Math.max(drawerCount - 1, 0),
-                        )
-                      }
-                      disabled={drawerCount <= 0}
-                      className="h-6 w-6"
-                    >
-                      –
-                    </Button>
-                    <Slider
-                      min={0}
-                      max={maxDrawersForSection}
-                      step={1}
-                      value={[drawerCount]}
-                      onValueChange={([val]) =>
-                        setElementDrawerCount(compartmentKey, idx, val)
-                      }
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        setElementDrawerCount(
-                          compartmentKey,
-                          idx,
-                          Math.min(drawerCount + 1, maxDrawersForSection),
-                        )
-                      }
-                      disabled={drawerCount >= maxDrawersForSection}
-                      className="h-6 w-6"
-                    >
-                      +
-                    </Button>
-                    <span className="text-xs w-4 text-right">
-                      {drawerCount}/{maxDrawersForSection}
-                    </span>
-                  </div>
-                )}
+                {/* Drawers - TWO MODES: checkbox (no shelves) or slider (with shelves) */}
+                {(() => {
+                  const isExternal = config.drawersExternal?.[idx] ?? true;
+
+                  if (shelfCount === 0) {
+                    // MODE 1: No shelves → CHECKBOX for "whole section is drawer"
+                    return (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`drawer-${idx}`}
+                            checked={drawerCount > 0}
+                            onCheckedChange={(checked) =>
+                              setElementDrawerCount(
+                                compartmentKey,
+                                idx,
+                                checked ? 1 : 0,
+                              )
+                            }
+                          />
+                          <label
+                            htmlFor={`drawer-${idx}`}
+                            className="text-xs cursor-pointer"
+                          >
+                            Fioka
+                          </label>
+                        </div>
+                        {drawerCount > 0 && (
+                          <div className="flex items-center gap-2 ml-5">
+                            <Checkbox
+                              id={`external-${idx}`}
+                              checked={isExternal}
+                              onCheckedChange={(checked) =>
+                                setElementDrawerExternal(
+                                  compartmentKey,
+                                  idx,
+                                  !!checked,
+                                )
+                              }
+                            />
+                            <label
+                              htmlFor={`external-${idx}`}
+                              className="text-xs text-muted-foreground cursor-pointer"
+                            >
+                              Spoljašnja (zamenjuje vrata)
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } else {
+                    // MODE 2: Has shelves → SLIDER for drawers per space
+                    const maxDrawersForSectionCalc = shelfCount + 1;
+                    return (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-14">
+                            Fioke:
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              setElementDrawerCount(
+                                compartmentKey,
+                                idx,
+                                Math.max(drawerCount - 1, 0),
+                              )
+                            }
+                            disabled={drawerCount <= 0}
+                            className="h-6 w-6"
+                          >
+                            –
+                          </Button>
+                          <Slider
+                            min={0}
+                            max={maxDrawersForSectionCalc}
+                            step={1}
+                            value={[drawerCount]}
+                            onValueChange={([val]) =>
+                              setElementDrawerCount(compartmentKey, idx, val)
+                            }
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              setElementDrawerCount(
+                                compartmentKey,
+                                idx,
+                                Math.min(
+                                  drawerCount + 1,
+                                  maxDrawersForSectionCalc,
+                                ),
+                              )
+                            }
+                            disabled={drawerCount >= maxDrawersForSectionCalc}
+                            className="h-6 w-6"
+                          >
+                            +
+                          </Button>
+                          <span className="text-xs w-6 text-right">
+                            {drawerCount}/{maxDrawersForSectionCalc}
+                          </span>
+                        </div>
+                        {/* External/Internal checkbox - only show if drawers > 0 */}
+                        {drawerCount > 0 && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Checkbox
+                              id={`external-${idx}`}
+                              checked={isExternal}
+                              onCheckedChange={(checked) =>
+                                setElementDrawerExternal(
+                                  compartmentKey,
+                                  idx,
+                                  !!checked,
+                                )
+                              }
+                            />
+                            <label
+                              htmlFor={`external-${idx}`}
+                              className="text-xs text-muted-foreground cursor-pointer"
+                            >
+                              Spoljašnje fioke (zamenjuju vrata)
+                            </label>
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+                })()}
               </div>
             );
           })}
         </div>
       ) : (
-        /* Single section - show shelves and drawers directly */
+        /* Single section - show shelves (and drawers when shelves > 0) */
         <div className="space-y-3 pb-3 border-b">
-          <span className="text-sm font-medium">Police i Fioke</span>
+          <span className="text-sm font-medium">Police</span>
           {/* Shelves */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-14">Police:</span>
+            <span className="text-xs text-muted-foreground w-14">Broj:</span>
             <Button
               variant="outline"
               size="icon"
@@ -440,13 +559,19 @@ export function CompartmentExtrasPanel({
               {config.rowCounts?.[0] ?? 0}
             </span>
           </div>
-          {/* Drawers - only show if there are shelves */}
-          {(config.rowCounts?.[0] ?? 0) > 0 &&
-            (() => {
-              const shelfCount = config.rowCounts?.[0] ?? 0;
-              const drawerCount = config.drawerCounts?.[0] ?? 0;
-              const maxDrawersForSection = shelfCount + 1;
-              return (
+          {/* Drawers - only show when shelves > 0 (no-shelf case is in "Vertikalne pregrade" section) */}
+          {(() => {
+            const shelfCount = config.rowCounts?.[0] ?? 0;
+            const drawerCount = config.drawerCounts?.[0] ?? 0;
+            const isExternal = config.drawersExternal?.[0] ?? true;
+
+            // No shelves = drawer checkbox is in "Vertikalne pregrade" section
+            if (shelfCount === 0) return null;
+
+            // Has shelves → SLIDER for drawers per space
+            const maxDrawersForSection = shelfCount + 1;
+            return (
+              <>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-14">
                     Fioke:
@@ -495,8 +620,27 @@ export function CompartmentExtrasPanel({
                     {drawerCount}/{maxDrawersForSection}
                   </span>
                 </div>
-              );
-            })()}
+                {/* External/Internal checkbox - only show if drawers > 0 */}
+                {drawerCount > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="external-single"
+                      checked={isExternal}
+                      onCheckedChange={(checked) =>
+                        setElementDrawerExternal(compartmentKey, 0, !!checked)
+                      }
+                    />
+                    <label
+                      htmlFor="external-single"
+                      className="text-xs text-muted-foreground cursor-pointer"
+                    >
+                      Spoljašnje fioke (zamenjuju vrata)
+                    </label>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 

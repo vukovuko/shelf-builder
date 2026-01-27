@@ -137,6 +137,7 @@ interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
   drawerCounts?: number[]; // drawers per compartment (max = rowCounts[i] + 1)
+  drawersExternal?: boolean[]; // true = external (facade), false = internal (behind door)
 }
 
 interface CompartmentExtras {
@@ -195,6 +196,11 @@ export interface ShelfState {
   setElementColumns: (key: string, columns: number) => void;
   setElementRowCount: (key: string, index: number, count: number) => void;
   setElementDrawerCount: (key: string, index: number, count: number) => void;
+  setElementDrawerExternal: (
+    key: string,
+    index: number,
+    isExternal: boolean,
+  ) => void;
   // Base (plinth)
   hasBase: boolean;
   baseHeight: number; // in cm
@@ -331,7 +337,7 @@ export interface ShelfState {
 
 export const useShelfStore = create<ShelfState>((set) => ({
   width: 210,
-  height: 201,
+  height: 240,
   depth: 60,
   panelThickness: 2,
   numberOfColumns: 2,
@@ -728,6 +734,29 @@ export const useShelfStore = create<ShelfState>((set) => ({
           [key]: { ...current, drawerCounts },
         },
         compartmentExtras,
+      };
+    }),
+  setElementDrawerExternal: (key, index, isExternal) =>
+    set((state) => {
+      const current = state.elementConfigs[key] ?? {
+        columns: 1,
+        rowCounts: [0],
+        drawerCounts: [0],
+        drawersExternal: [true],
+      };
+      const drawersExternal = [...(current.drawersExternal ?? [])];
+      // Ensure index exists
+      if (index >= drawersExternal.length) {
+        drawersExternal.length = index + 1;
+        for (let i = 0; i < drawersExternal.length; i++)
+          if (drawersExternal[i] == null) drawersExternal[i] = true; // Default to external
+      }
+      drawersExternal[index] = isExternal;
+      return {
+        elementConfigs: {
+          ...state.elementConfigs,
+          [key]: { ...current, drawersExternal },
+        },
       };
     }),
   // Base defaults
@@ -1455,11 +1484,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
   hoveredColumnIndex: null,
   setHoveredColumnIndex: (idx) => set({ hoveredColumnIndex: idx }),
   // Per-column module boundaries (Y position where modules split, in meters)
-  // Initialize for ALL columns based on default width (210cm → 3 columns) and height (201cm)
-  // For 201cm height: boundary at 191cm (bottom 191cm, top 10cm)
+  // Initialize for ALL columns based on default width (210cm → 3 columns) and height (240cm)
+  // For 240cm height: boundary at ~180cm (bottom 180cm, top 60cm)
   columnModuleBoundaries: (() => {
     const defaultWidthM = 210 / 100; // 2.1m (matches default width: 210)
-    const defaultHeightM = 201 / 100; // 2.01m (matches default height: 201)
+    const defaultHeightM = 240 / 100; // 2.4m (matches default height: 240)
     if (defaultHeightM <= TARGET_BOTTOM_HEIGHT) return {};
 
     const boundaries = getDefaultBoundariesX(defaultWidthM);
@@ -1655,7 +1684,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => {
       // Default dimensions
       const defaultWidth = 210;
-      const defaultHeight = 201;
+      const defaultHeight = 240;
       const defaultDepth = 60;
       const defaultWidthM = defaultWidth / 100;
       const defaultHeightM = defaultHeight / 100;
@@ -1664,7 +1693,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const defaultVerticalBoundaries = getDefaultBoundariesX(defaultWidthM);
       const columnCount = defaultVerticalBoundaries.length + 1;
 
-      // Compute default module boundaries for 201cm height (> 200cm threshold)
+      // Compute default module boundaries for 240cm height (> 200cm threshold)
       const defaultModuleBoundaries: Record<number, number> = {};
       if (defaultHeightM > TARGET_BOTTOM_HEIGHT) {
         const initialBoundary = Math.min(

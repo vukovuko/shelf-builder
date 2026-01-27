@@ -622,6 +622,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               ))}
 
               {/* Top height drag handle - HIDE when Step 2/5 active */}
+              {/* maxHeight uses sidebar "Visina" value so user can't drag above what sidebar shows */}
               {!hideUIForSteps && (
                 <TopHeightHandle
                   columnIndex={colIdx}
@@ -630,7 +631,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   depth={d}
                   colWidth={colInnerW}
                   minHeight={getMinColumnHeight(colIdx)}
-                  maxHeight={maxColumnHeight}
+                  maxHeight={height / 100}
                   currentHeightM={colH}
                 />
               )}
@@ -691,6 +692,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   (compHasVerticalDividers && !compHasHorizontalShelves) ||
                   (!compHasVerticalDividers && compHasHorizontalShelves);
 
+                // Check if this compartment has EXTERNAL drawers (replaces doors)
+                const compHasExternalDrawers =
+                  (compCfg.drawerCounts?.some((c) => c > 0) ?? false) &&
+                  (compCfg.drawersExternal?.some((e) => e !== false) ?? true);
+
                 return (
                   <React.Fragment key={`comp-${compIdx}`}>
                     {/* Clickable hit mesh covering entire compartment front */}
@@ -701,10 +707,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         handleColumnHover(colIdx);
                         if (isStep2Active) setHoveredCompartmentKey(compKey);
                         // Only handle drag update if NOT using sub-compartment meshes
+                        // Also skip if compartment has external drawers (replaces doors)
                         if (
                           isStep5Active &&
                           doorSelectionDragging &&
-                          !hasOnlyOneSubdivisionType
+                          !hasOnlyOneSubdivisionType &&
+                          !compHasExternalDrawers
                         ) {
                           updateDoorSelectionDrag(compKey);
                         }
@@ -717,7 +725,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       }}
                       onPointerDown={() => {
                         // Only handle door selection if NOT using sub-compartment meshes
-                        if (isStep5Active && !hasOnlyOneSubdivisionType)
+                        // Also skip if compartment has external drawers (replaces doors)
+                        if (
+                          isStep5Active &&
+                          !hasOnlyOneSubdivisionType &&
+                          !compHasExternalDrawers
+                        )
                           startDoorSelection(compKey);
                       }}
                       onPointerUp={() => {
@@ -732,7 +745,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         opacity={
                           (isStep2Active &&
                             (isCompHovered || isCompSelected)) ||
-                          (isStep5Active && isDoorSelected)
+                          (isStep5Active &&
+                            isDoorSelected &&
+                            !compHasExternalDrawers)
                             ? 0.15
                             : 0
                         }
@@ -745,8 +760,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     </mesh>
 
                     {/* Dashed border - ONLY around SELECTED compartments (while dragging) */}
+                    {/* Also skip if compartment has external drawers (replaces doors) */}
                     {isDoorSelected &&
                       !hasOnlyOneSubdivisionType &&
+                      !compHasExternalDrawers &&
                       (() => {
                         // KEY-BASED neighbor detection for main compartments
                         let hasNeighborAbove = false;
@@ -1194,7 +1211,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         for (let secIdx = 0; secIdx < innerCols; secIdx++) {
                           const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                           const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
-                          if (drawerCount <= 0 || shelfCount <= 0) continue;
+                          const isExternal =
+                            cfg.drawersExternal?.[secIdx] ?? true;
+                          if (drawerCount <= 0) continue;
 
                           // Section X bounds (account for divider thickness)
                           const secLeftX =
@@ -1208,52 +1227,102 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const secCenterX = (secLeftX + secRightX) / 2;
                           const secW = secRightX - secLeftX;
 
-                          // Calculate space positions (N shelves = N+1 spaces)
-                          const usableH = compInnerH;
-                          const gap = usableH / (shelfCount + 1);
-
                           // Drawer front dimensions
                           const drawerInset = 0.002; // 2mm inset from section edges
                           const drawerW = secW - drawerInset * 2;
-                          const drawerZ = d / 2 + 0.009; // 9mm in front of carcass (door thickness)
+                          // External drawers at door Z level, internal drawers inside
+                          const drawerZ = isExternal
+                            ? d / 2 + 0.009 // 9mm in front (like door)
+                            : d / 2 - 0.05; // 5cm inside
+                          // External uses lighter color (door-like), internal uses tan
+                          const drawerColor = isExternal
+                            ? "#e0d5c7"
+                            : "#d4c4b0";
 
-                          // Render drawers from bottom up (space 1 = bottom)
-                          for (
-                            let drIdx = 0;
-                            drIdx < Math.min(drawerCount, shelfCount + 1);
-                            drIdx++
-                          ) {
-                            // Space N is between shelf N-1 and shelf N (or bottom/top panel)
-                            const spaceBottomY =
-                              compBottomY + drIdx * gap + t / 2;
-                            const spaceTopY =
-                              compBottomY + (drIdx + 1) * gap - t / 2;
-                            const drawerCenterY =
-                              (spaceBottomY + spaceTopY) / 2;
-                            const actualDrawerH = Math.max(
-                              0.02,
-                              spaceTopY - spaceBottomY - 0.004,
-                            );
+                          // TWO CASES: with shelves vs without shelves
+                          if (shelfCount === 0) {
+                            // CASE 1: No shelves - drawers divide entire compartment equally
+                            const drawerH = compInnerH / drawerCount;
+                            for (let drIdx = 0; drIdx < drawerCount; drIdx++) {
+                              const drawerBottomY =
+                                compBottomY + drIdx * drawerH;
+                              const drawerTopY = drawerBottomY + drawerH;
+                              const drawerCenterY =
+                                (drawerBottomY + drawerTopY) / 2;
+                              const actualDrawerH = Math.max(
+                                0.02,
+                                drawerH - 0.004,
+                              );
 
-                            drawerPanels.push(
-                              <mesh
-                                key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                position={[secCenterX, drawerCenterY, drawerZ]}
-                              >
-                                <boxGeometry
-                                  args={[
-                                    drawerW,
-                                    actualDrawerH,
-                                    DEFAULT_PANEL_THICKNESS_M,
+                              drawerPanels.push(
+                                <mesh
+                                  key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
                                   ]}
-                                />
-                                <meshStandardMaterial
-                                  color="#d4c4b0"
-                                  roughness={0.7}
-                                  metalness={0}
-                                />
-                              </mesh>,
-                            );
+                                >
+                                  <boxGeometry
+                                    args={[
+                                      drawerW,
+                                      actualDrawerH,
+                                      DEFAULT_PANEL_THICKNESS_M,
+                                    ]}
+                                  />
+                                  <meshStandardMaterial
+                                    color={drawerColor}
+                                    roughness={0.7}
+                                    metalness={0}
+                                  />
+                                </mesh>,
+                              );
+                            }
+                          } else {
+                            // CASE 2: With shelves - one drawer per space (bottom-up)
+                            const usableH = compInnerH;
+                            const gap = usableH / (shelfCount + 1);
+
+                            for (
+                              let drIdx = 0;
+                              drIdx < Math.min(drawerCount, shelfCount + 1);
+                              drIdx++
+                            ) {
+                              const spaceBottomY =
+                                compBottomY + drIdx * gap + t / 2;
+                              const spaceTopY =
+                                compBottomY + (drIdx + 1) * gap - t / 2;
+                              const drawerCenterY =
+                                (spaceBottomY + spaceTopY) / 2;
+                              const actualDrawerH = Math.max(
+                                0.02,
+                                spaceTopY - spaceBottomY - 0.004,
+                              );
+
+                              drawerPanels.push(
+                                <mesh
+                                  key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
+                                  ]}
+                                >
+                                  <boxGeometry
+                                    args={[
+                                      drawerW,
+                                      actualDrawerH,
+                                      DEFAULT_PANEL_THICKNESS_M,
+                                    ]}
+                                  />
+                                  <meshStandardMaterial
+                                    color={drawerColor}
+                                    roughness={0.7}
+                                    metalness={0}
+                                  />
+                                </mesh>,
+                              );
+                            }
                           }
                         }
 
