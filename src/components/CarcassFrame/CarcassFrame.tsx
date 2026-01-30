@@ -467,14 +467,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             // Compartment below this shelf
             const compKeyBelow = `${colLetter}${shelfIdx + 1}`;
             const minHeightBelow = getMinCompartmentHeightM(compKeyBelow);
-            return prevY + minHeightBelow;
+            // Account for shelf thickness: prevY is a surface (first) or center (others)
+            // Clear space = shelfY - t/2 - (prevY or prevY + t/2)
+            const thicknessOffset = shelfIdx === 0 ? t / 2 : t;
+            return prevY + minHeightBelow + thicknessOffset;
           };
 
           // Helper: get maxY for a shelf (accounts for inner elements in compartment above)
           // Shelf at shelfIdx affects compartment above it (compIdx = shelfIdx + 1)
           const getMaxYForShelf = (shelfIdx: number): number => {
             let nextY: number;
-            if (shelfIdx === shelves.length - 1) {
+            const isLast = shelfIdx === shelves.length - 1;
+            if (isLast) {
               // Last shelf - constrained by module boundary panel (if exists) or top panel
               nextY = hasModuleBoundary ? moduleBoundary - t : colH - t;
             } else {
@@ -483,7 +487,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             // Compartment above this shelf
             const compKeyAbove = `${colLetter}${shelfIdx + 2}`;
             const minHeightAbove = getMinCompartmentHeightM(compKeyAbove);
-            return nextY - minHeightAbove;
+            // Account for shelf thickness: nextY is a surface (last) or center (others)
+            const thicknessOffset = isLast ? t / 2 : t;
+            return nextY - minHeightAbove - thicknessOffset;
           };
 
           // Calculate compartment center Y positions for labels
@@ -1535,16 +1541,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   <>
                     {topShelves.map((shelfY: number, shelfIdx: number) => {
                       // Min/max Y for shelf drag within top module
-                      const prevY =
-                        shelfIdx === 0
+                      const isFirst = shelfIdx === 0;
+                      const isLast = shelfIdx === topShelves.length - 1;
+                      const prevY = isFirst
                           ? boundary + t
                           : topShelves[shelfIdx - 1];
-                      const nextY =
-                        shelfIdx === topShelves.length - 1
+                      const nextY = isLast
                           ? colH - t
                           : topShelves[shelfIdx + 1];
-                      const shelfMinY = prevY + minCompHeight;
-                      const shelfMaxY = nextY - minCompHeight;
+                      // Account for shelf thickness in clear space calculation
+                      const minThickness = isFirst ? t / 2 : t;
+                      const maxThickness = isLast ? t / 2 : t;
+                      const shelfMinY = prevY + minCompHeight + minThickness;
+                      const shelfMaxY = nextY - minCompHeight - maxThickness;
 
                       return (
                         <React.Fragment key={`top-shelf-${colIdx}-${shelfIdx}`}>

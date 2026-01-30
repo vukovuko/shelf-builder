@@ -372,7 +372,7 @@ export function calculateCutList(
     // 2. VERTICAL SEAM PANELS (2 per seam)
     // ==========================================
     // At each vertical boundary, there are 2 panels (one from each adjacent column)
-    const seamH = hasBase ? h - baseH : h;
+    const seamH = h; // Seams go full height to floor (through base area)
     verticalBoundaries.forEach((_, seamIdx) => {
       addKorpus(
         `VS${seamIdx + 1}L`,

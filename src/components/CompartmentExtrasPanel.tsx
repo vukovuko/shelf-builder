@@ -277,40 +277,48 @@ export function CompartmentExtrasPanel({
           </Button>
         </div>
 
-        {/* "Whole compartment is a drawer" - only when NO dividers AND NO shelves */}
-        {config.columns === 1 && (config.rowCounts?.[0] ?? 0) === 0 && (
-          <div className="mt-3 pt-3 border-t space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="whole-drawer"
-                checked={(config.drawerCounts?.[0] ?? 0) > 0}
-                onCheckedChange={(checked) =>
-                  setElementDrawerCount(compartmentKey, 0, checked ? 1 : 0)
-                }
-              />
-              <label htmlFor="whole-drawer" className="text-sm cursor-pointer">
-                Cela pregrada je fioka
-              </label>
-            </div>
-            {(config.drawerCounts?.[0] ?? 0) > 0 && (
-              <div className="flex items-center gap-2 ml-6">
+        {/* "Whole compartment is a drawer" - disabled when dividers or shelves exist */}
+        {(() => {
+          const hasSubdivisions = config.columns > 1 || (config.rowCounts?.[0] ?? 0) > 0;
+          const isChecked = (config.drawerCounts?.[0] ?? 0) > 0;
+          return (
+            <div className="mt-3 pt-3 border-t space-y-2">
+              <div className="flex items-center gap-2">
                 <Checkbox
-                  id="whole-drawer-external"
-                  checked={config.drawersExternal?.[0] ?? true}
+                  id="whole-drawer"
+                  checked={isChecked && !hasSubdivisions}
+                  disabled={hasSubdivisions}
                   onCheckedChange={(checked) =>
-                    setElementDrawerExternal(compartmentKey, 0, !!checked)
+                    setElementDrawerCount(compartmentKey, 0, checked ? 1 : 0)
                   }
                 />
                 <label
-                  htmlFor="whole-drawer-external"
-                  className="text-xs text-muted-foreground cursor-pointer"
+                  htmlFor="whole-drawer"
+                  className={`text-sm ${hasSubdivisions ? "text-muted-foreground" : "cursor-pointer"}`}
                 >
-                  Spoljašnja fioka (zamenjuje vrata)
+                  Cela pregrada je fioka
                 </label>
               </div>
-            )}
-          </div>
-        )}
+              {isChecked && !hasSubdivisions && (
+                <div className="flex items-center gap-2 ml-6">
+                  <Checkbox
+                    id="whole-drawer-external"
+                    checked={config.drawersExternal?.[0] ?? true}
+                    onCheckedChange={(checked) =>
+                      setElementDrawerExternal(compartmentKey, 0, !!checked)
+                    }
+                  />
+                  <label
+                    htmlFor="whole-drawer-external"
+                    className="text-xs text-muted-foreground cursor-pointer"
+                  >
+                    Spoljašnja fioka (zamenjuje vrata)
+                  </label>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Section: Per-section config (shelves + drawers) */}

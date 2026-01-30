@@ -608,13 +608,26 @@ export const useShelfStore = create<ShelfState>((set) => ({
           const clampedBoundary = Math.max(minY, Math.min(maxY, oldBoundary));
           newModuleBoundaries[colIdx] = clampedBoundary;
 
-          // Top module shelves: filter to valid range if boundary unchanged
+          // Top module shelves: clamp count and redistribute evenly
           const topShelves = state.columnTopModuleShelves[colIdx] || [];
           if (topShelves.length > 0 && clampedBoundary === oldBoundary) {
-            // Boundary unchanged, filter shelves to valid range
-            newTopModuleShelves[colIdx] = topShelves.filter(
-              (y) => y > clampedBoundary + 0.1 && y < newHeightM - 0.1,
-            );
+            const topModuleH = newHeightM - clampedBoundary;
+            const topModuleHCm = topModuleH * 100;
+            const maxShelves = getMaxShelvesForHeight(topModuleHCm);
+            const clampedCount = Math.min(topShelves.length, maxShelves);
+
+            if (clampedCount > 0) {
+              const panelT = 0.018;
+              const usableH = topModuleH - 2 * panelT;
+              const gap = usableH / (clampedCount + 1);
+              const positions: number[] = [];
+              for (let i = 1; i <= clampedCount; i++) {
+                positions.push(clampedBoundary + panelT + i * gap);
+              }
+              newTopModuleShelves[colIdx] = positions;
+            } else {
+              newTopModuleShelves[colIdx] = [];
+            }
           } else {
             // Boundary was clamped or no shelves, clear
             newTopModuleShelves[colIdx] = [];
@@ -664,24 +677,26 @@ export const useShelfStore = create<ShelfState>((set) => ({
           newHeightM > TARGET_BOTTOM_HEIGHT
             ? moduleBoundary
             : newHeightM;
-        const minShelfY = panelT + minGap; // Must be at least 10cm above bottom panel
-        const maxShelfY = effectiveCeiling - panelT - minGap; // Must be at least 10cm below ceiling
+        // Min/max shelf positions accounting for shelf thickness (t/2 from center to surface)
+        const minShelfY = panelT + minGap + panelT / 2;
+        const maxShelfY = effectiveCeiling - panelT - minGap - panelT / 2;
 
         // First filter by bounds
         const boundsFiltered = scaledShelves
           .filter((y) => y > minShelfY && y < maxShelfY)
           .sort((a, b) => a - b);
 
-        // Then filter to maintain minimum 10cm gap between adjacent shelves
+        // Then filter to maintain minimum 10cm CLEAR gap between adjacent shelf surfaces
         const gapFiltered: number[] = [];
-        let lastY = panelT; // Start from bottom panel
+        let lastY = panelT; // Start from bottom panel top surface
+        let lastIsShelf = false;
         for (const y of boundsFiltered) {
-          if (y - lastY >= minGap) {
-            // Also check gap to ceiling
-            if (effectiveCeiling - panelT - y >= minGap) {
-              gapFiltered.push(y);
-              lastY = y;
-            }
+          const clearBelow = lastIsShelf ? (y - lastY - panelT) : (y - lastY - panelT / 2);
+          const clearAbove = effectiveCeiling - panelT - y - panelT / 2;
+          if (clearBelow >= minGap && clearAbove >= minGap) {
+            gapFiltered.push(y);
+            lastY = y;
+            lastIsShelf = true;
           }
         }
 
@@ -805,6 +820,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
       } else if (columns < drawerCounts.length) {
         drawerCounts = drawerCounts.slice(0, columns);
       }
+      // Clear "whole compartment drawer" when adding subdivisions
+      if (columns > 1 && drawerCounts[0] > 0) {
+        drawerCounts[0] = 0;
+      }
       // Clear rod/LED if compartment now has subdivisions
       const hasSubdivisions =
         columns > 1 ||
@@ -846,11 +865,18 @@ export const useShelfStore = create<ShelfState>((set) => ({
           if (rowCounts[i] == null) rowCounts[i] = 0;
       }
       rowCounts[index] = clampedCount;
+      // Clear "whole compartment drawer" when adding shelves
+      let updatedConfig = { ...current, rowCounts };
+      if (clampedCount > 0 && (current.drawerCounts?.[0] ?? 0) > 0 && (current.columns ?? 1) === 1) {
+        const drawerCounts = [...(current.drawerCounts ?? [])];
+        drawerCounts[0] = 0;
+        updatedConfig = { ...updatedConfig, drawerCounts };
+      }
       // Clear rod/LED if compartment now has subdivisions
       const hasSubdivisions =
         (current.columns ?? 1) > 1 ||
         rowCounts.some((c) => c > 0) ||
-        (current.drawerCounts?.some((c) => c > 0) ?? false);
+        (updatedConfig.drawerCounts?.some((c) => c > 0) ?? false);
       let compartmentExtras = state.compartmentExtras;
       if (hasSubdivisions && state.compartmentExtras[key]) {
         const { rod, led, ...rest } = state.compartmentExtras[key];
@@ -862,7 +888,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return {
         elementConfigs: {
           ...state.elementConfigs,
-          [key]: { ...current, rowCounts },
+          [key]: updatedConfig,
         },
         compartmentExtras,
       };
@@ -1549,21 +1575,35 @@ export const useShelfStore = create<ShelfState>((set) => ({
             [colIdx]: clampedBoundary,
           };
 
-          // Top module shelves: if boundary position unchanged, keep shelves
-          // Otherwise clear them (module size changed significantly)
+          // Top module shelves: clamp count and redistribute evenly
           const topShelves = state.columnTopModuleShelves[colIdx] || [];
           if (
             topShelves.length > 0 &&
             clampedBoundary === existingModuleBoundary
           ) {
-            // Boundary unchanged, filter shelves to valid range
-            const validShelves = topShelves.filter(
-              (y) => y > clampedBoundary + 0.1 && y < newHeightM - 0.1,
-            );
-            newTopModuleShelves = {
-              ...newTopModuleShelves,
-              [colIdx]: validShelves,
-            };
+            const topModuleH = newHeightM - clampedBoundary;
+            const topModuleHCm = topModuleH * 100;
+            const maxShelves = getMaxShelvesForHeight(topModuleHCm);
+            const clampedCount = Math.min(topShelves.length, maxShelves);
+
+            if (clampedCount > 0) {
+              const panelT = 0.018;
+              const usableH = topModuleH - 2 * panelT;
+              const gap = usableH / (clampedCount + 1);
+              const positions: number[] = [];
+              for (let i = 1; i <= clampedCount; i++) {
+                positions.push(clampedBoundary + panelT + i * gap);
+              }
+              newTopModuleShelves = {
+                ...newTopModuleShelves,
+                [colIdx]: positions,
+              };
+            } else {
+              newTopModuleShelves = {
+                ...newTopModuleShelves,
+                [colIdx]: [],
+              };
+            }
           } else {
             // Boundary was clamped, clear shelves
             newTopModuleShelves = {
@@ -1669,24 +1709,26 @@ export const useShelfStore = create<ShelfState>((set) => ({
             : newHeightM;
         const panelT = 0.018; // 18mm panel thickness
         const minGap = MIN_DRAG_GAP; // 10cm minimum gap between shelves
-        const minShelfY = panelT + minGap; // Must be at least 10cm above bottom panel
-        const maxShelfY = effectiveCeiling - panelT - minGap; // Must be at least 10cm below ceiling
+        // Min/max shelf positions accounting for shelf thickness (t/2 from center to surface)
+        const minShelfY = panelT + minGap + panelT / 2;
+        const maxShelfY = effectiveCeiling - panelT - minGap - panelT / 2;
 
         // First filter by bounds
         const boundsFiltered = scaledShelves
           .filter((y) => y > minShelfY && y < maxShelfY)
           .sort((a, b) => a - b);
 
-        // Then filter to maintain minimum 10cm gap between adjacent shelves
+        // Then filter to maintain minimum 10cm CLEAR gap between adjacent shelf surfaces
         const gapFiltered: number[] = [];
-        let lastY = panelT; // Start from bottom panel
+        let lastY = panelT; // Start from bottom panel top surface
+        let lastIsShelf = false;
         for (const y of boundsFiltered) {
-          if (y - lastY >= minGap) {
-            // Also check gap to ceiling
-            if (effectiveCeiling - panelT - y >= minGap) {
-              gapFiltered.push(y);
-              lastY = y;
-            }
+          const clearBelow = lastIsShelf ? (y - lastY - panelT) : (y - lastY - panelT / 2);
+          const clearAbove = effectiveCeiling - panelT - y - panelT / 2;
+          if (clearBelow >= minGap && clearAbove >= minGap) {
+            gapFiltered.push(y);
+            lastY = y;
+            lastIsShelf = true;
           }
         }
 
@@ -1810,20 +1852,22 @@ export const useShelfStore = create<ShelfState>((set) => ({
             [colIdx]: [],
           };
         } else {
-          // Scale shelves proportionally within new top module bounds
-          const scaledShelves = topShelves
-            .map((shelfY) => {
-              // Convert to relative position within old top module
-              const relativePos = (shelfY - oldBoundary) / oldTopModuleHeight;
-              // Apply to new top module
-              return clampedY + relativePos * newTopModuleHeight;
-            })
-            .filter((y) => y > clampedY + 0.1 && y < colHeightM - 0.1); // Remove invalid positions
+          // Clamp shelf count to what fits, redistribute evenly
+          const topModuleHeightCm = newTopModuleHeight * 100;
+          const maxShelves = getMaxShelvesForHeight(topModuleHeightCm);
+          const clampedCount = Math.min(topShelves.length, maxShelves);
 
-          newTopShelves = {
-            ...state.columnTopModuleShelves,
-            [colIdx]: scaledShelves,
-          };
+          if (clampedCount > 0) {
+            const usableHeight = newTopModuleHeight - 2 * panelThicknessM;
+            const gap = usableHeight / (clampedCount + 1);
+            const positions: number[] = [];
+            for (let i = 1; i <= clampedCount; i++) {
+              positions.push(clampedY + panelThicknessM + i * gap);
+            }
+            newTopShelves = { ...state.columnTopModuleShelves, [colIdx]: positions };
+          } else {
+            newTopShelves = { ...state.columnTopModuleShelves, [colIdx]: [] };
+          }
         }
       }
 
