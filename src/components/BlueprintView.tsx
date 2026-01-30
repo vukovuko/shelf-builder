@@ -671,14 +671,17 @@ export function BlueprintView() {
                 }
 
                 // Draw height labels for spaces between inner shelves
-                const minDisplayHeight = 10; // Only show if space >= 10cm
-                if (gap >= minDisplayHeight) {
+                // Always show labels regardless of height (user requirement)
+                // MIN_DRAG_GAP = 10cm is the minimum compartment height
+                if (gap > 0) {
                   for (let spaceIdx = 0; spaceIdx <= shelfCount; spaceIdx++) {
                     const spaceBottomY = safeBottomY + spaceIdx * gap;
                     const spaceTopY = safeBottomY + (spaceIdx + 1) * gap;
                     const spaceMidY = (spaceBottomY + spaceTopY) / 2;
                     const spaceMidX = (secX1 + secX2) / 2;
                     const spaceHeightCm = Math.round(gap);
+                    // Font size (min gap is 10cm per MIN_DRAG_GAP)
+                    const labelFontSize = gap < 15 ? 7 : 8;
 
                     nodes.push(
                       <text
@@ -687,7 +690,7 @@ export function BlueprintView() {
                         y={mapYForColumn(spaceMidY, colIdx)}
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        fontSize="8"
+                        fontSize={labelFontSize}
                         fill="#666"
                       >
                         {spaceHeightCm}
@@ -786,14 +789,17 @@ export function BlueprintView() {
                 </g>,
               );
 
-              // Height label centered (if tall enough)
-              if (comp.heightCm > 20) {
+              // Height label centered - always show regardless of height (user requirement)
+              // MIN_DRAG_GAP = 10cm is the minimum compartment height
+              if (comp.heightCm > 0) {
+                // Font size (min height is 10cm per MIN_DRAG_GAP)
+                const heightLabelFontSize = comp.heightCm < 15 ? 9 : 11;
                 nodes.push(
                   <text
                     key={`h-${compKey}`}
                     x={colCenterX}
                     y={mapYForColumn((safeBottomY + safeTopY) / 2, colIdx)}
-                    fontSize="11"
+                    fontSize={heightLabelFontSize}
                     fontFamily="Arial, sans-serif"
                     textAnchor="middle"
                     dominantBaseline="middle"

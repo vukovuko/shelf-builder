@@ -70,6 +70,31 @@ export function applyWardrobeSnapshot(data: any) {
     // null/undefined values are skipped (no shelves)
   });
 
+  // Validate and fix columnModuleBoundaries (fix for bug where boundaries got progressively shrunken)
+  // The boundary must be valid for the column height - at least MIN_TOP_HEIGHT from top and bottom
+  const MIN_TOP_HEIGHT = 0.1; // 10cm minimum module height
+  const savedModuleBoundaries = data.columnModuleBoundaries || {};
+  const savedColumnHeights = data.columnHeights || {};
+  const globalHeightM = (data.height || 200) / 100;
+  const fixedModuleBoundaries: Record<number, number> = {};
+
+  Object.entries(savedModuleBoundaries).forEach(([key, value]) => {
+    const colIdx = Number(key);
+    const boundary = value as number;
+    if (boundary === null || boundary === undefined) return;
+
+    // Get the column height (custom or global)
+    const colHeightCm = savedColumnHeights[colIdx] ?? data.height ?? 200;
+    const colHeightM = colHeightCm / 100;
+
+    // Clamp boundary to valid range for the column height
+    const minY = MIN_TOP_HEIGHT;
+    const maxY = colHeightM - MIN_TOP_HEIGHT;
+    const clampedBoundary = Math.max(minY, Math.min(maxY, boundary));
+
+    fixedModuleBoundaries[colIdx] = clampedBoundary;
+  });
+
   // Migrate old doorSelections to new doorGroups format
   // Only migrate if doorGroups doesn't exist or is empty, but doorSelections has data
   let doorGroups = data.doorGroups || [];
@@ -104,7 +129,7 @@ export function applyWardrobeSnapshot(data: any) {
     verticalBoundaries: data.verticalBoundaries || [],
     columnHorizontalBoundaries,
     columnHeights: data.columnHeights || {},
-    columnModuleBoundaries: data.columnModuleBoundaries || {},
+    columnModuleBoundaries: fixedModuleBoundaries,
     columnTopModuleShelves: data.columnTopModuleShelves || {},
     // Door groups with per-door settings (migrated from old format if needed)
     doorGroups,

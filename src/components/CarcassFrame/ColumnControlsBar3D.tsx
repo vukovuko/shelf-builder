@@ -202,14 +202,16 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   const handleShelfCountChange = (delta: number) => {
     const newCount = shelfCount + delta;
-    if (newCount >= 0 && newCount <= maxShelves) {
+    // Always allow decreasing (delta < 0), only enforce max when increasing
+    if (newCount >= 0 && (delta < 0 || newCount <= maxShelves)) {
       setColumnShelfCount(displayColumn, newCount, panelThicknessM);
     }
   };
 
   const handleTopModuleShelfCountChange = (delta: number) => {
     const newCount = topModuleShelfCount + delta;
-    if (newCount >= 0 && newCount <= maxTopModuleShelves) {
+    // Always allow decreasing (delta < 0), only enforce max when increasing
+    if (newCount >= 0 && (delta < 0 || newCount <= maxTopModuleShelves)) {
       setColumnTopModuleShelfCount(displayColumn, newCount, panelThicknessM);
     }
   };

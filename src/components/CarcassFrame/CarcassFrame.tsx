@@ -359,8 +359,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     return (
       <group position={[0, 0, 0]}>
         {/* Side L - height of first column (verticalZ to prevent edge bleeding) */}
-        {/* Split into two panels if module boundary exists */}
-        {sideL_ModuleBoundary && sideL_ModuleBoundary > 0 ? (
+        {/* Split into two panels if module boundary exists AND height > 200cm */}
+        {sideL_ModuleBoundary &&
+        sideL_ModuleBoundary > 0 &&
+        sideL_H > splitThreshold ? (
           <>
             {/* Side L - Bottom module */}
             <Panel
@@ -388,8 +390,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         )}
 
         {/* Side R - height of last column (verticalZ to prevent edge bleeding) */}
-        {/* Split into two panels if module boundary exists */}
-        {sideR_ModuleBoundary && sideR_ModuleBoundary > 0 ? (
+        {/* Split into two panels if module boundary exists AND height > 200cm */}
+        {sideR_ModuleBoundary &&
+        sideR_ModuleBoundary > 0 &&
+        sideR_H > splitThreshold ? (
           <>
             {/* Side R - Bottom module */}
             <Panel
@@ -711,10 +715,18 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const compHeightCm = getCompartmentHeightCm(compIdx);
                 const compKey = `${colLetter}${compIdx + 1}`;
                 // HIDE labels when Step 2 or 5 is active (show circles instead)
-                const showLabel = compHeightCm >= 10 && !hideUIForSteps;
-                // Responsive font size based on compartment height
+                // Always show labels regardless of compartment height (user requirement)
+                // MIN_DRAG_GAP = 10cm is the minimum compartment height
+                const showLabel = compHeightCm > 0 && !hideUIForSteps;
+                // Responsive font size based on compartment height (min is 10cm)
                 const fontSize =
-                  compHeightCm < 20 ? 13 : compHeightCm < 25 ? 16 : 18;
+                  compHeightCm < 15
+                    ? 11
+                    : compHeightCm < 20
+                      ? 13
+                      : compHeightCm < 25
+                        ? 16
+                        : 18;
 
                 const isCompHovered = hoveredCompartmentKey === compKey;
                 const isCompSelected = selectedCompartmentKey === compKey;

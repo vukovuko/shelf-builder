@@ -164,7 +164,10 @@ export function ModuleBoundaryHandle({
   }, [camera, gl, minY, maxY, columnIndex]);
 
   return (
-    <group position={[x, y, depth / 2 + 0.01]}>
+    <group
+      key={`boundary-${columnIndex}-${y}`}
+      position={[x, y, depth / 2 + 0.01]}
+    >
       {/* Invisible hit area for easier clicking */}
       <mesh
         onPointerDown={handlePointerDown}
