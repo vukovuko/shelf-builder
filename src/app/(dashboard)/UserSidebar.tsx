@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PenTool, FolderOpen, User, ShoppingBag } from "lucide-react";
+import {
+  PenTool,
+  FolderOpen,
+  User,
+  ShoppingBag,
+  MessageSquare,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +42,11 @@ const navItems = [
     title: "Nalog",
     href: "/account",
     icon: User,
+  },
+  {
+    title: "Kontakt",
+    href: "/contact",
+    icon: MessageSquare,
   },
 ];
 

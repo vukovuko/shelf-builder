@@ -8,6 +8,7 @@ import {
   FileText,
   FolderOpen,
   LogOut,
+  MessageSquare,
   Settings,
   ShoppingCart,
   User,
@@ -1448,6 +1449,13 @@ export function ConfiguratorControls({
                 <Link href="/account" className="flex items-center">
                   <Settings className="h-4 w-4 mr-2" />
                   Nalog
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+                <Link href="/contact" className="flex items-center">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Kontakt
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

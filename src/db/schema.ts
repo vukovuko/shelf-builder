@@ -369,3 +369,42 @@ export const orderRelations = relations(orders, ({ one }) => ({
     references: [materials.id],
   }),
 }));
+
+// Contact messages table
+export const contactMessages = pgTable(
+  "contact_message",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("userId").references(() => user.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    wardrobeId: text("wardrobeId").references(() => wardrobes.id, {
+      onDelete: "set null",
+    }),
+    message: text("message").notNull(),
+    status: text("status").notNull().default("new"), // new, read, replied
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("contact_message_user_id_idx").on(table.userId),
+    statusIdx: index("contact_message_status_idx").on(table.status),
+  }),
+);
+
+// Contact message relations
+export const contactMessageRelations = relations(
+  contactMessages,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [contactMessages.userId],
+      references: [user.id],
+    }),
+    wardrobe: one(wardrobes, {
+      fields: [contactMessages.wardrobeId],
+      references: [wardrobes.id],
+    }),
+  }),
+);
