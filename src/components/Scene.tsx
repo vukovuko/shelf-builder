@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  Bounds,
-  Center,
-  OrbitControls,
-  Environment,
-  useBounds,
-} from "@react-three/drei";
+import { OrbitControls, Environment } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import React, { useRef, useEffect, Suspense } from "react";
+import React, { useRef, useEffect, useCallback, Suspense } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
@@ -115,48 +109,88 @@ function StoreInvalidator() {
 }
 
 /**
- * CameraFitter - Auto-fits camera when wardrobe dimensions change or fit is requested
- * Must be placed inside Bounds component to access useBounds hook
+ * CameraPositioner - Manually positions camera to fit wardrobe
+ * Replaces Bounds component which wasn't working correctly
  */
-function CameraFitter() {
-  const bounds = useBounds();
+function CameraPositioner() {
+  const { camera, gl, invalidate } = useThree();
   const width = useShelfStore((s: ShelfState) => s.width);
   const height = useShelfStore((s: ShelfState) => s.height);
-  const depth = useShelfStore((s: ShelfState) => s.depth);
   const fitRequestId = useShelfStore((s: ShelfState) => s.fitRequestId);
-
-  // Track if this is the first render (skip initial fit - Bounds handles that)
-  const isFirstRender = useRef(true);
   const lastFitRequestId = useRef(fitRequestId);
+  const hasPositioned = useRef(false);
 
-  // Delayed initial fit for mobile - re-fit after UI settles
-  // This ensures camera accounts for mobile header/footer padding
+  const positionCamera = useCallback(() => {
+    const w = width / 100; // cm to meters
+    const h = height / 100;
+
+    const perspCam = camera as THREE.PerspectiveCamera;
+    const fovRad = (perspCam.fov * Math.PI) / 180;
+    const aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
+
+    // Calculate distance needed to fit width and height
+    const distanceForWidth = w / 2 / Math.tan(fovRad / 2) / aspect;
+    const distanceForHeight = h / 2 / Math.tan(fovRad / 2);
+
+    // Use whichever requires more distance, add margin
+    const margin = 1.25; // 25% margin for comfortable fit
+    const distance = Math.max(distanceForWidth, distanceForHeight) * margin;
+
+    // Position camera directly in front, centered
+    // Center component puts wardrobe center at (0,0,0)
+    camera.position.set(0, 0, Math.max(distance, 1));
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+
+    invalidate();
+  }, [camera, gl, width, height, invalidate]);
+
+  // Position on mount (with delay to ensure canvas is ready)
   useEffect(() => {
+    if (hasPositioned.current) return;
+    hasPositioned.current = true;
+
     const timer = setTimeout(() => {
-      bounds.refresh().fit();
-    }, 150);
+      positionCamera();
+    }, 100);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [positionCamera]);
 
-  // Re-fit when dimensions change
+  // Reposition when dimensions change
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    bounds.refresh().fit();
-  }, [width, height, depth, bounds]);
+    if (!hasPositioned.current) return;
+    positionCamera();
+  }, [width, height, positionCamera]);
 
-  // Re-fit when explicitly requested via triggerFitToView()
+  // Reposition when explicitly requested
   useEffect(() => {
     if (fitRequestId !== lastFitRequestId.current) {
       lastFitRequestId.current = fitRequestId;
-      bounds.refresh().fit();
+      positionCamera();
     }
-  }, [fitRequestId, bounds]);
+  }, [fitRequestId, positionCamera]);
 
   return null;
+}
+
+/**
+ * WardrobeCenterer - Manually centers the wardrobe at origin
+ * The wardrobe is built floor-origin (Y=0 at floor), so we offset by -h/2 to center vertically
+ * X is already centered (goes from -w/2 to +w/2)
+ */
+function WardrobeCenterer({
+  wardrobeRef,
+}: {
+  wardrobeRef: React.RefObject<any>;
+}) {
+  const height = useShelfStore((s: ShelfState) => s.height);
+  const h = height / 100; // cm to meters
+
+  return (
+    <group position={[0, -h / 2, 0]}>
+      <Wardrobe ref={wardrobeRef} />
+    </group>
+  );
 }
 
 /**
@@ -295,17 +329,13 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
         )}
 
-        {!showEdgesOnly && <Environment preset="studio" />}
+        {!showEdgesOnly && <Environment preset="apartment" />}
 
-        {/* Bounds fits camera, CameraFitter re-fits when dimensions change */}
-        <Bounds fit clip margin={1.5}>
-          <Suspense fallback={null}>
-            <Center>
-              <Wardrobe ref={wardrobeRef} />
-            </Center>
-          </Suspense>
-          <CameraFitter />
-        </Bounds>
+        {/* Wardrobe centered manually, CameraPositioner handles camera fitting */}
+        <Suspense fallback={null}>
+          <WardrobeCenterer wardrobeRef={wardrobeRef} />
+        </Suspense>
+        <CameraPositioner />
 
         <OrbitControls
           ref={controlsRef}
