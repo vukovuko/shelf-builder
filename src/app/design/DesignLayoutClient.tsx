@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, DoorOpen, DoorClosed } from "lucide-react";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
+import { MobileBottomTabs } from "@/components/MobileBottomTabs";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
@@ -234,7 +235,7 @@ export function DesignLayoutClient({
       </aside>
 
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-14 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-10 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-2">
           {fromOrderId && fromOrderNumber && (
             <Button
@@ -258,14 +259,6 @@ export function DesignLayoutClient({
               <span className="sr-only">Nazad na {fromWardrobeName}</span>
             </Button>
           )}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
-            aria-label="Open configurator menu"
-          >
-            Meni
-          </button>
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-2 justify-end">
@@ -287,6 +280,12 @@ export function DesignLayoutClient({
         </div>
       </div>
 
+      {/* Mobile bottom tabs */}
+      <MobileBottomTabs
+        materials={initialMaterials}
+        onOpenDrawer={() => setDrawerOpen(true)}
+      />
+
       {/* Drawer overlay */}
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-40">
@@ -306,7 +305,7 @@ export function DesignLayoutClient({
         </div>
       )}
 
-      <main className="flex-1 relative overflow-hidden h-screen">
+      <main className="flex-1 relative overflow-hidden h-screen pt-10 pb-32 md:pt-0 md:pb-0">
         {fromOrderId && fromOrderNumber && (
           <div className="absolute top-2 left-2 hidden md:block z-20">
             <Button

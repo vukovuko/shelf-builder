@@ -76,6 +76,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const setHoveredColumnIndex = useShelfStore(
       (state: ShelfState) => state.setHoveredColumnIndex,
     );
+    const selectedColumnIndex = useShelfStore(
+      (state: ShelfState) => state.selectedColumnIndex,
+    );
+    const setSelectedColumnIndex = useShelfStore(
+      (state: ShelfState) => state.setSelectedColumnIndex,
+    );
     const columnModuleBoundaries = useShelfStore(
       (state: ShelfState) => state.columnModuleBoundaries,
     );
@@ -151,6 +157,23 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
       },
       [setHoveredColumnIndex],
     );
+
+    // Click handler for mobile tap-to-select column controls
+    const handleColumnClick = React.useCallback(
+      (colIdx: number, e: { stopPropagation: () => void }) => {
+        e.stopPropagation();
+        // Set both hovered and selected for consistent behavior
+        setHoveredColumnIndex(colIdx);
+        setSelectedColumnIndex(colIdx);
+      },
+      [setHoveredColumnIndex, setSelectedColumnIndex],
+    );
+
+    // Clear column selection when clicking background
+    const handleBackgroundClick = React.useCallback(() => {
+      setSelectedColumnIndex(null);
+      setHoveredColumnIndex(null);
+    }, [setSelectedColumnIndex, setHoveredColumnIndex]);
 
     // Convert cm to meters
     const w = width / 100;
@@ -358,6 +381,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     return (
       <group position={[0, 0, 0]}>
+        {/* Invisible background mesh to capture clicks for dismissing column selection */}
+        <mesh
+          position={[0, 0, -d / 2 - 0.01]}
+          onClick={handleBackgroundClick}
+          visible={false}
+        >
+          <planeGeometry args={[w * 3, (height / 100) * 3]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+
         {/* Side L - height of first column (verticalZ to prevent edge bleeding) */}
         {/* Split into two panels if module boundary exists AND height > 200cm */}
         {sideL_ModuleBoundary &&
@@ -462,8 +495,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Helper: get minY for a shelf (accounts for inner elements in compartment below)
           // Shelf at shelfIdx affects compartment below it (compIdx = shelfIdx)
           const getMinYForShelf = (shelfIdx: number): number => {
-            // First shelf starts above bottom panel (t), others above previous shelf
-            const prevY = shelfIdx === 0 ? t : shelves[shelfIdx - 1];
+            // First shelf starts above base + bottom panel, others above previous shelf
+            const prevY = shelfIdx === 0 ? baseH + t : shelves[shelfIdx - 1];
             // Compartment below this shelf
             const compKeyBelow = `${colLetter}${shelfIdx + 1}`;
             const minHeightBelow = getMinCompartmentHeightM(compKeyBelow);
@@ -782,8 +815,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       onPointerLeave={() => {
                         if (isStep2Active) setHoveredCompartmentKey(null);
                       }}
-                      onClick={() => {
+                      onClick={(e) => {
                         if (isStep2Active) setSelectedCompartmentKey(compKey);
+                        // Mobile tap-to-select column for controls bar
+                        handleColumnClick(colIdx, e);
                       }}
                       onPointerDown={() => {
                         // Only handle door selection if NOT using sub-compartment meshes
@@ -1414,26 +1449,29 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const rodRadius = 0.015; // 3cm diameter = 1.5cm radius
                           const rodY = compBottomY + compInnerH * 0.75; // 75% up from bottom
                           const rodLength = colInnerW - 0.01; // Slightly shorter than compartment width
-                          rodElement = (
-                            <mesh
-                              key={`rod-${compKey}`}
-                              position={[
-                                colCenterX,
-                                rodY,
-                                d / 2 - carcassD / 2,
-                              ]}
-                              rotation={[0, 0, Math.PI / 2]} // Rotate to horizontal
-                            >
-                              <cylinderGeometry
-                                args={[rodRadius, rodRadius, rodLength, 16]}
-                              />
-                              <meshStandardMaterial
-                                color="#888888"
-                                roughness={0.3}
-                                metalness={0.8}
-                              />
-                            </mesh>
-                          );
+                          // Only render rod if large enough to prevent shader division by zero
+                          if (rodLength >= 0.01) {
+                            rodElement = (
+                              <mesh
+                                key={`rod-${compKey}`}
+                                position={[
+                                  colCenterX,
+                                  rodY,
+                                  d / 2 - carcassD / 2,
+                                ]}
+                                rotation={[0, 0, Math.PI / 2]} // Rotate to horizontal
+                              >
+                                <cylinderGeometry
+                                  args={[rodRadius, rodRadius, rodLength, 16]}
+                                />
+                                <meshStandardMaterial
+                                  color="#888888"
+                                  roughness={0.3}
+                                  metalness={0.8}
+                                />
+                              </mesh>
+                            );
+                          }
                         }
 
                         if (drawerPanels.length === 0 && !rodElement)
@@ -1544,11 +1582,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       const isFirst = shelfIdx === 0;
                       const isLast = shelfIdx === topShelves.length - 1;
                       const prevY = isFirst
-                          ? boundary + t
-                          : topShelves[shelfIdx - 1];
+                        ? boundary + t
+                        : topShelves[shelfIdx - 1];
                       const nextY = isLast
-                          ? colH - t
-                          : topShelves[shelfIdx + 1];
+                        ? colH - t
+                        : topShelves[shelfIdx + 1];
                       // Account for shelf thickness in clear space calculation
                       const minThickness = isFirst ? t / 2 : t;
                       const maxThickness = isLast ? t / 2 : t;
@@ -1832,7 +1870,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             if (group.type === "double" || group.type === "doubleMirror") {
               // Double doors - two panels with gap
               const gapBetween = 0.003; // 3mm gap
-              const leafW = (doorW - gapBetween) / 2;
+              // Guard against zero/negative dimensions to prevent shader division by zero
+              const leafW = Math.max(0.01, (doorW - gapBetween) / 2);
               const offset = (leafW + gapBetween) / 2;
 
               return (

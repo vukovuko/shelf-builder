@@ -974,7 +974,6 @@ export function WardrobePreviewClient({
     const handlePageShow = (event: PageTransitionEvent) => {
       // event.persisted is true when page is restored from bfcache
       if (event.persisted) {
-        console.log("[WardrobePreview] bfcache restore detected, reloading");
         window.location.reload();
       }
     };
@@ -987,9 +986,6 @@ export function WardrobePreviewClient({
         // If page was hidden for more than 5 seconds and is now visible,
         // reload to get fresh data
         if (hiddenDuration > 5000) {
-          console.log(
-            "[WardrobePreview] Page became visible after being away, reloading",
-          );
           window.location.reload();
         }
       }
@@ -998,7 +994,6 @@ export function WardrobePreviewClient({
     // Handle popstate (browser back/forward) - this catches cases where
     // bfcache/visibilitychange don't fire
     const handlePopState = () => {
-      console.log("[WardrobePreview] popstate detected, reloading");
       window.location.reload();
     };
 

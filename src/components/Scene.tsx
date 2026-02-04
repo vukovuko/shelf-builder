@@ -45,6 +45,9 @@ function StoreInvalidator() {
   const hoveredColumnIndex = useShelfStore(
     (s: ShelfState) => s.hoveredColumnIndex,
   );
+  const selectedColumnIndex = useShelfStore(
+    (s: ShelfState) => s.selectedColumnIndex,
+  );
   const selectedMaterialId = useShelfStore(
     (s: ShelfState) => s.selectedMaterialId,
   );
@@ -91,6 +94,7 @@ function StoreInvalidator() {
     elementConfigs,
     compartmentExtras,
     hoveredColumnIndex,
+    selectedColumnIndex,
     selectedMaterialId,
     activeAccordionStep,
     selectedCompartmentKey,
@@ -124,6 +128,16 @@ function CameraFitter() {
   // Track if this is the first render (skip initial fit - Bounds handles that)
   const isFirstRender = useRef(true);
   const lastFitRequestId = useRef(fitRequestId);
+
+  // Delayed initial fit for mobile - re-fit after UI settles
+  // This ensures camera accounts for mobile header/footer padding
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      bounds.refresh().fit();
+    }, 150);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Re-fit when dimensions change
   useEffect(() => {
@@ -281,7 +295,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
         )}
 
-        {!showEdgesOnly && <Environment preset="apartment" />}
+        {!showEdgesOnly && <Environment preset="studio" />}
 
         {/* Bounds fits camera, CameraFitter re-fits when dimensions change */}
         <Bounds fit clip margin={1.5}>

@@ -312,6 +312,9 @@ export interface ShelfState {
   // Hovered column for bottom bar controls
   hoveredColumnIndex: number | null;
   setHoveredColumnIndex: (idx: number | null) => void;
+  // Selected column for mobile tap-to-select (persists until tapped elsewhere)
+  selectedColumnIndex: number | null;
+  setSelectedColumnIndex: (idx: number | null) => void;
   // Per-column module boundaries (Y position where modules split, in meters)
   // null = no module split (height <= 200cm)
   // number = Y position of module boundary
@@ -363,7 +366,10 @@ function validateInnerShelfConfigs(
 
     if (!cfg?.rowCounts) continue;
 
-    const maxShelves = Math.max(0, Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1);
+    const maxShelves = Math.max(
+      0,
+      Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1,
+    );
     if (cfg.rowCounts.some((count: number) => count > maxShelves)) {
       result = {
         ...result,
@@ -691,7 +697,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
         let lastY = panelT; // Start from bottom panel top surface
         let lastIsShelf = false;
         for (const y of boundsFiltered) {
-          const clearBelow = lastIsShelf ? (y - lastY - panelT) : (y - lastY - panelT / 2);
+          const clearBelow = lastIsShelf
+            ? y - lastY - panelT
+            : y - lastY - panelT / 2;
           const clearAbove = effectiveCeiling - panelT - y - panelT / 2;
           if (clearBelow >= minGap && clearAbove >= minGap) {
             gapFiltered.push(y);
@@ -718,16 +726,32 @@ export const useShelfStore = create<ShelfState>((set) => ({
           newHeightM > TARGET_BOTTOM_HEIGHT;
 
         // Bottom module compartments
-        const bottomCeiling = hasModule ? moduleBoundary - panelTVal : newHeightM - panelTVal;
+        const bottomCeiling = hasModule
+          ? moduleBoundary - panelTVal
+          : newHeightM - panelTVal;
         const bottomBounds = [panelTVal, ...shelves, bottomCeiling];
-        newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, 0, bottomBounds);
+        newElementConfigs = validateInnerShelfConfigs(
+          newElementConfigs,
+          colLetter,
+          0,
+          bottomBounds,
+        );
 
         // Top module compartments (if module boundary exists)
         if (hasModule) {
           const topShelves = newTopModuleShelves[colIdx] || [];
-          const topBounds = [moduleBoundary + panelTVal, ...topShelves, newHeightM - panelTVal];
+          const topBounds = [
+            moduleBoundary + panelTVal,
+            ...topShelves,
+            newHeightM - panelTVal,
+          ];
           const bottomCompCount = shelves.length + 1;
-          newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, bottomCompCount, topBounds);
+          newElementConfigs = validateInnerShelfConfigs(
+            newElementConfigs,
+            colLetter,
+            bottomCompCount,
+            topBounds,
+          );
         }
       });
 
@@ -854,7 +878,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Clamp count based on compartment height
       const compHeightCm = getCompartmentHeightCm(key, state);
-      const maxShelves = Math.max(0, Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1);
+      const maxShelves = Math.max(
+        0,
+        Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1,
+      );
       const clampedCount = Math.min(count, maxShelves);
 
       const rowCounts = [...current.rowCounts];
@@ -867,7 +894,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
       rowCounts[index] = clampedCount;
       // Clear "whole compartment drawer" when adding shelves
       let updatedConfig = { ...current, rowCounts };
-      if (clampedCount > 0 && (current.drawerCounts?.[0] ?? 0) > 0 && (current.columns ?? 1) === 1) {
+      if (
+        clampedCount > 0 &&
+        (current.drawerCounts?.[0] ?? 0) > 0 &&
+        (current.columns ?? 1) === 1
+      ) {
         const drawerCounts = [...(current.drawerCounts ?? [])];
         drawerCounts[0] = 0;
         updatedConfig = { ...updatedConfig, drawerCounts };
@@ -1723,7 +1754,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
         let lastY = panelT; // Start from bottom panel top surface
         let lastIsShelf = false;
         for (const y of boundsFiltered) {
-          const clearBelow = lastIsShelf ? (y - lastY - panelT) : (y - lastY - panelT / 2);
+          const clearBelow = lastIsShelf
+            ? y - lastY - panelT
+            : y - lastY - panelT / 2;
           const clearAbove = effectiveCeiling - panelT - y - panelT / 2;
           if (clearBelow >= minGap && clearAbove >= minGap) {
             gapFiltered.push(y);
@@ -1749,16 +1782,32 @@ export const useShelfStore = create<ShelfState>((set) => ({
         newHeightM > TARGET_BOTTOM_HEIGHT;
 
       // Bottom module compartments
-      const bottomCeiling = hasModule ? moduleBoundary - panelTVal : newHeightM - panelTVal;
+      const bottomCeiling = hasModule
+        ? moduleBoundary - panelTVal
+        : newHeightM - panelTVal;
       const bottomBounds = [panelTVal, ...shelves, bottomCeiling];
-      newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, 0, bottomBounds);
+      newElementConfigs = validateInnerShelfConfigs(
+        newElementConfigs,
+        colLetter,
+        0,
+        bottomBounds,
+      );
 
       // Top module compartments (if module boundary exists)
       if (hasModule) {
         const topShelves = newTopModuleShelves[colIdx] || [];
-        const topBounds = [moduleBoundary + panelTVal, ...topShelves, newHeightM - panelTVal];
+        const topBounds = [
+          moduleBoundary + panelTVal,
+          ...topShelves,
+          newHeightM - panelTVal,
+        ];
         const bottomCompCount = shelves.length + 1;
-        newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, bottomCompCount, topBounds);
+        newElementConfigs = validateInnerShelfConfigs(
+          newElementConfigs,
+          colLetter,
+          bottomCompCount,
+          topBounds,
+        );
       }
 
       return {
@@ -1775,6 +1824,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
   // Hovered column for bottom bar controls
   hoveredColumnIndex: null,
   setHoveredColumnIndex: (idx) => set({ hoveredColumnIndex: idx }),
+  // Selected column for mobile tap-to-select
+  selectedColumnIndex: null,
+  setSelectedColumnIndex: (idx) => set({ selectedColumnIndex: idx }),
   // Per-column module boundaries (Y position where modules split, in meters)
   // Initialize for ALL columns based on default width (210cm → 3 columns) and height (240cm)
   // For 240cm height: boundary at ~180cm (bottom 180cm, top 60cm)
@@ -1864,7 +1916,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
             for (let i = 1; i <= clampedCount; i++) {
               positions.push(clampedY + panelThicknessM + i * gap);
             }
-            newTopShelves = { ...state.columnTopModuleShelves, [colIdx]: positions };
+            newTopShelves = {
+              ...state.columnTopModuleShelves,
+              [colIdx]: positions,
+            };
           } else {
             newTopShelves = { ...state.columnTopModuleShelves, [colIdx]: [] };
           }
@@ -1877,13 +1932,31 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const shelvesList = state.columnHorizontalBoundaries[colIdx] || [];
 
       // Bottom module compartments
-      const bottomBounds = [panelThicknessM, ...shelvesList, clampedY - panelThicknessM];
-      newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, 0, bottomBounds);
+      const bottomBounds = [
+        panelThicknessM,
+        ...shelvesList,
+        clampedY - panelThicknessM,
+      ];
+      newElementConfigs = validateInnerShelfConfigs(
+        newElementConfigs,
+        colLetter,
+        0,
+        bottomBounds,
+      );
 
       // Top module compartments
-      const topBounds = [clampedY + panelThicknessM, ...(newTopShelves[colIdx] || []), colHeightM - panelThicknessM];
+      const topBounds = [
+        clampedY + panelThicknessM,
+        ...(newTopShelves[colIdx] || []),
+        colHeightM - panelThicknessM,
+      ];
       const bottomCompCount = shelvesList.length + 1;
-      newElementConfigs = validateInnerShelfConfigs(newElementConfigs, colLetter, bottomCompCount, topBounds);
+      newElementConfigs = validateInnerShelfConfigs(
+        newElementConfigs,
+        colLetter,
+        bottomCompCount,
+        topBounds,
+      );
 
       return {
         columnModuleBoundaries: {
@@ -2097,6 +2170,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         // Interaction state
         isDragging: false,
         hoveredColumnIndex: null,
+        selectedColumnIndex: null,
 
         // Keep isPreviewMode as-is (controlled by the page)
         isPreviewMode: state.isPreviewMode,

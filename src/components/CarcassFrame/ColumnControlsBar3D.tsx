@@ -27,6 +27,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const setHoveredColumnIndex = useShelfStore(
     (s: ShelfState) => s.setHoveredColumnIndex,
   );
+  const selectedColumnIndex = useShelfStore(
+    (s: ShelfState) => s.selectedColumnIndex,
+  );
+  const setSelectedColumnIndex = useShelfStore(
+    (s: ShelfState) => s.setSelectedColumnIndex,
+  );
   const width = useShelfStore((s: ShelfState) => s.width);
   const height = useShelfStore((s: ShelfState) => s.height);
   const verticalBoundaries = useShelfStore(
@@ -70,15 +76,20 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   // Timeout ref for delayed hide
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update activeColumn when hoveredColumnIndex changes
+  // Update activeColumn when hoveredColumnIndex or selectedColumnIndex changes
+  // selectedColumnIndex takes priority (for mobile tap-to-select)
   useEffect(() => {
-    if (hoveredColumnIndex !== null) {
+    // Priority: selectedColumnIndex > hoveredColumnIndex
+    const effectiveColumn = selectedColumnIndex ?? hoveredColumnIndex;
+
+    if (effectiveColumn !== null) {
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
         hideTimeoutRef.current = null;
       }
-      setActiveColumn(hoveredColumnIndex);
+      setActiveColumn(effectiveColumn);
     } else {
+      // Only hide with delay if BOTH are null
       hideTimeoutRef.current = setTimeout(() => {
         if (!isBarHoveredRef.current) {
           setActiveColumn(null);
@@ -90,7 +101,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
         clearTimeout(hideTimeoutRef.current);
       }
     };
-  }, [hoveredColumnIndex]);
+  }, [hoveredColumnIndex, selectedColumnIndex]);
 
   const handleBarMouseEnter = useCallback(() => {
     isBarHoveredRef.current = true;
@@ -106,10 +117,18 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
 
   const handleBarMouseLeave = useCallback(() => {
     isBarHoveredRef.current = false;
-    if (hoveredColumnIndex === null) {
+    // Only hide if not selected (mobile keeps selection)
+    if (hoveredColumnIndex === null && selectedColumnIndex === null) {
       setActiveColumn(null);
     }
-  }, [hoveredColumnIndex]);
+  }, [hoveredColumnIndex, selectedColumnIndex]);
+
+  // Close button handler for mobile
+  const handleClose = useCallback(() => {
+    setSelectedColumnIndex(null);
+    setHoveredColumnIndex(null);
+    setActiveColumn(null);
+  }, [setSelectedColumnIndex, setHoveredColumnIndex]);
 
   const displayColumn = activeColumn;
 
@@ -353,13 +372,15 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
         onMouseEnter={handleBarMouseEnter}
         onMouseLeave={handleBarMouseLeave}
       >
-        {/* Arrow indicator pointing up */}
+        {/* Arrow indicator pointing up + close button for mobile */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             marginTop: -12,
+            position: "relative",
+            width: "100%",
           }}
         >
           <div
@@ -371,6 +392,32 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               borderBottom: "10px solid #ffffff",
             }}
           />
+          {/* Close button - shows when selected (tapped on mobile) */}
+          {selectedColumnIndex !== null && (
+            <button
+              onClick={handleClose}
+              style={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                border: "1px solid #ccc",
+                background: "#f5f5f5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                cursor: "pointer",
+                color: "#666",
+                lineHeight: 1,
+              }}
+              title="Zatvori"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Controls - split layout when two modules exist */}

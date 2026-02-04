@@ -98,36 +98,6 @@ export function BlueprintView() {
   // Build columns
   const columns = buildBlocksFromBoundaries(width, verticalBoundaries);
 
-  // DEBUG: Log store state for diagnosing rendering issues
-  console.log(`[BlueprintView] === RENDER START ===`);
-  console.log(
-    `[BlueprintView] Wardrobe: ${width}x${height}x${depth}cm, hasBase=${hasBase}, baseHeight=${baseHeight}`,
-  );
-  console.log(
-    `[BlueprintView] Columns: ${columns.length}`,
-    columns.map(
-      (c, i) =>
-        `${String.fromCharCode(65 + i)}:[${c.start.toFixed(1)}-${c.end.toFixed(1)}]cm`,
-    ),
-  );
-  console.log(
-    `[BlueprintView] columnHorizontalBoundaries:`,
-    JSON.stringify(columnHorizontalBoundaries),
-  );
-  console.log(
-    `[BlueprintView] columnModuleBoundaries:`,
-    JSON.stringify(columnModuleBoundaries),
-  );
-  console.log(
-    `[BlueprintView] columnTopModuleShelves:`,
-    JSON.stringify(columnTopModuleShelves),
-  );
-  console.log(`[BlueprintView] columnHeights:`, JSON.stringify(columnHeights));
-  console.log(
-    `[BlueprintView] elementConfigs:`,
-    JSON.stringify(elementConfigs),
-  );
-
   // Map Y from cm (from floor) to SVG Y (top-origin)
   // CLAMP to stay within frame
   const mapY = (yFromFloorCm: number) => {
@@ -284,17 +254,6 @@ export function BlueprintView() {
       });
     }
 
-    console.log(
-      `[BlueprintView] Column ${colLetter}: ${compartments.length} compartments, ` +
-        `shelves=${shelves.length}, moduleBoundary=${rawModuleBoundaryYCm?.toFixed(1) ?? "none"}cm ` +
-        `(valid=${isValidModuleBoundary}, hasModuleBoundary=${hasModuleBoundary}), ` +
-        `innerBounds=[${innerBottom.toFixed(1)}, ${innerTop.toFixed(1)}]`,
-      compartments.map(
-        (c) =>
-          `${c.key}:[${c.bottomY.toFixed(0)}-${c.topY.toFixed(0)}]=${c.heightCm}cm`,
-      ),
-    );
-
     return compartments;
   };
 
@@ -443,34 +402,26 @@ export function BlueprintView() {
 
           {/* Vertical seams between columns (SOLID lines) */}
           {/* Seams extend to the MINIMUM height of adjacent columns */}
-          {(() => {
-            console.log(
-              `[BlueprintView] Main columns: ${columns.length}, drawing ${columns.length - 1} solid seams`,
-            );
-            return columns.slice(0, -1).map((col, i) => {
-              const leftColH = columnHeights[i] ?? height;
-              const rightColH = columnHeights[i + 1] ?? height;
-              const seamH = Math.min(leftColH, rightColH); // Use minimum of adjacent columns
-              const scaledSeamH = seamH * scale;
-              const yOffset = scaledHeight - scaledSeamH; // Bottom-aligned offset
+          {columns.slice(0, -1).map((col, i) => {
+            const leftColH = columnHeights[i] ?? height;
+            const rightColH = columnHeights[i + 1] ?? height;
+            const seamH = Math.min(leftColH, rightColH); // Use minimum of adjacent columns
+            const scaledSeamH = seamH * scale;
+            const yOffset = scaledHeight - scaledSeamH; // Bottom-aligned offset
 
-              const dividerX = frontViewX + col.end * scale;
-              console.log(
-                `[BlueprintView] Main seam ${i}: x=${col.end.toFixed(1)}cm, seamH=${seamH}cm (solid line)`,
-              );
-              return (
-                <line
-                  key={`vdiv-${i}`}
-                  x1={dividerX}
-                  y1={frontViewY + yOffset}
-                  x2={dividerX}
-                  y2={frontViewY + scaledHeight - scaledBaseHeight}
-                  stroke="#000"
-                  strokeWidth="1.5"
-                />
-              );
-            });
-          })()}
+            const dividerX = frontViewX + col.end * scale;
+            return (
+              <line
+                key={`vdiv-${i}`}
+                x1={dividerX}
+                y1={frontViewY + yOffset}
+                x2={dividerX}
+                y2={frontViewY + scaledHeight - scaledBaseHeight}
+                stroke="#000"
+                strokeWidth="1.5"
+              />
+            );
+          })}
 
           {/* Per-column content */}
           {columns.map((col, colIdx) => {
@@ -530,13 +481,6 @@ export function BlueprintView() {
                     strokeWidth="1.5"
                   />,
                 );
-                console.log(
-                  `[BlueprintView] Module boundary for column ${colIdx}: y=${moduleBoundaryYCm.toFixed(1)}cm (valid)`,
-                );
-              } else {
-                console.warn(
-                  `[BlueprintView] Module boundary for column ${colIdx} INVALID: y=${moduleBoundaryYCm.toFixed(1)}cm is outside [${innerBottomForBoundary.toFixed(1)}, ${innerTopForBoundary.toFixed(1)}]`,
-                );
               }
             }
 
@@ -590,10 +534,6 @@ export function BlueprintView() {
               const extras = compartmentExtras[compKey] ?? {};
               const innerCols = Math.max(1, cfg.columns);
 
-              // Debug logging to verify data
-              console.log(
-                `[BlueprintView] Compartment ${compKey}: columns=${cfg.columns}, innerCols=${innerCols}, rowCounts=${JSON.stringify(cfg.rowCounts)}, bounds=[${comp.bottomY.toFixed(1)}, ${comp.topY.toFixed(1)}]`,
-              );
               const compX1 = x1;
               const compX2 = x2;
               const compW = compX2 - compX1;
@@ -613,14 +553,8 @@ export function BlueprintView() {
 
               // Draw inner vertical dividers (DASHED lines)
               if (innerCols > 1) {
-                console.log(
-                  `[BlueprintView] Compartment ${compKey}: drawing ${innerCols - 1} inner dividers (dashed)`,
-                );
                 for (let divIdx = 1; divIdx < innerCols; divIdx++) {
                   const divX = compX1 + divIdx * sectionW;
-                  console.log(
-                    `[BlueprintView] Inner divider ${compKey}-${divIdx}: x=${((divX - frontViewX) / scale).toFixed(1)}cm (dashed)`,
-                  );
                   nodes.push(
                     <line
                       key={`vd-${compKey}-${divIdx}`}
@@ -640,9 +574,6 @@ export function BlueprintView() {
               for (let secIdx = 0; secIdx < innerCols; secIdx++) {
                 const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                 if (shelfCount <= 0) {
-                  console.log(
-                    `[BlueprintView] Section ${compKey}-${secIdx}: 0 shelves (skipped)`,
-                  );
                   continue;
                 }
 
@@ -650,10 +581,6 @@ export function BlueprintView() {
                 const secX2 = compX1 + (secIdx + 1) * sectionW - 2;
                 const usableH = safeTopY - safeBottomY;
                 const gap = usableH / (shelfCount + 1);
-
-                console.log(
-                  `[BlueprintView] Section ${compKey}-${secIdx}: drawing ${shelfCount} shelves, x=[${((secX1 - frontViewX) / scale).toFixed(1)}, ${((secX2 - frontViewX) / scale).toFixed(1)}]cm`,
-                );
 
                 for (let shIdx = 1; shIdx <= shelfCount; shIdx++) {
                   const shelfY = safeBottomY + shIdx * gap;

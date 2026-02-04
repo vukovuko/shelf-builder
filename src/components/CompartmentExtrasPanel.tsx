@@ -279,7 +279,8 @@ export function CompartmentExtrasPanel({
 
         {/* "Whole compartment is a drawer" - disabled when dividers or shelves exist */}
         {(() => {
-          const hasSubdivisions = config.columns > 1 || (config.rowCounts?.[0] ?? 0) > 0;
+          const hasSubdivisions =
+            config.columns > 1 || (config.rowCounts?.[0] ?? 0) > 0;
           const isChecked = (config.drawerCounts?.[0] ?? 0) > 0;
           return (
             <div className="mt-3 pt-3 border-t space-y-2">

@@ -3,20 +3,13 @@
 import jsPDF from "jspdf";
 import {
   ArrowLeft,
-  ArrowRight,
   ChevronDown,
-  DoorClosed,
-  DoorOpen,
   Download,
-  Eye,
-  EyeOff,
   FileText,
   FolderOpen,
   LogOut,
-  Save,
   Settings,
   ShoppingCart,
-  Table,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -61,8 +54,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
@@ -74,15 +65,6 @@ import {
   type ShelfState,
 } from "@/lib/store";
 import {
-  toLetters,
-  buildBlocksX,
-  buildModulesY,
-  getElementKeys,
-  getCompartmentKeys,
-} from "@/lib/wardrobe-utils";
-import {
-  DRAWER_HEIGHT,
-  DRAWER_GAP,
   DRAWER_HEIGHT_CM,
   DRAWER_GAP_CM,
   MAX_SEGMENT_X_CM,
@@ -91,11 +73,15 @@ import {
 } from "@/lib/wardrobe-constants";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
-import { CompartmentExtrasPanel } from "./CompartmentExtrasPanel";
-import { CompartmentSchematic } from "./CompartmentSchematic";
-import { DimensionControl } from "./DimensionControl";
-import { DoorOptionsPanel } from "./DoorOptionsPanel";
-import { MaterialPickerModal } from "./MaterialPickerModal";
+import {
+  StepDimensions,
+  StepColumns,
+  StepMaterials,
+  StepBase,
+  StepDoors,
+  StepActions,
+  StepFooter,
+} from "./configurator-steps";
 import { Button } from "./ui/button";
 
 // Helper function to get initials from name/email
@@ -142,10 +128,6 @@ export function ConfiguratorControls({
   const [wardrobeName, setWardrobeName] = React.useState("Orman");
   const [saveAsModel, setSaveAsModel] = React.useState(false);
   const [saveMode, setSaveMode] = React.useState<"new" | "update">("new");
-  const [openMaterialCategory, setOpenMaterialCategory] = React.useState<
-    string | null
-  >(null);
-
   // Handle login click - save state before opening auth
   const handleLoginClick = () => {
     const currentState = getWardrobeSnapshot();
@@ -580,19 +562,9 @@ export function ConfiguratorControls({
     setSelectedBackMaterialId,
   ]);
 
-  const showDimensions = useShelfStore(
-    (state: ShelfState) => state.showDimensions,
-  );
-  const setShowDimensions = useShelfStore(
-    (state: ShelfState) => state.setShowDimensions,
-  );
-  // Base (baza) state
+  // Base (baza) state - needed for cutList
   const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
   const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
-  const setHasBase = useShelfStore((state: ShelfState) => state.setHasBase);
-  const setBaseHeight = useShelfStore(
-    (state: ShelfState) => state.setBaseHeight,
-  );
 
   // Accordion step state (for controlled accordion)
   const activeAccordionStep = useShelfStore(
@@ -600,9 +572,6 @@ export function ConfiguratorControls({
   );
   const setActiveAccordionStep = useShelfStore(
     (state: ShelfState) => state.setActiveAccordionStep,
-  );
-  const selectedCompartmentKey = useShelfStore(
-    (state: ShelfState) => state.selectedCompartmentKey,
   );
 
   // State for cut list modal
@@ -628,14 +597,6 @@ export function ConfiguratorControls({
     (state: ShelfState) => state.clearFromOrder,
   );
 
-  // Track which material should be pinned to first position per category type
-  // Only updated when selecting from popup, not when clicking preview images
-  const [pinnedMaterialIds, setPinnedMaterialIds] = React.useState<{
-    korpus?: number;
-    front?: number;
-    back?: number;
-  }>({});
-
   // Additional store reads needed for cut list (top-level to respect Rules of Hooks)
   const elementConfigs = useShelfStore(
     (state: ShelfState) => state.elementConfigs,
@@ -658,12 +619,6 @@ export function ConfiguratorControls({
   const doorSettingsMode = useShelfStore(
     (state: ShelfState) => state.doorSettingsMode,
   );
-  const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
-  const setShowDoors = useShelfStore((state: ShelfState) => state.setShowDoors);
-  // Door multi-select state for Step 5
-  const selectedDoorCompartments = useShelfStore(
-    (state: ShelfState) => state.selectedDoorCompartments,
-  );
   // Structural boundaries - CRITICAL for accurate area calculation
   const verticalBoundaries = useShelfStore(
     (state: ShelfState) => state.verticalBoundaries,
@@ -674,13 +629,6 @@ export function ConfiguratorControls({
   const columnModuleBoundaries = useShelfStore(
     (state: ShelfState) => state.columnModuleBoundaries,
   );
-  const columnHeights = useShelfStore(
-    (state: ShelfState) => state.columnHeights,
-  );
-  const columnTopModuleShelves = useShelfStore(
-    (state: ShelfState) => state.columnTopModuleShelves,
-  );
-
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(
     () =>
@@ -1582,41 +1530,8 @@ export function ConfiguratorControls({
             <AccordionTrigger className="text-base font-bold hover:no-underline">
               1. Definiši spoljašnje dimenzije
             </AccordionTrigger>
-            <AccordionContent className="space-y-6 pt-4">
-              <DimensionControl
-                label="Širina"
-                value={width}
-                setValue={setWidth}
-                min={50}
-                max={400}
-                step={1}
-              />
-              <DimensionControl
-                label="Visina"
-                value={height}
-                setValue={setHeight}
-                min={50}
-                max={280}
-                step={1}
-              />
-              <DimensionControl
-                label="Dubina"
-                value={depth}
-                setValue={setDepth}
-                min={20}
-                max={100}
-                step={1}
-              />
-
-              {/* Next step button */}
-              <Button
-                variant="default"
-                className="w-full mt-4 gap-2"
-                onClick={() => setActiveAccordionStep("item-2")}
-              >
-                Sledeći korak
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <AccordionContent>
+              <StepDimensions />
             </AccordionContent>
           </AccordionItem>
 
@@ -1624,30 +1539,8 @@ export function ConfiguratorControls({
             <AccordionTrigger className="text-base font-bold hover:no-underline">
               2. Kolone i Pregrade
             </AccordionTrigger>
-            <AccordionContent className="space-y-4 pt-4">
-              {!selectedCompartmentKey ? (
-                <div className="space-y-3">
-                  <CompartmentSchematic />
-                  <p className="text-xs text-center text-muted-foreground">
-                    Kliknite na pregradu u 3D prikazu
-                  </p>
-                </div>
-              ) : (
-                <CompartmentExtrasPanel
-                  compartmentKey={selectedCompartmentKey}
-                  materials={materials}
-                />
-              )}
-
-              {/* Next step button */}
-              <Button
-                variant="default"
-                className="w-full mt-4 gap-2"
-                onClick={() => setActiveAccordionStep("item-3")}
-              >
-                Sledeći korak
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <AccordionContent>
+              <StepColumns materials={materials} />
             </AccordionContent>
           </AccordionItem>
 
@@ -1655,548 +1548,46 @@ export function ConfiguratorControls({
             <AccordionTrigger className="text-base font-bold hover:no-underline">
               3. Izbor materijala
             </AccordionTrigger>
-            <AccordionContent className="space-y-6 pt-4">
-              {/* Group materials by category */}
-              {(() => {
-                // Get all unique categories from materials (flatten arrays)
-                const allCategories = [
-                  ...new Set(materials.flatMap((m) => m.categories)),
-                ];
-                return allCategories.map((category) => {
-                  // Filter materials that have this category
-                  const categoryMaterials = materials.filter((m) =>
-                    m.categories.includes(category),
-                  );
-                  // Determine category type
-                  const isBackCategory =
-                    category.toLowerCase().includes("leđa") ||
-                    category.toLowerCase().includes("ledja");
-                  const isFrontCategory =
-                    category.toLowerCase().includes("lica") ||
-                    category.toLowerCase().includes("vrata");
-
-                  // Get the correct selected ID and setter for each category
-                  const categoryType = isBackCategory
-                    ? "back"
-                    : isFrontCategory
-                      ? "front"
-                      : "korpus";
-                  const selectedId = isBackCategory
-                    ? selectedBackMaterialId
-                    : isFrontCategory
-                      ? selectedFrontMaterialId
-                      : selectedMaterialId;
-                  const setSelectedId = isBackCategory
-                    ? setSelectedBackMaterialId
-                    : isFrontCategory
-                      ? setSelectedFrontMaterialId
-                      : setSelectedMaterialId;
-
-                  // Get pinned material ID for this category (only set when selecting from popup)
-                  const pinnedId = pinnedMaterialIds[categoryType];
-
-                  // Sort so pinned material is first (not selected, to avoid reordering on preview click)
-                  const sorted = [...categoryMaterials].sort((a, b) => {
-                    if (pinnedId !== undefined) {
-                      if (a.id === pinnedId) return -1;
-                      if (b.id === pinnedId) return 1;
-                    }
-                    return 0;
-                  });
-
-                  // Show only 3 materials in preview
-                  const preview = sorted.slice(0, 3);
-                  const remaining = categoryMaterials.length - 3;
-
-                  return (
-                    <div key={category} className="space-y-3">
-                      <h4 className="text-sm font-semibold">{category}</h4>
-                      <div className="grid grid-cols-3 gap-2">
-                        {preview.map((material) => (
-                          <div
-                            key={material.id}
-                            className="flex flex-col items-center"
-                          >
-                            <button
-                              type="button"
-                              className={`rounded-lg border-2 ${
-                                selectedId === material.id
-                                  ? "border-primary"
-                                  : "border-transparent"
-                              } hover:border-primary h-20 w-full bg-cover bg-center bg-muted`}
-                              style={{
-                                backgroundImage: material.img
-                                  ? `url(${material.img})`
-                                  : undefined,
-                              }}
-                              onClick={() => setSelectedId(material.id)}
-                              title={material.name}
-                            >
-                              <span className="sr-only">{material.name}</span>
-                            </button>
-                            <span className="text-xs mt-1 text-center truncate w-full">
-                              {material.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {remaining > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => setOpenMaterialCategory(category)}
-                        >
-                          Prikaži više ({remaining})
-                        </Button>
-                      )}
-                      <MaterialPickerModal
-                        open={openMaterialCategory === category}
-                        onOpenChange={(open) =>
-                          setOpenMaterialCategory(open ? category : null)
-                        }
-                        category={category}
-                        materials={categoryMaterials}
-                        selectedId={selectedId}
-                        onSelect={(id) => {
-                          setSelectedId(id);
-                          // Pin this material to first position when selected from popup
-                          setPinnedMaterialIds((prev) => ({
-                            ...prev,
-                            [categoryType]: id,
-                          }));
-                        }}
-                      />
-                    </div>
-                  );
-                });
-              })()}
-              {selectedBackMaterialId == null && (
-                <p className="text-destructive text-sm mt-4">
-                  Izaberite materijal za leđa
-                </p>
-              )}
-
-              {/* Note about per-door settings in Step 5 */}
-              <p className="text-xs text-muted-foreground mt-2 px-2 py-2 bg-muted/50 rounded">
-                Materijal za lica/vrata i ručke možete dodatno podesiti po
-                vratima u koraku 5.
-              </p>
-
-              {/* Next step button */}
-              <Button
-                variant="default"
-                className="w-full mt-4 gap-2"
-                onClick={() => setActiveAccordionStep("item-4")}
-              >
-                Sledeći korak
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <AccordionContent>
+              <StepMaterials materials={materials} />
             </AccordionContent>
           </AccordionItem>
 
-          {/* 4. Base (Baza) */}
           <AccordionItem value="item-4" className="border-border">
             <AccordionTrigger className="text-base font-bold hover:no-underline">
               4. Baza
             </AccordionTrigger>
-            <AccordionContent className="space-y-4 pt-4">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="switch-base"
-                  className="text-sm select-none cursor-pointer"
-                >
-                  Uključi bazu (donja pregrada)
-                </label>
-                <Switch
-                  id="switch-base"
-                  checked={hasBase}
-                  onCheckedChange={setHasBase}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Visina baze</span>
-                  <span className="text-xs text-muted-foreground">
-                    {baseHeight} cm
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setBaseHeight(Math.max(baseHeight - 1, 3))}
-                    disabled={!hasBase}
-                    className="px-2"
-                  >
-                    –
-                  </Button>
-                  <Slider
-                    min={3}
-                    max={10}
-                    step={1}
-                    value={[baseHeight]}
-                    onValueChange={([val]) => setBaseHeight(val)}
-                    disabled={!hasBase}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setBaseHeight(Math.min(baseHeight + 1, 10))}
-                    disabled={!hasBase}
-                    className="px-2"
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-
-              {/* Next step button */}
-              <Button
-                variant="default"
-                className="w-full mt-4 gap-2"
-                onClick={() => setActiveAccordionStep("item-5")}
-              >
-                Sledeći korak
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <AccordionContent>
+              <StepBase />
             </AccordionContent>
           </AccordionItem>
 
-          {/* 5. Doors */}
           <AccordionItem value="item-5" className="border-border">
             <AccordionTrigger className="text-base font-bold hover:no-underline">
               5. Vrata
             </AccordionTrigger>
-            <AccordionContent className="space-y-4 pt-4">
-              {selectedDoorCompartments.length === 0 ? (
-                <div className="space-y-3">
-                  <CompartmentSchematic />
-                  <p className="text-xs text-center text-muted-foreground">
-                    Kliknite na pregradu ili prevucite za višestruki izbor
-                  </p>
-                </div>
-              ) : (
-                <DoorOptionsPanel
-                  selectedKeys={selectedDoorCompartments}
-                  compartmentHeights={(() => {
-                    // Calculate compartment heights - MATCHING CarcassFrame logic exactly
-                    const w = width / 100;
-                    const h = height / 100;
-                    const t = 0.018; // panel thickness
-                    const baseH = hasBase ? baseHeight / 100 : 0;
-                    const splitThreshold = TARGET_BOTTOM_HEIGHT_CM / 100; // 2.0m
-
-                    const columns = buildBlocksX(
-                      w,
-                      verticalBoundaries.length > 0
-                        ? verticalBoundaries
-                        : undefined,
-                    );
-
-                    const heights: Record<string, number> = {};
-
-                    columns.forEach((col, colIdx) => {
-                      const colLetter = toLetters(colIdx);
-                      // Get column-specific height (or global height)
-                      const colH = (columnHeights[colIdx] ?? height) / 100;
-                      // Get array of shelf Y positions for this column
-                      const shelves = columnHorizontalBoundaries[colIdx] || [];
-                      // Get module boundary for this column (if split)
-                      const moduleBoundary =
-                        columnModuleBoundaries[colIdx] ?? null;
-                      const hasModuleBoundary =
-                        moduleBoundary !== null && colH > splitThreshold;
-                      // Top module shelves
-                      const topModuleShelves =
-                        columnTopModuleShelves[colIdx] || [];
-                      // Number of compartments in bottom module
-                      const bottomModuleCompartments = shelves.length + 1;
-
-                      // Calculate height for each bottom module compartment
-                      for (
-                        let compIdx = 0;
-                        compIdx < bottomModuleCompartments;
-                        compIdx++
-                      ) {
-                        const compKey = `${colLetter}${compIdx + 1}`;
-                        let bottomSurface: number;
-                        let topSurface: number;
-
-                        // Last compartment in bottom module (when module boundary exists)
-                        if (
-                          hasModuleBoundary &&
-                          compIdx === bottomModuleCompartments - 1
-                        ) {
-                          bottomSurface =
-                            compIdx === 0
-                              ? baseH + t
-                              : shelves[compIdx - 1] + t / 2;
-                          topSurface = moduleBoundary - t;
-                        } else {
-                          // Regular compartments
-                          if (compIdx === 0) {
-                            bottomSurface = baseH + t;
-                          } else {
-                            bottomSurface = shelves[compIdx - 1] + t / 2;
-                          }
-
-                          if (
-                            compIdx === shelves.length &&
-                            !hasModuleBoundary
-                          ) {
-                            topSurface = colH - t;
-                          } else {
-                            topSurface = shelves[compIdx] - t / 2;
-                          }
-                        }
-
-                        heights[compKey] = Math.round(
-                          (topSurface - bottomSurface) * 100,
-                        );
-                      }
-
-                      // Calculate height for each top module compartment
-                      if (hasModuleBoundary) {
-                        const topModuleCompartments =
-                          topModuleShelves.length + 1;
-                        for (
-                          let topCompIdx = 0;
-                          topCompIdx < topModuleCompartments;
-                          topCompIdx++
-                        ) {
-                          const compIdx = bottomModuleCompartments + topCompIdx;
-                          const compKey = `${colLetter}${compIdx + 1}`;
-                          let bottomSurface: number;
-                          let topSurface: number;
-
-                          if (topCompIdx === 0) {
-                            bottomSurface = moduleBoundary + t;
-                          } else {
-                            bottomSurface =
-                              topModuleShelves[topCompIdx - 1] + t / 2;
-                          }
-
-                          if (topCompIdx === topModuleShelves.length) {
-                            topSurface = colH - t;
-                          } else {
-                            topSurface = topModuleShelves[topCompIdx] - t / 2;
-                          }
-
-                          heights[compKey] = Math.round(
-                            (topSurface - bottomSurface) * 100,
-                          );
-                        }
-                      }
-
-                      // Calculate sub-compartment heights for elementConfigs with subdivisions
-                      // Iterate through all compartments in this column
-                      const totalCompartments = hasModuleBoundary
-                        ? bottomModuleCompartments + topModuleShelves.length + 1
-                        : bottomModuleCompartments;
-
-                      for (
-                        let compIdx = 0;
-                        compIdx < totalCompartments;
-                        compIdx++
-                      ) {
-                        const compKey = `${colLetter}${compIdx + 1}`;
-                        const mainHeight = heights[compKey];
-                        if (!mainHeight) continue;
-
-                        const cfg = elementConfigs[compKey] ?? {
-                          columns: 1,
-                          rowCounts: [0],
-                        };
-                        const innerCols = Math.max(1, cfg.columns);
-                        const hasSubdivisions =
-                          innerCols > 1 ||
-                          (cfg.rowCounts?.some((rc) => rc > 0) ?? false);
-
-                        if (!hasSubdivisions) continue;
-
-                        // Calculate sub-compartment heights for this compartment
-                        const mainHeightM = mainHeight / 100; // Convert back to meters
-
-                        for (let secIdx = 0; secIdx < innerCols; secIdx++) {
-                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
-                          const numSpaces = shelfCount + 1;
-                          const gap = mainHeightM / (shelfCount + 1);
-
-                          for (
-                            let spaceIdx = 0;
-                            spaceIdx < numSpaces;
-                            spaceIdx++
-                          ) {
-                            // Calculate space height (account for shelf thickness)
-                            const spaceBottomOffset =
-                              spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
-                            const spaceTopOffset =
-                              (spaceIdx + 1) * gap -
-                              (spaceIdx < shelfCount ? t / 2 : 0);
-                            const spaceHeightCm = Math.round(
-                              (spaceTopOffset - spaceBottomOffset) * 100,
-                            );
-
-                            const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
-                            heights[subKey] = spaceHeightCm;
-                          }
-                        }
-                      }
-                    });
-                    return heights;
-                  })()}
-                />
-              )}
-              {/* Show/Hide Doors toggle - only when doors exist */}
-              {doorGroups.length > 0 && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowDoors(!showDoors)}
-                  className="w-full mt-4"
-                  size="sm"
-                >
-                  {showDoors ? (
-                    <EyeOff className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Eye className="h-4 w-4 mr-2" />
-                  )}
-                  {showDoors
-                    ? "Sakrij vrata na slici"
-                    : "Prikaži vrata na slici"}
-                </Button>
-              )}
+            <AccordionContent>
+              <StepDoors />
             </AccordionContent>
           </AccordionItem>
-          {/* Actions and Controls */}
-          <div className="flex flex-col gap-4 mt-6">
-            {/* Primary Actions */}
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                onClick={handleSaveClick}
-                className="flex-1"
-                size="lg"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Sačuvaj dizajn
-              </Button>
-            </div>
 
-            {/* View Controls */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground px-1">
-                Prikaz
-              </p>
-              <Button
-                variant={showDimensions ? "secondary" : "ghost"}
-                onClick={() => setShowDimensions(!showDimensions)}
-                className="w-full justify-start"
-                size="sm"
-              >
-                {showDimensions ? (
-                  <EyeOff className="h-4 w-4 mr-2" />
-                ) : (
-                  <Eye className="h-4 w-4 mr-2" />
-                )}
-                {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
-              </Button>
-            </div>
-
-            {/* Reports & Data */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground px-1">
-                Izveštaji
-              </p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowCutList(true)}
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Table className="h-4 w-4 mr-2" />
-                  Tabela ploča
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleExportElementSpecs}
-                  className="w-full justify-between"
-                  size="sm"
-                >
-                  <span className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Specifikacija elemenata
-                  </span>
-                  <Download className="h-3 w-3 opacity-50" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Downloads */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground px-1">
-                Preuzimanja
-              </p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadFrontView}
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Frontalni prikaz
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadFrontEdges}
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Ivice (front)
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadTechnical2D}
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Tehnički crtež 2D
-                </Button>
-              </div>
-            </div>
-          </div>
+          <StepActions
+            onSaveClick={handleSaveClick}
+            onShowCutList={() => setShowCutList(true)}
+            onExportElementSpecs={handleExportElementSpecs}
+            onDownloadFrontView={handleDownloadFrontView}
+            onDownloadFrontEdges={handleDownloadFrontEdges}
+            onDownloadTechnical2D={handleDownloadTechnical2D}
+          />
         </Accordion>
       </div>
 
-      {/* Sticky Footer - Summary */}
-      <div className="flex-shrink-0 sticky bottom-0 bg-sidebar z-10 px-4 py-3 border-t space-y-2">
-        {/* Kvadratura row */}
-        <div className="flex items-center justify-between">
-          <span className="text-base text-muted-foreground">
-            Ukupna kvadratura
-          </span>
-          <span className="text-lg font-bold">
-            {fmt2(cutList.totalArea)} m²
-          </span>
-        </div>
-
-        {/* Poruči button with price */}
-        <button
-          onClick={handleOrderClick}
-          className="w-full flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors cursor-pointer"
-        >
-          <span className="text-base font-bold uppercase">Poruči</span>
-          <span className="text-xl font-bold">
-            {fmt2(cutList.totalCost)} RSD
-          </span>
-        </button>
-      </div>
+      <StepFooter
+        totalArea={cutList.totalArea}
+        totalCost={cutList.totalCost}
+        onOrderClick={handleOrderClick}
+        fmt2={fmt2}
+      />
 
       {/* Cut List Modal */}
       {showCutList && (
