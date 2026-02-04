@@ -163,6 +163,7 @@ export const wardrobes = pgTable(
   },
   (table) => ({
     userIdIdx: index("wardrobe_user_id_idx").on(table.userId),
+    createdAtIdx: index("wardrobe_created_at_idx").on(table.createdAt),
   }),
 );
 
@@ -356,6 +357,13 @@ export const orders = pgTable(
     backMaterialIdIdx: index("order_back_material_id_idx").on(
       table.backMaterialId,
     ),
+    // Performance indexes for admin queries
+    statusIdx: index("order_status_idx").on(table.status),
+    createdAtIdx: index("order_created_at_idx").on(table.createdAt),
+    statusCreatedAtIdx: index("order_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -384,43 +392,52 @@ export const orderRelations = relations(orders, ({ one }) => ({
 }));
 
 // Rules table (for automatic pricing adjustments)
-export const rules = pgTable("rule", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  description: text("description"),
-  enabled: boolean("enabled").notNull().default(true),
-  priority: integer("priority").notNull().default(100), // Lower = runs first
-  // Conditions and actions stored as JSON
-  conditions: json("conditions").notNull().$type<
-    Array<{
-      id: string;
-      field: string;
-      operator: string;
-      value: string | number | boolean | string[] | number[];
-      logicOperator?: "AND" | "OR";
-    }>
-  >(),
-  actions: json("actions").notNull().$type<
-    Array<{
-      id: string;
-      type: string;
-      config: {
-        itemName?: string;
-        itemSku?: string;
-        itemPrice?: number;
-        quantity?: number | string;
-        visibleToCustomer?: boolean;
-        value?: number;
-        applyTo?: string;
-        reason?: string;
-      };
-    }>
-  >(),
-  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+export const rules = pgTable(
+  "rule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    description: text("description"),
+    enabled: boolean("enabled").notNull().default(true),
+    priority: integer("priority").notNull().default(100), // Lower = runs first
+    // Conditions and actions stored as JSON
+    conditions: json("conditions").notNull().$type<
+      Array<{
+        id: string;
+        field: string;
+        operator: string;
+        value: string | number | boolean | string[] | number[];
+        logicOperator?: "AND" | "OR";
+      }>
+    >(),
+    actions: json("actions").notNull().$type<
+      Array<{
+        id: string;
+        type: string;
+        config: {
+          itemName?: string;
+          itemSku?: string;
+          itemPrice?: number;
+          quantity?: number | string;
+          visibleToCustomer?: boolean;
+          value?: number;
+          applyTo?: string;
+          reason?: string;
+        };
+      }>
+    >(),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    enabledPriorityIdx: index("rule_enabled_priority_idx").on(
+      table.enabled,
+      table.priority,
+    ),
+  }),
+);
 
 // Contact messages table
 export const contactMessages = pgTable(

@@ -78,6 +78,7 @@ export async function POST(req: Request) {
     }
 
     // Calculate cut list if wardrobe data has required fields
+    // Wrapped in try-catch to prevent save failures from cut list calculation errors
     let cutListData = null;
     if (
       data &&
@@ -86,77 +87,86 @@ export async function POST(req: Request) {
       data.depth &&
       data.selectedMaterialId
     ) {
-      // Fetch all materials for pricing
-      const allMaterials = await db
-        .select({
-          id: materials.id,
-          price: materials.price,
-          thickness: materials.thickness,
-          categories: materials.categories,
-        })
-        .from(materials);
+      try {
+        // Fetch all materials for pricing
+        const allMaterials = await db
+          .select({
+            id: materials.id,
+            price: materials.price,
+            thickness: materials.thickness,
+            categories: materials.categories,
+          })
+          .from(materials);
 
-      const snapshot: WardrobeSnapshot = {
-        width: Number(data.width),
-        height: Number(data.height),
-        depth: Number(data.depth),
-        selectedMaterialId: Number(data.selectedMaterialId),
-        selectedFrontMaterialId: data.selectedFrontMaterialId
-          ? Number(data.selectedFrontMaterialId)
-          : null,
-        selectedBackMaterialId: data.selectedBackMaterialId
-          ? Number(data.selectedBackMaterialId)
-          : null,
-        elementConfigs:
-          data.elementConfigs as WardrobeSnapshot["elementConfigs"],
-        compartmentExtras:
-          data.compartmentExtras as WardrobeSnapshot["compartmentExtras"],
-        doorSelections:
-          data.doorSelections as WardrobeSnapshot["doorSelections"],
-        hasBase: Boolean(data.hasBase),
-        baseHeight: Number(data.baseHeight ?? 0),
-      };
+        const snapshot: WardrobeSnapshot = {
+          width: Number(data.width),
+          height: Number(data.height),
+          depth: Number(data.depth),
+          selectedMaterialId: Number(data.selectedMaterialId),
+          selectedFrontMaterialId: data.selectedFrontMaterialId
+            ? Number(data.selectedFrontMaterialId)
+            : null,
+          selectedBackMaterialId: data.selectedBackMaterialId
+            ? Number(data.selectedBackMaterialId)
+            : null,
+          elementConfigs:
+            data.elementConfigs as WardrobeSnapshot["elementConfigs"],
+          compartmentExtras:
+            data.compartmentExtras as WardrobeSnapshot["compartmentExtras"],
+          doorSelections:
+            data.doorSelections as WardrobeSnapshot["doorSelections"],
+          hasBase: Boolean(data.hasBase),
+          baseHeight: Number(data.baseHeight ?? 0),
+        };
 
-      const pricing = calculateCutList(snapshot, allMaterials);
+        const pricing = calculateCutList(snapshot, allMaterials);
 
-      // Get material prices for historical record
-      const korpusMat = allMaterials.find(
-        (m) => m.id === snapshot.selectedMaterialId,
-      );
-      const frontMat = allMaterials.find(
-        (m) => m.id === snapshot.selectedFrontMaterialId,
-      );
-      const backMat = allMaterials.find(
-        (m) => m.id === snapshot.selectedBackMaterialId,
-      );
+        // Get material prices for historical record
+        const korpusMat = allMaterials.find(
+          (m) => m.id === snapshot.selectedMaterialId,
+        );
+        const frontMat = allMaterials.find(
+          (m) => m.id === snapshot.selectedFrontMaterialId,
+        );
+        const backMat = allMaterials.find(
+          (m) => m.id === snapshot.selectedBackMaterialId,
+        );
 
-      // Filter out handles since they're not cut materials (accessories, not panels)
-      // Cast to database-compatible type (excludes "handles" from materialType)
-      type DbCutListItem = {
-        code: string;
-        desc: string;
-        widthCm: number;
-        heightCm: number;
-        thicknessMm: number;
-        areaM2: number;
-        cost: number;
-        element: string;
-        materialType: "korpus" | "front" | "back";
-      };
-      cutListData = {
-        items: pricing.items.filter(
-          (
-            item,
-          ): item is typeof item & {
-            materialType: "korpus" | "front" | "back";
-          } => item.materialType !== "handles",
-        ) as DbCutListItem[],
-        pricePerM2: korpusMat?.price ?? 0,
-        frontPricePerM2: frontMat?.price ?? 0,
-        backPricePerM2: backMat?.price ?? 0,
-        totalArea: pricing.totalArea,
-        totalCost: pricing.totalCost,
-      };
+        // Filter out handles since they're not cut materials (accessories, not panels)
+        // Cast to database-compatible type (excludes "handles" from materialType)
+        type DbCutListItem = {
+          code: string;
+          desc: string;
+          widthCm: number;
+          heightCm: number;
+          thicknessMm: number;
+          areaM2: number;
+          cost: number;
+          element: string;
+          materialType: "korpus" | "front" | "back";
+        };
+        cutListData = {
+          items: pricing.items.filter(
+            (
+              item,
+            ): item is typeof item & {
+              materialType: "korpus" | "front" | "back";
+            } => item.materialType !== "handles",
+          ) as DbCutListItem[],
+          pricePerM2: korpusMat?.price ?? 0,
+          frontPricePerM2: frontMat?.price ?? 0,
+          backPricePerM2: backMat?.price ?? 0,
+          totalArea: pricing.totalArea,
+          totalCost: pricing.totalCost,
+        };
+      } catch (cutListError) {
+        // Log error but don't fail the save - wardrobe will be saved without cut list
+        console.error(
+          "[POST /api/wardrobes] Cut list calculation failed:",
+          cutListError,
+        );
+        cutListData = null;
+      }
     }
 
     const [created] = await db

@@ -8,6 +8,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
+import { Canvas3DErrorBoundary } from "./Canvas3DErrorBoundary";
 
 /**
  * StoreInvalidator - Invalidates R3F scene when Zustand store changes
@@ -300,62 +301,68 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
 
   return (
     <div className="relative w-full h-full">
-      <Canvas
-        className="w-full h-full"
-        shadows
-        dpr={[1, 1.75]}
-        frameloop="demand"
-        gl={{
-          preserveDrawingBuffer: true,
-          powerPreference: "high-performance",
-          antialias: true,
-        }}
-        onCreated={({ gl }) => {
-          gl.domElement.addEventListener("webglcontextlost", (e) => {
-            e.preventDefault();
-          });
-          gl.domElement.addEventListener("webglcontextrestored", () => {});
-        }}
-      >
-        {/* Background: dark purple from theme (--background in dark mode) */}
-        <color
-          attach="background"
-          args={[showEdgesOnly ? "#ffffff" : "#2d2a3e"]}
-        />
+      <Canvas3DErrorBoundary>
+        <Canvas
+          className="w-full h-full"
+          shadows
+          dpr={[1, 1.75]}
+          frameloop="demand"
+          gl={{
+            preserveDrawingBuffer: true,
+            powerPreference: "high-performance",
+            antialias: true,
+          }}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener("webglcontextlost", (e) => {
+              e.preventDefault();
+            });
+            gl.domElement.addEventListener("webglcontextrestored", () => {});
+          }}
+        >
+          {/* Background: dark purple from theme (--background in dark mode) */}
+          <color
+            attach="background"
+            args={[showEdgesOnly ? "#ffffff" : "#2d2a3e"]}
+          />
 
-        {/* Basic lighting - flat lighting in edges mode for clean download */}
-        <ambientLight intensity={showEdgesOnly ? 1.0 : 0.6} />
-        {!showEdgesOnly && (
-          <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
-        )}
+          {/* Basic lighting - flat lighting in edges mode for clean download */}
+          <ambientLight intensity={showEdgesOnly ? 1.0 : 0.6} />
+          {!showEdgesOnly && (
+            <directionalLight
+              position={[5, 10, 5]}
+              intensity={0.8}
+              castShadow
+            />
+          )}
 
-        {!showEdgesOnly && <Environment preset="apartment" />}
+          {!showEdgesOnly && <Environment preset="apartment" />}
 
-        {/* Wardrobe centered manually, CameraPositioner handles camera fitting */}
-        <Suspense fallback={null}>
-          <WardrobeCenterer wardrobeRef={wardrobeRef} />
-        </Suspense>
-        <CameraPositioner />
+          {/* Wardrobe centered manually, CameraPositioner handles camera fitting */}
+          <Suspense fallback={null}>
+            <WardrobeCenterer wardrobeRef={wardrobeRef} />
+          </Suspense>
+          <CameraPositioner />
 
-        <OrbitControls
-          ref={controlsRef}
-          enabled={areControlsEnabled && !isDragging}
-          makeDefault
-          enablePan={areControlsEnabled}
-          enableZoom={areControlsEnabled}
-          enableRotate={areControlsEnabled}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI}
-          minDistance={0.5}
-          maxDistance={10}
-        />
+          <OrbitControls
+            ref={controlsRef}
+            enabled={areControlsEnabled && !isDragging}
+            makeDefault
+            enablePan={areControlsEnabled}
+            enableZoom={areControlsEnabled}
+            enableRotate={areControlsEnabled}
+            minPolarAngle={0}
+            maxPolarAngle={Math.PI}
+            minDistance={0.5}
+            maxDistance={10}
+          />
 
-        {/* Handle camera positioning for 2D/3D view modes */}
-        <ViewModeController controlsRef={controlsRef} />
+          {/* Handle camera positioning for 2D/3D view modes */}
+          <ViewModeController controlsRef={controlsRef} />
 
-        {/* Invalidate scene when store changes (required for frameloop="demand") */}
-        <StoreInvalidator />
-      </Canvas>
+          {/* Invalidate scene when store changes (required for frameloop="demand") */}
+          <StoreInvalidator />
+        </Canvas>
+      </Canvas3DErrorBoundary>
     </div>
   );
 }

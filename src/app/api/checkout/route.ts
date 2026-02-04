@@ -16,6 +16,7 @@ import {
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
+import { rateLimiters, getClientIp } from "@/lib/rate-limiter";
 
 const checkoutSchema = z
   .object({
@@ -36,14 +37,52 @@ const checkoutSchema = z
     materialId: z.number(),
     frontMaterialId: z.number(),
     backMaterialId: z.number().nullable(),
+    // Turnstile CAPTCHA token
+    turnstileToken: z.string().min(1, "Verifikacija je obavezna"),
     // area and totalPrice are computed server-side, ignored if sent
   })
   .refine((data) => data.customerEmail || data.customerPhone, {
     message: "Morate uneti email ili telefon",
   });
 
+async function verifyTurnstileToken(token: string): Promise<boolean> {
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret: process.env.TURNSTILE_SECRET_KEY,
+        response: token,
+      }),
+    },
+  );
+  const data = await response.json();
+  return data.success === true;
+}
+
 export async function POST(request: Request) {
   try {
+    // Rate limiting - 5 checkout attempts per minute per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = rateLimiters.checkout(clientIp);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Previše zahteva. Pokušajte ponovo za minut." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(rateLimit.limit),
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+            "X-RateLimit-Reset": String(rateLimit.resetAt),
+            "Retry-After": String(
+              Math.max(0, rateLimit.resetAt - Math.floor(Date.now() / 1000)),
+            ),
+          },
+        },
+      );
+    }
+
     const body = await request.json();
     const validation = checkoutSchema.safeParse(body);
 
@@ -68,7 +107,17 @@ export async function POST(request: Request) {
       materialId,
       frontMaterialId,
       backMaterialId,
+      turnstileToken,
     } = validation.data;
+
+    // Verify Turnstile CAPTCHA token
+    const isValidToken = await verifyTurnstileToken(turnstileToken);
+    if (!isValidToken) {
+      return NextResponse.json(
+        { error: "Verifikacija nije uspela. Pokušajte ponovo." },
+        { status: 400 },
+      );
+    }
 
     // Check if user is logged in
     const session = await auth.api.getSession({

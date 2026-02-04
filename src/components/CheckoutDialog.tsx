@@ -4,6 +4,7 @@ import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { ShoppingCart, Loader2, CheckCircle2, Copy, Check } from "lucide-react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 interface PlaceSuggestion {
   placeId: string;
@@ -94,6 +95,10 @@ export function CheckoutDialog({
     customerPhone: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Turnstile CAPTCHA state
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   // Address autocomplete state
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
@@ -261,6 +266,10 @@ export function CheckoutDialog({
       newErrors.shippingPostalCode = "Poštanski broj je obavezan";
     }
 
+    if (!turnstileToken) {
+      newErrors.turnstile = "Molimo sačekajte verifikaciju";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -285,6 +294,7 @@ export function CheckoutDialog({
           backMaterialId: orderData.backMaterialId,
           area: orderData.totalArea,
           totalPrice: Math.round(orderData.totalPrice),
+          turnstileToken,
         }),
       });
 
@@ -334,6 +344,8 @@ export function CheckoutDialog({
     setErrors({});
     setOrderSuccess(null);
     setCopied(false);
+    setTurnstileToken(null);
+    turnstileRef.current?.reset();
     onOpenChange(false);
   };
 
@@ -767,6 +779,20 @@ export function CheckoutDialog({
                 />
               </div>
 
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onSuccess={setTurnstileToken}
+                  onError={() => setTurnstileToken(null)}
+                  onExpire={() => setTurnstileToken(null)}
+                />
+                {errors.turnstile && (
+                  <p className="text-xs text-destructive">{errors.turnstile}</p>
+                )}
+              </div>
+
               <DialogFooter className="pt-4">
                 <Button
                   type="button"
@@ -778,11 +804,17 @@ export function CheckoutDialog({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || orderData.backMaterialId == null}
+                  disabled={
+                    submitting ||
+                    orderData.backMaterialId == null ||
+                    !turnstileToken
+                  }
                   title={
                     orderData.backMaterialId == null
                       ? "Izaberite materijal za leđa"
-                      : undefined
+                      : !turnstileToken
+                        ? "Molimo sačekajte verifikaciju"
+                        : undefined
                   }
                 >
                   {submitting ? (

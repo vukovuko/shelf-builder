@@ -6,6 +6,8 @@ import { db } from "@/db/db";
 import { contactMessages, user, wardrobes } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "@/lib/email-rate-limiter";
+import { escapeHtml } from "@/lib/utils";
+import { rateLimiters, getClientIp } from "@/lib/rate-limiter";
 
 const contactSchema = z.object({
   name: z
@@ -44,6 +46,26 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - 3 contact messages per minute per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = rateLimiters.contact(clientIp);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Previše zahteva. Pokušajte ponovo za minut." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(rateLimit.limit),
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+            "X-RateLimit-Reset": String(rateLimit.resetAt),
+            "Retry-After": String(
+              Math.max(0, rateLimit.resetAt - Math.floor(Date.now() / 1000)),
+            ),
+          },
+        },
+      );
+    }
+
     // Get session (optional - could allow guest messages in future)
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
@@ -112,19 +134,26 @@ export async function POST(request: Request) {
     }
 
     // Send notification to all opted-in admins (rate limiter handles delays)
+    // Escape user input to prevent HTML injection
+    const safeName = escapeHtml(name);
+    const safeEmail = email ? escapeHtml(email) : null;
+    const safePhone = phone ? escapeHtml(phone) : null;
+    const safeWardrobeName = wardrobeName ? escapeHtml(wardrobeName) : null;
+    const safeMessage = escapeHtml(message).replace(/\n/g, "<br />");
+
     for (const admin of admins) {
       await sendEmail({
         to: admin.email,
-        subject: `Nova kontakt poruka - ${name}`,
+        subject: `Nova kontakt poruka - ${safeName}`,
         html: `
           <h2>Nova kontakt poruka</h2>
-          <p><strong>Od:</strong> ${name}</p>
-          ${email ? `<p><strong>Email:</strong> ${email}</p>` : ""}
-          ${phone ? `<p><strong>Telefon:</strong> ${phone}</p>` : ""}
-          ${wardrobeName ? `<p><strong>Orman:</strong> ${wardrobeName}</p>` : ""}
+          <p><strong>Od:</strong> ${safeName}</p>
+          ${safeEmail ? `<p><strong>Email:</strong> ${safeEmail}</p>` : ""}
+          ${safePhone ? `<p><strong>Telefon:</strong> ${safePhone}</p>` : ""}
+          ${safeWardrobeName ? `<p><strong>Orman:</strong> ${safeWardrobeName}</p>` : ""}
           <hr />
           <p><strong>Poruka:</strong></p>
-          <p>${message.replace(/\n/g, "<br />")}</p>
+          <p>${safeMessage}</p>
         `,
       });
     }
