@@ -329,6 +329,19 @@ export const orders = pgTable(
     returnStatus: returnStatusEnum("returnStatus").notNull().default("none"),
     // Notes
     notes: text("notes"),
+    // Rule engine adjustments
+    ruleAdjustments:
+      json("ruleAdjustments").$type<
+        Array<{
+          ruleId: string;
+          ruleName: string;
+          actionType: string;
+          description: string;
+          amount: number;
+          visible: boolean;
+        }>
+      >(),
+    adjustedTotal: integer("adjustedTotal"), // Final price after rules (null = no adjustments)
     // Timestamps
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
@@ -369,6 +382,45 @@ export const orderRelations = relations(orders, ({ one }) => ({
     references: [materials.id],
   }),
 }));
+
+// Rules table (for automatic pricing adjustments)
+export const rules = pgTable("rule", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description"),
+  enabled: boolean("enabled").notNull().default(true),
+  priority: integer("priority").notNull().default(100), // Lower = runs first
+  // Conditions and actions stored as JSON
+  conditions: json("conditions").notNull().$type<
+    Array<{
+      id: string;
+      field: string;
+      operator: string;
+      value: string | number | boolean | string[] | number[];
+      logicOperator?: "AND" | "OR";
+    }>
+  >(),
+  actions: json("actions").notNull().$type<
+    Array<{
+      id: string;
+      type: string;
+      config: {
+        itemName?: string;
+        itemSku?: string;
+        itemPrice?: number;
+        quantity?: number | string;
+        visibleToCustomer?: boolean;
+        value?: number;
+        applyTo?: string;
+        reason?: string;
+      };
+    }>
+  >(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
 
 // Contact messages table
 export const contactMessages = pgTable(

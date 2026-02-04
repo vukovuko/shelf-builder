@@ -77,6 +77,15 @@ interface CutList {
   backPricePerM2: number;
 }
 
+interface RuleAdjustment {
+  ruleId: string;
+  ruleName: string;
+  actionType: string;
+  description: string;
+  amount: number;
+  visible: boolean;
+}
+
 interface Order {
   id: string;
   orderNumber: number;
@@ -102,6 +111,9 @@ interface Order {
   totalPrice: number;
   priceBreakdown: PriceBreakdown | null;
   cutList: CutList | null;
+  // Rule engine
+  ruleAdjustments: RuleAdjustment[] | null;
+  adjustedTotal: number | null;
   status: "open" | "archived" | "cancelled";
   paymentStatus:
     | "unpaid"
@@ -1322,7 +1334,9 @@ export function OrderDetailClient({
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-border">
-                        <td className="py-3 pr-2 font-semibold">Ukupno</td>
+                        <td className="py-3 pr-2 font-semibold">
+                          Osnovni materijal
+                        </td>
                         <td className="py-3 pl-2 pr-3 text-right tabular-nums font-medium whitespace-nowrap">
                           {areaM2.toFixed(2)} m²
                         </td>
@@ -1337,10 +1351,102 @@ export function OrderDetailClient({
                           </div>
                         </td>
                       </tr>
+                      {/* Show visible rule adjustments */}
+                      {order.ruleAdjustments &&
+                        order.ruleAdjustments
+                          .filter((adj) => adj.visible)
+                          .map((adj) => (
+                            <tr key={adj.ruleId} className="text-sm">
+                              <td className="py-2 pr-2" colSpan={2}>
+                                {adj.description}
+                              </td>
+                              <td className="py-2 pl-3 text-right tabular-nums">
+                                <span
+                                  className={
+                                    adj.amount < 0
+                                      ? "text-green-600"
+                                      : "text-orange-600"
+                                  }
+                                >
+                                  {adj.amount < 0 ? "" : "+"}
+                                  {adj.amount.toLocaleString("sr-RS")} RSD
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      {/* Final total row when adjustments exist */}
+                      {order.adjustedTotal !== null && (
+                        <tr className="border-t border-border">
+                          <td className="py-3 pr-2 font-bold">Konačna cena</td>
+                          <td className="py-3 pl-2 pr-3" />
+                          <td className="py-3 pl-3 text-right">
+                            <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
+                              <span className="text-lg sm:text-xl font-bold tabular-nums text-primary">
+                                {order.adjustedTotal.toLocaleString("sr-RS")}
+                              </span>
+                              <span className="text-xs sm:text-sm font-medium">
+                                RSD
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </tfoot>
                   </table>
                 </div>
               </div>
+
+              {/* Hidden rule adjustments (Interne stavke) */}
+              {order.ruleAdjustments &&
+                order.ruleAdjustments.filter((adj) => !adj.visible).length >
+                  0 && (
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="internal" className="border-none">
+                      <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline">
+                        Interne stavke (
+                        {
+                          order.ruleAdjustments.filter((adj) => !adj.visible)
+                            .length
+                        }
+                        )
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                          {order.ruleAdjustments
+                            .filter((adj) => !adj.visible)
+                            .map((adj) => (
+                              <div
+                                key={adj.ruleId}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <div>
+                                  <span className="font-medium">
+                                    {adj.description}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    ({adj.ruleName})
+                                  </span>
+                                </div>
+                                <span className="tabular-nums">
+                                  {adj.amount.toLocaleString("sr-RS")} RSD
+                                </span>
+                              </div>
+                            ))}
+                          <div className="border-t pt-2 flex justify-between text-sm font-medium">
+                            <span>Ukupno interne stavke</span>
+                            <span className="tabular-nums">
+                              {order.ruleAdjustments
+                                .filter((adj) => !adj.visible)
+                                .reduce((sum, adj) => sum + adj.amount, 0)
+                                .toLocaleString("sr-RS")}{" "}
+                              RSD
+                            </span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
             </div>
 
             <div>
@@ -1485,7 +1591,7 @@ export function OrderDetailClient({
               <h2 className="text-lg font-semibold">3D Prikaz</h2>
               <ViewModeToggle />
             </div>
-            <div className="h-[400px] sm:h-[500px]">
+            <div className="h-[50vh] min-h-[350px] max-h-[500px]">
               <Scene wardrobeRef={wardrobeRef} />
             </div>
           </Card>

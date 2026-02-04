@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -128,10 +128,7 @@ export function UsersClient({
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/users/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Dodaj korisnika
-          </Link>
+          <Link href="/admin/users/new">Dodaj korisnika</Link>
         </Button>
       </div>
       <DataTable

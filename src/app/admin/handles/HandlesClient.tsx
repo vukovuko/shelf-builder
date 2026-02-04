@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -198,10 +198,7 @@ export function HandlesClient({
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/handles/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Dodaj ručku
-          </Link>
+          <Link href="/admin/handles/new">Dodaj ručku</Link>
         </Button>
       </div>
 

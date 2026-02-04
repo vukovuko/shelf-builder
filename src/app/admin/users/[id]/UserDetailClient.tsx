@@ -40,7 +40,6 @@ import {
   Pencil,
   X,
   Check,
-  Plus,
   Copy,
   MapPin,
 } from "lucide-react";
@@ -579,10 +578,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
               <div className="py-6 text-center text-muted-foreground">
                 <p className="mb-4">Nema porudžbina</p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/admin/orders/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Kreiraj porudžbinu
-                  </Link>
+                  <Link href="/admin/orders/new">Kreiraj porudžbinu</Link>
                 </Button>
               </div>
             )}

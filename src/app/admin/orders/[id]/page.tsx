@@ -38,6 +38,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
       totalPrice: orders.totalPrice,
       priceBreakdown: orders.priceBreakdown,
       cutList: orders.cutList,
+      ruleAdjustments: orders.ruleAdjustments,
+      adjustedTotal: orders.adjustedTotal,
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       fulfillmentStatus: orders.fulfillmentStatus,

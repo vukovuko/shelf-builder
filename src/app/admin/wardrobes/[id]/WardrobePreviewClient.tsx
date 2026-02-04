@@ -1174,7 +1174,7 @@ export function WardrobePreviewClient({
 
       {/* 3D Preview */}
       <Card className="overflow-hidden">
-        <div className="h-[500px] sm:h-[600px]">
+        <div className="h-[60vh] min-h-[400px] max-h-[700px]">
           <Scene wardrobeRef={wardrobeRef} />
         </div>
       </Card>

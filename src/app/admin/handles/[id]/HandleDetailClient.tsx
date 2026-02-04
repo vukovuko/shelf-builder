@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Plus, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -379,7 +379,6 @@ export function HandleDetailClient({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Završne obrade</h2>
           <Button onClick={openAddFinish} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
             Dodaj obradu
           </Button>
         </div>

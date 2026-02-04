@@ -10,6 +10,7 @@ import {
   Package,
   LayoutTemplate,
   DoorOpen,
+  Settings2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,6 +60,11 @@ const navItems = [
     title: "Ručke",
     href: "/admin/handles",
     icon: DoorOpen,
+  },
+  {
+    title: "Pravila",
+    href: "/admin/rules",
+    icon: Settings2,
   },
 ];
 

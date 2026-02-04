@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -201,10 +201,7 @@ export function OrdersClient({
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/orders/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova porudzbina
-          </Link>
+          <Link href="/admin/orders/new">Dodaj porudžbinu</Link>
         </Button>
       </div>
 

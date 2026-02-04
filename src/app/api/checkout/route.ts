@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
-import { user, wardrobes, orders, materials } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { user, wardrobes, orders, materials, rules } from "@/db/schema";
+import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
@@ -10,6 +10,12 @@ import {
   sendAdminNewOrderEmail,
 } from "@/lib/email";
 import { calculateCutList } from "@/lib/calcCutList";
+import {
+  applyRules,
+  calculateFinalPrice,
+  type RuleContext,
+  type Rule,
+} from "@/lib/rules";
 
 const checkoutSchema = z
   .object({
@@ -308,6 +314,103 @@ export async function POST(request: Request) {
       totalCost: pricing.totalCost,
     };
 
+    // =========================================================================
+    // RULE ENGINE: Apply pricing rules
+    // =========================================================================
+
+    // Count previous orders for this user
+    const [orderCountResult] = await db
+      .select({ count: count() })
+      .from(orders)
+      .where(eq(orders.userId, userId));
+    const previousOrderCount = Number(orderCountResult?.count ?? 0);
+
+    // Get user tags if available
+    const [userData] = await db
+      .select({ tags: user.tags })
+      .from(user)
+      .where(eq(user.id, userId));
+    const userTags: string[] = userData?.tags ? JSON.parse(userData.tags) : [];
+
+    // Count wardrobe features
+    const doorGroups = snapshot?.doorGroups ?? [];
+    const doorCount = doorGroups.length;
+    const drawerCount = Object.values(snapshot?.compartmentExtras ?? {}).reduce(
+      (sum: number, extras: any) => sum + (extras?.drawersCount ?? 0),
+      0,
+    );
+    const shelfCount = Object.values(
+      snapshot?.columnHorizontalBoundaries ?? {},
+    ).reduce(
+      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
+      0,
+    );
+    const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
+
+    // Check for mirrors
+    const hasMirror = doorGroups.some(
+      (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
+    );
+
+    // Build rule context
+    const ruleContext: RuleContext = {
+      wardrobe: {
+        width: pricingSnapshot.width,
+        height: pricingSnapshot.height,
+        depth: pricingSnapshot.depth,
+        area: pricing.totalArea,
+        columnCount,
+        shelfCount,
+        doorCount,
+        drawerCount,
+        hasBase: pricingSnapshot.hasBase,
+        hasDoors: doorCount > 0,
+        hasDrawers: drawerCount > 0,
+        hasMirror,
+        material: {
+          id: resolvedMaterialId,
+          name: selectedMaterial.name,
+        },
+        frontMaterial: {
+          id: resolvedFrontMaterialId,
+          name: selectedFrontMaterial.name,
+        },
+        backMaterial: selectedBackMaterial
+          ? {
+              id: resolvedBackMaterialId!,
+              name: selectedBackMaterial.name,
+            }
+          : undefined,
+      },
+      customer: {
+        tags: userTags,
+        email: customerEmail || undefined,
+        orderCount: previousOrderCount,
+      },
+      order: {
+        total: totalPrice,
+        city: shippingCity,
+      },
+    };
+
+    // Fetch enabled rules sorted by priority
+    const enabledRules = await db
+      .select()
+      .from(rules)
+      .where(eq(rules.enabled, true))
+      .orderBy(asc(rules.priority), asc(rules.createdAt));
+
+    // Apply rules
+    const ruleAdjustments = applyRules(
+      enabledRules as Rule[],
+      ruleContext,
+      totalPrice,
+    );
+    const adjustedTotal =
+      ruleAdjustments.length > 0
+        ? calculateFinalPrice(totalPrice, ruleAdjustments)
+        : null;
+
     // Create wardrobe and order (manual rollback if order fails)
     const now = new Date();
     const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
@@ -348,6 +451,9 @@ export async function POST(request: Request) {
           shippingCity,
           shippingPostalCode,
           notes: notes || null,
+          // Rule engine adjustments
+          ruleAdjustments: ruleAdjustments.length > 0 ? ruleAdjustments : null,
+          adjustedTotal,
           status: "open",
           paymentStatus: "unpaid",
           fulfillmentStatus: "unfulfilled",
@@ -390,6 +496,8 @@ export async function POST(request: Request) {
 
     // Send emails (after transaction succeeds)
     // Rate limiter in email-rate-limiter.ts handles delays automatically
+    // Use adjusted total for customer-facing price (if rules applied)
+    const finalPrice = adjustedTotal ?? totalPrice;
     try {
       // Send customer confirmation if they provided email
       if (customerEmail && customerEmail.length > 0) {
@@ -397,7 +505,7 @@ export async function POST(request: Request) {
           to: customerEmail,
           orderNumber: result.orderNumber,
           customerName,
-          totalPrice,
+          totalPrice: finalPrice,
           shippingStreet,
           shippingCity,
           shippingPostalCode,
@@ -411,7 +519,7 @@ export async function POST(request: Request) {
         customerName,
         customerEmail: customerEmail || null,
         customerPhone: customerPhone || null,
-        totalPrice,
+        totalPrice: finalPrice,
         shippingStreet,
         shippingCity,
         shippingPostalCode,

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,37 +24,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
-import { columns, type Material } from "./columns";
+import { columns, type RuleRow } from "./columns";
 
-interface MaterialsClientProps {
-  materials: Material[];
+interface RulesClientProps {
+  rules: RuleRow[];
   page: number;
   pageSize: number;
   totalCount: number;
   search: string;
 }
 
-export function MaterialsClient({
-  materials,
+export function RulesClient({
+  rules,
   page,
   pageSize,
   totalCount,
   search,
-}: MaterialsClientProps) {
+}: RulesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+  const [selectedRules, setSelectedRules] = useState<RuleRow[]>([]);
   const [searchInput, setSearchInput] = useState(search);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  // Debounced search - updates URL after 300ms of no typing
+  // Debounced search
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -61,7 +61,6 @@ export function MaterialsClient({
 
     debounceRef.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
-      // Reset to page 1 when searching
       params.delete("page");
       if (searchInput.trim()) {
         params.set("search", searchInput.trim());
@@ -70,7 +69,6 @@ export function MaterialsClient({
       }
       const query = params.toString();
       const newUrl = query ? `${pathname}?${query}` : pathname;
-      // Only push if the search value actually changed
       if (searchInput !== search) {
         router.push(newUrl);
       }
@@ -99,93 +97,93 @@ export function MaterialsClient({
     setIsDeleting(true);
     try {
       const results = await Promise.all(
-        selectedMaterials.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, { method: "DELETE" }),
+        selectedRules.map((rule) =>
+          fetch(`/api/admin/rules/${rule.id}`, { method: "DELETE" }),
         ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${selectedMaterials.length} materijala obrisano`);
+        toast.success(`${selectedRules.length} pravila obrisano`);
         router.refresh();
       } else {
-        toast.error("Greška pri brisanju nekih materijala");
+        toast.error("Greška pri brisanju nekih pravila");
       }
     } catch (error) {
-      console.error("Failed to delete materials:", error);
-      toast.error("Greška pri brisanju materijala");
+      console.error("Failed to delete rules:", error);
+      toast.error("Greška pri brisanju pravila");
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
-      setSelectedMaterials([]);
+      setSelectedRules([]);
     }
   }
 
-  async function handleBulkPublish(selected: Material[]) {
-    const toPublish = selected.filter((m) => !m.published);
-    if (toPublish.length === 0) {
-      toast.info("Svi izabrani materijali su već objavljeni");
+  async function handleBulkEnable(selected: RuleRow[]) {
+    const toEnable = selected.filter((r) => !r.enabled);
+    if (toEnable.length === 0) {
+      toast.info("Sva izabrana pravila su već aktivna");
       return;
     }
 
     setIsUpdatingStatus(true);
     try {
       const results = await Promise.all(
-        toPublish.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, {
+        toEnable.map((rule) =>
+          fetch(`/api/admin/rules/${rule.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: true }),
+            body: JSON.stringify({ enabled: true }),
           }),
         ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${toPublish.length} materijala objavljeno`);
-        setSelectedMaterials([]);
+        toast.success(`${toEnable.length} pravila aktivirano`);
+        setSelectedRules([]);
         router.refresh();
       } else {
-        toast.error("Greška pri objavljivanju nekih materijala");
+        toast.error("Greška pri aktiviranju nekih pravila");
       }
     } catch (error) {
-      console.error("Failed to publish materials:", error);
-      toast.error("Greška pri objavljivanju materijala");
+      console.error("Failed to enable rules:", error);
+      toast.error("Greška pri aktiviranju pravila");
     } finally {
       setIsUpdatingStatus(false);
     }
   }
 
-  async function handleBulkDraft(selected: Material[]) {
-    const toDraft = selected.filter((m) => m.published);
-    if (toDraft.length === 0) {
-      toast.info("Svi izabrani materijali su već u draft-u");
+  async function handleBulkDisable(selected: RuleRow[]) {
+    const toDisable = selected.filter((r) => r.enabled);
+    if (toDisable.length === 0) {
+      toast.info("Sva izabrana pravila su već neaktivna");
       return;
     }
 
     setIsUpdatingStatus(true);
     try {
       const results = await Promise.all(
-        toDraft.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, {
+        toDisable.map((rule) =>
+          fetch(`/api/admin/rules/${rule.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: false }),
+            body: JSON.stringify({ enabled: false }),
           }),
         ),
       );
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${toDraft.length} materijala vraćeno u draft`);
-        setSelectedMaterials([]);
+        toast.success(`${toDisable.length} pravila deaktivirano`);
+        setSelectedRules([]);
         router.refresh();
       } else {
-        toast.error("Greška pri vraćanju nekih materijala u draft");
+        toast.error("Greška pri deaktiviranju nekih pravila");
       }
     } catch (error) {
-      console.error("Failed to draft materials:", error);
-      toast.error("Greška pri vraćanju materijala u draft");
+      console.error("Failed to disable rules:", error);
+      toast.error("Greška pri deaktiviranju pravila");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -195,34 +193,29 @@ export function MaterialsClient({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Materijali</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Pravila (Uslovi)</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Upravljanje materijalima za konfigurator
+            Automatska prilagođavanja cena na osnovu uslova
           </p>
         </div>
         <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/materials/new">Dodaj materijal</Link>
+          <Link href="/admin/rules/new">Dodaj pravilo</Link>
         </Button>
       </div>
 
+      {/* Data table */}
       <DataTable
         columns={columns}
-        data={materials}
-        searchPlaceholder="Pretrazi po nazivu..."
+        data={rules}
+        enableRowSelection
+        getRowId={(row) => row.id}
+        searchPlaceholder="Pretraži po nazivu..."
         searchValue={searchInput}
         onSearchChange={setSearchInput}
-        pageIndex={Math.max(page - 1, 0)}
-        pageSize={pageSize}
+        pageIndex={page - 1}
         pageCount={pageCount}
-        totalCount={totalCount}
         onPageChange={handlePageChange}
-        onRowClick={(material) =>
-          router.push(`/admin/materials/${material.id}`)
-        }
-        enableRowSelection
-        getRowId={(material) => String(material.id)}
-        selectedItems={selectedMaterials}
-        onSelectionChange={setSelectedMaterials}
+        onRowClick={(row) => router.push(`/admin/rules/${row.id}`)}
         bulkActions={(selected) => (
           <div
             className={cn(
@@ -242,26 +235,20 @@ export function MaterialsClient({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleBulkPublish(selected)}
-                  disabled={isUpdatingStatus}
-                >
-                  Objavi izabrane
+                <DropdownMenuItem onClick={() => handleBulkEnable(selected)}>
+                  Aktiviraj
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkDisable(selected)}>
+                  Deaktiviraj
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleBulkDraft(selected)}
-                  disabled={isUpdatingStatus}
-                >
-                  Vrati u draft
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  className="text-destructive"
                   onClick={() => {
-                    setSelectedMaterials(selected);
+                    setSelectedRules(selected);
                     setShowDeleteDialog(true);
                   }}
                 >
-                  Obriši izabrane
+                  Obriši
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -269,13 +256,14 @@ export function MaterialsClient({
         )}
       />
 
+      {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Obrisati materijale?</AlertDialogTitle>
+            <AlertDialogTitle>Da li ste sigurni?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ova akcija je nepovratna. {selectedMaterials.length} materijala će
-              biti trajno obrisano.
+              Obrisaćete {selectedRules.length} pravila. Ova akcija se ne može
+              poništiti.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
