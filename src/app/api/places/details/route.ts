@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  externalApiRateLimit,
+  getIdentifier,
+  rateLimitResponse,
+} from "@/lib/upstash-rate-limit";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -54,6 +59,13 @@ async function fetchFromNominatim(address: string): Promise<NominatimResult> {
 }
 
 export async function GET(request: Request) {
+  // Rate limit - 20 requests per minute per IP (protects Google API costs)
+  const identifier = getIdentifier(request);
+  const { success, reset } = await externalApiRateLimit.limit(identifier);
+  if (!success) {
+    return rateLimitResponse(reset);
+  }
+
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
       { error: "Google Places API key not configured" },

@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
+import {
+  autocompleteRateLimit,
+  getIdentifier,
+  rateLimitResponse,
+} from "@/lib/upstash-rate-limit";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
 export async function GET(request: Request) {
+  // Rate limit - 30 requests per minute per IP (users type fast)
+  const identifier = getIdentifier(request);
+  const { success, reset } = await autocompleteRateLimit.limit(identifier);
+  if (!success) {
+    return rateLimitResponse(reset);
+  }
+
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
       { error: "Google Places API key not configured" },

@@ -7,6 +7,11 @@ import { auth } from "@/lib/auth";
 import { createWardrobeSchema } from "@/lib/validation";
 import { calculateCutList, type WardrobeSnapshot } from "@/lib/calcCutList";
 import { isCurrentUserAdmin } from "@/lib/roles";
+import {
+  standardRateLimit,
+  getIdentifier,
+  rateLimitResponse,
+} from "@/lib/upstash-rate-limit";
 
 export async function GET() {
   try {
@@ -45,6 +50,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit - 30 wardrobe saves per minute per IP
+    const identifier = getIdentifier(req);
+    const { success, reset } = await standardRateLimit.limit(identifier);
+    if (!success) {
+      return rateLimitResponse(reset);
+    }
+
     const session = await auth.api.getSession({
       headers: await headers(),
     });

@@ -16,7 +16,11 @@ import {
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
-import { rateLimiters, getClientIp } from "@/lib/rate-limiter";
+import {
+  strictRateLimit,
+  getIdentifier,
+  rateLimitResponse,
+} from "@/lib/upstash-rate-limit";
 
 const checkoutSchema = z
   .object({
@@ -63,24 +67,11 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting - 5 checkout attempts per minute per IP
-    const clientIp = getClientIp(request);
-    const rateLimit = rateLimiters.checkout(clientIp);
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: "Previše zahteva. Pokušajte ponovo za minut." },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": String(rateLimit.limit),
-            "X-RateLimit-Remaining": String(rateLimit.remaining),
-            "X-RateLimit-Reset": String(rateLimit.resetAt),
-            "Retry-After": String(
-              Math.max(0, rateLimit.resetAt - Math.floor(Date.now() / 1000)),
-            ),
-          },
-        },
-      );
+    // Rate limit - 5 checkout attempts per minute per IP
+    const identifier = getIdentifier(request);
+    const { success, reset } = await strictRateLimit.limit(identifier);
+    if (!success) {
+      return rateLimitResponse(reset);
     }
 
     const body = await request.json();

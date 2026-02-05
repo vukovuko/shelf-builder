@@ -7,7 +7,11 @@ import { contactMessages, user, wardrobes } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "@/lib/email-rate-limiter";
 import { escapeHtml } from "@/lib/utils";
-import { rateLimiters, getClientIp } from "@/lib/rate-limiter";
+import {
+  strictRateLimit,
+  getIdentifier,
+  rateLimitResponse,
+} from "@/lib/upstash-rate-limit";
 
 const contactSchema = z.object({
   name: z
@@ -46,24 +50,11 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting - 3 contact messages per minute per IP
-    const clientIp = getClientIp(request);
-    const rateLimit = rateLimiters.contact(clientIp);
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: "Previše zahteva. Pokušajte ponovo za minut." },
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": String(rateLimit.limit),
-            "X-RateLimit-Remaining": String(rateLimit.remaining),
-            "X-RateLimit-Reset": String(rateLimit.resetAt),
-            "Retry-After": String(
-              Math.max(0, rateLimit.resetAt - Math.floor(Date.now() / 1000)),
-            ),
-          },
-        },
-      );
+    // Rate limit - 5 contact messages per minute per IP
+    const identifier = getIdentifier(request);
+    const { success, reset } = await strictRateLimit.limit(identifier);
+    if (!success) {
+      return rateLimitResponse(reset);
     }
 
     // Get session (optional - could allow guest messages in future)
