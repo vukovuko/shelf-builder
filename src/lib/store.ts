@@ -1206,12 +1206,27 @@ export const useShelfStore = create<ShelfState>((set) => ({
       }
       // Case 2: Cross-compartment selection (different compIdx, or mixed types)
       // Include all compartments in the index range, expanding subdivided ones to their sub-keys
+      // STOP at external drawers (can't span doors over them)
       else {
-        const minCompIdx = Math.min(startParsed.compIdx, currentParsed.compIdx);
-        const maxCompIdx = Math.max(startParsed.compIdx, currentParsed.compIdx);
         const column = startParsed.column;
+        const startIdx = startParsed.compIdx;
+        const endIdx = currentParsed.compIdx;
+        const goingUp = endIdx > startIdx;
 
-        for (let compIdx = minCompIdx; compIdx <= maxCompIdx; compIdx++) {
+        // Helper to check if a compartment has external drawers
+        const hasExternalDrawers = (compIdx: number): boolean => {
+          const baseKey = `${column}${compIdx}`;
+          const cfg = state.elementConfigs[baseKey];
+          if (!cfg) return false;
+          const hasDrawers =
+            cfg.drawerCounts?.some((c: number) => c > 0) ?? false;
+          const isExternal =
+            cfg.drawersExternal?.some((e) => e !== false) ?? true;
+          return hasDrawers && isExternal;
+        };
+
+        // Helper to add compartment (handles subdivided compartments)
+        const addCompartment = (compIdx: number) => {
           const baseKey = `${column}${compIdx}`;
           const cfg = state.elementConfigs[baseKey];
 
@@ -1231,6 +1246,21 @@ export const useShelfStore = create<ShelfState>((set) => ({
           } else {
             // Simple compartment (no subdivisions, or BOTH types → treated as single)
             selected.push(baseKey);
+          }
+        };
+
+        // Iterate FROM start TOWARD end, stopping at external drawers
+        if (goingUp) {
+          for (let compIdx = startIdx; compIdx <= endIdx; compIdx++) {
+            // Stop if we hit an external drawer (but include start even if blocked - shouldn't happen)
+            if (compIdx !== startIdx && hasExternalDrawers(compIdx)) break;
+            addCompartment(compIdx);
+          }
+        } else {
+          for (let compIdx = startIdx; compIdx >= endIdx; compIdx--) {
+            // Stop if we hit an external drawer
+            if (compIdx !== startIdx && hasExternalDrawers(compIdx)) break;
+            addCompartment(compIdx);
           }
         }
       }
@@ -1307,17 +1337,58 @@ export const useShelfStore = create<ShelfState>((set) => ({
         return aParsed.spaceIdx - bParsed.spaceIdx;
       });
 
-      // Get column letter from first compartment using parseSubCompKey
-      const firstParsed = parseSubCompKey(selectedComps[0]);
-      const column = firstParsed?.column ?? "A";
+      // Split selection into contiguous groups (handles gaps from external drawers)
+      // A gap occurs when compartment indices are not consecutive
+      const contiguousGroups: string[][] = [];
+      let currentGroup: string[] = [];
 
-      // Generate group ID
-      const firstComp = selectedComps[0];
-      const lastComp = selectedComps[selectedComps.length - 1];
-      const groupId =
-        firstComp === lastComp
-          ? `door-${firstComp}`
-          : `door-${firstComp}-${lastComp}`;
+      for (let i = 0; i < selectedComps.length; i++) {
+        const comp = selectedComps[i];
+        const parsed = parseSubCompKey(comp);
+
+        if (i === 0) {
+          currentGroup.push(comp);
+          continue;
+        }
+
+        const prevComp = selectedComps[i - 1];
+        const prevParsed = parseSubCompKey(prevComp);
+
+        // Check if this compartment is contiguous with the previous one
+        let isContiguous = false;
+        if (parsed && prevParsed) {
+          // Same column check
+          if (parsed.column === prevParsed.column) {
+            if (parsed.isSubComp && prevParsed.isSubComp) {
+              // Both are sub-compartments - check if same compartment & section, consecutive space
+              if (
+                parsed.compKey === prevParsed.compKey &&
+                parsed.sectionIdx === prevParsed.sectionIdx
+              ) {
+                isContiguous = parsed.spaceIdx === prevParsed.spaceIdx + 1;
+              }
+            } else if (!parsed.isSubComp && !prevParsed.isSubComp) {
+              // Both are main compartments - check consecutive index
+              isContiguous = parsed.compIdx === prevParsed.compIdx + 1;
+            }
+            // Mixed sub/main compartments are NOT contiguous (different structure)
+          }
+        }
+
+        if (isContiguous) {
+          currentGroup.push(comp);
+        } else {
+          // Start a new group
+          if (currentGroup.length > 0) {
+            contiguousGroups.push(currentGroup);
+          }
+          currentGroup = [comp];
+        }
+      }
+      // Don't forget the last group
+      if (currentGroup.length > 0) {
+        contiguousGroups.push(currentGroup);
+      }
 
       // Remove any existing groups that overlap with this selection
       const newGroups = state.doorGroups.filter((g: DoorGroup) => {
@@ -1346,19 +1417,32 @@ export const useShelfStore = create<ShelfState>((set) => ({
         };
       }
 
-      // Create new door group with per-door settings if in per-door mode
-      const newGroup: DoorGroup = {
-        id: groupId,
-        type,
-        compartments: selectedComps,
-        column,
-        // Include per-door settings when in per-door mode
-        ...(state.doorSettingsMode === "per-door" && {
-          materialId: state.selectedFrontMaterialId,
-          handleId: state.globalHandleId,
-          handleFinish: state.globalHandleFinish,
-        }),
-      };
+      // Create new door group for EACH contiguous group
+      const createdGroups: DoorGroup[] = [];
+      for (const groupComps of contiguousGroups) {
+        const firstParsed = parseSubCompKey(groupComps[0]);
+        const column = firstParsed?.column ?? "A";
+        const firstComp = groupComps[0];
+        const lastComp = groupComps[groupComps.length - 1];
+        const groupId =
+          firstComp === lastComp
+            ? `door-${firstComp}`
+            : `door-${firstComp}-${lastComp}`;
+
+        const newGroup: DoorGroup = {
+          id: groupId,
+          type,
+          compartments: groupComps,
+          column,
+          // Include per-door settings when in per-door mode
+          ...(state.doorSettingsMode === "per-door" && {
+            materialId: state.selectedFrontMaterialId,
+            handleId: state.globalHandleId,
+            handleFinish: state.globalHandleFinish,
+          }),
+        };
+        createdGroups.push(newGroup);
+      }
 
       // Also update doorSelections for backward compatibility with cut list
       const newSelections = { ...state.doorSelections };
@@ -1367,7 +1451,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       }
 
       return {
-        doorGroups: [...newGroups, newGroup],
+        doorGroups: [...newGroups, ...createdGroups],
         doorSelections: newSelections,
         // Keep selection active so user can modify material/handle settings
         doorSelectionDragging: false,

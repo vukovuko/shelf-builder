@@ -977,6 +977,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 position={[colCenterX, centerY, d / 2 + 0.02]}
                                 heightCm={compHeightCm}
                                 columnIndex={colIdx}
+                                hasExternalDrawers={compHasExternalDrawers}
                               />
                               {/* Hit mesh for drag detection */}
                               {doorSelectionDragging && (
@@ -1011,6 +1012,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         for (let secIdx = 0; secIdx < innerCols; secIdx++) {
                           const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                           const numSpaces = shelfCount + 1;
+                          // Check if this section has external drawers
+                          const secHasExternalDrawers =
+                            (cfg.drawerCounts?.[secIdx] ?? 0) > 0 &&
+                            (cfg.drawersExternal?.[secIdx] ?? true);
 
                           // Section X bounds (account for divider thickness)
                           const secLeftX =
@@ -1102,6 +1107,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 ]}
                                 heightCm={spaceHeightCm}
                                 columnIndex={colIdx}
+                                hasExternalDrawers={secHasExternalDrawers}
                               />,
                             );
 
@@ -1386,6 +1392,33 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                   />
                                 </mesh>,
                               );
+                              // Add handle for external drawers
+                              if (isExternal) {
+                                const handleW = Math.min(drawerW * 0.3, 0.12);
+                                const handleH = 0.015;
+                                const handleD = 0.02;
+                                drawerPanels.push(
+                                  <mesh
+                                    key={`handle-${compKey}-${secIdx}-${drIdx}`}
+                                    position={[
+                                      secCenterX,
+                                      drawerCenterY,
+                                      drawerZ +
+                                        DEFAULT_PANEL_THICKNESS_M / 2 +
+                                        handleD / 2,
+                                    ]}
+                                  >
+                                    <boxGeometry
+                                      args={[handleW, handleH, handleD]}
+                                    />
+                                    <meshStandardMaterial
+                                      color="#888888"
+                                      roughness={0.3}
+                                      metalness={0.6}
+                                    />
+                                  </mesh>,
+                                );
+                              }
                             }
                           } else {
                             // CASE 2: With shelves - one drawer per space (bottom-up)
@@ -1438,6 +1471,33 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                   />
                                 </mesh>,
                               );
+                              // Add handle for external drawers
+                              if (isExternal) {
+                                const handleW = Math.min(drawerW * 0.3, 0.12);
+                                const handleH = 0.015;
+                                const handleD = 0.02;
+                                drawerPanels.push(
+                                  <mesh
+                                    key={`handle-${compKey}-${secIdx}-${drIdx}`}
+                                    position={[
+                                      secCenterX,
+                                      drawerCenterY,
+                                      drawerZ +
+                                        DEFAULT_PANEL_THICKNESS_M / 2 +
+                                        handleD / 2,
+                                    ]}
+                                  >
+                                    <boxGeometry
+                                      args={[handleW, handleH, handleD]}
+                                    />
+                                    <meshStandardMaterial
+                                      color="#888888"
+                                      roughness={0.3}
+                                      metalness={0.6}
+                                    />
+                                  </mesh>,
+                                );
+                              }
                             }
                           }
                         }
@@ -1866,6 +1926,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
             const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
 
+            // Handle dimensions for door handles (kvake)
+            const handleW = 0.015; // 1.5cm wide (vertical bar)
+            const handleH = 0.1; // 10cm tall
+            const handleD = 0.02; // 2cm deep
+            const handleZ = doorZ + doorT / 2 + handleD / 2;
+            const handleEdgeOffset = 0.03; // 3cm from edge
+
             // Render based on door type
             if (group.type === "double" || group.type === "doubleMirror") {
               // Double doors - two panels with gap
@@ -1874,8 +1941,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               const leafW = Math.max(0.01, (doorW - gapBetween) / 2);
               const offset = (leafW + gapBetween) / 2;
 
+              // Handles near center gap (inner edges)
+              const leftHandleX =
+                doorCenterX - offset + leafW / 2 - handleEdgeOffset;
+              const rightHandleX =
+                doorCenterX + offset - leafW / 2 + handleEdgeOffset;
+
               return (
                 <React.Fragment key={group.id}>
+                  {/* Left leaf */}
                   <mesh position={[doorCenterX - offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
                     {isMirror ? (
@@ -1895,6 +1969,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
                   </mesh>
+                  {/* Left leaf handle */}
+                  <mesh position={[leftHandleX, doorCenterY, handleZ]}>
+                    <boxGeometry args={[handleW, handleH, handleD]} />
+                    <meshStandardMaterial
+                      color="#888888"
+                      roughness={0.3}
+                      metalness={0.6}
+                    />
+                  </mesh>
+                  {/* Right leaf */}
                   <mesh position={[doorCenterX + offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorHeight, doorT]} />
                     {isMirror ? (
@@ -1914,31 +1998,79 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
                   </mesh>
+                  {/* Right leaf handle */}
+                  <mesh position={[rightHandleX, doorCenterY, handleZ]}>
+                    <boxGeometry args={[handleW, handleH, handleD]} />
+                    <meshStandardMaterial
+                      color="#888888"
+                      roughness={0.3}
+                      metalness={0.6}
+                    />
+                  </mesh>
                 </React.Fragment>
               );
             }
 
-            // Single door (left, right, leftMirror, rightMirror, or other types)
+            // Single door (left, right, leftMirror, rightMirror, drawerStyle)
+            // Handle position based on door type:
+            // - "left"/"leftMirror" (hinge on left) → handle on RIGHT edge
+            // - "right"/"rightMirror" (hinge on right) → handle on LEFT edge
+            // - "drawerStyle" → horizontal bar in center (like drawer)
+            const isLeftHinge =
+              group.type === "left" || group.type === "leftMirror";
+            const isRightHinge =
+              group.type === "right" || group.type === "rightMirror";
+            const isDrawerStyle = group.type === "drawerStyle";
+
+            // Calculate handle X position
+            let singleHandleX = doorCenterX;
+            if (isLeftHinge) {
+              singleHandleX = doorCenterX + doorW / 2 - handleEdgeOffset;
+            } else if (isRightHinge) {
+              singleHandleX = doorCenterX - doorW / 2 + handleEdgeOffset;
+            }
+
+            // Drawer style uses horizontal bar (wider, shorter)
+            const singleHandleW = isDrawerStyle
+              ? Math.min(doorW * 0.3, 0.12)
+              : handleW;
+            const singleHandleH = isDrawerStyle ? 0.015 : handleH;
+
             return (
-              <mesh key={group.id} position={[doorCenterX, doorCenterY, doorZ]}>
-                <boxGeometry args={[doorW, doorHeight, doorT]} />
-                {isMirror ? (
-                  <meshPhysicalMaterial
-                    color="#4a5568"
-                    roughness={0.05}
-                    metalness={0.95}
-                    clearcoat={1}
-                    clearcoatRoughness={0.1}
-                    reflectivity={1}
-                  />
-                ) : (
-                  <meshStandardMaterial
-                    color={doorColor}
-                    roughness={0.5}
-                    metalness={0.1}
-                  />
+              <React.Fragment key={group.id}>
+                <mesh position={[doorCenterX, doorCenterY, doorZ]}>
+                  <boxGeometry args={[doorW, doorHeight, doorT]} />
+                  {isMirror ? (
+                    <meshPhysicalMaterial
+                      color="#4a5568"
+                      roughness={0.05}
+                      metalness={0.95}
+                      clearcoat={1}
+                      clearcoatRoughness={0.1}
+                      reflectivity={1}
+                    />
+                  ) : (
+                    <meshStandardMaterial
+                      color={doorColor}
+                      roughness={0.5}
+                      metalness={0.1}
+                    />
+                  )}
+                </mesh>
+                {/* Door handle (kvaka) */}
+                {group.type !== "none" && (
+                  <mesh position={[singleHandleX, doorCenterY, handleZ]}>
+                    <boxGeometry
+                      args={[singleHandleW, singleHandleH, handleD]}
+                    />
+                    <meshStandardMaterial
+                      color="#888888"
+                      roughness={0.3}
+                      metalness={0.6}
+                    />
+                  </mesh>
                 )}
-              </mesh>
+              </React.Fragment>
             );
           })}
 
