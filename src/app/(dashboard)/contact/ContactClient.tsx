@@ -97,7 +97,9 @@ export function ContactClient({
         toast.error(data.error || "Greška pri slanju poruke");
       }
     } catch {
-      toast.error("Greška pri slanju poruke");
+      toast.error(
+        "Neočekivana greška. Proverite internet konekciju i pokušajte ponovo.",
+      );
     } finally {
       setSending(false);
     }

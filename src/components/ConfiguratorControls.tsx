@@ -172,7 +172,9 @@ export function ConfiguratorControls({
       const snapshot = getWardrobeSnapshot();
       if (!snapshot || typeof snapshot !== "object") {
         console.error("[performSave] invalid snapshot", snapshot);
-        toast.error("Greška pri čuvanju ormana");
+        toast.error(
+          "Nije moguće pripremiti podatke ormana. Osvežite stranicu i pokušajte ponovo.",
+        );
         setIsSaving(false);
         return;
       }
@@ -203,7 +205,13 @@ export function ConfiguratorControls({
 
         if (!res.ok) {
           console.error("[performSave] update failed", res.status);
-          toast.error("Greška pri ažuriranju ormana");
+          const errorMsg =
+            res.status === 404
+              ? "Orman nije pronađen. Možda je već obrisan."
+              : res.status === 403
+                ? "Nemate dozvolu za izmenu ovog ormana."
+                : "Nije moguće ažurirati orman. Proverite internet konekciju.";
+          toast.error(errorMsg);
           setIsSaving(false);
           return;
         }
@@ -240,7 +248,13 @@ export function ConfiguratorControls({
 
       if (!res.ok) {
         console.error("[performSave] save failed", res.status);
-        toast.error("Greška pri čuvanju ormana");
+        const errorMsg =
+          res.status === 401
+            ? "Niste prijavljeni. Prijavite se i pokušajte ponovo."
+            : res.status === 413
+              ? "Orman je previše velik za čuvanje. Smanjite kompleksnost dizajna."
+              : "Nije moguće sačuvati orman. Proverite internet konekciju.";
+        toast.error(errorMsg);
         setIsSaving(false);
         return;
       }
@@ -262,7 +276,9 @@ export function ConfiguratorControls({
       setIsSaving(false);
     } catch (e) {
       console.error("[performSave] exception", e);
-      toast.error("Greška pri čuvanju ormana");
+      toast.error(
+        "Neočekivana greška pri čuvanju. Proverite internet konekciju i pokušajte ponovo.",
+      );
       setIsSaving(false);
     }
   };

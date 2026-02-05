@@ -97,7 +97,11 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
       // Fetch full wardrobe data first
       const res = await fetch(`/api/wardrobes/${id}`);
       if (!res.ok) {
-        toast.error("Greška pri učitavanju ormana");
+        const errorMsg =
+          res.status === 404
+            ? "Orman nije pronađen. Možda je već obrisan."
+            : "Nije moguće učitati podatke ormana. Proverite internet konekciju.";
+        toast.error(errorMsg);
         return;
       }
       const fullWardrobe = await res.json();
@@ -117,11 +121,17 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
         toast.success("Orman je dupliran!");
         await fetchWardrobes();
       } else {
-        toast.error("Greška pri dupliciranju ormana");
+        const errorMsg =
+          duplicateRes.status === 401
+            ? "Niste prijavljeni. Prijavite se i pokušajte ponovo."
+            : "Nije moguće duplirati orman. Pokušajte ponovo.";
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error("Failed to duplicate:", error);
-      toast.error("Greška pri dupliciranju ormana");
+      toast.error(
+        "Neočekivana greška pri dupliciranju. Proverite internet konekciju.",
+      );
     }
   }
 
@@ -133,7 +143,9 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
       toast.success("Link je kopiran!");
     } catch (error) {
       console.error("Failed to copy:", error);
-      toast.error("Greška pri kopiranju linka");
+      toast.error(
+        "Nije moguće kopirati link. Vaš pregledač ne podržava ovu funkciju.",
+      );
     }
   }
 
@@ -155,11 +167,19 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
         toast.success("Orman je obrisan");
         await fetchWardrobes();
       } else {
-        toast.error("Greška pri brisanju ormana");
+        const errorMsg =
+          res.status === 404
+            ? "Orman nije pronađen. Možda je već obrisan."
+            : res.status === 403
+              ? "Nemate dozvolu za brisanje ovog ormana."
+              : "Nije moguće obrisati orman. Pokušajte ponovo.";
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error("Failed to delete:", error);
-      toast.error("Greška pri brisanju ormana");
+      toast.error(
+        "Neočekivana greška pri brisanju. Proverite internet konekciju.",
+      );
     } finally {
       setWardrobeToDelete(null);
     }

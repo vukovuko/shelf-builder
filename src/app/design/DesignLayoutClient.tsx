@@ -148,7 +148,9 @@ export function DesignLayoutClient({
     try {
       const snapshot = getWardrobeSnapshot();
       if (!snapshot || typeof snapshot !== "object") {
-        toast.error("Greška pri čuvanju ormana");
+        toast.error(
+          "Nije moguće pripremiti podatke ormana. Osvežite stranicu.",
+        );
         setIsSaving(false);
         return;
       }
@@ -182,7 +184,13 @@ export function DesignLayoutClient({
       });
 
       if (!res.ok) {
-        toast.error("Greška pri čuvanju ormana");
+        const errorMsg =
+          res.status === 404
+            ? "Orman nije pronađen. Možda je već obrisan."
+            : res.status === 403
+              ? "Nemate dozvolu za izmenu ovog ormana."
+              : "Nije moguće sačuvati orman. Proverite internet konekciju.";
+        toast.error(errorMsg);
         setIsSaving(false);
         return;
       }
@@ -199,7 +207,9 @@ export function DesignLayoutClient({
       }
     } catch (e) {
       console.error("Save failed", e);
-      toast.error("Greška pri čuvanju ormana");
+      toast.error(
+        "Neočekivana greška pri čuvanju. Proverite internet konekciju.",
+      );
     } finally {
       setIsSaving(false);
     }

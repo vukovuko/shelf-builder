@@ -105,6 +105,27 @@ export const ruleActionSchema = z.object({
   }),
 });
 
+// Door option enum (matches store.ts DoorOption type)
+export const doorOptionSchema = z.enum([
+  "none",
+  "left",
+  "right",
+  "double",
+  "leftMirror",
+  "rightMirror",
+  "doubleMirror",
+  "drawerStyle",
+]);
+
+// Compartment extras schema (matches store.ts CompartmentExtras interface)
+export const compartmentExtrasSchema = z.object({
+  verticalDivider: z.boolean().optional(),
+  drawers: z.boolean().optional(),
+  drawersCount: z.number().optional(),
+  rod: z.boolean().optional(),
+  led: z.boolean().optional(),
+});
+
 // Wardrobe snapshot schema (partial - key fields for validation)
 export const wardrobeSnapshotSchema = z.object({
   width: z.number(),
@@ -117,8 +138,8 @@ export const wardrobeSnapshotSchema = z.object({
     .nullable()
     .optional(),
   elementConfigs: z.record(z.string(), z.any()).optional(),
-  compartmentExtras: z.record(z.string(), z.any()).optional(),
-  doorSelections: z.record(z.string(), z.any()).optional(),
+  compartmentExtras: z.record(z.string(), compartmentExtrasSchema).optional(),
+  doorSelections: z.record(z.string(), doorOptionSchema).optional(),
   hasBase: z.boolean().optional(),
   baseHeight: z.number().optional(),
   verticalBoundaries: z.array(z.number()).optional(),
@@ -133,6 +154,8 @@ export type PriceBreakdown = z.infer<typeof priceBreakdownSchema>;
 export type RuleAdjustment = z.infer<typeof ruleAdjustmentSchema>;
 export type RuleCondition = z.infer<typeof ruleConditionSchema>;
 export type RuleAction = z.infer<typeof ruleActionSchema>;
+export type DoorOption = z.infer<typeof doorOptionSchema>;
+export type CompartmentExtras = z.infer<typeof compartmentExtrasSchema>;
 export type WardrobeSnapshot = z.infer<typeof wardrobeSnapshotSchema>;
 
 /**

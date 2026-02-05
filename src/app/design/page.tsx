@@ -59,9 +59,13 @@ function LoadFromUrl() {
           if (res.status === 401) {
             toast.error("Sesija je istekla. Prijavite se ponovo.");
           } else if (res.status === 404) {
-            toast.error("Orman nije pronađen");
+            toast.error(
+              "Orman nije pronađen. Možda je obrisan ili link nije validan.",
+            );
           } else {
-            toast.error("Greška pri učitavanju ormana");
+            toast.error(
+              "Nije moguće učitati orman. Proverite internet konekciju.",
+            );
           }
           hasLoadedRef.current = false; // Reset on error so user can retry
           isLoadingFromUrl = false;
@@ -98,7 +102,9 @@ function LoadFromUrl() {
         window.history.replaceState({}, "", "/design");
       } catch (e) {
         console.error("Failed to load wardrobe", e);
-        toast.error("Greška pri učitavanju ormana");
+        toast.error(
+          "Neočekivana greška pri učitavanju. Proverite internet konekciju.",
+        );
         hasLoadedRef.current = false; // Reset on error so user can retry
       } finally {
         isLoadingFromUrl = false;

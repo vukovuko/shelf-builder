@@ -2,13 +2,104 @@
 
 import { OrbitControls, Environment } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import React, { useRef, useEffect, useCallback, Suspense } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useCallback,
+  Suspense,
+  useState,
+} from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { Move3d, ZoomIn, Move, Hand } from "lucide-react";
 import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
 import { Canvas3DErrorBoundary } from "./Canvas3DErrorBoundary";
+
+const HINT_DISMISSED_KEY = "shelf-builder-3d-hint-dismissed";
+
+/**
+ * Dismissible hint overlay for 3D interaction controls
+ * Shows controls in a centered grid: rotate, zoom, pan (CTRL), mobile gestures
+ */
+function InteractionHint() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Check if hint was already dismissed
+    const dismissed = sessionStorage.getItem(HINT_DISMISSED_KEY);
+    if (!dismissed) {
+      // Show after 3 seconds to ensure everything is loaded
+      const showTimer = setTimeout(() => {
+        setVisible(true);
+      }, 3000);
+      // Auto-hide after 15 seconds total (visible for 12 seconds)
+      const hideTimer = setTimeout(() => {
+        setVisible(false);
+        sessionStorage.setItem(HINT_DISMISSED_KEY, "true");
+      }, 15000);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, []);
+
+  const dismiss = () => {
+    setVisible(false);
+    sessionStorage.setItem(HINT_DISMISSED_KEY, "true");
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto bg-black/30 backdrop-blur-[2px]"
+      onClick={dismiss}
+    >
+      <div className="bg-background/95 backdrop-blur-sm border-2 border-primary/30 rounded-2xl p-6 shadow-2xl cursor-pointer hover:bg-background transition-colors max-w-md mx-4">
+        <p className="text-center text-muted-foreground text-sm mb-4">
+          Kliknite bilo gde za zatvaranje
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Top left: Rotate */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <Move3d className="h-7 w-7 text-primary shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">Prevuci</p>
+              <p className="text-sm text-muted-foreground">Rotacija</p>
+            </div>
+          </div>
+          {/* Top right: Zoom */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <ZoomIn className="h-7 w-7 text-primary shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">Skroluj</p>
+              <p className="text-sm text-muted-foreground">Zum</p>
+            </div>
+          </div>
+          {/* Bottom left: CTRL + drag to pan */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <Move className="h-7 w-7 text-primary shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">CTRL + prevuci</p>
+              <p className="text-sm text-muted-foreground">Pomeri</p>
+            </div>
+          </div>
+          {/* Bottom right: Mobile two-finger */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <Hand className="h-7 w-7 text-primary shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">Dva prsta</p>
+              <p className="text-sm text-muted-foreground">Zum i pomeri</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * StoreInvalidator - Invalidates R3F scene when Zustand store changes
@@ -134,7 +225,7 @@ function CameraPositioner() {
     const distanceForHeight = h / 2 / Math.tan(fovRad / 2);
 
     // Use whichever requires more distance, add margin
-    const margin = 1.25; // 25% margin for comfortable fit
+    const margin = 1.75; // 35% margin for comfortable fit
     const distance = Math.max(distanceForWidth, distanceForHeight) * margin;
 
     // Position camera directly in front, centered
@@ -363,6 +454,9 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           <StoreInvalidator />
         </Canvas>
       </Canvas3DErrorBoundary>
+
+      {/* 3D interaction hints - only show in 3D mode */}
+      {viewMode === "3D" && <InteractionHint />}
     </div>
   );
 }

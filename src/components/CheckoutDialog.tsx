@@ -299,8 +299,14 @@ export function CheckoutDialog({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Greška pri slanju porudžbine");
+        const data = await res.json().catch(() => ({}));
+        const defaultMsg =
+          res.status === 429
+            ? "Previše zahteva. Sačekajte minut i pokušajte ponovo."
+            : res.status === 401
+              ? "Verifikacija nije uspela. Osvežite stranicu i pokušajte ponovo."
+              : "Nije moguće poslati porudžbinu. Proverite internet konekciju.";
+        throw new Error(data.error || defaultMsg);
       }
 
       const data = await res.json();
@@ -313,7 +319,11 @@ export function CheckoutDialog({
         customerPhone: formData.customerPhone,
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Greška pri slanju");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Neočekivana greška. Proverite internet konekciju i pokušajte ponovo.",
+      );
     } finally {
       setSubmitting(false);
     }
