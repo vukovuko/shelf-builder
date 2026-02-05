@@ -284,7 +284,10 @@ export function CompartmentExtrasPanel({
           const isChecked = (config.drawerCounts?.[0] ?? 0) > 0;
           return (
             <div className="mt-3 pt-3 border-t space-y-2">
-              <div className="flex items-center gap-2">
+              <label
+                htmlFor="whole-drawer"
+                className={`flex items-center gap-2 ${hasSubdivisions ? "text-muted-foreground" : "cursor-pointer"}`}
+              >
                 <Checkbox
                   id="whole-drawer"
                   checked={isChecked && !hasSubdivisions}
@@ -293,15 +296,13 @@ export function CompartmentExtrasPanel({
                     setElementDrawerCount(compartmentKey, 0, checked ? 1 : 0)
                   }
                 />
-                <label
-                  htmlFor="whole-drawer"
-                  className={`text-sm ${hasSubdivisions ? "text-muted-foreground" : "cursor-pointer"}`}
-                >
-                  Cela pregrada je fioka
-                </label>
-              </div>
+                <span className="text-sm">Cela pregrada je fioka</span>
+              </label>
               {isChecked && !hasSubdivisions && (
-                <div className="flex items-center gap-2 ml-6">
+                <label
+                  htmlFor="whole-drawer-external"
+                  className="flex items-center gap-2 ml-6 cursor-pointer"
+                >
                   <Checkbox
                     id="whole-drawer-external"
                     checked={config.drawersExternal?.[0] ?? true}
@@ -309,13 +310,10 @@ export function CompartmentExtrasPanel({
                       setElementDrawerExternal(compartmentKey, 0, !!checked)
                     }
                   />
-                  <label
-                    htmlFor="whole-drawer-external"
-                    className="text-xs text-muted-foreground cursor-pointer"
-                  >
+                  <span className="text-xs text-muted-foreground">
                     Spoljašnja fioka (zamenjuje vrata)
-                  </label>
-                </div>
+                  </span>
+                </label>
               )}
             </div>
           );
@@ -390,7 +388,10 @@ export function CompartmentExtrasPanel({
                     // MODE 1: No shelves → CHECKBOX for "whole section is drawer"
                     return (
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <label
+                          htmlFor={`drawer-${idx}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
                           <Checkbox
                             id={`drawer-${idx}`}
                             checked={drawerCount > 0}
@@ -402,15 +403,13 @@ export function CompartmentExtrasPanel({
                               )
                             }
                           />
-                          <label
-                            htmlFor={`drawer-${idx}`}
-                            className="text-xs cursor-pointer"
-                          >
-                            Fioka
-                          </label>
-                        </div>
+                          <span className="text-xs">Fioka</span>
+                        </label>
                         {drawerCount > 0 && (
-                          <div className="flex items-center gap-2 ml-5">
+                          <label
+                            htmlFor={`external-${idx}`}
+                            className="flex items-center gap-2 ml-5 cursor-pointer"
+                          >
                             <Checkbox
                               id={`external-${idx}`}
                               checked={isExternal}
@@ -422,13 +421,10 @@ export function CompartmentExtrasPanel({
                                 )
                               }
                             />
-                            <label
-                              htmlFor={`external-${idx}`}
-                              className="text-xs text-muted-foreground cursor-pointer"
-                            >
+                            <span className="text-xs text-muted-foreground">
                               Spoljašnja (zamenjuje vrata)
-                            </label>
-                          </div>
+                            </span>
+                          </label>
                         )}
                       </div>
                     );
@@ -490,7 +486,10 @@ export function CompartmentExtrasPanel({
                         </div>
                         {/* External/Internal checkbox - only show if drawers > 0 */}
                         {drawerCount > 0 && (
-                          <div className="flex items-center gap-2 mt-1">
+                          <label
+                            htmlFor={`external-${idx}`}
+                            className="flex items-center gap-2 mt-1 cursor-pointer"
+                          >
                             <Checkbox
                               id={`external-${idx}`}
                               checked={isExternal}
@@ -502,13 +501,10 @@ export function CompartmentExtrasPanel({
                                 )
                               }
                             />
-                            <label
-                              htmlFor={`external-${idx}`}
-                              className="text-xs text-muted-foreground cursor-pointer"
-                            >
+                            <span className="text-xs text-muted-foreground">
                               Spoljašnje fioke (zamenjuju vrata)
-                            </label>
-                          </div>
+                            </span>
+                          </label>
                         )}
                       </>
                     );
@@ -631,7 +627,10 @@ export function CompartmentExtrasPanel({
                 </div>
                 {/* External/Internal checkbox - only show if drawers > 0 */}
                 {drawerCount > 0 && (
-                  <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="external-single"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Checkbox
                       id="external-single"
                       checked={isExternal}
@@ -639,13 +638,10 @@ export function CompartmentExtrasPanel({
                         setElementDrawerExternal(compartmentKey, 0, !!checked)
                       }
                     />
-                    <label
-                      htmlFor="external-single"
-                      className="text-xs text-muted-foreground cursor-pointer"
-                    >
+                    <span className="text-xs text-muted-foreground">
                       Spoljašnje fioke (zamenjuju vrata)
-                    </label>
-                  </div>
+                    </span>
+                  </label>
                 )}
               </>
             );
