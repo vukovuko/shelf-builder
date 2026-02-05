@@ -661,6 +661,9 @@ export function ConfiguratorControls({
   const columnModuleBoundaries = useShelfStore(
     (state: ShelfState) => state.columnModuleBoundaries,
   );
+  const columnTopModuleShelves = useShelfStore(
+    (state: ShelfState) => state.columnTopModuleShelves,
+  );
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(
     () =>
@@ -681,6 +684,7 @@ export function ConfiguratorControls({
           verticalBoundaries,
           columnHorizontalBoundaries,
           columnModuleBoundaries,
+          columnTopModuleShelves,
           // Door groups and handle settings for pricing
           doorGroups,
           globalHandleId,
@@ -708,6 +712,7 @@ export function ConfiguratorControls({
       verticalBoundaries,
       columnHorizontalBoundaries,
       columnModuleBoundaries,
+      columnTopModuleShelves,
       // Door groups and handle settings
       doorGroups,
       globalHandleId,

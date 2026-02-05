@@ -290,6 +290,30 @@ export function OrderDetailClient({
   );
   const hasBase = useShelfStore((state: ShelfState) => state.hasBase);
   const baseHeight = useShelfStore((state: ShelfState) => state.baseHeight);
+  // Structural data for accurate calculations
+  const verticalBoundaries = useShelfStore(
+    (state: ShelfState) => state.verticalBoundaries,
+  );
+  const columnHorizontalBoundaries = useShelfStore(
+    (state: ShelfState) => state.columnHorizontalBoundaries,
+  );
+  const columnModuleBoundaries = useShelfStore(
+    (state: ShelfState) => state.columnModuleBoundaries,
+  );
+  const columnTopModuleShelves = useShelfStore(
+    (state: ShelfState) => state.columnTopModuleShelves,
+  );
+  // Door groups with per-door settings
+  const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
+  const globalHandleId = useShelfStore(
+    (state: ShelfState) => state.globalHandleId,
+  );
+  const globalHandleFinish = useShelfStore(
+    (state: ShelfState) => state.globalHandleFinish,
+  );
+  const doorSettingsMode = useShelfStore(
+    (state: ShelfState) => state.doorSettingsMode,
+  );
 
   // Calculate cut list from store state for PDF export (has grouped property)
   const calculatedCutList = useMemo(
@@ -307,6 +331,16 @@ export function OrderDetailClient({
           doorSelections,
           hasBase,
           baseHeight,
+          // Structural data
+          verticalBoundaries,
+          columnHorizontalBoundaries,
+          columnModuleBoundaries,
+          columnTopModuleShelves,
+          // Door groups
+          doorGroups,
+          globalHandleId,
+          globalHandleFinish,
+          doorSettingsMode,
         },
         materials,
       ),
@@ -322,6 +356,14 @@ export function OrderDetailClient({
       doorSelections,
       hasBase,
       baseHeight,
+      verticalBoundaries,
+      columnHorizontalBoundaries,
+      columnModuleBoundaries,
+      columnTopModuleShelves,
+      doorGroups,
+      globalHandleId,
+      globalHandleFinish,
+      doorSettingsMode,
       materials,
     ],
   );

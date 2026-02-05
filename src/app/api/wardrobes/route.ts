@@ -129,6 +129,25 @@ export async function POST(req: Request) {
             data.doorSelections as WardrobeSnapshot["doorSelections"],
           hasBase: Boolean(data.hasBase),
           baseHeight: Number(data.baseHeight ?? 0),
+          // Structural data for accurate calculations
+          verticalBoundaries: data.verticalBoundaries as number[] | undefined,
+          columnHorizontalBoundaries: data.columnHorizontalBoundaries as
+            | Record<number, number[]>
+            | undefined,
+          columnModuleBoundaries: data.columnModuleBoundaries as
+            | Record<number, number | null>
+            | undefined,
+          columnTopModuleShelves: data.columnTopModuleShelves as
+            | Record<number, number[]>
+            | undefined,
+          // Door groups with per-door settings
+          doorGroups: data.doorGroups as WardrobeSnapshot["doorGroups"],
+          globalHandleId: data.globalHandleId as string | undefined,
+          globalHandleFinish: data.globalHandleFinish as string | undefined,
+          doorSettingsMode: data.doorSettingsMode as
+            | "global"
+            | "per-door"
+            | undefined,
         };
 
         const pricing = calculateCutList(snapshot, allMaterials);

@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
-import { user, wardrobes, orders, materials, rules } from "@/db/schema";
+import {
+  user,
+  wardrobes,
+  orders,
+  materials,
+  rules,
+  handles,
+  handleFinishes,
+} from "@/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -208,6 +216,32 @@ export async function POST(request: Request) {
       })
       .from(materials);
 
+    // Fetch handles with finishes for pricing
+    const pricingHandles = await db
+      .select({
+        id: handles.id,
+        legacyId: handles.legacyId,
+        name: handles.name,
+      })
+      .from(handles)
+      .where(eq(handles.published, true));
+
+    const allFinishes = await db
+      .select({
+        id: handleFinishes.id,
+        handleId: handleFinishes.handleId,
+        legacyId: handleFinishes.legacyId,
+        name: handleFinishes.name,
+        price: handleFinishes.price,
+      })
+      .from(handleFinishes);
+
+    // Group finishes by handle
+    const handlesWithFinishes = pricingHandles.map((h) => ({
+      ...h,
+      finishes: allFinishes.filter((f) => f.handleId === h.id),
+    }));
+
     const snapshot = wardrobeSnapshot as Record<string, any>;
     const resolvedMaterialId = Number(
       snapshot?.selectedMaterialId ?? materialId,
@@ -279,9 +313,23 @@ export async function POST(request: Request) {
       doorSelections: snapshot?.doorSelections ?? {},
       hasBase: Boolean(snapshot?.hasBase),
       baseHeight: Number(snapshot?.baseHeight ?? 0),
+      // Structural data for accurate calculations
+      verticalBoundaries: snapshot?.verticalBoundaries,
+      columnHorizontalBoundaries: snapshot?.columnHorizontalBoundaries,
+      columnModuleBoundaries: snapshot?.columnModuleBoundaries,
+      columnTopModuleShelves: snapshot?.columnTopModuleShelves,
+      // Door groups with per-door settings
+      doorGroups: snapshot?.doorGroups,
+      globalHandleId: snapshot?.globalHandleId,
+      globalHandleFinish: snapshot?.globalHandleFinish,
+      doorSettingsMode: snapshot?.doorSettingsMode,
     };
 
-    const pricing = calculateCutList(pricingSnapshot, pricingMaterials);
+    const pricing = calculateCutList(
+      pricingSnapshot,
+      pricingMaterials,
+      handlesWithFinishes,
+    );
     const totalPrice = Math.round(pricing.totalCost);
     const area = Math.round(pricing.totalArea * 10000);
 
