@@ -278,6 +278,11 @@ export interface ShelfState {
   // Track last saved snapshot for unsaved changes detection
   lastSavedSnapshot: Record<string, unknown> | null;
   setLastSavedSnapshot: (snapshot: Record<string, unknown> | null) => void;
+  // Save operation state for UI feedback
+  isSaving: boolean;
+  setIsSaving: (val: boolean) => void;
+  lastSaveTime: number | null; // Unix timestamp of last successful save
+  setLastSaveTime: (time: number | null) => void;
   // Vertical structural boundaries (seam X positions in meters from center)
   // Empty array = auto-calculate equal segments
   // These seams span FULL HEIGHT of the wardrobe
@@ -1415,6 +1420,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
   // Track last saved snapshot for unsaved changes detection
   lastSavedSnapshot: null,
   setLastSavedSnapshot: (snapshot) => set({ lastSavedSnapshot: snapshot }),
+  // Save operation state for UI feedback
+  isSaving: false,
+  setIsSaving: (val) => set({ isSaving: val }),
+  lastSaveTime: null,
+  setLastSaveTime: (time) => set({ lastSaveTime: time }),
   // Vertical structural boundaries (seam X positions in meters from center)
   // Initialize based on default width (210cm → 3 columns)
   // These seams span FULL HEIGHT of the wardrobe
@@ -2159,6 +2169,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
         // Saved snapshot - clear on reset
         lastSavedSnapshot: null,
+        isSaving: false,
+        lastSaveTime: null,
 
         // Structural boundaries
         verticalBoundaries: defaultVerticalBoundaries,

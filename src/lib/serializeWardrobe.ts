@@ -41,6 +41,11 @@ export function applyWardrobeSnapshot(data: any) {
   if (data.width) st.setWidth(data.width);
   if (data.height) st.setHeight(data.height);
   if (data.depth) st.setDepth(data.depth);
+
+  // Grab module boundaries that setHeight computed (for heights > 200cm)
+  // We'll use these if saved data didn't have boundaries
+  const computedModuleBoundaries =
+    useShelfStore.getState().columnModuleBoundaries;
   if (data.panelThickness) st.setPanelThickness(data.panelThickness);
   if (data.selectedMaterialId)
     st.setSelectedMaterialId(data.selectedMaterialId);
@@ -129,7 +134,11 @@ export function applyWardrobeSnapshot(data: any) {
     verticalBoundaries: data.verticalBoundaries || [],
     columnHorizontalBoundaries,
     columnHeights: data.columnHeights || {},
-    columnModuleBoundaries: fixedModuleBoundaries,
+    // Use saved boundaries if they exist, otherwise keep what setHeight computed
+    columnModuleBoundaries:
+      Object.keys(fixedModuleBoundaries).length > 0
+        ? fixedModuleBoundaries
+        : computedModuleBoundaries,
     columnTopModuleShelves: data.columnTopModuleShelves || {},
     // Door groups with per-door settings (migrated from old format if needed)
     doorGroups,

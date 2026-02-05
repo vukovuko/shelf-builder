@@ -780,7 +780,7 @@ export function CheckoutDialog({
               </div>
 
               {/* Turnstile CAPTCHA */}
-              <div className="space-y-2">
+              <div className="relative pb-5">
                 <Turnstile
                   ref={turnstileRef}
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
@@ -789,7 +789,9 @@ export function CheckoutDialog({
                   onExpire={() => setTurnstileToken(null)}
                 />
                 {errors.turnstile && (
-                  <p className="text-xs text-destructive">{errors.turnstile}</p>
+                  <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                    {errors.turnstile}
+                  </p>
                 )}
               </div>
 

@@ -183,32 +183,30 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       </TabsList>
 
       <TabsContent value="login" className="space-y-4 min-h-[520px]">
-        <form onSubmit={submit} className="space-y-6 pt-4">
-          <div className="space-y-2">
+        <form onSubmit={submit} className="space-y-4 pt-4">
+          <div className="relative pb-5">
             <Label htmlFor="email-login">Email</Label>
-            <div className="relative">
-              <Input
-                id="email-login"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError(null);
-                }}
-                placeholder="vas@email.com"
-                type="email"
-                required
-                className={emailError ? "border-destructive" : ""}
-              />
-              {emailError && (
-                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
-                  {emailError}
-                </div>
-              )}
-            </div>
+            <Input
+              id="email-login"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(null);
+              }}
+              placeholder="vas@email.com"
+              type="email"
+              required
+              className={`mt-2 ${emailError ? "border-destructive" : ""}`}
+            />
+            {emailError && (
+              <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                {emailError}
+              </p>
+            )}
           </div>
-          <div className="space-y-2 pb-2">
+          <div className="relative pb-5">
             <Label htmlFor="password-login">Lozinka</Label>
-            <div className="relative">
+            <div className="relative mt-2">
               <Input
                 id="password-login"
                 value={password}
@@ -233,12 +231,12 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
                   <Eye className="h-4 w-4" />
                 )}
               </button>
-              {passwordError && (
-                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
-                  {passwordError}
-                </div>
-              )}
             </div>
+            {passwordError && (
+              <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                {passwordError}
+              </p>
+            )}
           </div>
           <div className="min-h-[0.5rem]">
             {error && (
@@ -293,7 +291,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       </TabsContent>
 
       <TabsContent value="register" className="space-y-4 min-h-[520px]">
-        <form onSubmit={submit} className="space-y-6 pt-4">
+        <form onSubmit={submit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Ime</Label>
             <Input
@@ -304,31 +302,29 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               type="text"
             />
           </div>
-          <div className="space-y-2">
+          <div className="relative pb-5">
             <Label htmlFor="email-register">Email</Label>
-            <div className="relative">
-              <Input
-                id="email-register"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError(null);
-                }}
-                placeholder="vas@email.com"
-                type="email"
-                required
-                className={emailError ? "border-destructive" : ""}
-              />
-              {emailError && (
-                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
-                  {emailError}
-                </div>
-              )}
-            </div>
+            <Input
+              id="email-register"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(null);
+              }}
+              placeholder="vas@email.com"
+              type="email"
+              required
+              className={`mt-2 ${emailError ? "border-destructive" : ""}`}
+            />
+            {emailError && (
+              <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                {emailError}
+              </p>
+            )}
           </div>
-          <div className="space-y-2 pb-2">
+          <div className="relative pb-5">
             <Label htmlFor="password-register">Lozinka</Label>
-            <div className="relative">
+            <div className="relative mt-2">
               <Input
                 id="password-register"
                 value={password}
@@ -353,12 +349,12 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
                   <Eye className="h-4 w-4" />
                 )}
               </button>
-              {passwordError && (
-                <div className="absolute left-0 top-full mt-1 text-xs text-destructive">
-                  {passwordError}
-                </div>
-              )}
             </div>
+            {passwordError && (
+              <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                {passwordError}
+              </p>
+            )}
             {/* Password requirements indicator */}
             {password.length > 0 && (
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-2">

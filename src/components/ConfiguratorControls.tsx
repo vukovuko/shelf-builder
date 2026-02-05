@@ -3,10 +3,12 @@
 import jsPDF from "jspdf";
 import {
   ArrowLeft,
+  Check,
   ChevronDown,
   Download,
   FileText,
   FolderOpen,
+  Loader2,
   LogOut,
   MessageSquare,
   Settings,
@@ -163,11 +165,15 @@ export function ConfiguratorControls({
       return;
     }
 
+    const { setIsSaving, setLastSaveTime } = useShelfStore.getState();
+    setIsSaving(true);
+
     try {
       const snapshot = getWardrobeSnapshot();
       if (!snapshot || typeof snapshot !== "object") {
         console.error("[performSave] invalid snapshot", snapshot);
         toast.error("Greška pri čuvanju ormana");
+        setIsSaving(false);
         return;
       }
 
@@ -198,11 +204,13 @@ export function ConfiguratorControls({
         if (!res.ok) {
           console.error("[performSave] update failed", res.status);
           toast.error("Greška pri ažuriranju ormana");
+          setIsSaving(false);
           return;
         }
 
         // Mark as saved for unsaved changes detection
         useShelfStore.getState().setLastSavedSnapshot(snapshot);
+        setLastSaveTime(Date.now());
 
         // Show appropriate success message
         if (fromOrderId && fromOrderNumber) {
@@ -214,6 +222,7 @@ export function ConfiguratorControls({
           );
         }
         setSaveDialogOpen(false);
+        setIsSaving(false);
         return;
       }
 
@@ -232,6 +241,7 @@ export function ConfiguratorControls({
       if (!res.ok) {
         console.error("[performSave] save failed", res.status);
         toast.error("Greška pri čuvanju ormana");
+        setIsSaving(false);
         return;
       }
 
@@ -240,6 +250,7 @@ export function ConfiguratorControls({
 
       // Mark as saved for unsaved changes detection
       useShelfStore.getState().setLastSavedSnapshot(snapshot);
+      setLastSaveTime(Date.now());
 
       toast.success(`"${wardrobeName}" je sačuvan`, {
         action: {
@@ -248,9 +259,11 @@ export function ConfiguratorControls({
         },
       });
       setSaveDialogOpen(false);
+      setIsSaving(false);
     } catch (e) {
       console.error("[performSave] exception", e);
       toast.error("Greška pri čuvanju ormana");
+      setIsSaving(false);
     }
   };
 
@@ -498,6 +511,8 @@ export function ConfiguratorControls({
   const setSelectedBackMaterialId = useShelfStore(
     (state: ShelfState) => state.setSelectedBackMaterialId,
   );
+  const isSaving = useShelfStore((state: ShelfState) => state.isSaving);
+  const lastSaveTime = useShelfStore((state: ShelfState) => state.lastSaveTime);
 
   // Auto-select first material for each category type if current selection is invalid
   React.useEffect(() => {
@@ -1803,10 +1818,23 @@ export function ConfiguratorControls({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setSaveDialogOpen(false)}
+              disabled={isSaving}
+            >
               Otkaži
             </Button>
-            <Button onClick={performSave}>Sačuvaj</Button>
+            <Button onClick={performSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Čuvanje...
+                </>
+              ) : (
+                "Sačuvaj"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,15 @@
 "use client";
 
-import { Download, Eye, EyeOff, FileText, Save, Table } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Check,
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Save,
+  Table,
+} from "lucide-react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
 import { Button } from "../ui/button";
 
@@ -25,20 +34,38 @@ export function StepActions({
   const setShowDimensions = useShelfStore(
     (s: ShelfState) => s.setShowDimensions,
   );
+  const lastSaveTime = useShelfStore((s: ShelfState) => s.lastSaveTime);
+
+  // Show "Saved" indicator for 3 seconds after save
+  const [showSaved, setShowSaved] = useState(false);
+  useEffect(() => {
+    if (lastSaveTime) {
+      setShowSaved(true);
+      const timer = setTimeout(() => setShowSaved(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [lastSaveTime]);
 
   return (
     <div className="flex flex-col gap-4 mt-6">
       {/* Primary Actions */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-1">
         <Button
           variant="default"
           onClick={onSaveClick}
-          className="flex-1"
+          className="w-full"
           size="lg"
         >
           <Save className="h-4 w-4 mr-2" />
           Sačuvaj dizajn
         </Button>
+        {/* Saved indicator - subtle feedback */}
+        <div
+          className={`flex items-center justify-center gap-1.5 h-5 text-xs text-muted-foreground transition-opacity duration-300 ${showSaved ? "opacity-100" : "opacity-0"}`}
+        >
+          <Check className="h-3 w-3 text-green-500" />
+          <span>Sačuvano</span>
+        </div>
       </div>
 
       {/* View Controls */}
