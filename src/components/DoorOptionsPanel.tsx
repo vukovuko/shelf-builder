@@ -15,6 +15,7 @@ import { X, DoorOpen, DoorClosed, Trash2, Square, Layers } from "lucide-react";
 import {
   MIN_DOOR_HEIGHT_CM,
   MAX_DOOR_HEIGHT_CM,
+  MAX_DRAWER_HEIGHT_CM,
 } from "@/lib/wardrobe-constants";
 import { MaterialPickerModal } from "./MaterialPickerModal";
 import { HandlePickerModal } from "./HandlePickerModal";
@@ -100,6 +101,11 @@ export function DoorOptionsPanel({
   // Check if total height is within door constraints
   const canHaveDoor =
     totalHeightCm >= MIN_DOOR_HEIGHT_CM && totalHeightCm <= MAX_DOOR_HEIGHT_CM;
+
+  // Check if any selected subcompartment exceeds drawer height limit
+  const anyTooTallForDrawer = selectedKeys.some(
+    (key) => (compartmentHeights[key] ?? 0) > MAX_DRAWER_HEIGHT_CM,
+  );
 
   // Check if this selection corresponds to an existing door group
   const existingGroup = doorGroups.find(
@@ -308,21 +314,31 @@ export function DoorOptionsPanel({
               : "Izaberite tip vrata:"}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {doorOptions.map((option) => (
-              <Button
-                key={option.key}
-                variant={
-                  allSameDoor && currentDoorType === option.key
-                    ? "default"
-                    : "outline"
-                }
-                className="justify-start gap-2 text-xs px-2"
-                onClick={() => handleDoorSelect(option.key)}
-              >
-                {option.icon}
-                <span className="truncate">{option.label}</span>
-              </Button>
-            ))}
+            {doorOptions.map((option) => {
+              const isDisabled =
+                option.key === "drawerStyle" && anyTooTallForDrawer;
+              return (
+                <Button
+                  key={option.key}
+                  variant={
+                    allSameDoor && currentDoorType === option.key
+                      ? "default"
+                      : "outline"
+                  }
+                  className="justify-start gap-2 text-xs px-2"
+                  onClick={() => handleDoorSelect(option.key)}
+                  disabled={isDisabled}
+                  title={
+                    isDisabled
+                      ? `Pregrada mora biti max ${MAX_DRAWER_HEIGHT_CM}cm za fioku`
+                      : undefined
+                  }
+                >
+                  {option.icon}
+                  <span className="truncate">{option.label}</span>
+                </Button>
+              );
+            })}
           </div>
         </div>
       ) : (

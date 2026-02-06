@@ -17,6 +17,7 @@ export const DRAWER_HEIGHT = 10 / 100; // 10cm
 export const DRAWER_HEIGHT_CM = 10; // 10cm - same as above but in cm (for UI/2D)
 export const DRAWER_GAP = 1 / 100; // 1cm
 export const DRAWER_GAP_CM = 1; // 1cm - same as above but in cm (for UI/2D)
+export const MAX_DRAWER_HEIGHT_CM = 40; // Max subcompartment height for drawer placement
 
 // Drag constraints
 export const MIN_DRAG_GAP = 10 / 100; // 10cm minimum between shelves/dividers

@@ -11,6 +11,7 @@ import {
   MIN_SHELF_HEIGHT_CM,
   MAX_VERTICAL_DIVIDERS,
   MAX_HORIZONTAL_SHELVES_INNER,
+  MAX_DRAWER_HEIGHT_CM,
   TARGET_BOTTOM_HEIGHT,
 } from "@/lib/wardrobe-constants";
 import { X } from "lucide-react";
@@ -277,26 +278,35 @@ export function CompartmentExtrasPanel({
           </Button>
         </div>
 
-        {/* "Whole compartment is a drawer" - disabled when dividers or shelves exist */}
+        {/* "Whole compartment is a drawer" - disabled when dividers or shelves exist, or height > 40cm */}
         {(() => {
           const hasSubdivisions =
             config.columns > 1 || (config.rowCounts?.[0] ?? 0) > 0;
+          const tooTallForDrawer = compartmentHeightCm > MAX_DRAWER_HEIGHT_CM;
+          const drawerDisabled = hasSubdivisions || tooTallForDrawer;
           const isChecked = (config.drawerCounts?.[0] ?? 0) > 0;
           return (
             <div className="mt-3 pt-3 border-t space-y-2">
               <label
                 htmlFor="whole-drawer"
-                className={`flex items-center gap-2 ${hasSubdivisions ? "text-muted-foreground" : "cursor-pointer"}`}
+                className={`flex items-center gap-2 ${drawerDisabled ? "text-muted-foreground" : "cursor-pointer"}`}
               >
                 <Checkbox
                   id="whole-drawer"
-                  checked={isChecked && !hasSubdivisions}
-                  disabled={hasSubdivisions}
+                  checked={isChecked && !drawerDisabled}
+                  disabled={drawerDisabled}
                   onCheckedChange={(checked) =>
                     setElementDrawerCount(compartmentKey, 0, checked ? 1 : 0)
                   }
                 />
-                <span className="text-sm">Cela pregrada je fioka</span>
+                <span className="text-sm">
+                  Cela pregrada je fioka
+                  {tooTallForDrawer && !hasSubdivisions && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (max {MAX_DRAWER_HEIGHT_CM}cm)
+                    </span>
+                  )}
+                </span>
               </label>
               {isChecked && !hasSubdivisions && (
                 <label
@@ -383,6 +393,11 @@ export function CompartmentExtrasPanel({
                 {/* Drawers - TWO MODES: checkbox (no shelves) or slider (with shelves) */}
                 {(() => {
                   const isExternal = config.drawersExternal?.[idx] ?? true;
+                  const sectionSpaceH =
+                    shelfCount === 0
+                      ? compartmentHeightCm
+                      : compartmentHeightCm / (shelfCount + 1);
+                  const tooTallForDrawer = sectionSpaceH > MAX_DRAWER_HEIGHT_CM;
 
                   if (shelfCount === 0) {
                     // MODE 1: No shelves → CHECKBOX for "whole section is drawer"
@@ -390,11 +405,12 @@ export function CompartmentExtrasPanel({
                       <div className="space-y-1">
                         <label
                           htmlFor={`drawer-${idx}`}
-                          className="flex items-center gap-2 cursor-pointer"
+                          className={`flex items-center gap-2 ${tooTallForDrawer ? "text-muted-foreground" : "cursor-pointer"}`}
                         >
                           <Checkbox
                             id={`drawer-${idx}`}
-                            checked={drawerCount > 0}
+                            checked={drawerCount > 0 && !tooTallForDrawer}
+                            disabled={tooTallForDrawer}
                             onCheckedChange={(checked) =>
                               setElementDrawerCount(
                                 compartmentKey,
@@ -403,7 +419,14 @@ export function CompartmentExtrasPanel({
                               )
                             }
                           />
-                          <span className="text-xs">Fioka</span>
+                          <span className="text-xs">
+                            Fioka
+                            {tooTallForDrawer && (
+                              <span className="text-muted-foreground ml-1">
+                                (max {MAX_DRAWER_HEIGHT_CM}cm)
+                              </span>
+                            )}
+                          </span>
                         </label>
                         {drawerCount > 0 && (
                           <label
@@ -430,12 +453,19 @@ export function CompartmentExtrasPanel({
                     );
                   } else {
                     // MODE 2: Has shelves → SLIDER for drawers per space
-                    const maxDrawersForSectionCalc = shelfCount + 1;
+                    const maxDrawersForSectionCalc = tooTallForDrawer
+                      ? 0
+                      : shelfCount + 1;
                     return (
                       <>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground w-14">
                             Fioke:
+                            {tooTallForDrawer && (
+                              <span className="block text-[10px]">
+                                (max {MAX_DRAWER_HEIGHT_CM}cm)
+                              </span>
+                            )}
                           </span>
                           <Button
                             variant="outline"
@@ -574,12 +604,19 @@ export function CompartmentExtrasPanel({
             if (shelfCount === 0) return null;
 
             // Has shelves → SLIDER for drawers per space
-            const maxDrawersForSection = shelfCount + 1;
+            const spaceH = compartmentHeightCm / (shelfCount + 1);
+            const tooTall = spaceH > MAX_DRAWER_HEIGHT_CM;
+            const maxDrawersForSection = tooTall ? 0 : shelfCount + 1;
             return (
               <>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-14">
                     Fioke:
+                    {tooTall && (
+                      <span className="block text-[10px]">
+                        (max {MAX_DRAWER_HEIGHT_CM}cm)
+                      </span>
+                    )}
                   </span>
                   <Button
                     variant="outline"

@@ -1417,31 +1417,51 @@ export const useShelfStore = create<ShelfState>((set) => ({
         };
       }
 
-      // Create new door group for EACH contiguous group
+      // Create new door group(s)
       const createdGroups: DoorGroup[] = [];
-      for (const groupComps of contiguousGroups) {
-        const firstParsed = parseSubCompKey(groupComps[0]);
-        const column = firstParsed?.column ?? "A";
-        const firstComp = groupComps[0];
-        const lastComp = groupComps[groupComps.length - 1];
-        const groupId =
-          firstComp === lastComp
-            ? `door-${firstComp}`
-            : `door-${firstComp}-${lastComp}`;
 
-        const newGroup: DoorGroup = {
-          id: groupId,
-          type,
-          compartments: groupComps,
-          column,
-          // Include per-door settings when in per-door mode
-          ...(state.doorSettingsMode === "per-door" && {
-            materialId: state.selectedFrontMaterialId,
-            handleId: state.globalHandleId,
-            handleFinish: state.globalHandleFinish,
-          }),
-        };
-        createdGroups.push(newGroup);
+      if (type === "drawerStyle") {
+        // drawerStyle: one group per subcompartment (individual drawer fronts)
+        for (const comp of selectedComps) {
+          const parsed = parseSubCompKey(comp);
+          const column = parsed?.column ?? "A";
+          createdGroups.push({
+            id: `door-${comp}`,
+            type,
+            compartments: [comp],
+            column,
+            ...(state.doorSettingsMode === "per-door" && {
+              materialId: state.selectedFrontMaterialId,
+              handleId: state.globalHandleId,
+              handleFinish: state.globalHandleFinish,
+            }),
+          });
+        }
+      } else {
+        // Other door types: one group per contiguous block
+        for (const groupComps of contiguousGroups) {
+          const firstParsed = parseSubCompKey(groupComps[0]);
+          const column = firstParsed?.column ?? "A";
+          const firstComp = groupComps[0];
+          const lastComp = groupComps[groupComps.length - 1];
+          const groupId =
+            firstComp === lastComp
+              ? `door-${firstComp}`
+              : `door-${firstComp}-${lastComp}`;
+
+          const newGroup: DoorGroup = {
+            id: groupId,
+            type,
+            compartments: groupComps,
+            column,
+            ...(state.doorSettingsMode === "per-door" && {
+              materialId: state.selectedFrontMaterialId,
+              handleId: state.globalHandleId,
+              handleFinish: state.globalHandleFinish,
+            }),
+          };
+          createdGroups.push(newGroup);
+        }
       }
 
       // Also update doorSelections for backward compatibility with cut list
