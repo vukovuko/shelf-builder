@@ -299,7 +299,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
     // Get modules for a column (stacked units with their own back panels)
     // When height > 200cm, column splits into top and bottom modules
-    // Back panels extend to floor (Y=0) to cover base area from behind
+    // Back panels extend to top of base (or floor if no base)
     const getColumnModules = (
       colIdx: number,
     ): Array<{ yStart: number; yEnd: number; height: number }> => {
@@ -308,14 +308,13 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
       // No boundary or height <= 200cm = single module
       if (boundary === null || colH <= splitThreshold) {
-        // Back panel extends to floor
-        return [{ yStart: 0, yEnd: colH, height: colH }];
+        return [{ yStart: baseH, yEnd: colH, height: colH - baseH }];
       }
 
       // Two stacked modules
       return [
-        // Bottom module - extends to floor
-        { yStart: 0, yEnd: boundary, height: boundary },
+        // Bottom module - starts at top of base
+        { yStart: baseH, yEnd: boundary, height: boundary - baseH },
         // Top module - unchanged (above base area)
         { yStart: boundary, yEnd: colH, height: colH - boundary },
       ];
@@ -454,7 +453,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         )}
 
         {/* Front sokl panel - only when base is enabled, hidden in edges mode */}
-        {/* Back is covered by back panels (ledja) which extend to floor */}
+        {/* Back is covered by back panels (ledja) which extend to top of base */}
         {baseH > 0 && !showEdgesOnly && (
           <Panel
             position={[0, baseH / 2, d / 2 - t / 2]}
@@ -1359,7 +1358,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 (drawerBottomY + drawerTopY) / 2;
                               const actualDrawerH = Math.max(
                                 0.02,
-                                drawerH - 0.004,
+                                drawerH - 0.003,
                               );
 
                               // Skip drawer if below minimum 10x10cm size
@@ -1438,7 +1437,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 (spaceBottomY + spaceTopY) / 2;
                               const actualDrawerH = Math.max(
                                 0.02,
-                                spaceTopY - spaceBottomY - 0.004,
+                                spaceTopY - spaceBottomY - 0.003,
                               );
 
                               // Skip drawer if below minimum 10x10cm size
@@ -1507,7 +1506,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         let rodElement: React.ReactNode = null;
                         if (extras.rod) {
                           const rodRadius = 0.015; // 3cm diameter = 1.5cm radius
-                          const rodY = compBottomY + compInnerH * 0.75; // 75% up from bottom
+                          const rodY = compBottomY + compInnerH - 0.06; // 6cm from top
                           const rodLength = colInnerW - 0.01; // Slightly shorter than compartment width
                           // Only render rod if large enough to prevent shader division by zero
                           if (rodLength >= 0.01) {
@@ -1921,8 +1920,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const sectionWidth = firstBounds.width;
 
             // Door dimensions
-            const doorInset = 0.002; // 2mm clearance
+            const doorInset = 0.0015; // 1.5mm clearance per side
             const doorW = sectionWidth - doorInset * 2;
+            const doorH = doorHeight - doorInset * 2;
             const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
             const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
 
@@ -1951,7 +1951,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 <React.Fragment key={group.id}>
                   {/* Left leaf */}
                   <mesh position={[doorCenterX - offset, doorCenterY, doorZ]}>
-                    <boxGeometry args={[leafW, doorHeight, doorT]} />
+                    <boxGeometry args={[leafW, doorH, doorT]} />
                     {isMirror ? (
                       <meshPhysicalMaterial
                         color="#4a5568"
@@ -1980,7 +1980,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   </mesh>
                   {/* Right leaf */}
                   <mesh position={[doorCenterX + offset, doorCenterY, doorZ]}>
-                    <boxGeometry args={[leafW, doorHeight, doorT]} />
+                    <boxGeometry args={[leafW, doorH, doorT]} />
                     {isMirror ? (
                       <meshPhysicalMaterial
                         color="#4a5568"
@@ -2039,7 +2039,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             return (
               <React.Fragment key={group.id}>
                 <mesh position={[doorCenterX, doorCenterY, doorZ]}>
-                  <boxGeometry args={[doorW, doorHeight, doorT]} />
+                  <boxGeometry args={[doorW, doorH, doorT]} />
                   {isMirror ? (
                     <meshPhysicalMaterial
                       color="#4a5568"

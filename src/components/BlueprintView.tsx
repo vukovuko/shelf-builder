@@ -479,7 +479,7 @@ export function BlueprintView() {
 
               // Draw rod
               if (extras.rod) {
-                const rodY = safeBottomY + (safeTopY - safeBottomY) * 0.8;
+                const rodY = safeTopY - 6; // 6cm from top
                 nodes.push(
                   <g key={`rod-${compKey}`}>
                     <line

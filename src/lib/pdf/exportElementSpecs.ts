@@ -316,8 +316,7 @@ export function exportElementSpecs(
       }
       // Rod indicator
       if (extras.rod) {
-        const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
-        const yRod = innerBottomMmY - innerHMm * 0.25;
+        const yRod = innerTopMmY + 6 / cmPerMmY; // 6cm from top
         const inset = 2; // mm from inner sides
         doc.setLineWidth(0.4);
         doc.line(innerLeftMmX + inset, yRod, innerRightMmX - inset, yRod);
