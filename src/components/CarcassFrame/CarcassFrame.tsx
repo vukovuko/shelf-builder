@@ -1391,33 +1391,31 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                   />
                                 </mesh>,
                               );
-                              // Add handle for external drawers
-                              if (isExternal) {
-                                const handleW = Math.min(drawerW * 0.3, 0.12);
-                                const handleH = 0.015;
-                                const handleD = 0.02;
-                                drawerPanels.push(
-                                  <mesh
-                                    key={`handle-${compKey}-${secIdx}-${drIdx}`}
-                                    position={[
-                                      secCenterX,
-                                      drawerCenterY,
-                                      drawerZ +
-                                        DEFAULT_PANEL_THICKNESS_M / 2 +
-                                        handleD / 2,
-                                    ]}
-                                  >
-                                    <boxGeometry
-                                      args={[handleW, handleH, handleD]}
-                                    />
-                                    <meshStandardMaterial
-                                      color="#888888"
-                                      roughness={0.3}
-                                      metalness={0.6}
-                                    />
-                                  </mesh>,
-                                );
-                              }
+                              // Add handle
+                              const handleW = Math.min(drawerW * 0.3, 0.12);
+                              const handleH = 0.015;
+                              const handleD = 0.02;
+                              drawerPanels.push(
+                                <mesh
+                                  key={`handle-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ +
+                                      DEFAULT_PANEL_THICKNESS_M / 2 +
+                                      handleD / 2,
+                                  ]}
+                                >
+                                  <boxGeometry
+                                    args={[handleW, handleH, handleD]}
+                                  />
+                                  <meshStandardMaterial
+                                    color="#888888"
+                                    roughness={0.3}
+                                    metalness={0.6}
+                                  />
+                                </mesh>,
+                              );
                             }
                           } else {
                             // CASE 2: With shelves - one drawer per space (bottom-up)
@@ -1470,33 +1468,31 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                   />
                                 </mesh>,
                               );
-                              // Add handle for external drawers
-                              if (isExternal) {
-                                const handleW = Math.min(drawerW * 0.3, 0.12);
-                                const handleH = 0.015;
-                                const handleD = 0.02;
-                                drawerPanels.push(
-                                  <mesh
-                                    key={`handle-${compKey}-${secIdx}-${drIdx}`}
-                                    position={[
-                                      secCenterX,
-                                      drawerCenterY,
-                                      drawerZ +
-                                        DEFAULT_PANEL_THICKNESS_M / 2 +
-                                        handleD / 2,
-                                    ]}
-                                  >
-                                    <boxGeometry
-                                      args={[handleW, handleH, handleD]}
-                                    />
-                                    <meshStandardMaterial
-                                      color="#888888"
-                                      roughness={0.3}
-                                      metalness={0.6}
-                                    />
-                                  </mesh>,
-                                );
-                              }
+                              // Add handle
+                              const handleW = Math.min(drawerW * 0.3, 0.12);
+                              const handleH = 0.015;
+                              const handleD = 0.02;
+                              drawerPanels.push(
+                                <mesh
+                                  key={`handle-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ +
+                                      DEFAULT_PANEL_THICKNESS_M / 2 +
+                                      handleD / 2,
+                                  ]}
+                                >
+                                  <boxGeometry
+                                    args={[handleW, handleH, handleD]}
+                                  />
+                                  <meshStandardMaterial
+                                    color="#888888"
+                                    roughness={0.3}
+                                    metalness={0.6}
+                                  />
+                                </mesh>,
+                              );
                             }
                           }
                         }
