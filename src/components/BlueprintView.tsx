@@ -3,35 +3,14 @@
 import type React from "react";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { DRAWER_HEIGHT_CM, DRAWER_GAP_CM } from "@/lib/wardrobe-constants";
-
-// Helper to build column blocks from vertical boundaries
-function buildBlocksFromBoundaries(
-  widthCm: number,
-  boundaries: number[] | undefined,
-): { start: number; end: number; width: number }[] {
-  const w = widthCm / 100; // Convert to meters for boundary comparison
-  const result: { start: number; end: number; width: number }[] = [];
-
-  if (!boundaries || boundaries.length === 0) {
-    result.push({ start: 0, end: widthCm, width: widthCm });
-  } else {
-    const sortedBoundaries = [...boundaries].sort((a, b) => a - b);
-    const boundaryCm = sortedBoundaries.map((b) => (b + w / 2) * 100);
-
-    let prevX = 0;
-    for (const bCm of boundaryCm) {
-      if (bCm > prevX && bCm < widthCm) {
-        result.push({ start: prevX, end: bCm, width: bCm - prevX });
-        prevX = bCm;
-      }
-    }
-    if (prevX < widthCm) {
-      result.push({ start: prevX, end: widthCm, width: widthCm - prevX });
-    }
-  }
-
-  return result;
-}
+import {
+  buildBlocksFromBoundaries,
+  getCompartmentsForColumn as getCompartments,
+  createMapY,
+  createMapYForColumn,
+} from "@/lib/blueprintHelpers";
+import { BlueprintHeader } from "./BlueprintHeader";
+import { BlueprintSideView } from "./BlueprintSideView";
 
 export function BlueprintView() {
   const {
@@ -99,163 +78,33 @@ export function BlueprintView() {
   const columns = buildBlocksFromBoundaries(width, verticalBoundaries);
 
   // Map Y from cm (from floor) to SVG Y (top-origin)
-  // CLAMP to stay within frame
-  const mapY = (yFromFloorCm: number) => {
-    const clamped = Math.max(0, Math.min(height, yFromFloorCm));
-    return frontViewY + scaledHeight - clamped * scale;
-  };
+  const mapY = createMapY(frontViewY, scaledHeight, scale, height);
 
   // Map Y for a specific column (accounts for different column heights)
-  // Columns with shorter heights are drawn with bottom aligned to wardrobe bottom
-  const mapYForColumn = (yFromFloorCm: number, colIdx: number) => {
-    const colH = columnHeights[colIdx] ?? height;
-    const clamped = Math.max(0, Math.min(colH, yFromFloorCm));
-    // All columns share the same bottom (floor level), so we use wardrobe height for Y calculation
-    // but clamp to column height
-    return frontViewY + scaledHeight - clamped * scale;
-  };
+  const mapYForColumn = createMapYForColumn(
+    frontViewY,
+    scaledHeight,
+    scale,
+    height,
+    columnHeights,
+  );
 
   // Split threshold for module boundaries (200cm in meters)
   const splitThreshold = 2.0;
 
-  // Get compartments for a column - handles BOTH regular shelves AND module boundaries
-  // This matches the logic in CarcassFrame for correct compartment numbering
-  const getCompartmentsForColumn = (colIdx: number) => {
-    const colLetter = String.fromCharCode(65 + colIdx);
-    const colHCm = columnHeights[colIdx] ?? height; // column height in cm
-    const colH = colHCm / 100; // column height in meters
-
-    // Get shelf positions for bottom module
-    const shelves = columnHorizontalBoundaries[colIdx] || [];
-
-    // Inner bounds (inside panels) in cm from floor
-    // Use COLUMN height for innerTop, not wardrobe height!
-    const innerBottom = hasBase ? baseHeight + tCm : tCm;
-    const innerTop = colHCm - tCm; // Column-specific top
-
-    // Check for module boundary (tall wardrobes >200cm)
-    // VALIDATE: Module boundary must be INSIDE wardrobe (between innerBottom and innerTop)
-    // NOTE: columnModuleBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor), NOT center-origin
-    const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-    const rawModuleBoundaryYCm =
-      moduleBoundary !== null
-        ? moduleBoundary * 100 // Already floor-origin, just convert m to cm
-        : null;
-    const isValidModuleBoundary =
-      rawModuleBoundaryYCm !== null &&
-      rawModuleBoundaryYCm > innerBottom + tCm && // Must be above bottom panel + minimum space
-      rawModuleBoundaryYCm < innerTop - tCm; // Must be below top panel - minimum space
-
-    const hasModuleBoundary =
-      moduleBoundary !== null && colH > splitThreshold && isValidModuleBoundary;
-
-    // Get top module shelves if module boundary exists AND is valid
-    const topModuleShelves = hasModuleBoundary
-      ? columnTopModuleShelves[colIdx] || []
-      : [];
-
-    // Module boundary Y in cm from floor (if exists AND valid)
-    const moduleBoundaryYCm = hasModuleBoundary ? rawModuleBoundaryYCm : null;
-
-    const compartments: {
-      key: string;
-      bottomY: number;
-      topY: number;
-      heightCm: number;
-    }[] = [];
-
-    let compNum = 1;
-
-    // === BOTTOM MODULE COMPARTMENTS ===
-    // Convert shelf positions to cm from floor
-    // NOTE: columnHorizontalBoundaries uses FLOOR-ORIGIN meters (Y=0 at floor)
-    const bottomShelfYsCm = shelves
-      .map((s: number) => s * 100) // Already floor-origin, just convert m to cm
-      .filter(
-        (y: number) => y > innerBottom && y < (moduleBoundaryYCm ?? innerTop),
-      )
-      .sort((a: number, b: number) => a - b);
-
-    // Bottom module top boundary
-    const bottomModuleTop = hasModuleBoundary
-      ? moduleBoundaryYCm! - tCm // below module boundary panel
-      : innerTop;
-
-    let prevY = innerBottom;
-
-    for (const shelfY of bottomShelfYsCm) {
-      if (shelfY > prevY + tCm) {
-        compartments.push({
-          key: `${colLetter}${compNum}`,
-          bottomY: prevY,
-          topY: shelfY - tCm / 2,
-          heightCm: Math.round(shelfY - tCm / 2 - prevY),
-        });
-        compNum++;
-        prevY = shelfY + tCm / 2;
-      }
-    }
-
-    // Final compartment in bottom module
-    if (prevY < bottomModuleTop) {
-      compartments.push({
-        key: `${colLetter}${compNum}`,
-        bottomY: prevY,
-        topY: bottomModuleTop,
-        heightCm: Math.round(bottomModuleTop - prevY),
-      });
-      compNum++;
-    }
-
-    // === TOP MODULE COMPARTMENTS (if module boundary exists) ===
-    if (hasModuleBoundary && moduleBoundaryYCm) {
-      const topModuleBottom = moduleBoundaryYCm + tCm; // above module boundary panel
-
-      // Convert top module shelf positions to cm
-      // NOTE: columnTopModuleShelves uses FLOOR-ORIGIN meters (Y=0 at floor)
-      const topShelfYsCm = topModuleShelves
-        .map((s: number) => s * 100) // Already floor-origin, just convert m to cm
-        .filter((y: number) => y > topModuleBottom && y < innerTop)
-        .sort((a: number, b: number) => a - b);
-
-      prevY = topModuleBottom;
-
-      for (const shelfY of topShelfYsCm) {
-        if (shelfY > prevY + tCm) {
-          compartments.push({
-            key: `${colLetter}${compNum}`,
-            bottomY: prevY,
-            topY: shelfY - tCm / 2,
-            heightCm: Math.round(shelfY - tCm / 2 - prevY),
-          });
-          compNum++;
-          prevY = shelfY + tCm / 2;
-        }
-      }
-
-      // Final compartment to top
-      if (prevY < innerTop) {
-        compartments.push({
-          key: `${colLetter}${compNum}`,
-          bottomY: prevY,
-          topY: innerTop,
-          heightCm: Math.round(innerTop - prevY),
-        });
-      }
-    }
-
-    // If no compartments created, create one full-height compartment
-    if (compartments.length === 0) {
-      compartments.push({
-        key: `${colLetter}1`,
-        bottomY: innerBottom,
-        topY: innerTop,
-        heightCm: Math.round(innerTop - innerBottom),
-      });
-    }
-
-    return compartments;
-  };
+  // Get compartments for a column - delegates to extracted pure function
+  const getCompartmentsForColumn = (colIdx: number) =>
+    getCompartments({
+      colIdx,
+      columnHeights,
+      height,
+      columnHorizontalBoundaries,
+      columnModuleBoundaries,
+      columnTopModuleShelves,
+      hasBase,
+      baseHeight,
+      tCm,
+    });
 
   // Global space counter
   let globalSpaceNum = 1;
@@ -299,46 +148,15 @@ export function BlueprintView() {
         {/* ============================================ */}
         {/* HEADER - Title and metadata */}
         {/* ============================================ */}
-        <g>
-          <text
-            x={viewBoxWidth / 2}
-            y={30}
-            fontSize="18"
-            fontFamily="Arial, sans-serif"
-            fontWeight="bold"
-            textAnchor="middle"
-          >
-            Tehnički crtež - Orman
-          </text>
-          <text x={padding} y={55} fontSize="10" fontFamily="Arial, sans-serif">
-            Dimenzije: {width} × {height} × {depth} cm
-          </text>
-          <text
-            x={padding + 200}
-            y={55}
-            fontSize="10"
-            fontFamily="Arial, sans-serif"
-          >
-            Debljina ploče: {thicknessMm} mm
-          </text>
-          <text
-            x={padding + 380}
-            y={55}
-            fontSize="10"
-            fontFamily="Arial, sans-serif"
-          >
-            Mere u cm
-          </text>
-          <text
-            x={viewBoxWidth - padding}
-            y={55}
-            fontSize="10"
-            fontFamily="Arial, sans-serif"
-            textAnchor="end"
-          >
-            Razmer 1:{scaleRatio}
-          </text>
-        </g>
+        <BlueprintHeader
+          viewBoxWidth={viewBoxWidth}
+          padding={padding}
+          width={width}
+          height={height}
+          depth={depth}
+          thicknessMm={thicknessMm}
+          scaleRatio={scaleRatio}
+        />
 
         {/* ============================================ */}
         {/* FRONT VIEW */}
@@ -938,129 +756,19 @@ export function BlueprintView() {
         {/* ============================================ */}
         {/* SIDE VIEW */}
         {/* ============================================ */}
-        {(() => {
-          // Use max column height for side view
-          const maxColHeight = Math.max(
-            ...columns.map((_, i) => columnHeights[i] ?? height),
-          );
-          const scaledMaxHeight = maxColHeight * scale;
-          const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
-
-          return (
-            <g>
-              {/* Label */}
-              <text
-                x={sideViewX + scaledDepth / 2}
-                y={sideViewY - 10}
-                fontSize="11"
-                fontFamily="Arial, sans-serif"
-                textAnchor="middle"
-                fontStyle="italic"
-              >
-                Pogled sa strane
-              </text>
-
-              {/* Main rectangle with hatching - uses max column height */}
-              <rect
-                x={sideViewX}
-                y={sideViewY + sideYOffset}
-                width={scaledDepth}
-                height={scaledMaxHeight}
-                fill="url(#diagonalHatch)"
-                stroke="#000"
-                strokeWidth="2"
-              />
-
-              {/* Base */}
-              {hasBase && scaledBaseHeight > 0 && (
-                <rect
-                  x={sideViewX}
-                  y={sideViewY + scaledHeight - scaledBaseHeight}
-                  width={scaledDepth}
-                  height={scaledBaseHeight}
-                  fill="url(#crossHatch)"
-                  stroke="#000"
-                  strokeWidth="1"
-                />
-              )}
-
-              {/* Height dimension - uses max column height */}
-              <g>
-                <line
-                  x1={sideViewX + scaledDepth + 18}
-                  y1={sideViewY + sideYOffset}
-                  x2={sideViewX + scaledDepth + 18}
-                  y2={sideViewY + scaledHeight}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <line
-                  x1={sideViewX + scaledDepth + 13}
-                  y1={sideViewY + sideYOffset}
-                  x2={sideViewX + scaledDepth + 23}
-                  y2={sideViewY + sideYOffset}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <line
-                  x1={sideViewX + scaledDepth + 13}
-                  y1={sideViewY + scaledHeight}
-                  x2={sideViewX + scaledDepth + 23}
-                  y2={sideViewY + scaledHeight}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <text
-                  x={sideViewX + scaledDepth + 28}
-                  y={sideViewY + sideYOffset + scaledMaxHeight / 2}
-                  fontSize="11"
-                  fontFamily="Arial, sans-serif"
-                  textAnchor="middle"
-                  transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${sideViewY + sideYOffset + scaledMaxHeight / 2})`}
-                >
-                  {Math.round(maxColHeight)} cm
-                </text>
-              </g>
-
-              {/* Depth dimension */}
-              <g>
-                <line
-                  x1={sideViewX}
-                  y1={sideViewY + scaledHeight + 18}
-                  x2={sideViewX + scaledDepth}
-                  y2={sideViewY + scaledHeight + 18}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <line
-                  x1={sideViewX}
-                  y1={sideViewY + scaledHeight + 13}
-                  x2={sideViewX}
-                  y2={sideViewY + scaledHeight + 23}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <line
-                  x1={sideViewX + scaledDepth}
-                  y1={sideViewY + scaledHeight + 13}
-                  x2={sideViewX + scaledDepth}
-                  y2={sideViewY + scaledHeight + 23}
-                  stroke="#000"
-                  strokeWidth="0.75"
-                />
-                <text
-                  x={sideViewX + scaledDepth / 2}
-                  y={sideViewY + scaledHeight + 34}
-                  fontSize="11"
-                  fontFamily="Arial, sans-serif"
-                  textAnchor="middle"
-                >
-                  {depth} cm
-                </text>
-              </g>
-            </g>
-          );
-        })()}
+        <BlueprintSideView
+          sideViewX={sideViewX}
+          sideViewY={sideViewY}
+          scaledDepth={scaledDepth}
+          scaledHeight={scaledHeight}
+          scaledBaseHeight={scaledBaseHeight}
+          scale={scale}
+          depth={depth}
+          height={height}
+          hasBase={hasBase}
+          columns={columns}
+          columnHeights={columnHeights}
+        />
       </svg>
     </div>
   );

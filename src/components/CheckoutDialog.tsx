@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { ShoppingCart, Loader2, CheckCircle2, Copy, Check } from "lucide-react";
+import { ShoppingCart, Loader2 } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 interface PlaceSuggestion {
@@ -24,6 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { validateCheckoutForm } from "@/lib/checkoutValidation";
+import { OrderSuccess } from "@/components/checkout/OrderSuccess";
+import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -94,7 +97,6 @@ export function CheckoutDialog({
     customerEmail: string;
     customerPhone: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // Turnstile CAPTCHA state
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -236,40 +238,7 @@ export function CheckoutDialog({
   };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = "Ime je obavezno";
-    }
-
-    if (!formData.customerEmail.trim() && !formData.customerPhone.trim()) {
-      newErrors.customerEmail = "Unesite email ili telefon";
-      newErrors.customerPhone = "Unesite email ili telefon";
-    }
-
-    if (
-      formData.customerEmail.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail)
-    ) {
-      newErrors.customerEmail = "Neispravan email format";
-    }
-
-    if (!formData.shippingStreet.trim()) {
-      newErrors.shippingStreet = "Ulica je obavezna";
-    }
-
-    if (!formData.shippingCity.trim()) {
-      newErrors.shippingCity = "Grad je obavezan";
-    }
-
-    if (!formData.shippingPostalCode.trim()) {
-      newErrors.shippingPostalCode = "Poštanski broj je obavezan";
-    }
-
-    if (!turnstileToken) {
-      newErrors.turnstile = "Molimo sačekajte verifikaciju";
-    }
-
+    const newErrors = validateCheckoutForm(formData, turnstileToken);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -336,9 +305,6 @@ export function CheckoutDialog({
       maximumFractionDigits: 2,
     });
 
-  // Format area from cm² to m²
-  const areaM2 = orderData.totalArea / 10000;
-
   // Handle dialog close - reset all state
   const handleClose = () => {
     setFormData({
@@ -353,102 +319,21 @@ export function CheckoutDialog({
     });
     setErrors({});
     setOrderSuccess(null);
-    setCopied(false);
     setTurnstileToken(null);
     turnstileRef.current?.reset();
     onOpenChange(false);
-  };
-
-  // Copy order number to clipboard
-  const copyOrderNumber = async () => {
-    if (!orderSuccess) return;
-    try {
-      await navigator.clipboard.writeText(`#${orderSuccess.orderNumber}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback - do nothing
-    }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:!max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         {orderSuccess ? (
-          // Success View
-          <>
-            <div className="flex flex-col items-center text-center py-6 space-y-4">
-              <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-500" />
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold">Porudžbina primljena!</h2>
-                <p className="text-muted-foreground">
-                  {orderSuccess.customerEmail
-                    ? "Dobićete email sa potvrdom i detaljima vaše porudžbine. Kontaktiraćemo vas radi dogovora o dostavi."
-                    : "Vaša porudžbina je zabeležena. Javićemo vam se ukoliko budemo imali bilo kakvih pitanja."}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-lg">
-                <span className="text-sm text-muted-foreground">
-                  Broj porudžbine:
-                </span>
-                <span className="font-bold text-lg">
-                  #{orderSuccess.orderNumber}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={copyOrderNumber}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-              <h3 className="font-medium text-sm">Detalji porudžbine</h3>
-              <div className="grid gap-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ime:</span>
-                  <span className="font-medium">
-                    {orderSuccess.customerName}
-                  </span>
-                </div>
-                {orderSuccess.customerEmail && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span>{orderSuccess.customerEmail}</span>
-                  </div>
-                )}
-                {orderSuccess.customerPhone && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Telefon:</span>
-                    <span>{orderSuccess.customerPhone}</span>
-                  </div>
-                )}
-                <div className="border-t pt-2 mt-2 flex justify-between">
-                  <span className="text-muted-foreground">Ukupno:</span>
-                  <span className="font-bold">
-                    {formatPrice(orderData.totalPrice)} RSD
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4">
-              <Button onClick={handleClose} className="w-full sm:w-auto">
-                Zatvori
-              </Button>
-            </DialogFooter>
-          </>
+          <OrderSuccess
+            orderSuccess={orderSuccess}
+            totalPrice={orderData.totalPrice}
+            formatPrice={formatPrice}
+            onClose={handleClose}
+          />
         ) : (
           // Checkout Form
           <>
@@ -462,153 +347,10 @@ export function CheckoutDialog({
 
             <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
               {/* Order Summary */}
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-4 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm">Rezime porudžbine</h3>
-                  <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-                    {orderData.dimensions.width} × {orderData.dimensions.height}{" "}
-                    × {orderData.dimensions.depth} cm
-                  </span>
-                </div>
-
-                {/* Material breakdown table */}
-                <div className="overflow-x-auto w-full min-w-0 -mx-4 px-4">
-                  <table className="w-full min-w-[480px] table-fixed text-sm">
-                    <thead>
-                      <tr className="border-b text-muted-foreground">
-                        <th className="w-[40%] sm:w-[45%] text-left py-2 pr-2 font-medium">
-                          Materijal
-                        </th>
-                        <th className="w-[20%] sm:w-[20%] text-left py-2 px-2 font-medium">
-                          Šifra
-                        </th>
-                        <th className="w-[15%] sm:w-[15%] text-right py-2 pl-2 pr-3 font-medium whitespace-nowrap">
-                          m²
-                        </th>
-                        <th className="w-[25%] sm:w-[20%] text-right py-2 pl-3 font-medium">
-                          Cena
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {/* Korpus */}
-                      <tr>
-                        <td className="py-2.5 pr-2">
-                          <div className="text-muted-foreground text-xs">
-                            Korpus
-                          </div>
-                          <div
-                            className="font-medium max-w-[140px] sm:max-w-full truncate"
-                            title={orderData.materialName}
-                          >
-                            {orderData.materialName}
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
-                          {orderData.materialProductCode || "-"}
-                        </td>
-                        <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                          {orderData.priceBreakdown.korpus.areaM2.toFixed(2)}
-                        </td>
-                        <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
-                          {formatPrice(orderData.priceBreakdown.korpus.price)}
-                        </td>
-                      </tr>
-                      {/* Lica/Vrata */}
-                      <tr>
-                        <td className="py-2.5 pr-2">
-                          <div className="text-muted-foreground text-xs">
-                            Lica/Vrata
-                          </div>
-                          <div
-                            className="font-medium max-w-[140px] sm:max-w-full truncate"
-                            title={orderData.frontMaterialName}
-                          >
-                            {orderData.frontMaterialName}
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
-                          {orderData.frontMaterialProductCode || "-"}
-                        </td>
-                        <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                          {orderData.priceBreakdown.front.areaM2.toFixed(2)}
-                        </td>
-                        <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
-                          {formatPrice(orderData.priceBreakdown.front.price)}
-                        </td>
-                      </tr>
-                      {/* Leđa */}
-                      {orderData.backMaterialId && (
-                        <tr>
-                          <td className="py-2.5 pr-2">
-                            <div className="text-muted-foreground text-xs">
-                              Leđa
-                            </div>
-                            <div
-                              className="font-medium max-w-[140px] sm:max-w-full truncate"
-                              title={orderData.backMaterialName || ""}
-                            >
-                              {orderData.backMaterialName}
-                            </div>
-                          </td>
-                          <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
-                            {orderData.backMaterialProductCode || "-"}
-                          </td>
-                          <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                            {orderData.priceBreakdown.back.areaM2.toFixed(2)}
-                          </td>
-                          <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
-                            {formatPrice(orderData.priceBreakdown.back.price)}
-                          </td>
-                        </tr>
-                      )}
-                      {/* Ručke */}
-                      {orderData.priceBreakdown.handles &&
-                        orderData.priceBreakdown.handles.count > 0 && (
-                          <tr>
-                            <td className="py-2.5 pr-2">
-                              <div className="text-muted-foreground text-xs">
-                                Ručke
-                              </div>
-                              <div className="font-medium">
-                                {orderData.priceBreakdown.handles.count} kom
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
-                              -
-                            </td>
-                            <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
-                              -
-                            </td>
-                            <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
-                              {formatPrice(
-                                orderData.priceBreakdown.handles.price,
-                              )}
-                            </td>
-                          </tr>
-                        )}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 border-border">
-                        <td className="py-3 pr-2 font-semibold">Ukupno</td>
-                        <td className="py-3 pl-2 pr-3 text-right tabular-nums font-medium whitespace-nowrap">
-                          {areaM2.toFixed(2)} m²
-                        </td>
-                        <td className="py-3 pl-3 text-right">
-                          <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
-                            <span className="text-base sm:text-lg font-bold tabular-nums">
-                              {formatPrice(orderData.totalPrice)}
-                            </span>
-                            <span className="text-xs sm:text-sm font-medium">
-                              RSD
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
+              <OrderSummaryTable
+                orderData={orderData}
+                formatPrice={formatPrice}
+              />
 
               {/* Customer Info */}
               <div className="space-y-1">
