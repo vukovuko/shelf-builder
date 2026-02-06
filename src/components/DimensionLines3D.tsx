@@ -85,6 +85,7 @@ export function DimensionLines3D({
         <Html
           position={[-w / 2 - mainOffset - 0.04, h / 2, zFront]}
           center
+          zIndexRange={[0, 0]}
           style={{ pointerEvents: "none" }}
         >
           <div
@@ -146,6 +147,7 @@ export function DimensionLines3D({
           <Html
             position={[-w / 2 - baseOffset + 0.03, baseH / 2, zFront]}
             center
+            zIndexRange={[0, 0]}
             style={{ pointerEvents: "none" }}
           >
             <div
@@ -197,6 +199,7 @@ export function DimensionLines3D({
         <Html
           position={[0, -bottomOffset - 0.04, zFront]}
           center
+          zIndexRange={[0, 0]}
           style={{ pointerEvents: "none" }}
         >
           <div
@@ -248,6 +251,7 @@ export function DimensionLines3D({
         <Html
           position={[w / 2 + sideOffset + 0.04, 0, 0]}
           center
+          zIndexRange={[0, 0]}
           style={{ pointerEvents: "none" }}
         >
           <div

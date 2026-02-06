@@ -354,20 +354,6 @@ export function DoorOptionsPanel({
       {/* Material and handle settings - only show when door exists */}
       {isEditingExistingGroup && existingGroup.type !== "none" && (
         <>
-          {/* Global mode toggle - only for material and handles */}
-          <div className="flex items-center justify-center space-x-2 py-2 px-3 bg-muted/50 rounded-md">
-            <Checkbox
-              id="global-mode"
-              checked={isGlobalMode}
-              onCheckedChange={(checked) =>
-                setDoorSettingsMode(checked ? "global" : "per-door")
-              }
-            />
-            <Label htmlFor="global-mode" className="text-sm cursor-pointer">
-              Primeni materijal i ručke za sva vrata
-            </Label>
-          </div>
-
           {/* Material selector - Grid preview + popup like Step 3 */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">Materijal za lica</h4>
@@ -427,9 +413,26 @@ export function DoorOptionsPanel({
           {/* Handle selector - Preview + modal */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">Ručke</h4>
+            {/* Global mode toggle */}
+            <div className="flex items-center justify-center space-x-2 py-2 px-3 bg-muted/50 rounded-md">
+              <Checkbox
+                id="global-mode"
+                checked={isGlobalMode}
+                onCheckedChange={(checked) =>
+                  setDoorSettingsMode(checked ? "global" : "per-door")
+                }
+              />
+              <Label htmlFor="global-mode" className="text-sm cursor-pointer">
+                Primeni materijal i ručke za sva vrata
+              </Label>
+            </div>
             {/* Preview of selected handle */}
             <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
-              {selectedFinishData?.image ? (
+              {currentHandleId === "none" ? (
+                <div className="w-16 h-16 rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs">
+                  /
+                </div>
+              ) : selectedFinishData?.image ? (
                 <div
                   className="w-16 h-16 rounded-md bg-cover bg-center bg-muted border"
                   style={{
@@ -443,15 +446,21 @@ export function DoorOptionsPanel({
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
-                  {selectedHandleData?.name || "Izaberite ručku"}
+                  {currentHandleId === "none"
+                    ? "Bez ručke"
+                    : selectedHandleData?.name || "Izaberite ručku"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedFinishData?.name || ""}
+                  {currentHandleId === "none"
+                    ? ""
+                    : selectedFinishData?.name || ""}
                 </p>
                 <p className="text-xs font-medium text-primary">
-                  {selectedFinishData
-                    ? `${selectedFinishData.price.toLocaleString("sr-RS")} RSD`
-                    : ""}
+                  {currentHandleId === "none"
+                    ? ""
+                    : selectedFinishData
+                      ? `${selectedFinishData.price.toLocaleString("sr-RS")} RSD`
+                      : ""}
                 </p>
               </div>
             </div>

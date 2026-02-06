@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useShelfStore } from "@/lib/store";
+import { Ban } from "lucide-react";
 
 interface HandlePickerModalProps {
   open: boolean;
@@ -77,8 +78,11 @@ export function HandlePickerModal({
   const selectedHandle = findHandle(localHandleId);
   const availableFinishes = selectedHandle?.finishes || [];
 
+  const isNone = localHandleId === "none";
+
   // When handle changes, auto-select first available finish if current isn't available
   useEffect(() => {
+    if (isNone) return;
     if (selectedHandle) {
       const finishExists = selectedHandle.finishes.some(
         (f) => getFinishEffectiveId(f) === localFinish,
@@ -87,7 +91,7 @@ export function HandlePickerModal({
         setLocalFinish(getFinishEffectiveId(selectedHandle.finishes[0]));
       }
     }
-  }, [localHandleId, selectedHandle, localFinish]);
+  }, [localHandleId, selectedHandle, localFinish, isNone]);
 
   const handleSave = () => {
     onSelect(localHandleId, localFinish);
@@ -118,6 +122,30 @@ export function HandlePickerModal({
                 Ručke
               </h3>
               <div className="grid grid-cols-2 gap-4">
+                {/* "No handle" option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocalHandleId("none");
+                    setLocalFinish("none");
+                  }}
+                  className={cn(
+                    "flex flex-col rounded-lg border-2 overflow-hidden transition-all bg-card text-left hover:shadow-md",
+                    isNone
+                      ? "border-primary ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/50",
+                  )}
+                >
+                  <div className="aspect-square bg-muted flex items-center justify-center">
+                    <Ban className="w-12 h-12 text-muted-foreground/40" />
+                  </div>
+                  <div className="p-3 space-y-1">
+                    <p className="text-sm font-medium">Bez ručke</p>
+                    <p className="text-xs text-muted-foreground">
+                      Vrata bez ručke
+                    </p>
+                  </div>
+                </button>
                 {storeHandles.map((handle) => {
                   const effectiveId = getHandleEffectiveId(handle);
                   return (
@@ -157,7 +185,11 @@ export function HandlePickerModal({
               <h3 className="text-sm font-semibold mb-4 text-muted-foreground">
                 Izbor završne obrade
               </h3>
-              {availableFinishes.length > 0 ? (
+              {isNone ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Bez ručke - nema završne obrade
+                </div>
+              ) : availableFinishes.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {availableFinishes.map((finish) => {
                     const effectiveId = getFinishEffectiveId(finish);
@@ -205,16 +237,21 @@ export function HandlePickerModal({
         {/* Footer with save button */}
         <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {selectedHandle && selectedFinishData && (
-              <>
-                <span className="font-medium">{selectedHandle.name}</span>
-                {" • "}
-                <span>{selectedFinishData.name}</span>
-                {" • "}
-                <span className="font-medium">
-                  {selectedFinishData.price.toLocaleString("sr-RS")} RSD
-                </span>
-              </>
+            {isNone ? (
+              <span className="font-medium">Bez ručke</span>
+            ) : (
+              selectedHandle &&
+              selectedFinishData && (
+                <>
+                  <span className="font-medium">{selectedHandle.name}</span>
+                  {" • "}
+                  <span>{selectedFinishData.name}</span>
+                  {" • "}
+                  <span className="font-medium">
+                    {selectedFinishData.price.toLocaleString("sr-RS")} RSD
+                  </span>
+                </>
+              )
             )}
           </div>
           <Button onClick={handleSave}>Sačuvaj</Button>

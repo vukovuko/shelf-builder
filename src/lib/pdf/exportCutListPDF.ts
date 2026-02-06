@@ -12,7 +12,7 @@ export function exportCutListPDF(
 
     // Title
     doc.setFontSize(16);
-    doc.text("Tabela ploca (Cut list)", margin, margin + 4);
+    doc.text("Tabela ploča", margin, margin + 4);
 
     // Price per m²
     doc.setFontSize(10);

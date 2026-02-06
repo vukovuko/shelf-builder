@@ -941,7 +941,7 @@ export function ConfiguratorControls({
           <div className="relative bg-background border rounded-lg shadow-xl w-[92vw] max-w-6xl max-h-[85vh] flex flex-col">
             {/* Sticky Header */}
             <div className="flex items-center justify-between p-4 border-b bg-background rounded-t-lg flex-shrink-0">
-              <h3 className="text-lg font-semibold">Tabela ploča (Cut list)</h3>
+              <h3 className="text-lg font-semibold">Tabela ploča</h3>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -1250,7 +1250,7 @@ export function TopRightControls() {
         size="sm"
         onClick={() => setShowDimensions(!showDimensions)}
       >
-        {showDimensions ? "Hide Dimensions" : "Show Dimensions"}
+        {showDimensions ? "Sakrij mere" : "Prikaži mere"}
       </Button>
     </div>
   );

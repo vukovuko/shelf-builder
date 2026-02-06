@@ -129,6 +129,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Door groups for 3D rendering
     const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
     const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+    const doorSettingsMode = useShelfStore(
+      (state: ShelfState) => state.doorSettingsMode,
+    );
+    const globalHandleId = useShelfStore(
+      (state: ShelfState) => state.globalHandleId,
+    );
     // Edges only mode (for "Preuzmi Ivice" download)
     const showEdgesOnly = useShelfStore(
       (state: ShelfState) => state.showEdgesOnly,
@@ -1922,11 +1928,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
             const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
 
+            // Mirror panel dimensions (glued on wood door)
+            const mirrorInset = 0.02; // 2cm frame border
+            const mirrorT = 0.003; // 3mm mirror thickness
+            const mirrorZ = doorZ + doorT / 2 + mirrorT / 2;
+
+            // Resolve effective handleId for this door group
+            const doorHandleId =
+              doorSettingsMode === "per-door" && group.handleId
+                ? group.handleId
+                : globalHandleId;
+            const showHandle = doorHandleId !== "none";
+
             // Handle dimensions for door handles (kvake)
-            const handleW = 0.015; // 1.5cm wide (vertical bar)
+            const handleW = 0.025; // 2.5cm wide (vertical bar)
             const handleH = 0.1; // 10cm tall
             const handleD = 0.02; // 2cm deep
-            const handleZ = doorZ + doorT / 2 + handleD / 2;
+            const handleZ = isMirror
+              ? mirrorZ + mirrorT / 2 + handleD / 2 // In front of mirror
+              : doorZ + doorT / 2 + handleD / 2;
             const handleEdgeOffset = 0.03; // 3cm from edge
 
             // Render based on door type
@@ -1948,7 +1968,23 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   {/* Left leaf */}
                   <mesh position={[doorCenterX - offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorH, doorT]} />
-                    {isMirror ? (
+                    <meshStandardMaterial
+                      color={doorColor}
+                      roughness={0.5}
+                      metalness={0.1}
+                    />
+                  </mesh>
+                  {isMirror && (
+                    <mesh
+                      position={[doorCenterX - offset, doorCenterY, mirrorZ]}
+                    >
+                      <boxGeometry
+                        args={[
+                          leafW - mirrorInset * 2,
+                          doorH - mirrorInset * 2,
+                          mirrorT,
+                        ]}
+                      />
                       <meshPhysicalMaterial
                         color="#4a5568"
                         roughness={0.05}
@@ -1957,27 +1993,39 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         clearcoatRoughness={0.1}
                         reflectivity={1}
                       />
-                    ) : (
-                      <meshStandardMaterial
-                        color={doorColor}
-                        roughness={0.5}
-                        metalness={0.1}
-                      />
-                    )}
-                  </mesh>
+                    </mesh>
+                  )}
                   {/* Left leaf handle */}
-                  <mesh position={[leftHandleX, doorCenterY, handleZ]}>
-                    <boxGeometry args={[handleW, handleH, handleD]} />
-                    <meshStandardMaterial
-                      color="#888888"
-                      roughness={0.3}
-                      metalness={0.6}
-                    />
-                  </mesh>
+                  {showHandle && (
+                    <mesh position={[leftHandleX, doorCenterY, handleZ]}>
+                      <boxGeometry args={[handleW, handleH, handleD]} />
+                      <meshStandardMaterial
+                        color="#555555"
+                        roughness={0.3}
+                        metalness={0.6}
+                      />
+                    </mesh>
+                  )}
                   {/* Right leaf */}
                   <mesh position={[doorCenterX + offset, doorCenterY, doorZ]}>
                     <boxGeometry args={[leafW, doorH, doorT]} />
-                    {isMirror ? (
+                    <meshStandardMaterial
+                      color={doorColor}
+                      roughness={0.5}
+                      metalness={0.1}
+                    />
+                  </mesh>
+                  {isMirror && (
+                    <mesh
+                      position={[doorCenterX + offset, doorCenterY, mirrorZ]}
+                    >
+                      <boxGeometry
+                        args={[
+                          leafW - mirrorInset * 2,
+                          doorH - mirrorInset * 2,
+                          mirrorT,
+                        ]}
+                      />
                       <meshPhysicalMaterial
                         color="#4a5568"
                         roughness={0.05}
@@ -1986,23 +2034,19 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         clearcoatRoughness={0.1}
                         reflectivity={1}
                       />
-                    ) : (
-                      <meshStandardMaterial
-                        color={doorColor}
-                        roughness={0.5}
-                        metalness={0.1}
-                      />
-                    )}
-                  </mesh>
+                    </mesh>
+                  )}
                   {/* Right leaf handle */}
-                  <mesh position={[rightHandleX, doorCenterY, handleZ]}>
-                    <boxGeometry args={[handleW, handleH, handleD]} />
-                    <meshStandardMaterial
-                      color="#888888"
-                      roughness={0.3}
-                      metalness={0.6}
-                    />
-                  </mesh>
+                  {showHandle && (
+                    <mesh position={[rightHandleX, doorCenterY, handleZ]}>
+                      <boxGeometry args={[handleW, handleH, handleD]} />
+                      <meshStandardMaterial
+                        color="#555555"
+                        roughness={0.3}
+                        metalness={0.6}
+                      />
+                    </mesh>
+                  )}
                 </React.Fragment>
               );
             }
@@ -2036,7 +2080,21 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               <React.Fragment key={group.id}>
                 <mesh position={[doorCenterX, doorCenterY, doorZ]}>
                   <boxGeometry args={[doorW, doorH, doorT]} />
-                  {isMirror ? (
+                  <meshStandardMaterial
+                    color={doorColor}
+                    roughness={0.5}
+                    metalness={0.1}
+                  />
+                </mesh>
+                {isMirror && (
+                  <mesh position={[doorCenterX, doorCenterY, mirrorZ]}>
+                    <boxGeometry
+                      args={[
+                        doorW - mirrorInset * 2,
+                        doorH - mirrorInset * 2,
+                        mirrorT,
+                      ]}
+                    />
                     <meshPhysicalMaterial
                       color="#4a5568"
                       roughness={0.05}
@@ -2045,22 +2103,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       clearcoatRoughness={0.1}
                       reflectivity={1}
                     />
-                  ) : (
-                    <meshStandardMaterial
-                      color={doorColor}
-                      roughness={0.5}
-                      metalness={0.1}
-                    />
-                  )}
-                </mesh>
+                  </mesh>
+                )}
                 {/* Door handle (kvaka) */}
-                {group.type !== "none" && (
+                {group.type !== "none" && showHandle && (
                   <mesh position={[singleHandleX, doorCenterY, handleZ]}>
                     <boxGeometry
                       args={[singleHandleW, singleHandleH, handleD]}
                     />
                     <meshStandardMaterial
-                      color="#888888"
+                      color="#555555"
                       roughness={0.3}
                       metalness={0.6}
                     />
