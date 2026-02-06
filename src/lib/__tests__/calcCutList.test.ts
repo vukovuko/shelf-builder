@@ -74,9 +74,13 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      // Should have panels for both columns A and B
-      const columnAPanels = result.items.filter((i) => i.element === "A");
-      const columnBPanels = result.items.filter((i) => i.element === "B");
+      // Should have panels for both columns (element starts with column letter)
+      const columnAPanels = result.items.filter((i) =>
+        i.element?.startsWith("A"),
+      );
+      const columnBPanels = result.items.filter((i) =>
+        i.element?.startsWith("B"),
+      );
 
       expect(columnAPanels.length).toBeGreaterThan(0);
       expect(columnBPanels.length).toBeGreaterThan(0);
@@ -100,12 +104,10 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      // Check for seam panels (they should be labeled in column A or B)
-      const seamPanels = result.items.filter(
-        (i) => i.desc.includes("Seam") || i.desc.includes("seam"),
-      );
-      // With 2 columns, there should be seam panels
-      expect(result.items.length).toBeGreaterThan(0);
+      // Seam panel codes are VS{n}L and VS{n}D (Vertikalna pregrada)
+      const seamPanels = result.items.filter((i) => i.code.startsWith("VS"));
+      // 1 boundary = 2 seam panels (left + right side)
+      expect(seamPanels.length).toBe(2);
     });
   });
 
@@ -171,10 +173,12 @@ describe("calculateCutList", () => {
         mockMaterials,
       );
 
-      // The wardrobe with base should have different panel sizes
-      // (seams should be shorter by base height)
-      expect(resultWithBase.items.length).toBeGreaterThan(0);
-      expect(resultWithoutBase.items.length).toBeGreaterThan(0);
+      // Base raises bottom panel, reducing compartment height → less area
+      expect(resultWithBase.totalArea).toBeLessThan(
+        resultWithoutBase.totalArea,
+      );
+      // Same panel count (base doesn't add/remove panels, just changes sizes)
+      expect(resultWithBase.items.length).toBe(resultWithoutBase.items.length);
     });
   });
 
@@ -293,8 +297,9 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials, mockHandles);
 
-      // Should have handle pricing
-      expect(result.priceBreakdown.handles.count).toBeGreaterThanOrEqual(0);
+      // Single door with handle = exactly 1 handle at 500 price
+      expect(result.priceBreakdown.handles.count).toBe(1);
+      expect(result.priceBreakdown.handles.price).toBe(500);
     });
 
     it("uses global handle settings when per-door handles not set", () => {
@@ -327,7 +332,9 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials, mockHandles);
 
-      expect(result.priceBreakdown).toBeDefined();
+      // Global handle settings should apply: 1 handle at 500
+      expect(result.priceBreakdown.handles.count).toBe(1);
+      expect(result.priceBreakdown.handles.price).toBe(500);
     });
   });
 
@@ -377,11 +384,12 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      // Should include shelf panels
+      // Shelf panel codes are {colLetter}-P{n} (e.g., A-P1, A-P2, A-P3)
       const shelfPanels = result.items.filter((i) =>
-        i.desc.toLowerCase().includes("shelf"),
+        /^[A-Z]-P\d+$/.test(i.code),
       );
-      expect(shelfPanels.length).toBeGreaterThanOrEqual(0);
+      // 3 shelf boundaries = 3 shelf panels
+      expect(shelfPanels.length).toBe(3);
     });
   });
 
@@ -710,13 +718,15 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
       // Door panels use front material type
-      const frontPanels = result.items.filter((i) => i.materialType === "front");
+      const frontPanels = result.items.filter(
+        (i) => i.materialType === "front",
+      );
 
       expect(frontPanels.length).toBeGreaterThanOrEqual(1);
       expect(result.priceBreakdown.front.areaM2).toBeGreaterThan(0);
     });
 
-    it("double door creates more front material area than single", () => {
+    it("double door generates 2 front panels, single generates 1", () => {
       const singleDoor: WardrobeSnapshot = {
         width: 100,
         height: 200,
@@ -756,9 +766,15 @@ describe("calculateCutList", () => {
       const singleResult = calculateCutList(singleDoor, mockMaterials);
       const doubleResult = calculateCutList(doubleDoor, mockMaterials);
 
-      // Double door should have front material (both have same compartment coverage)
-      expect(doubleResult.priceBreakdown.front.areaM2).toBeGreaterThan(0);
-      expect(singleResult.priceBreakdown.front.areaM2).toBeGreaterThan(0);
+      // Single door = 1 front panel, double door = 2 front panels (left + right leaf)
+      const singleFrontItems = singleResult.items.filter(
+        (i) => i.materialType === "front",
+      );
+      const doubleFrontItems = doubleResult.items.filter(
+        (i) => i.materialType === "front",
+      );
+      expect(singleFrontItems.length).toBe(1);
+      expect(doubleFrontItems.length).toBe(2);
     });
 
     it("no doors = no front material panels", () => {
@@ -778,7 +794,9 @@ describe("calculateCutList", () => {
       };
 
       const result = calculateCutList(snapshot, mockMaterials);
-      const frontPanels = result.items.filter((i) => i.materialType === "front");
+      const frontPanels = result.items.filter(
+        (i) => i.materialType === "front",
+      );
 
       expect(frontPanels.length).toBe(0);
       expect(result.priceBreakdown.front.areaM2).toBe(0);
@@ -805,8 +823,7 @@ describe("calculateCutList", () => {
 
       // Verify korpus uses material 1 pricing
       if (result.priceBreakdown.korpus.areaM2 > 0) {
-        const expectedKorpusPrice =
-          result.priceBreakdown.korpus.areaM2 * 5000;
+        const expectedKorpusPrice = result.priceBreakdown.korpus.areaM2 * 5000;
         expect(result.priceBreakdown.korpus.price).toBeCloseTo(
           expectedKorpusPrice,
           0,
@@ -816,7 +833,10 @@ describe("calculateCutList", () => {
       // Verify back uses material 3 pricing
       if (result.priceBreakdown.back.areaM2 > 0) {
         const expectedBackPrice = result.priceBreakdown.back.areaM2 * 3000;
-        expect(result.priceBreakdown.back.price).toBeCloseTo(expectedBackPrice, 0);
+        expect(result.priceBreakdown.back.price).toBeCloseTo(
+          expectedBackPrice,
+          0,
+        );
       }
     });
 
@@ -843,7 +863,10 @@ describe("calculateCutList", () => {
       ];
 
       const cheapResult = calculateCutList(cheapMaterial, mockMaterials);
-      const expensiveResult = calculateCutList(cheapMaterial, expensiveMaterials);
+      const expensiveResult = calculateCutList(
+        cheapMaterial,
+        expensiveMaterials,
+      );
 
       expect(expensiveResult.totalCost).toBeGreaterThan(cheapResult.totalCost);
     });
@@ -856,7 +879,13 @@ describe("calculateCutList", () => {
         legacyId: "handle-1",
         name: "Standard Handle",
         finishes: [
-          { id: 1, handleId: 1, legacyId: "chrome", name: "Chrome", price: 500 },
+          {
+            id: 1,
+            handleId: 1,
+            legacyId: "chrome",
+            name: "Chrome",
+            price: 500,
+          },
           { id: 2, handleId: 1, legacyId: "gold", name: "Gold", price: 1000 },
         ],
       },
@@ -1148,6 +1177,303 @@ describe("calculateCutList", () => {
 
       expect(noDoors.priceBreakdown.front.areaM2).toBe(0);
       expect(withDoors.priceBreakdown.front.areaM2).toBeGreaterThan(0);
+    });
+  });
+
+  // ============================================
+  // INTEGRITY & CANARY TESTS
+  // These fail immediately if core logic changes
+  // ============================================
+
+  describe("panel generation integrity", () => {
+    const baseSnapshot: WardrobeSnapshot = {
+      width: 100,
+      height: 200,
+      depth: 60,
+      selectedMaterialId: 1,
+      selectedFrontMaterialId: 2,
+      selectedBackMaterialId: 3,
+      elementConfigs: {},
+      compartmentExtras: {},
+      doorSelections: {},
+      hasBase: false,
+      baseHeight: 0,
+    };
+
+    it("basic wardrobe produces exactly 5 panels with correct codes", () => {
+      const result = calculateCutList(baseSnapshot, mockMaterials);
+
+      // 1-column wardrobe: SL, SD, A-DON, A-GOR, A1-Z
+      expect(result.items.length).toBe(5);
+
+      const codes = result.items.map((i) => i.code).sort();
+      expect(codes).toEqual(["A-DON", "A-GOR", "A1-Z", "SD", "SL"]);
+    });
+
+    it("totalArea equals sum of all item areas", () => {
+      const snapshot: WardrobeSnapshot = {
+        ...baseSnapshot,
+        verticalBoundaries: [0],
+        columnHorizontalBoundaries: { 0: [0], 1: [0.3] },
+        doorGroups: [
+          {
+            id: "d1",
+            type: "left",
+            compartments: ["A1"],
+            column: "A",
+            materialId: 2,
+          },
+        ],
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const sumAreas = result.items.reduce((sum, i) => sum + i.areaM2, 0);
+      expect(result.totalArea).toBeCloseTo(sumAreas, 5);
+    });
+
+    it("totalCost equals sum of item costs plus handle costs", () => {
+      const mockHandles = [
+        {
+          id: 1,
+          legacyId: "handle-1",
+          name: "Handle",
+          finishes: [
+            {
+              id: 1,
+              handleId: 1,
+              legacyId: "chrome",
+              name: "Chrome",
+              price: 500,
+            },
+          ],
+        },
+      ];
+
+      const snapshot: WardrobeSnapshot = {
+        ...baseSnapshot,
+        doorGroups: [
+          {
+            id: "d1",
+            type: "left",
+            compartments: ["A1"],
+            column: "A",
+            materialId: 2,
+            handleId: "handle-1",
+            handleFinish: "chrome",
+          },
+        ],
+        globalHandleId: "handle-1",
+        globalHandleFinish: "chrome",
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials, mockHandles);
+
+      // Handle items are included in result.items (pushed after materialCost calc),
+      // so sumItemCosts already contains handle costs
+      const sumItemCosts = result.items.reduce((sum, i) => sum + i.cost, 0);
+      const materialOnlyCost = result.items
+        .filter((i) => i.materialType !== "handles")
+        .reduce((sum, i) => sum + i.cost, 0);
+
+      // totalCost = materialCost + handlePrice
+      expect(result.totalCost).toBeCloseTo(sumItemCosts, 0);
+      expect(result.totalCost).toBeCloseTo(materialOnlyCost + 500, 0);
+
+      // Verify handle is actually priced
+      expect(result.priceBreakdown.handles.count).toBe(1);
+      expect(result.priceBreakdown.handles.price).toBe(500);
+
+      // Breakdown total should match totalCost
+      const fullPrice =
+        result.priceBreakdown.korpus.price +
+        result.priceBreakdown.front.price +
+        result.priceBreakdown.back.price +
+        result.priceBreakdown.handles.price;
+      expect(Math.abs(fullPrice - result.totalCost)).toBeLessThan(2);
+    });
+  });
+
+  describe("seam panel scaling", () => {
+    it("N boundaries produce 2N seam panels", () => {
+      const base: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result2col = calculateCutList(
+        { ...base, width: 200, verticalBoundaries: [0] },
+        mockMaterials,
+      );
+      const result3col = calculateCutList(
+        { ...base, width: 300, verticalBoundaries: [-0.5, 0.5] },
+        mockMaterials,
+      );
+
+      const seams2 = result2col.items.filter((i) => i.code.startsWith("VS"));
+      const seams3 = result3col.items.filter((i) => i.code.startsWith("VS"));
+
+      expect(seams2.length).toBe(2); // 1 boundary × 2 panels
+      expect(seams3.length).toBe(4); // 2 boundaries × 2 panels
+    });
+  });
+
+  describe("module boundary panels", () => {
+    it("module split creates 2 boundary panels per column", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 250,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        columnModuleBoundaries: { 0: 0.75 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const mbPanels = result.items.filter((i) => i.code.includes("-MB"));
+
+      // 1 column × 2 module boundary panels (MB1 + MB2)
+      expect(mbPanels.length).toBe(2);
+    });
+  });
+
+  describe("drawer material type", () => {
+    it("drawer fronts use front material pricing, not korpus", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {
+          A1: { drawers: true, drawersCount: 3 },
+        },
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+
+      // Drawer panels have codes like A1-F1, A1-F2, A1-F3
+      const drawerPanels = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
+      expect(drawerPanels.length).toBe(3);
+
+      // All drawer fronts must use front material pricing (8000/m²)
+      drawerPanels.forEach((d) => {
+        expect(d.materialType).toBe("front");
+        expect(d.cost).toBeCloseTo(d.areaM2 * 8000, 0);
+      });
+    });
+  });
+
+  describe("per-door material override", () => {
+    it("doorGroups materialId overrides global front material", () => {
+      const extraMaterials = [
+        ...mockMaterials,
+        { id: 4, price: 12000, thickness: 18, categories: ["front"] },
+      ];
+
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2, // Global front: 8000/m²
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        doorSettingsMode: "per-door", // REQUIRED for materialId override to work
+        doorGroups: [
+          {
+            id: "d1",
+            type: "left",
+            compartments: ["A1"],
+            column: "A",
+            materialId: 4, // Override: 12000/m²
+          },
+        ],
+      };
+
+      const result = calculateCutList(snapshot, extraMaterials);
+
+      // Door panel should use material 4 pricing (12000/m²), not global (8000/m²)
+      const doorPanel = result.items.find((i) => i.materialType === "front");
+      expect(doorPanel).toBeDefined();
+      expect(doorPanel!.cost).toBeCloseTo(doorPanel!.areaM2 * 12000, 0);
+    });
+  });
+
+  describe("drawerStyle handles", () => {
+    it("drawerStyle doors produce no handles (push-to-open)", () => {
+      const mockHandles = [
+        {
+          id: 1,
+          legacyId: "handle-1",
+          name: "Handle",
+          finishes: [
+            {
+              id: 1,
+              handleId: 1,
+              legacyId: "chrome",
+              name: "Chrome",
+              price: 500,
+            },
+          ],
+        },
+      ];
+
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        doorGroups: [
+          {
+            id: "d1",
+            type: "drawerStyle",
+            compartments: ["A1"],
+            column: "A",
+            materialId: 2,
+            handleId: "handle-1",
+            handleFinish: "chrome",
+          },
+        ],
+        globalHandleId: "handle-1",
+        globalHandleFinish: "chrome",
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials, mockHandles);
+
+      // drawerStyle = push-to-open, no handles even if handleId is set
+      expect(result.priceBreakdown.handles.count).toBe(0);
+      expect(result.priceBreakdown.handles.price).toBe(0);
     });
   });
 });
