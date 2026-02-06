@@ -451,7 +451,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
   selectedMaterialId: 1, // default to first material
   selectedFrontMaterialId: undefined, // front/door material (Lica/Vrata)
   selectedBackMaterialId: undefined,
-  showDimensions: false,
+  showDimensions: true,
   // Materials from database
   materials: [],
   setMaterials: (materials) =>
@@ -2192,7 +2192,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
         // View state
         viewMode: "3D" as ViewMode,
-        showDimensions: false,
+        showDimensions: true,
         showEdgesOnly: false,
         showInfoButtons: false,
         showDoors: true,

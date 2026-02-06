@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, DoorOpen, DoorClosed } from "lucide-react";
+import { ArrowLeft, DoorOpen, DoorClosed, Ruler } from "lucide-react";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
@@ -215,6 +215,14 @@ export function DesignLayoutClient({
     }
   }, [pendingNavigation, router, fromWardrobeName, fromOrderNumber]);
 
+  // Dimensions visibility toggle
+  const showDimensions = useShelfStore(
+    (state: ShelfState) => state.showDimensions,
+  );
+  const setShowDimensions = useShelfStore(
+    (state: ShelfState) => state.setShowDimensions,
+  );
+
   // Door visibility toggle
   const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
   const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
@@ -343,6 +351,16 @@ export function DesignLayoutClient({
           </div>
         )}
         <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowDimensions(!showDimensions)}
+            title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
+          >
+            <Ruler
+              className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+            />
+          </Button>
           {hasDoors && (
             <Button
               variant="ghost"
