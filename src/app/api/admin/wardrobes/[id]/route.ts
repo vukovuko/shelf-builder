@@ -10,6 +10,7 @@ const wardrobeIdSchema = z.string().uuid("Neispravan ID ormana");
 const updateWardrobeSchema = z.object({
   publishedModel: z.boolean().optional(),
   isModel: z.boolean().optional(),
+  isLocked: z.boolean().optional(),
 });
 
 export async function PATCH(

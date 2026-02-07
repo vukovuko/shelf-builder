@@ -31,6 +31,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
       userName: user.name,
       userEmail: user.email,
       isModel: wardrobes.isModel,
+      isLocked: wardrobes.isLocked,
     })
     .from(wardrobes)
     .leftJoin(user, eq(wardrobes.userId, user.id))
@@ -97,6 +98,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
         userName: wardrobe.userName,
         userEmail: wardrobe.userEmail,
         isModel: wardrobe.isModel,
+        isLocked: wardrobe.isLocked,
       }}
       materials={serializedMaterials}
       linkedOrders={linkedOrders}

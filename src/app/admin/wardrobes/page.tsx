@@ -48,6 +48,7 @@ export default async function WardrobesPage({
         userName: user.name,
         userEmail: user.email,
         isModel: wardrobes.isModel,
+        isLocked: wardrobes.isLocked,
       })
       .from(wardrobes)
       .leftJoin(user, eq(wardrobes.userId, user.id))

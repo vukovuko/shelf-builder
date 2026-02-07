@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, DoorOpen, DoorClosed, Ruler } from "lucide-react";
+import { LockedPreviewBar } from "@/components/LockedPreviewBar";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
@@ -88,6 +89,20 @@ export function DesignLayoutClient({
     (state: ShelfState) => state.fromWardrobeName,
   );
 
+  // Preview mode for locked wardrobes
+  const isPreviewMode = useShelfStore(
+    (state: ShelfState) => state.isPreviewMode,
+  );
+
+  // Clear preview mode when leaving the design page
+  React.useEffect(() => {
+    return () => {
+      if (useShelfStore.getState().isPreviewMode) {
+        useShelfStore.getState().setIsPreviewMode(false);
+      }
+    };
+  }, []);
+
   // Router for programmatic navigation
   const router = useRouter();
 
@@ -108,6 +123,10 @@ export function DesignLayoutClient({
   // Handle back button click with unsaved changes check
   const handleBackClick = useCallback(
     (href: string) => {
+      if (isPreviewMode) {
+        router.push(href);
+        return;
+      }
       if (hasUnsavedChanges()) {
         setPendingNavigation(href);
         setShowUnsavedDialog(true);
@@ -115,7 +134,7 @@ export function DesignLayoutClient({
         router.push(href);
       }
     },
-    [hasUnsavedChanges, router],
+    [hasUnsavedChanges, router, isPreviewMode],
   );
 
   // Handle discard - navigate without saving
@@ -242,15 +261,17 @@ export function DesignLayoutClient({
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Desktop aside */}
-      <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
-        <ConfiguratorControls
-          wardrobeRef={wardrobeRef}
-          initialSession={initialSession}
-          materials={initialMaterials}
-          isAdmin={isAdmin}
-        />
-      </aside>
+      {/* Desktop aside - hidden in preview mode */}
+      {!isPreviewMode && (
+        <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
+          <ConfiguratorControls
+            wardrobeRef={wardrobeRef}
+            initialSession={initialSession}
+            materials={initialMaterials}
+            isAdmin={isAdmin}
+          />
+        </aside>
+      )}
 
       {/* Mobile header */}
       <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-10 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -298,14 +319,16 @@ export function DesignLayoutClient({
         </div>
       </div>
 
-      {/* Mobile bottom tabs */}
-      <MobileBottomTabs
-        materials={initialMaterials}
-        onOpenDrawer={() => setDrawerOpen(true)}
-      />
+      {/* Mobile bottom tabs - hidden in preview mode */}
+      {!isPreviewMode && (
+        <MobileBottomTabs
+          materials={initialMaterials}
+          onOpenDrawer={() => setDrawerOpen(true)}
+        />
+      )}
 
-      {/* Drawer overlay */}
-      {drawerOpen && (
+      {/* Drawer overlay - hidden in preview mode */}
+      {!isPreviewMode && drawerOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -323,7 +346,9 @@ export function DesignLayoutClient({
         </div>
       )}
 
-      <main className="flex-1 relative overflow-hidden h-screen pt-10 pb-32 md:pt-0 md:pb-0">
+      <main
+        className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-32 md:pt-0 md:pb-0"}`}
+      >
         {fromOrderId && fromOrderNumber && (
           <div className="absolute top-2 left-2 hidden md:block z-20">
             <Button
@@ -380,14 +405,19 @@ export function DesignLayoutClient({
         {childrenWithProps}
       </main>
 
-      {/* Unsaved changes confirmation dialog */}
-      <UnsavedChangesDialog
-        open={showUnsavedDialog}
-        onOpenChange={setShowUnsavedDialog}
-        onDiscard={handleDiscard}
-        onSave={handleSaveAndNavigate}
-        isSaving={isSaving}
-      />
+      {/* Unsaved changes confirmation dialog - skip in preview mode */}
+      {!isPreviewMode && (
+        <UnsavedChangesDialog
+          open={showUnsavedDialog}
+          onOpenChange={setShowUnsavedDialog}
+          onDiscard={handleDiscard}
+          onSave={handleSaveAndNavigate}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* Locked wardrobe preview bar */}
+      {isPreviewMode && <LockedPreviewBar />}
     </div>
   );
 }

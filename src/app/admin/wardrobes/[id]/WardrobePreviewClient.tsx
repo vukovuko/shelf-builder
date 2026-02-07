@@ -9,6 +9,7 @@ import React, {
   useMemo,
 } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Calendar,
@@ -17,6 +18,8 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
+  Lock,
+  LockOpen,
   Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -91,6 +94,7 @@ interface WardrobePreviewClientProps {
     userName: string | null;
     userEmail: string | null;
     isModel: boolean | null;
+    isLocked: boolean | null;
   };
   materials: Material[];
   linkedOrders: LinkedOrder[];
@@ -233,6 +237,26 @@ export function WardrobePreviewClient({
 }: WardrobePreviewClientProps) {
   const wardrobeRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLocked, setIsLocked] = useState(wardrobe.isLocked ?? false);
+
+  async function handleToggleLock() {
+    const newLocked = !isLocked;
+    try {
+      const res = await fetch(`/api/admin/wardrobes/${wardrobe.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLocked: newLocked }),
+      });
+      if (res.ok) {
+        setIsLocked(newLocked);
+        toast.success(newLocked ? "Orman je zaključan" : "Orman je otključan");
+      } else {
+        toast.error("Greška pri promeni statusa zaključavanja.");
+      }
+    } catch {
+      toast.error("Greška pri promeni statusa zaključavanja.");
+    }
+  }
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
 
   // Store values for display
@@ -1106,6 +1130,15 @@ export function WardrobePreviewClient({
                 </PopoverContent>
               </Popover>
               {wardrobe.isModel && <Badge variant="secondary">Model</Badge>}
+              {isLocked && (
+                <Badge
+                  variant="outline"
+                  className="text-amber-500 border-amber-500/50"
+                >
+                  <Lock className="h-3 w-3 mr-1" />
+                  Zaključan
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Pregled ormana</span>
@@ -1125,15 +1158,26 @@ export function WardrobePreviewClient({
         </div>
         <div className="flex items-center gap-2">
           <ViewModeToggle />
+          <Button
+            variant={isLocked ? "default" : "outline"}
+            onClick={handleToggleLock}
+          >
+            {isLocked ? (
+              <LockOpen className="h-4 w-4 mr-2" />
+            ) : (
+              <Lock className="h-4 w-4 mr-2" />
+            )}
+            {isLocked ? "Otključaj" : "Zaključaj"}
+          </Button>
           {linkedOrders.length > 0 ? (
-            <Button variant="default" asChild>
+            <Button variant="default" asChild disabled={isLocked}>
               <Link href={`/admin/orders/${linkedOrders[0].id}`}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Uredi preko porudžbine #{linkedOrders[0].orderNumber}
               </Link>
             </Button>
           ) : (
-            <Button variant="default" asChild>
+            <Button variant="default" asChild disabled={isLocked}>
               <Link
                 href={`/design?load=${wardrobe.id}&fromWardrobe=${wardrobe.id}&wardrobeName=${encodeURIComponent(wardrobe.name)}`}
               >

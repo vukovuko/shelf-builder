@@ -115,6 +115,19 @@ export async function PUT(
 
     const { name, data, thumbnail } = validationResult.data;
 
+    // Check if wardrobe is locked
+    const [existing] = await db
+      .select({ isLocked: wardrobes.isLocked })
+      .from(wardrobes)
+      .where(eq(wardrobes.id, idValidation.data))
+      .limit(1);
+    if (existing?.isLocked) {
+      return NextResponse.json(
+        { error: "Orman je zaključan i ne može se menjati." },
+        { status: 403 },
+      );
+    }
+
     // Check if user is admin - admins can update any wardrobe
     const userIsAdmin = await isCurrentUserAdmin();
 
@@ -166,6 +179,19 @@ export async function DELETE(
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if wardrobe is locked
+    const [existing] = await db
+      .select({ isLocked: wardrobes.isLocked })
+      .from(wardrobes)
+      .where(eq(wardrobes.id, idValidation.data))
+      .limit(1);
+    if (existing?.isLocked) {
+      return NextResponse.json(
+        { error: "Orman je zaključan i ne može se obrisati." },
+        { status: 403 },
+      );
     }
 
     await db

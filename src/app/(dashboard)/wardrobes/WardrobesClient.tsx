@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderOpen, MoreVertical, Plus } from "lucide-react";
+import { FolderOpen, Lock, MoreVertical, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,6 +37,7 @@ interface Wardrobe {
   id: string;
   name: string;
   thumbnail: string | null;
+  isLocked: boolean | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,9 +84,9 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
     }
   }
 
-  // Handle load wardrobe
-  function handleLoad(id: string) {
-    router.push(`/design?load=${id}`);
+  // Handle load wardrobe (locked wardrobes open in preview mode)
+  function handleLoad(wardrobe: Wardrobe) {
+    router.push(`/design?load=${wardrobe.id}`);
   }
 
   // Handle duplicate wardrobe
@@ -227,7 +228,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           {wardrobes.map((wardrobe) => (
             <Card
               key={wardrobe.id}
-              onClick={() => handleLoad(wardrobe.id)}
+              onClick={() => handleLoad(wardrobe)}
               className="group relative overflow-hidden hover:shadow-md transition-shadow cursor-pointer gap-0 py-0"
             >
               <div className="aspect-[4/3] bg-muted relative">
@@ -240,6 +241,11 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
                     Nema pregleda
+                  </div>
+                )}
+                {wardrobe.isLocked && (
+                  <div className="absolute top-2 right-2 bg-amber-600/90 text-white rounded-full p-1.5">
+                    <Lock className="h-3.5 w-3.5" />
                   </div>
                 )}
               </div>
@@ -268,8 +274,8 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                     align="end"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <DropdownMenuItem onSelect={() => handleLoad(wardrobe.id)}>
-                      Učitaj
+                    <DropdownMenuItem onSelect={() => handleLoad(wardrobe)}>
+                      {wardrobe.isLocked ? "Pregled" : "Učitaj"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() => handleDuplicate(wardrobe.id)}
@@ -281,7 +287,12 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onSelect={() => handleDeleteClick(wardrobe)}
+                      onSelect={() =>
+                        wardrobe.isLocked
+                          ? toast.info("Zaključan orman ne može se obrisati.")
+                          : handleDeleteClick(wardrobe)
+                      }
+                      disabled={!!wardrobe.isLocked}
                       className="text-destructive"
                     >
                       Obriši

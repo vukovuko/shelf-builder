@@ -30,6 +30,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
       shippingPostalCode: orders.shippingPostalCode,
       wardrobeId: orders.wardrobeId,
       wardrobeName: wardrobes.name,
+      wardrobeIsLocked: wardrobes.isLocked,
       materialId: orders.materialId,
       materialName: materials.name,
       frontMaterialId: orders.frontMaterialId,

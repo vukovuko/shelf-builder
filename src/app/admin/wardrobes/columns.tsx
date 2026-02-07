@@ -2,7 +2,7 @@
 
 import type React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ export type Wardrobe = {
   userName: string | null;
   userEmail: string | null;
   isModel: boolean | null;
+  isLocked: boolean | null;
 };
 
 export const columns: ColumnDef<Wardrobe>[] = [
@@ -112,6 +113,15 @@ export const columns: ColumnDef<Wardrobe>[] = [
             {isModel && (
               <Badge variant="secondary" className="text-xs">
                 Model
+              </Badge>
+            )}
+            {row.original.isLocked && (
+              <Badge
+                variant="outline"
+                className="text-xs text-amber-500 border-amber-500/50"
+              >
+                <Lock className="h-3 w-3 mr-1" />
+                Zaključan
               </Badge>
             )}
           </div>

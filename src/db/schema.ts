@@ -158,6 +158,7 @@ export const wardrobes = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     isModel: boolean("isModel").default(false),
     publishedModel: boolean("publishedModel").default(false),
+    isLocked: boolean("isLocked").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },

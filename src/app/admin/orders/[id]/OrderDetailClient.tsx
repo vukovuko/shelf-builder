@@ -12,6 +12,8 @@ import {
   FileSpreadsheet,
   Copy,
   Check,
+  Lock,
+  LockOpen,
   Pencil,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -101,6 +103,7 @@ interface Order {
   shippingPostalCode: string;
   wardrobeId: string | null;
   wardrobeName: string | null;
+  wardrobeIsLocked: boolean | null;
   materialId: number;
   materialName: string | null;
   frontMaterialId: number | null;
@@ -257,6 +260,29 @@ export function OrderDetailClient({
   );
   const [returnStatus, setReturnStatus] = useState(order.returnStatus);
   const [notes, setNotes] = useState(order.notes || "");
+  const [isWardrobeLocked, setIsWardrobeLocked] = useState(
+    order.wardrobeIsLocked ?? false,
+  );
+
+  async function handleToggleWardrobeLock() {
+    if (!order.wardrobeId) return;
+    const newLocked = !isWardrobeLocked;
+    try {
+      const res = await fetch(`/api/admin/wardrobes/${order.wardrobeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLocked: newLocked }),
+      });
+      if (res.ok) {
+        setIsWardrobeLocked(newLocked);
+        toast.success(newLocked ? "Orman je zaključan" : "Orman je otključan");
+      } else {
+        toast.error("Greška pri promeni statusa zaključavanja.");
+      }
+    } catch {
+      toast.error("Greška pri promeni statusa zaključavanja.");
+    }
+  }
 
   // For 3D preview
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
@@ -1237,25 +1263,51 @@ export function OrderDetailClient({
             <div className="sm:col-span-2">
               <Label className="text-muted-foreground">Orman</Label>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <p className="font-medium">
-                  {order.wardrobeName || (
-                    <span className="text-muted-foreground">Nije povezan</span>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">
+                    {order.wardrobeName || (
+                      <span className="text-muted-foreground">
+                        Nije povezan
+                      </span>
+                    )}
+                  </p>
+                  {isWardrobeLocked && (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-500">
+                      <Lock className="h-3 w-3" />
+                      Zaključan
+                    </span>
                   )}
-                </p>
+                </div>
                 {order.wardrobeId && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-fit border-accent text-accent hover:bg-accent/90 hover:text-white"
-                  >
-                    <Link
-                      href={`/design?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleToggleWardrobeLock}
+                      className="w-fit text-xs"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Izmeni crtež
-                    </Link>
-                  </Button>
+                      {isWardrobeLocked ? (
+                        <LockOpen className="h-3.5 w-3.5 mr-1" />
+                      ) : (
+                        <Lock className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      {isWardrobeLocked ? "Otključaj" : "Zaključaj"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      disabled={isWardrobeLocked}
+                      className="w-fit border-accent text-accent hover:bg-accent/90 hover:text-white"
+                    >
+                      <Link
+                        href={`/design?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Izmeni crtež
+                      </Link>
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

@@ -23,6 +23,7 @@ export default async function WardrobesPage() {
       id: wardrobes.id,
       name: wardrobes.name,
       thumbnail: wardrobes.thumbnail,
+      isLocked: wardrobes.isLocked,
       createdAt: wardrobes.createdAt,
       updatedAt: wardrobes.updatedAt,
     })

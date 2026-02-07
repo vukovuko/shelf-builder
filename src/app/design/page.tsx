@@ -35,6 +35,7 @@ function LoadFromUrl() {
   const clearFromWardrobe = useShelfStore(
     (s: ShelfState) => s.clearFromWardrobe,
   );
+  const setIsPreviewMode = useShelfStore((s: ShelfState) => s.setIsPreviewMode);
   // Use ref instead of state to persist across React Strict Mode remounts
   const hasLoadedRef = useRef(false);
 
@@ -73,6 +74,12 @@ function LoadFromUrl() {
         }
 
         const wardrobe = await res.json();
+
+        // Enable preview mode for locked wardrobes (read-only viewing)
+        if (wardrobe.isLocked) {
+          setIsPreviewMode(true);
+        }
+
         applyWardrobeSnapshot(wardrobe.data);
 
         // Track loaded wardrobe for update functionality
@@ -123,6 +130,7 @@ function LoadFromUrl() {
     wardrobeName,
     setFromWardrobe,
     clearFromWardrobe,
+    setIsPreviewMode,
   ]);
 
   return null;
@@ -137,14 +145,17 @@ function AutoSave() {
     const unsubscribe = useShelfStore.subscribe(() => {
       // Skip autosave while loading from URL to prevent race conditions
       if (isLoadingFromUrl) return;
+      // Skip autosave in preview mode (locked wardrobe)
+      if (useShelfStore.getState().isPreviewMode) return;
 
       // Debounce saves to avoid excessive writes
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
-        // Double-check loading flag before saving
+        // Double-check loading flag and preview mode before saving
         if (isLoadingFromUrl) return;
+        if (useShelfStore.getState().isPreviewMode) return;
 
         try {
           const snapshot = getWardrobeSnapshot();

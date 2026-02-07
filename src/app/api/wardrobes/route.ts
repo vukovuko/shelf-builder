@@ -26,6 +26,7 @@ export async function GET() {
         id: wardrobes.id,
         name: wardrobes.name,
         thumbnail: wardrobes.thumbnail,
+        isLocked: wardrobes.isLocked,
         createdAt: wardrobes.createdAt,
         updatedAt: wardrobes.updatedAt,
       })
