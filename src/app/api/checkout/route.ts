@@ -29,6 +29,10 @@ import {
   getIdentifier,
   rateLimitResponse,
 } from "@/lib/upstash-rate-limit";
+import {
+  syncResendContact,
+  addToCustomersSegment,
+} from "@/lib/resend-contacts";
 
 const checkoutSchema = z
   .object({
@@ -579,6 +583,16 @@ export async function POST(request: Request) {
         updatedAt: now,
       })
       .where(eq(user.id, userId));
+
+    // Sync newsletter preference to Resend (fire-and-forget)
+    if (newsletter && customerEmail) {
+      syncResendContact(customerEmail, customerName.split(" ")[0], true);
+    }
+
+    // Add to Customers segment (fire-and-forget)
+    if (customerEmail) {
+      addToCustomersSegment(customerEmail, customerName.split(" ")[0]);
+    }
 
     const result = {
       orderId: order.id,

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
 import { user } from "@/db/schema";
+import { syncResendContact } from "@/lib/resend-contacts";
 
 export async function GET() {
   try {
@@ -68,6 +69,13 @@ export async function PUT(request: Request) {
         updatedAt: new Date(),
       })
       .where(eq(user.id, session.user.id));
+
+    // Sync to Resend contacts (fire-and-forget)
+    syncResendContact(
+      session.user.email,
+      session.user.name.split(" ")[0],
+      validation.data.receiveNewsletter,
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
