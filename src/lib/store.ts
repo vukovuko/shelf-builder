@@ -1811,9 +1811,18 @@ export const useShelfStore = create<ShelfState>((set) => ({
         }
       }
 
-      // Auto-sync: if new column height exceeds global, update global height
-      // This ensures sidebar always shows the actual bounding box
-      const newGlobalHeight = Math.max(state.height, heightCm);
+      // Recalculate global height as actual max of all column heights
+      // This ensures dimension lines and centering track the tallest column
+      const updatedColumnHeights = {
+        ...state.columnHeights,
+        [colIdx]: heightCm,
+      };
+      const columnCount = state.verticalBoundaries.length + 1;
+      let newGlobalHeight = 0;
+      for (let i = 0; i < columnCount; i++) {
+        const colH = updatedColumnHeights[i] ?? state.height;
+        newGlobalHeight = Math.max(newGlobalHeight, colH);
+      }
 
       // If global height increased past 200cm, initialize module boundaries for ALL columns
       // that don't have them yet (this handles the case where dragging one column
