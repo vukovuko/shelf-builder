@@ -7,6 +7,7 @@ import { count, eq } from "drizzle-orm";
 export default async function AdminPage() {
   // Layout already checks admin access, but we need user for display
   const user = await getCurrentUser();
+  if (!user) return null;
 
   const [totalUsersResult, totalWardrobesResult, adminCountResult] =
     await Promise.all([
@@ -20,7 +21,7 @@ export default async function AdminPage() {
 
   return (
     <AdminDashboard
-      user={user!}
+      user={user}
       stats={{
         totalUsers: totalUsersResult[0]?.count ?? 0,
         totalWardrobes: totalWardrobesResult[0]?.count ?? 0,

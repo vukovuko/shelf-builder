@@ -6,6 +6,9 @@ import {
   ArrowRight,
   ShoppingCart,
   Layers,
+  BookOpen,
+  DoorOpen,
+  Scale,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -134,6 +137,63 @@ export function AdminDashboard({ user, stats }: AdminDashboardProps) {
                   </p>
                   <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
                     Upravljanje materijalima
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/models">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Modeli
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Upravljanje modelima
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/handles">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <DoorOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Ručke
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Upravljanje ručkama
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/rules">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Scale className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Pravila
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Upravljanje pravilima
                   </p>
                 </div>
               </div>
