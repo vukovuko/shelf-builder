@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { create } from "zustand";
 import {
   MAX_SHELVES_PER_COLUMN,
@@ -1484,7 +1485,20 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setShowInfoButtons: (show) => set({ showInfoButtons: show }),
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
   activeAccordionStep: "item-1", // Default to Step 1 open
-  setActiveAccordionStep: (step) =>
+  setActiveAccordionStep: (step) => {
+    const stepNames: Record<string, string> = {
+      "item-1": "Dimenzije",
+      "item-2": "Kolone",
+      "item-3": "Materijali",
+      "item-4": "Baza",
+      "item-5": "Vrata",
+    };
+    if (step && stepNames[step]) {
+      posthog.capture("step_viewed", {
+        step: parseInt(step.split("-")[1]),
+        step_name: stepNames[step],
+      });
+    }
     set((state) => ({
       activeAccordionStep: step,
       // Clear compartment selection when step changes
@@ -1500,7 +1514,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         step !== state.activeAccordionStep
           ? []
           : state.selectedDoorCompartments,
-    })),
+    }));
+  },
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: null,
   loadedWardrobeIsModel: false,
