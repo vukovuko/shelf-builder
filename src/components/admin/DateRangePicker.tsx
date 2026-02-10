@@ -8,13 +8,14 @@ import { sr } from "date-fns/locale";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   PRESETS,
   type PresetKey,
@@ -38,6 +39,7 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
 
   // --- Tab state ---
@@ -130,43 +132,70 @@ export function DateRangePicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="justify-start text-left font-normal gap-3 h-9"
+          className="w-full sm:w-auto justify-start text-left font-normal gap-3 h-9"
         >
           <span className="flex items-center gap-2">
             <CalendarIcon className="size-4 text-muted-foreground" />
             {presetLabel && <span className="font-medium">{presetLabel}</span>}
           </span>
-          <span className="text-muted-foreground text-xs">
+          <span className="text-muted-foreground text-xs truncate sm:max-w-none">
             {formatRangeLabel(currentRange)}
           </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start" sideOffset={8}>
-        <div className="flex">
-          {/* Left: Presets */}
-          <div className="flex flex-col border-r py-2 min-w-[180px]">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.key}
-                type="button"
-                className={cn(
-                  "flex items-center justify-between px-3 py-1.5 text-sm text-left hover:bg-muted/60 transition-colors",
-                  selectedPreset === preset.key &&
-                    tab === "rolling" &&
-                    "bg-muted/40 font-medium",
-                )}
-                onClick={() => handlePresetClick(preset.key)}
-              >
-                {preset.label}
-                {selectedPreset === preset.key && tab === "rolling" && (
-                  <Check className="size-4 text-primary" />
-                )}
-              </button>
-            ))}
+      <PopoverContent
+        className="w-auto p-0 max-w-[calc(100vw-2rem)]"
+        align="start"
+        sideOffset={8}
+      >
+        <div className="flex flex-col md:flex-row">
+          {/* Presets: horizontal scroll on mobile, vertical sidebar on desktop */}
+          <div
+            className={cn(
+              // Mobile: horizontal scrollable row
+              "flex overflow-x-auto gap-1.5 px-3 py-2 border-b",
+              // Desktop: vertical sidebar
+              "md:flex-col md:overflow-x-visible md:gap-0 md:px-0 md:py-2 md:border-b-0 md:border-r md:min-w-[180px]",
+            )}
+          >
+            {PRESETS.map((preset) =>
+              isMobile ? (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className={cn(
+                    "whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors",
+                    selectedPreset === preset.key && tab === "rolling"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "hover:bg-muted/60",
+                  )}
+                  onClick={() => handlePresetClick(preset.key)}
+                >
+                  {preset.label}
+                </button>
+              ) : (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className={cn(
+                    "flex items-center justify-between px-3 py-1.5 text-sm text-left hover:bg-muted/60 transition-colors",
+                    selectedPreset === preset.key &&
+                      tab === "rolling" &&
+                      "bg-muted/40 font-medium",
+                  )}
+                  onClick={() => handlePresetClick(preset.key)}
+                >
+                  {preset.label}
+                  {selectedPreset === preset.key && tab === "rolling" && (
+                    <Check className="size-4 text-primary" />
+                  )}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Right: Tabs + Calendar */}
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             {/* Fixed / Rolling tabs */}
             <div className="flex border-b px-3 pt-2">
               <button
@@ -230,10 +259,11 @@ export function DateRangePicker({
               </div>
             )}
 
-            {/* Calendar */}
+            {/* Calendar: 1 month on mobile, 2 on desktop */}
             <Calendar
               mode="range"
-              numberOfMonths={2}
+              numberOfMonths={isMobile ? 1 : 2}
+              fixedWeeks={false}
               selected={calendarSelected}
               onSelect={(range) => {
                 if (tab === "fixed") {
@@ -244,13 +274,33 @@ export function DateRangePicker({
               defaultMonth={subDays(new Date(), 30)}
               disabled={{ after: new Date() }}
               className={cn(
+                isMobile ? "p-2" : "p-3",
                 tab === "rolling" && "pointer-events-none opacity-75",
               )}
+              {...(isMobile && {
+                classNames: {
+                  month: "flex flex-col gap-1",
+                  month_caption:
+                    "flex justify-center relative items-center h-6",
+                  month_grid: "w-full border-collapse",
+                  week: "flex w-full",
+                  weekday:
+                    "flex-1 text-center text-muted-foreground rounded-md font-normal text-[0.8rem]",
+                  day: cn(
+                    "flex-1 relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50",
+                    "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
+                  ),
+                  day_button: cn(
+                    buttonVariants({ variant: "ghost" }),
+                    "h-7 w-full p-0 font-normal aria-selected:opacity-100",
+                  ),
+                },
+              })}
             />
 
             {/* Footer: date display + Cancel/Apply */}
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between border-t px-3 py-2 md:px-4 md:py-3 gap-2">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate min-w-0">
                 {tab === "fixed" && fixedRange?.from && fixedRange?.to
                   ? `${format(fixedRange.from, "d. MMM yyyy", { locale: sr })} – ${format(fixedRange.to, "d. MMM yyyy", { locale: sr })}`
                   : tab === "fixed"
@@ -259,7 +309,7 @@ export function DateRangePicker({
                       ? formatRangeLabel(resolvePreset(selectedPreset))
                       : formatRangeLabel(rollingRange)}
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
