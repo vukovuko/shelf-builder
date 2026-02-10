@@ -22,6 +22,7 @@ export default async function AccountPage() {
       shippingApartment: user.shippingApartment,
       shippingCity: user.shippingCity,
       shippingPostalCode: user.shippingPostalCode,
+      receiveNewsletter: user.receiveNewsletter,
     })
     .from(user)
     .where(eq(user.id, session.user.id));
@@ -40,6 +41,7 @@ export default async function AccountPage() {
         shippingApartment: userData?.shippingApartment ?? null,
         shippingCity: userData?.shippingCity ?? null,
         shippingPostalCode: userData?.shippingPostalCode ?? null,
+        receiveNewsletter: userData?.receiveNewsletter ?? false,
       }}
     />
   );

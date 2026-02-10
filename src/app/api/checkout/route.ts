@@ -43,6 +43,8 @@ const checkoutSchema = z
     shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
     // Optional customer note
     notes: z.string().optional().or(z.literal("")),
+    // Newsletter opt-in
+    newsletter: z.boolean().optional(),
     // Wardrobe data
     wardrobeSnapshot: z.record(z.string(), z.any()),
     thumbnail: z.string().nullable(),
@@ -107,6 +109,7 @@ export async function POST(request: Request) {
       frontMaterialId,
       backMaterialId,
       turnstileToken,
+      newsletter,
     } = validation.data;
 
     // Verify Turnstile CAPTCHA token
@@ -563,7 +566,7 @@ export async function POST(request: Request) {
       .set({ name: finalWardrobeName })
       .where(eq(wardrobes.id, wardrobe.id));
 
-    // Update user's default shipping address (for future orders)
+    // Update user's default shipping address + newsletter preference
     await db
       .update(user)
       .set({
@@ -572,6 +575,7 @@ export async function POST(request: Request) {
         shippingCity,
         shippingPostalCode,
         phone: customerPhone || undefined, // Also update phone if provided
+        ...(newsletter !== undefined && { receiveNewsletter: newsletter }),
         updatedAt: now,
       })
       .where(eq(user.id, userId));

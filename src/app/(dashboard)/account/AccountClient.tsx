@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Pencil, X, Check, Loader2, Mail, MapPin } from "lucide-react";
+import { Pencil, X, Check, Loader2, Mail, MapPin, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { authClient } from "@/lib/auth-client";
 
 interface PlaceSuggestion {
@@ -45,6 +46,7 @@ interface AccountClientProps {
     shippingApartment?: string | null;
     shippingCity?: string | null;
     shippingPostalCode?: string | null;
+    receiveNewsletter?: boolean | null;
   };
 }
 
@@ -60,6 +62,9 @@ export function AccountClient({ user }: AccountClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [receiveNewsletter, setReceiveNewsletter] = useState(
+    user.receiveNewsletter ?? false,
+  );
 
   // Address state
   const [addressData, setAddressData] = useState({
@@ -348,6 +353,25 @@ export function AccountClient({ user }: AccountClientProps) {
   const handleCancelEditPhone = () => {
     setPhone(user.phone || "");
     setIsEditingPhone(false);
+  };
+
+  const handleToggleNewsletter = async (checked: boolean) => {
+    setReceiveNewsletter(checked);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiveNewsletter: checked }),
+      });
+
+      if (!res.ok) {
+        setReceiveNewsletter(!checked);
+        toast.error("Greška pri ažuriranju podešavanja");
+      }
+    } catch {
+      setReceiveNewsletter(!checked);
+      toast.error("Greška pri ažuriranju podešavanja");
+    }
   };
 
   return (
@@ -686,6 +710,27 @@ export function AccountClient({ user }: AccountClientProps) {
             proces naručivanja.
           </p>
         )}
+      </Card>
+
+      {/* Notifications Section */}
+      <Card className="mt-6 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Obaveštenja</h2>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Novosti i promocije</p>
+            <p className="text-xs text-muted-foreground">
+              Primajte email o novim materijalima, akcijama i savetima.
+            </p>
+          </div>
+          <Switch
+            checked={receiveNewsletter}
+            onCheckedChange={handleToggleNewsletter}
+          />
+        </div>
       </Card>
     </div>
   );

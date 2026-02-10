@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,6 +89,7 @@ export function CheckoutDialog({
     shippingCity: "",
     shippingPostalCode: "",
     notes: "",
+    newsletter: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -132,6 +134,7 @@ export function CheckoutDialog({
               shippingCity: data.shippingCity || prev.shippingCity,
               shippingPostalCode:
                 data.shippingPostalCode || prev.shippingPostalCode,
+              newsletter: data.receiveNewsletter ?? prev.newsletter,
             }));
           }
         })
@@ -260,7 +263,15 @@ export function CheckoutDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          shippingStreet: formData.shippingStreet,
+          shippingApartment: formData.shippingApartment,
+          shippingCity: formData.shippingCity,
+          shippingPostalCode: formData.shippingPostalCode,
+          notes: formData.notes,
+          newsletter: formData.newsletter,
           wardrobeSnapshot: orderData.wardrobeSnapshot,
           thumbnail: orderData.thumbnail,
           materialId: orderData.materialId,
@@ -328,6 +339,7 @@ export function CheckoutDialog({
       shippingCity: "",
       shippingPostalCode: "",
       notes: "",
+      newsletter: false,
     });
     setErrors({});
     setOrderSuccess(null);
@@ -541,6 +553,26 @@ export function CheckoutDialog({
                   rows={3}
                   className="resize-none"
                 />
+              </div>
+
+              {/* Newsletter opt-in */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="newsletter"
+                  checked={formData.newsletter}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      newsletter: checked === true,
+                    }))
+                  }
+                />
+                <Label
+                  htmlFor="newsletter"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Želim da primam novosti i promocije
+                </Label>
               </div>
 
               {/* Turnstile CAPTCHA */}

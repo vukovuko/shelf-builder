@@ -61,6 +61,7 @@ export const user = pgTable("user", {
   banned: boolean("banned").default(false),
   banReason: text("banReason"),
   receiveOrderEmails: boolean("receiveOrderEmails").default(false),
+  receiveNewsletter: boolean("receiveNewsletter").default(false),
   tags: text("tags"), // JSON array: '["vip","loyal"]'
   notes: text("notes"), // Internal admin notes
   // Default shipping address
