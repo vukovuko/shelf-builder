@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { DateRangePicker } from "@/components/admin/DateRangePicker";
+import type { PresetKey } from "@/lib/date-range-utils";
 
 // --- Analytics types ---
 
@@ -42,6 +44,11 @@ interface AdminDashboardProps {
     adminCount: number;
   };
   analytics: Analytics;
+  dateRange: {
+    from: string;
+    to: string;
+    presetKey: PresetKey | null;
+  };
 }
 
 // --- Helpers ---
@@ -110,26 +117,20 @@ function StatCard({
   format: (v: number) => string;
 }) {
   const change = prevValue !== undefined ? calcChange(value, prevValue) : null;
-  const color =
-    change && !change.isZero
-      ? change.isPositive
-        ? "#16a34a"
-        : "#dc2626"
-      : "#a1a1aa";
 
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground font-medium">{label}</p>
-          <p className="text-xl font-bold mt-1">{format(value)}</p>
+          <p className="text-xl font-bold mt-1 text-primary">{format(value)}</p>
           {change && (
             <p
               className={`text-xs mt-1 ${
                 change.isZero
                   ? "text-muted-foreground"
                   : change.isPositive
-                    ? "text-green-600"
+                    ? "text-purple-700"
                     : "text-red-600"
               }`}
             >
@@ -139,7 +140,11 @@ function StatCard({
             </p>
           )}
         </div>
-        {data && data.length > 0 && <Sparkline data={data} color={color} />}
+        {data && data.length > 0 && (
+          <div className="text-chart-1">
+            <Sparkline data={data} color="currentColor" />
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -151,7 +156,13 @@ export function AdminDashboard({
   user,
   stats,
   analytics,
+  dateRange,
 }: AdminDashboardProps) {
+  const currentRange = {
+    from: new Date(dateRange.from),
+    to: new Date(dateRange.to),
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -161,7 +172,12 @@ export function AdminDashboard({
 
       {/* Analytics Cards */}
       <div>
-        <p className="text-sm text-muted-foreground mb-3">Poslednjih 30 dana</p>
+        <div className="mb-3">
+          <DateRangePicker
+            currentRange={currentRange}
+            currentPreset={dateRange.presetKey}
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Sesije"

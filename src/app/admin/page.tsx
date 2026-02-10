@@ -1,31 +1,69 @@
 import { getCurrentUser } from "@/lib/roles";
 import { AdminDashboard } from "./AdminDashboard";
 import { db } from "@/db/db";
-import { user as userTable, wardrobes, orders, session } from "@/db/schema";
-import { count, eq, gte, lt, and, sql } from "drizzle-orm";
+import { user as userTable, wardrobes, orders } from "@/db/schema";
+import { count, eq, gte, lte, and, sql } from "drizzle-orm";
+import { queryPostHog } from "@/lib/posthog-query";
+import {
+  parseDateRangeParams,
+  computePreviousPeriod,
+} from "@/lib/date-range-utils";
+import { format } from "date-fns";
 
-export default async function AdminPage() {
+interface AdminPageProps {
+  searchParams?:
+    | Promise<{
+        from?: string | string[];
+        to?: string | string[];
+        preset?: string | string[];
+      }>
+    | {
+        from?: string | string[];
+        to?: string | string[];
+        preset?: string | string[];
+      };
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+  // --- Parse date range from URL ---
+  const resolvedParams = (await searchParams) ?? {};
+  const fromParam = Array.isArray(resolvedParams.from)
+    ? resolvedParams.from[0]
+    : resolvedParams.from;
+  const toParam = Array.isArray(resolvedParams.to)
+    ? resolvedParams.to[0]
+    : resolvedParams.to;
+  const presetParam = Array.isArray(resolvedParams.preset)
+    ? resolvedParams.preset[0]
+    : resolvedParams.preset;
+
+  const { range, presetKey } = parseDateRangeParams({
+    from: fromParam,
+    to: toParam,
+    preset: presetParam,
+  });
+  const prevRange = computePreviousPeriod(range);
+
+  // Format for PostHog HogQL
+  const phFrom = format(range.from, "yyyy-MM-dd HH:mm:ss");
+  const phTo = format(range.to, "yyyy-MM-dd HH:mm:ss");
+  const phPrevFrom = format(prevRange.from, "yyyy-MM-dd HH:mm:ss");
+  const phPrevTo = format(prevRange.to, "yyyy-MM-dd HH:mm:ss");
 
   const [
     totalUsersResult,
     totalWardrobesResult,
     adminCountResult,
-    // Sparkline data (last 30 days, grouped by day)
     dailyOrders,
     dailyRevenue,
-    dailySessions,
-    // Previous period totals (30-60 days ago) for % change
     prevOrdersResult,
     prevRevenueResult,
-    prevSessionsResult,
-    // Conversion rate
     usersWithOrdersResult,
+    dailySessionsRaw,
+    prevSessionsRaw,
   ] = await Promise.all([
     db.select({ count: count() }).from(userTable),
     db.select({ count: count() }).from(wardrobes),
@@ -33,44 +71,38 @@ export default async function AdminPage() {
       .select({ count: count() })
       .from(userTable)
       .where(eq(userTable.role, "admin")),
-    // Orders per day (last 30 days)
+    // Orders per day (selected range)
     db
       .select({
         date: sql<string>`DATE(${orders.createdAt})`,
         count: count(),
       })
       .from(orders)
-      .where(gte(orders.createdAt, thirtyDaysAgo))
+      .where(
+        and(gte(orders.createdAt, range.from), lte(orders.createdAt, range.to)),
+      )
       .groupBy(sql`DATE(${orders.createdAt})`)
       .orderBy(sql`DATE(${orders.createdAt})`),
-    // Revenue per day (last 30 days)
+    // Revenue per day (selected range)
     db
       .select({
         date: sql<string>`DATE(${orders.createdAt})`,
         revenue: sql<number>`COALESCE(SUM(${orders.totalPrice}), 0)`,
       })
       .from(orders)
-      .where(gte(orders.createdAt, thirtyDaysAgo))
+      .where(
+        and(gte(orders.createdAt, range.from), lte(orders.createdAt, range.to)),
+      )
       .groupBy(sql`DATE(${orders.createdAt})`)
       .orderBy(sql`DATE(${orders.createdAt})`),
-    // Sessions per day (last 30 days)
-    db
-      .select({
-        date: sql<string>`DATE(${session.createdAt})`,
-        count: count(),
-      })
-      .from(session)
-      .where(gte(session.createdAt, thirtyDaysAgo))
-      .groupBy(sql`DATE(${session.createdAt})`)
-      .orderBy(sql`DATE(${session.createdAt})`),
     // Previous period: orders
     db
       .select({ count: count() })
       .from(orders)
       .where(
         and(
-          gte(orders.createdAt, sixtyDaysAgo),
-          lt(orders.createdAt, thirtyDaysAgo),
+          gte(orders.createdAt, prevRange.from),
+          lte(orders.createdAt, prevRange.to),
         ),
       ),
     // Previous period: revenue
@@ -81,38 +113,49 @@ export default async function AdminPage() {
       .from(orders)
       .where(
         and(
-          gte(orders.createdAt, sixtyDaysAgo),
-          lt(orders.createdAt, thirtyDaysAgo),
+          gte(orders.createdAt, prevRange.from),
+          lte(orders.createdAt, prevRange.to),
         ),
       ),
-    // Previous period: sessions
-    db
-      .select({ count: count() })
-      .from(session)
-      .where(
-        and(
-          gte(session.createdAt, sixtyDaysAgo),
-          lt(session.createdAt, thirtyDaysAgo),
-        ),
-      ),
-    // Users who have placed at least 1 order
+    // Users who have placed at least 1 order (all-time)
     db
       .select({
         count: sql<number>`COUNT(DISTINCT ${orders.userId})`,
       })
       .from(orders),
+    // PostHog: daily unique sessions (selected range)
+    queryPostHog<[string, number]>(
+      `SELECT toDate(timestamp) as date, count(DISTINCT $session_id) as sessions
+       FROM events
+       WHERE timestamp >= toDateTime('${phFrom}')
+         AND timestamp <= toDateTime('${phTo}')
+       GROUP BY date ORDER BY date`,
+    ),
+    // PostHog: previous period sessions
+    queryPostHog<[number]>(
+      `SELECT count(DISTINCT $session_id)
+       FROM events
+       WHERE timestamp >= toDateTime('${phPrevFrom}')
+         AND timestamp <= toDateTime('${phPrevTo}')`,
+    ),
   ]);
 
   const totalUsers = totalUsersResult[0]?.count ?? 0;
 
-  // Compute current period totals from sparkline data
-  // Note: sql<number> is a TS hint only — PostgreSQL returns strings for SUM/COALESCE
   const currentOrders = dailyOrders.reduce((sum, d) => sum + d.count, 0);
   const currentRevenue = dailyRevenue.reduce(
     (sum, d) => sum + Number(d.revenue),
     0,
   );
-  const currentSessions = dailySessions.reduce((sum, d) => sum + d.count, 0);
+
+  const currentSessions = dailySessionsRaw.reduce(
+    (sum, [, count]) => sum + Number(count),
+    0,
+  );
+  const prevSessions = Number(prevSessionsRaw[0]?.[0] ?? 0);
+  const dailySessions = dailySessionsRaw.map(([, count]) => ({
+    value: Number(count),
+  }));
 
   const conversionRate =
     totalUsers > 0
@@ -130,8 +173,8 @@ export default async function AdminPage() {
       analytics={{
         sessions: {
           value: currentSessions,
-          prevValue: prevSessionsResult[0]?.count ?? 0,
-          data: dailySessions.map((d) => ({ value: d.count })),
+          prevValue: prevSessions,
+          data: dailySessions,
         },
         revenue: {
           value: currentRevenue,
@@ -146,6 +189,11 @@ export default async function AdminPage() {
         conversionRate: {
           value: conversionRate,
         },
+      }}
+      dateRange={{
+        from: range.from.toISOString(),
+        to: range.to.toISOString(),
+        presetKey,
       }}
     />
   );

@@ -27,7 +27,7 @@ import {
 
 const navItems = [
   {
-    title: "Pocetna",
+    title: "Početna",
     href: "/admin",
     icon: Home,
   },
