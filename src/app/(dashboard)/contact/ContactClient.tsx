@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import posthog from "posthog-js";
 import { toast } from "sonner";
 import { Send, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,6 +86,9 @@ export function ContactClient({
       });
 
       if (res.ok) {
+        posthog.capture("contact_submitted", {
+          has_wardrobe_reference: !!wardrobeId,
+        });
         toast.success(
           "Poruka je uspešno poslata! Javićemo vam se u najkraćem mogućem roku.",
         );

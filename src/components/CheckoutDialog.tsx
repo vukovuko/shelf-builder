@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import posthog from "posthog-js";
 import { validateCheckoutForm } from "@/lib/checkoutValidation";
 import { OrderSuccess } from "@/components/checkout/OrderSuccess";
 import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
@@ -109,9 +110,13 @@ export function CheckoutDialog({
   const suggestionRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch user profile to pre-fill form when dialog opens
+  // Track checkout opened + fetch user profile
   useEffect(() => {
     if (open && !orderSuccess) {
+      posthog.capture("checkout_started", {
+        value: orderData.totalPrice,
+        currency: "RSD",
+      });
       fetch("/api/user/profile")
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -279,6 +284,13 @@ export function CheckoutDialog({
       }
 
       const data = await res.json();
+
+      posthog.capture("order_completed", {
+        order_number: data.orderNumber,
+        value: Math.round(orderData.totalPrice),
+        currency: "RSD",
+        wardrobe_id: data.wardrobeId,
+      });
 
       // Show success view instead of toast
       setOrderSuccess({

@@ -4,6 +4,7 @@ import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
+import { PostHogProvider } from "./providers";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -75,7 +76,9 @@ export default function RootLayout({
       </head>
       <body className={`${poppins.variable} ${poppins.className} antialiased`}>
         <NextTopLoader color="#7c3aed" showSpinner={false} />
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <PostHogProvider>
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </PostHogProvider>
         <Toaster position="bottom-center" />
       </body>
     </html>

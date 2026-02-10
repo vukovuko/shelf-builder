@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import posthog from "posthog-js";
 import { toast } from "sonner";
 import {
   Accordion,
@@ -209,6 +210,12 @@ export function ConfiguratorControls({
         useShelfStore.getState().setLastSavedSnapshot(snapshot);
         setLastSaveTime(Date.now());
 
+        posthog.capture("design_saved", {
+          wardrobe_id: loadedWardrobeId,
+          is_new: false,
+          wardrobe_name: wardrobeName,
+        });
+
         // Show appropriate success message
         if (fromOrderId && fromOrderNumber) {
           toast.success(`Orman za porudžbinu #${fromOrderNumber} je ažuriran`);
@@ -254,6 +261,11 @@ export function ConfiguratorControls({
       // Mark as saved for unsaved changes detection
       useShelfStore.getState().setLastSavedSnapshot(snapshot);
       setLastSaveTime(Date.now());
+
+      posthog.capture("design_saved", {
+        is_new: true,
+        wardrobe_name: wardrobeName,
+      });
 
       toast.success(`"${wardrobeName}" je sačuvan`, {
         action: {

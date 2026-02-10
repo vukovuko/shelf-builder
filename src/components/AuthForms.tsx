@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import posthog from "posthog-js";
 import { signIn, authClient } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
 
@@ -100,6 +101,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         }
 
         // User is signed in, call onSuccess
+        posthog.capture("signup_completed");
         onSuccess?.();
       } else {
         const result = await signIn.email({

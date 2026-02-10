@@ -1,6 +1,7 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
 import {
-  Shield,
   Users,
   FolderOpen,
   ArrowRight,
@@ -11,6 +12,22 @@ import {
   Scale,
 } from "lucide-react";
 import Link from "next/link";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
+
+// --- Analytics types ---
+
+interface AnalyticsStat {
+  value: number;
+  prevValue: number;
+  data: { value: number }[];
+}
+
+interface Analytics {
+  sessions: AnalyticsStat;
+  revenue: AnalyticsStat;
+  orders: AnalyticsStat;
+  conversionRate: { value: number };
+}
 
 interface AdminDashboardProps {
   user: {
@@ -24,9 +41,117 @@ interface AdminDashboardProps {
     totalWardrobes: number;
     adminCount: number;
   };
+  analytics: Analytics;
 }
 
-export function AdminDashboard({ user, stats }: AdminDashboardProps) {
+// --- Helpers ---
+
+function calcChange(
+  current: number,
+  previous: number,
+): { percent: number; isPositive: boolean; isZero: boolean } {
+  if (previous === 0 && current === 0)
+    return { percent: 0, isPositive: false, isZero: true };
+  if (previous === 0)
+    return { percent: 100, isPositive: current > 0, isZero: false };
+  const percent = ((current - previous) / previous) * 100;
+  return {
+    percent: Math.abs(percent),
+    isPositive: percent >= 0,
+    isZero: false,
+  };
+}
+
+function formatRevenue(v: number): string {
+  if (v >= 1_000_000) return `RSD ${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `RSD ${(v / 1_000).toFixed(1)}K`;
+  return `RSD ${v.toLocaleString("sr-RS")}`;
+}
+
+// --- Sparkline ---
+
+function Sparkline({
+  data,
+  color,
+}: {
+  data: { value: number }[];
+  color: string;
+}) {
+  if (data.length === 0) return null;
+  return (
+    <ResponsiveContainer width={80} height={40}>
+      <LineChart data={data}>
+        <Line
+          type="monotone"
+          dataKey="value"
+          stroke={color}
+          strokeWidth={1.5}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// --- Stat Card ---
+
+function StatCard({
+  label,
+  value,
+  prevValue,
+  data,
+  format,
+}: {
+  label: string;
+  value: number;
+  prevValue?: number;
+  data?: { value: number }[] | null;
+  format: (v: number) => string;
+}) {
+  const change = prevValue !== undefined ? calcChange(value, prevValue) : null;
+  const color =
+    change && !change.isZero
+      ? change.isPositive
+        ? "#16a34a"
+        : "#dc2626"
+      : "#a1a1aa";
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground font-medium">{label}</p>
+          <p className="text-xl font-bold mt-1">{format(value)}</p>
+          {change && (
+            <p
+              className={`text-xs mt-1 ${
+                change.isZero
+                  ? "text-muted-foreground"
+                  : change.isPositive
+                    ? "text-green-600"
+                    : "text-red-600"
+              }`}
+            >
+              {change.isZero
+                ? "\u2014"
+                : `${change.isPositive ? "\u2191" : "\u2193"} ${change.percent.toFixed(1)}%`}
+            </p>
+          )}
+        </div>
+        {data && data.length > 0 && <Sparkline data={data} color={color} />}
+      </div>
+    </Card>
+  );
+}
+
+// --- Main Dashboard ---
+
+export function AdminDashboard({
+  user,
+  stats,
+  analytics,
+}: AdminDashboardProps) {
   return (
     <div className="space-y-8">
       <div>
@@ -34,37 +159,38 @@ export function AdminDashboard({ user, stats }: AdminDashboardProps) {
         <p className="text-muted-foreground">Pregled admin panela</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <Users className="h-8 w-8 text-blue-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Ukupno korisnika</p>
-              <p className="text-2xl font-bold">{stats.totalUsers}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <FolderOpen className="h-8 w-8 text-green-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Ukupno ormana</p>
-              <p className="text-2xl font-bold">{stats.totalWardrobes}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <Shield className="h-8 w-8 text-purple-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Admini</p>
-              <p className="text-2xl font-bold">{stats.adminCount}</p>
-            </div>
-          </div>
-        </Card>
+      {/* Analytics Cards */}
+      <div>
+        <p className="text-sm text-muted-foreground mb-3">Poslednjih 30 dana</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Sesije"
+            value={analytics.sessions.value}
+            prevValue={analytics.sessions.prevValue}
+            data={analytics.sessions.data}
+            format={(v) => v.toLocaleString("sr-RS")}
+          />
+          <StatCard
+            label="Ukupna prodaja"
+            value={analytics.revenue.value}
+            prevValue={analytics.revenue.prevValue}
+            data={analytics.revenue.data}
+            format={formatRevenue}
+          />
+          <StatCard
+            label="Porudžbine"
+            value={analytics.orders.value}
+            prevValue={analytics.orders.prevValue}
+            data={analytics.orders.data}
+            format={(v) => v.toLocaleString("sr-RS")}
+          />
+          <StatCard
+            label="Konverzija"
+            value={analytics.conversionRate.value}
+            data={null}
+            format={(v) => `${v.toFixed(1)}%`}
+          />
+        </div>
       </div>
 
       {/* Quick Links */}
