@@ -62,7 +62,7 @@ export default function NewHandlePage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Nova ručka</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Nova ručka</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Dodaj novu ručku za vrata
           </p>

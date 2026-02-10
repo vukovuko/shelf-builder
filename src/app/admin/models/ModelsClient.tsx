@@ -139,7 +139,7 @@ export function ModelsClient({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Modeli</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold">Modeli</h1>
         <p className="text-sm sm:text-base text-muted-foreground">
           Predlošci ormana za korisnike
         </p>

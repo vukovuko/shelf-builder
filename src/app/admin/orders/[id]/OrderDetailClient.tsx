@@ -1156,7 +1156,7 @@ export function OrderDetailClient({
         </Button>
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-bold">
+            <h1 className="text-2xl sm:text-3xl font-semibold">
               #{order.orderNumber}
             </h1>
             <span
@@ -1436,7 +1436,7 @@ export function OrderDetailClient({
                         </td>
                         <td className="py-3 pl-3 text-right">
                           <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
-                            <span className="text-base sm:text-lg font-bold tabular-nums">
+                            <span className="text-base sm:text-lg font-semibold tabular-nums">
                               {order.totalPrice.toLocaleString("sr-RS")}
                             </span>
                             <span className="text-xs sm:text-sm font-medium">
@@ -1471,11 +1471,13 @@ export function OrderDetailClient({
                       {/* Final total row when adjustments exist */}
                       {order.adjustedTotal !== null && (
                         <tr className="border-t border-border">
-                          <td className="py-3 pr-2 font-bold">Konačna cena</td>
+                          <td className="py-3 pr-2 font-semibold">
+                            Konačna cena
+                          </td>
                           <td className="py-3 pl-2 pr-3" />
                           <td className="py-3 pl-3 text-right">
                             <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
-                              <span className="text-lg sm:text-xl font-bold tabular-nums text-primary">
+                              <span className="text-lg sm:text-xl font-semibold tabular-nums text-primary">
                                 {order.adjustedTotal.toLocaleString("sr-RS")}
                               </span>
                               <span className="text-xs sm:text-sm font-medium">

@@ -120,7 +120,7 @@ export function WardrobesClient({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Ormani</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold">Ormani</h1>
         <p className="text-sm sm:text-base text-muted-foreground">
           Sačuvani ormani svih korisnika
         </p>

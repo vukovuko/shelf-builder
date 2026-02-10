@@ -264,7 +264,7 @@ export function MaterialDetailClient({
           <div className="min-w-0">
             <Popover>
               <PopoverTrigger asChild>
-                <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+                <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
                   {material.name}
                 </h1>
               </PopoverTrigger>

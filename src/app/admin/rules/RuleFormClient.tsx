@@ -319,7 +319,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-semibold">
               {mode === "create" ? "Novo pravilo" : "Uredi pravilo"}
             </h1>
             {initialRule && (

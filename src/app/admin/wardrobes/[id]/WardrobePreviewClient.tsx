@@ -1118,7 +1118,7 @@ export function WardrobePreviewClient({
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+                  <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
                     {wardrobe.name}
                   </h1>
                 </PopoverTrigger>

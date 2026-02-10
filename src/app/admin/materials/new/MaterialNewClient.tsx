@@ -89,7 +89,7 @@ export function MaterialNewClient() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Novi materijal</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Novi materijal</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Dodaj novi materijal
           </p>

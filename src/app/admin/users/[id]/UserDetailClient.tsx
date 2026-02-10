@@ -437,7 +437,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
           </Button>
           <Popover>
             <PopoverTrigger asChild>
-              <h1 className="text-2xl sm:text-3xl font-bold truncate cursor-pointer">
+              <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
                 {user.name}
               </h1>
             </PopoverTrigger>
@@ -519,17 +519,19 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
       <div className="grid grid-cols-3 gap-4 p-4 rounded-lg border bg-muted/30">
         <div>
           <p className="text-sm text-muted-foreground">Potrošeno</p>
-          <p className="text-xl font-bold">
+          <p className="text-xl font-semibold">
             {formatPrice(user.totalSpent)} RSD
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Porudžbine</p>
-          <p className="text-xl font-bold">{user.orderCount}</p>
+          <p className="text-xl font-semibold">{user.orderCount}</p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Korisnik od</p>
-          <p className="text-xl font-bold">{getRelativeTime(user.createdAt)}</p>
+          <p className="text-xl font-semibold">
+            {getRelativeTime(user.createdAt)}
+          </p>
         </div>
       </div>
 
@@ -555,7 +557,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                     <StatusBadge status={lastOrder.paymentStatus} />
                     <StatusBadge status={lastOrder.fulfillmentStatus} />
                   </div>
-                  <span className="font-bold text-lg">
+                  <span className="font-semibold text-lg">
                     {formatPrice(lastOrder.totalPrice)} RSD
                   </span>
                 </div>

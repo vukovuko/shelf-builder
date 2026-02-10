@@ -168,7 +168,9 @@ export function OrderNewClient({
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Nova porudzbina</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">
+            Nova porudzbina
+          </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Kreiraj novu porudzbinu
           </p>

@@ -123,7 +123,9 @@ function StatCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground font-medium">{label}</p>
-          <p className="text-xl font-bold mt-1 text-primary">{format(value)}</p>
+          <p className="text-xl font-semibold mt-1 text-primary">
+            {format(value)}
+          </p>
           {change && (
             <p
               className={`text-xs mt-1 ${
@@ -166,7 +168,7 @@ export function AdminDashboard({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Dobrodošli, {user.name}</h1>
+        <h1 className="text-3xl font-semibold">Dobrodošli, {user.name}</h1>
         <p className="text-muted-foreground">Pregled admin panela</p>
       </div>
 
@@ -215,7 +217,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Users className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <Users
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Korisnici
@@ -234,7 +239,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ShoppingCart className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <ShoppingCart
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Porudžbine
@@ -253,7 +261,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FolderOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <FolderOpen
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Ormani
@@ -272,7 +283,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Layers className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <Layers
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Materijali
@@ -291,7 +305,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <BookOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <BookOpen
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Modeli
@@ -310,7 +327,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <DoorOpen className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <DoorOpen
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Ručke
@@ -329,7 +349,10 @@ export function AdminDashboard({
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Scale className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
+                <Scale
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
                     Pravila

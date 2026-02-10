@@ -85,7 +85,7 @@ export function AdminSidebar() {
           onClick={handleLinkClick}
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-sm font-bold">A</span>
+            <span className="text-sm font-semibold">A</span>
           </div>
           <span className="font-semibold">Admin</span>
         </Link>
