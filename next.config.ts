@@ -64,6 +64,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' https://challenges.cloudflare.com https://*.r2.cloudflarestorage.com https://maps.googleapis.com https://raw.githack.com https://raw.githubusercontent.com https://eu.i.posthog.com https://eu-assets.i.posthog.com",
               "frame-src 'self' https://challenges.cloudflare.com",
+              "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
