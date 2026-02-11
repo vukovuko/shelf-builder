@@ -4,6 +4,8 @@ import { withPostHogConfig } from "@posthog/nextjs-config";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  // Required for PostHog API compatibility (prevents trailing slash redirect issues)
+  skipTrailingSlashRedirect: true,
 
   images: {
     remotePatterns: [
@@ -13,6 +15,21 @@ const nextConfig: NextConfig = {
         pathname: "/ss-assets/**",
       },
     ],
+  },
+
+  // PostHog reverse proxy — bypasses ad blockers by routing through our domain
+  // Path must NOT be /ingest, /analytics, /tracking, /posthog (ad blockers target those)
+  async rewrites() {
+    return [
+      {
+        source: "/t/static/:path*",
+        destination: "https://eu-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/t/:path*",
+        destination: "https://eu.i.posthog.com/:path*",
+      },
+    ];
   },
 
   async headers() {
