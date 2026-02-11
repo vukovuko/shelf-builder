@@ -8,6 +8,12 @@ if (!isDev || debugFlag) {
     api_host: "/t",
     ui_host: "https://eu.posthog.com",
     defaults: "2026-01-30",
+    session_recording: {
+      captureCanvas: {
+        canvasFps: 4,
+        canvasQuality: "0.4",
+      },
+    },
     before_send: (event) => {
       if (window.location.pathname.startsWith("/admin")) return null;
       return event;
