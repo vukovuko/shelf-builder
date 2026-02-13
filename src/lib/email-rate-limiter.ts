@@ -2,14 +2,33 @@ import "server-only";
 
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Track the last email sent time to enforce rate limiting
-// Resend has a 2 emails/second limit, so we wait at least 600ms between sends
-let lastEmailTime = 0;
-const MIN_INTERVAL_MS = 600;
+export const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
+
+// Serial promise-chain queue for ALL Resend API calls.
+// Guarantees at least 600ms between calls (Resend limit: 2 req/s).
+// Concurrent callers are serialized automatically — no race conditions.
+let lastCallTime = 0;
+let pending: Promise<void> = Promise.resolve();
+const MIN_GAP_MS = 600;
+
+export function enqueueResend<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    pending = pending.then(async () => {
+      const elapsed = Date.now() - lastCallTime;
+      if (elapsed < MIN_GAP_MS) {
+        await new Promise((r) => setTimeout(r, MIN_GAP_MS - elapsed));
+      }
+      lastCallTime = Date.now();
+      try {
+        resolve(await fn());
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
+}
 
 interface SendEmailParams {
   from?: string;
@@ -18,27 +37,13 @@ interface SendEmailParams {
   html: string;
 }
 
-/**
- * Rate-limited email sender.
- * Ensures at least 600ms between email sends to stay under Resend's 2 req/sec limit.
- */
 export async function sendEmail(params: SendEmailParams) {
-  const now = Date.now();
-  const timeSinceLastEmail = now - lastEmailTime;
-
-  // Wait if we're sending too fast
-  if (timeSinceLastEmail < MIN_INTERVAL_MS) {
-    const waitTime = MIN_INTERVAL_MS - timeSinceLastEmail;
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
-  }
-
-  // Update the last email time before sending
-  lastEmailTime = Date.now();
-
-  return resend.emails.send({
-    from: params.from ?? FROM_EMAIL,
-    to: params.to,
-    subject: params.subject,
-    html: params.html,
-  });
+  return enqueueResend(() =>
+    resend.emails.send({
+      from: params.from ?? FROM_EMAIL,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    }),
+  );
 }
