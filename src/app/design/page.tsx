@@ -5,18 +5,8 @@ import type React from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
-import {
-  applyWardrobeSnapshot,
-  getWardrobeSnapshot,
-} from "@/lib/serializeWardrobe";
+import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type ShelfState } from "@/lib/store";
-
-const AUTOSAVE_KEY = "wardrobeAutoSave";
-const AUTOSAVE_DEBOUNCE_MS = 1000;
-
-// Module-level flag to coordinate between LoadFromUrl and AutoSave
-// This prevents AutoSave from saving stale data while a URL load is in progress
-let isLoadingFromUrl = false;
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
@@ -45,11 +35,6 @@ function LoadFromUrl() {
 
       // Mark as loaded immediately to prevent double execution
       hasLoadedRef.current = true;
-      isLoadingFromUrl = true;
-
-      // Clear localStorage autosave when explicitly loading from URL
-      // This prevents stale data from showing if the fetch fails
-      localStorage.removeItem(AUTOSAVE_KEY);
 
       try {
         const res = await fetch(`/api/wardrobes/${loadId}`, {
@@ -69,7 +54,6 @@ function LoadFromUrl() {
             );
           }
           hasLoadedRef.current = false; // Reset on error so user can retry
-          isLoadingFromUrl = false;
           return;
         }
 
@@ -113,8 +97,6 @@ function LoadFromUrl() {
           "Neočekivana greška pri učitavanju. Proverite internet konekciju.",
         );
         hasLoadedRef.current = false; // Reset on error so user can retry
-      } finally {
-        isLoadingFromUrl = false;
       }
     }
 
@@ -136,47 +118,6 @@ function LoadFromUrl() {
   return null;
 }
 
-// Auto-save wardrobe state to localStorage
-function AutoSave() {
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    // Subscribe to store changes and auto-save
-    const unsubscribe = useShelfStore.subscribe(() => {
-      // Skip autosave while loading from URL to prevent race conditions
-      if (isLoadingFromUrl) return;
-      // Skip autosave in preview mode (locked wardrobe)
-      if (useShelfStore.getState().isPreviewMode) return;
-
-      // Debounce saves to avoid excessive writes
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      debounceRef.current = setTimeout(() => {
-        // Double-check loading flag and preview mode before saving
-        if (isLoadingFromUrl) return;
-        if (useShelfStore.getState().isPreviewMode) return;
-
-        try {
-          const snapshot = getWardrobeSnapshot();
-          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snapshot));
-        } catch (e) {
-          console.error("Failed to auto-save wardrobe state", e);
-        }
-      }, AUTOSAVE_DEBOUNCE_MS);
-    });
-
-    return () => {
-      unsubscribe();
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  return null;
-}
-
 interface DesignPageProps {
   wardrobeRef?: React.RefObject<any>;
   isLoggedIn?: boolean;
@@ -192,7 +133,6 @@ export default function DesignPage({
   // State persistence: Restore from localStorage on mount
   // Priority: 1. URL load param (handled by LoadFromUrl)
   //           2. pendingWardrobeState (login flow)
-  //           3. wardrobeAutoSave (page refresh)
   useEffect(() => {
     if (hasRestoredState) return;
 
@@ -219,20 +159,6 @@ export default function DesignPage({
         }
       } catch (_e) {
         localStorage.removeItem("pendingWardrobeState");
-      }
-    }
-
-    // Try auto-save (page refresh recovery)
-    const autoSave = localStorage.getItem(AUTOSAVE_KEY);
-    if (autoSave) {
-      try {
-        const state = JSON.parse(autoSave);
-        if (state && typeof state === "object") {
-          applyWardrobeSnapshot(state);
-          // Don't show toast for auto-restore - it's seamless
-        }
-      } catch (_e) {
-        localStorage.removeItem(AUTOSAVE_KEY);
       }
     }
 
@@ -271,8 +197,6 @@ export default function DesignPage({
       <Suspense fallback={null}>
         <LoadFromUrl />
       </Suspense>
-      {/* Auto-save wardrobe state */}
-      <AutoSave />
       {/* Scene stays mounted and stable */}
       <Scene wardrobeRef={wardrobeRef!} />
     </>

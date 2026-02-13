@@ -133,15 +133,12 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      // Bottom module gets "A1", top module gets "A2" (same column, different compartments)
-      // Also include "KORPUS" for shared structural panels
-      const bottomModule = result.items.filter(
-        (i) => i.element === "A1" || i.element === "KORPUS",
-      );
-      const topModule = result.items.filter((i) => i.element === "A2");
+      // Module split should produce 2 back panels (bottom + top module)
+      const bottomBackPanel = result.items.filter((i) => i.code === "A-ZD");
+      const topBackPanel = result.items.filter((i) => i.code === "A-ZG");
 
-      expect(bottomModule.length).toBeGreaterThan(0);
-      expect(topModule.length).toBeGreaterThan(0);
+      expect(bottomBackPanel.length).toBe(1);
+      expect(topBackPanel.length).toBe(1);
     });
   });
 
@@ -177,8 +174,10 @@ describe("calculateCutList", () => {
       expect(resultWithBase.totalArea).toBeLessThan(
         resultWithoutBase.totalArea,
       );
-      // Same panel count (base doesn't add/remove panels, just changes sizes)
-      expect(resultWithBase.items.length).toBe(resultWithoutBase.items.length);
+      // Base adds sokl (front panel) per column — 1 column = 1 extra item
+      expect(resultWithBase.items.length).toBe(
+        resultWithoutBase.items.length + 1,
+      );
     });
   });
 
@@ -678,14 +677,15 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      // Should have A1 (bottom), A2 (top lower), A3 (top upper)
-      const hasA1 = result.items.some((i) => i.element === "A1");
-      const hasA2 = result.items.some((i) => i.element === "A2");
-      const hasA3 = result.items.some((i) => i.element === "A3");
+      // Top module shelf panel should exist
+      const hasTopShelf = result.items.some((i) => i.code === "A-TP1");
+      expect(hasTopShelf).toBe(true);
 
-      expect(hasA1).toBe(true);
-      expect(hasA2).toBe(true);
-      expect(hasA3).toBe(true);
+      // Module split should produce 2 back panels
+      const hasBottomBack = result.items.some((i) => i.code === "A-ZD");
+      const hasTopBack = result.items.some((i) => i.code === "A-ZG");
+      expect(hasBottomBack).toBe(true);
+      expect(hasTopBack).toBe(true);
     });
   });
 
@@ -1201,11 +1201,11 @@ describe("calculateCutList", () => {
     it("basic wardrobe produces exactly 5 panels with correct codes", () => {
       const result = calculateCutList(baseSnapshot, mockMaterials);
 
-      // 1-column wardrobe: SL, SD, A-DON, A-GOR, A1-Z
+      // 1-column wardrobe: SL, SD, A-DON, A-GOR, A-Z (back panel per module)
       expect(result.items.length).toBe(5);
 
       const codes = result.items.map((i) => i.code).sort();
-      expect(codes).toEqual(["A-DON", "A-GOR", "A1-Z", "SD", "SL"]);
+      expect(codes).toEqual(["A-DON", "A-GOR", "A-Z", "SD", "SL"]);
     });
 
     it("totalArea equals sum of all item areas", () => {

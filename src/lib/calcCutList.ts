@@ -409,6 +409,17 @@ export function calculateCutList(
           colLetter,
         );
 
+        // Base front panel (sokl) - one per column
+        if (hasBase && baseH > 0) {
+          addKorpus(
+            `${colLetter}-SOKL`,
+            `Sokl kolone ${colLetter}`,
+            innerW,
+            baseH,
+            colLetter,
+          );
+        }
+
         // Top panel
         addKorpus(
           `${colLetter}-GOR`,
@@ -451,6 +462,32 @@ export function calculateCutList(
           addKorpus(
             `${colLetter}-P${shelfIdx + 1}`,
             `Polica ${colLetter} (glavna ${shelfIdx + 1})`,
+            innerW,
+            carcassD,
+            colLetter,
+          );
+        }
+      });
+    });
+
+    // ==========================================
+    // 4b. TOP MODULE SHELVES (from columnTopModuleShelves)
+    // ==========================================
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const innerW = Math.max(col.width - 2 * t, 0);
+
+      const storeModuleBoundary = columnModuleBoundaries[colIdx];
+      const hasModuleBound =
+        storeModuleBoundary !== undefined && storeModuleBoundary !== null;
+      if (!hasModuleBound && !needsModuleSplit) return;
+
+      const topShelfYs = columnTopModuleShelves[colIdx] || [];
+      topShelfYs.forEach((_, shelfIdx) => {
+        if (innerW > 0) {
+          addKorpus(
+            `${colLetter}-TP${shelfIdx + 1}`,
+            `Polica ${colLetter} gornji modul (${shelfIdx + 1})`,
             innerW,
             carcassD,
             colLetter,
@@ -857,24 +894,12 @@ export function calculateCutList(
         }
       }
 
-      // Back panel per compartment (use back material)
-      const backClearance = 2 / 1000; // 2mm
-      const backW = Math.max(col.width - backClearance, 0);
-      const backH = Math.max(compH - backClearance, 0);
-      if (backW > 0 && backH > 0) {
-        addBack(
-          `${compKey}-Z`,
-          `Zadnji panel ${compKey}`,
-          backW,
-          backH,
-          compKey,
-        );
-      }
+      // Back panels are added per-module (not per-compartment) — see section 6 below
     };
 
     // Calculate module boundary Y position (used when store value not set)
     // This is the Y coordinate where modules split (in center-origin coordinates)
-    const calculatedModuleBoundaryY = -h / 2 + bottomModuleH;
+    const calculatedModuleBoundaryY = bottomModuleH;
 
     // Process all columns
     columns.forEach((col, colIdx) => {
@@ -899,22 +924,32 @@ export function calculateCutList(
       // BOTTOM MODULE COMPARTMENTS
       // ============================================
       const bottomShelfYs = columnHorizontalBoundaries[colIdx] || [];
-      const bottomNumComps = bottomShelfYs.length + 1;
 
       // Bottom module bounds
-      const bottomYStart = -h / 2 + t + (hasBase ? baseH : 0);
+      const bottomYStart = t + (hasBase ? baseH : 0);
       const bottomYEnd = hasModuleSplit
         ? moduleBoundary - t // Module boundary minus panel thickness
-        : h / 2 - t; // Full height if no split
+        : h - t; // Full height if no split (floor-origin)
 
-      const bottomSortedYs = [...bottomShelfYs].sort((a, b) => a - b);
+      // Filter shelves to valid range (stale positions can be outside bounds)
+      const bottomSortedYs = [...bottomShelfYs]
+        .filter((y) => y > bottomYStart && y < bottomYEnd)
+        .sort((a, b) => a - b);
+      const bottomNumComps = bottomSortedYs.length + 1;
       const bottomAllYs = [bottomYStart, ...bottomSortedYs, bottomYEnd];
 
       for (let compIdx = 0; compIdx < bottomNumComps; compIdx++) {
         const compKey = `${colLetter}${compIdx + 1}`;
         const compYStart = bottomAllYs[compIdx];
         const compYEnd = bottomAllYs[compIdx + 1];
-        const compH = Math.max(compYEnd - compYStart - t, 0);
+        // Edge boundaries are panel surfaces; shelf boundaries are shelf centers
+        // Only subtract t/2 per shelf-center boundary (not for panel-surface boundaries)
+        const isFirst = compIdx === 0;
+        const isLast = compIdx === bottomNumComps - 1;
+        let shelfDeduction = 0;
+        if (!isFirst) shelfDeduction += t / 2; // bottom boundary is shelf center
+        if (!isLast) shelfDeduction += t / 2; // top boundary is shelf center
+        const compH = Math.max(compYEnd - compYStart - shelfDeduction, 0);
 
         processCompartment(
           colLetter,
@@ -933,13 +968,16 @@ export function calculateCutList(
       // ============================================
       if (hasModuleSplit) {
         const topShelfYs = columnTopModuleShelves[colIdx] || [];
-        const topNumComps = topShelfYs.length + 1;
 
         // Top module bounds
         const topYStart = moduleBoundary + t; // After module boundary panel
-        const topYEnd = h / 2 - t; // Wardrobe top
+        const topYEnd = h - t; // Wardrobe top (floor-origin)
 
-        const topSortedYs = [...topShelfYs].sort((a, b) => a - b);
+        // Filter shelves to valid range (stale positions can be outside bounds)
+        const topSortedYs = [...topShelfYs]
+          .filter((y) => y > topYStart && y < topYEnd)
+          .sort((a, b) => a - b);
+        const topNumComps = topSortedYs.length + 1;
         const topAllYs = [topYStart, ...topSortedYs, topYEnd];
 
         for (let compIdx = 0; compIdx < topNumComps; compIdx++) {
@@ -947,7 +985,13 @@ export function calculateCutList(
           const compKey = `${colLetter}${bottomNumComps + compIdx + 1}`;
           const compYStart = topAllYs[compIdx];
           const compYEnd = topAllYs[compIdx + 1];
-          const compH = Math.max(compYEnd - compYStart - t, 0);
+          // Same shelf-deduction logic as bottom module
+          const isFirst = compIdx === 0;
+          const isLast = compIdx === topNumComps - 1;
+          let shelfDeduction = 0;
+          if (!isFirst) shelfDeduction += t / 2;
+          if (!isLast) shelfDeduction += t / 2;
+          const compH = Math.max(compYEnd - compYStart - shelfDeduction, 0);
 
           processCompartment(
             colLetter,
@@ -958,6 +1002,66 @@ export function calculateCutList(
             col,
             topAllYs,
             topNumComps,
+          );
+        }
+      }
+    });
+
+    // ==========================================
+    // 6. BACK PANELS — one per module per column
+    // ==========================================
+    const backClearance = 2 / 1000; // 2mm clearance
+    columns.forEach((col, colIdx) => {
+      const colLetter = String.fromCharCode(65 + colIdx);
+      const backW = Math.max(col.width - backClearance, 0);
+
+      const storeModBound = columnModuleBoundaries[colIdx];
+      const hasModBound = storeModBound !== undefined && storeModBound !== null;
+      const hasModuleSplit =
+        (hasModBound || needsModuleSplit) && h > TARGET_BOTTOM_HEIGHT;
+
+      const modBoundY = hasModBound
+        ? storeModBound
+        : needsModuleSplit
+          ? calculatedModuleBoundaryY
+          : null;
+
+      if (hasModuleSplit && modBoundY != null) {
+        // Two modules: bottom + top
+        const bottomH = Math.max(
+          modBoundY - (hasBase ? baseH : 0) - backClearance,
+          0,
+        );
+        const topH = Math.max(h - modBoundY - backClearance, 0);
+
+        if (backW > 0 && bottomH > 0) {
+          addBack(
+            `${colLetter}-ZD`,
+            `Zadnja strana ${colLetter} donji modul`,
+            backW,
+            bottomH,
+            colLetter,
+          );
+        }
+        if (backW > 0 && topH > 0) {
+          addBack(
+            `${colLetter}-ZG`,
+            `Zadnja strana ${colLetter} gornji modul`,
+            backW,
+            topH,
+            colLetter,
+          );
+        }
+      } else {
+        // Single module: one back panel
+        const backH = Math.max(h - (hasBase ? baseH : 0) - backClearance, 0);
+        if (backW > 0 && backH > 0) {
+          addBack(
+            `${colLetter}-Z`,
+            `Zadnja strana ${colLetter}`,
+            backW,
+            backH,
+            colLetter,
           );
         }
       }

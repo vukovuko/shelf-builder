@@ -452,14 +452,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           />
         )}
 
-        {/* Front sokl panel - only when base is enabled, hidden in edges mode */}
-        {/* Back is covered by back panels (ledja) which extend to top of base */}
-        {baseH > 0 && !showEdgesOnly && (
-          <Panel
-            position={[0, baseH / 2, d / 2 - t / 2]}
-            size={[w - 2 * t, baseH, t]}
-          />
-        )}
+        {/* Front sokl panels - per column, split at vertical seams */}
+        {baseH > 0 &&
+          !showEdgesOnly &&
+          columns.map((col, colIdx) => {
+            const colCenterX = (col.start + col.end) / 2;
+            const colInnerW = col.width - 2 * t;
+            return (
+              <Panel
+                key={`sokl-${colIdx}`}
+                position={[colCenterX, baseH / 2, d / 2 - t / 2]}
+                size={[colInnerW, baseH, t]}
+              />
+            );
+          })}
 
         {/* Per-column Top & Bottom panels + Horizontal shelves + Labels + TopHeightHandle */}
         {columns.map((col, colIdx) => {
@@ -538,15 +544,12 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 // First compartment in top module: starts just above module boundary
                 bottomY = moduleBoundary + t;
               } else {
-                // Starts at top module shelf
                 bottomY = topModuleShelves[topCompIdx - 1];
               }
 
               if (topCompIdx === topModuleShelves.length) {
-                // Last compartment in top module: ends at top panel
                 topY = colH - t;
               } else {
-                // Ends at top module shelf
                 topY = topModuleShelves[topCompIdx];
               }
 
@@ -654,7 +657,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
               return { centerY, height };
             }
 
-            // Bottom module compartments (account for base height)
+            // Bottom module compartments
             const bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
             const topY = hasModuleBoundary
               ? compIdx === bottomModuleCompartments - 1
