@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       headers: await headers(),
     });
 
-    // Pre-validate guest checkout has email or phone before entering transaction
+    // Pre-validate guest checkout has email or phone
     if (!session?.user) {
       const hasRealEmail = customerEmail && customerEmail.length > 0;
       const hasPhone = customerPhone && customerPhone.length > 0;
@@ -143,7 +143,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fetch pricing data (read-only, outside transaction)
+    // =========================================================================
+    // PHASE A: Read-only data fetching + pricing (outside transaction)
+    // =========================================================================
+
     const pricingMaterials = await db
       .select({
         id: materials.id,
@@ -341,24 +344,9 @@ export async function POST(request: Request) {
     };
 
     // =========================================================================
-    // RULE ENGINE: Apply pricing rules
+    // RULE ENGINE: Build context (pure computation from snapshot)
     // =========================================================================
 
-    // Count previous orders for this user
-    const [orderCountResult] = await db
-      .select({ count: count() })
-      .from(orders)
-      .where(eq(orders.userId, userId));
-    const previousOrderCount = Number(orderCountResult?.count ?? 0);
-
-    // Get user tags if available
-    const [userData] = await db
-      .select({ tags: user.tags })
-      .from(user)
-      .where(eq(user.id, userId));
-    const userTags: string[] = userData?.tags ? JSON.parse(userData.tags) : [];
-
-    // Count wardrobe features
     const doorGroups = snapshot?.doorGroups ?? [];
     const doorCount = doorGroups.length;
     const compartmentExtrasValues = Object.values(
@@ -405,102 +393,188 @@ export async function POST(request: Request) {
     const shelfCount = bottomShelves + topShelves;
     const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
 
-    // Check for mirrors
     const hasMirror = doorGroups.some(
       (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
     );
 
-    // Compute door metrics (heights, type counts, handle info)
     const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
 
-    // Build rule context
-    const ruleContext: RuleContext = {
-      wardrobe: {
-        width: pricingSnapshot.width,
-        height: pricingSnapshot.height,
-        depth: pricingSnapshot.depth,
-        area: pricing.totalArea,
-        columnCount,
-        shelfCount,
-        doorCount,
-        drawerCount,
-        hasBase: pricingSnapshot.hasBase,
-        hasDoors: doorCount > 0,
-        hasDrawers: drawerCount > 0,
-        hasMirror,
-        hasRod: rodCount > 0,
-        hasLed: ledCount > 0,
-        hasVerticalDivider: verticalDividerCount > 0,
-        rodCount,
-        ledCount,
-        verticalDividerCount,
-        baseHeight: pricingSnapshot.hasBase ? pricingSnapshot.baseHeight : 0,
-        ...doorMetrics,
-        material: {
-          id: resolvedMaterialId,
-          name: selectedMaterial.name,
-        },
-        frontMaterial: {
-          id: resolvedFrontMaterialId,
-          name: selectedFrontMaterial.name,
-        },
-        backMaterial: selectedBackMaterial
-          ? {
-              id: resolvedBackMaterialId!,
-              name: selectedBackMaterial.name,
+    // =========================================================================
+    // PHASE B: Transaction (all DB writes are atomic)
+    // =========================================================================
+
+    const txResult = await db.transaction(async (tx) => {
+      // 1. Resolve userId (find or create guest user)
+      let userId: string;
+
+      if (session?.user) {
+        userId = session.user.id;
+      } else {
+        const hasRealEmail = customerEmail && customerEmail.length > 0;
+        const hasPhone = customerPhone && customerPhone.length > 0;
+
+        if (hasRealEmail) {
+          const [existing] = await tx
+            .select({ id: user.id })
+            .from(user)
+            .where(eq(user.email, customerEmail));
+
+          if (existing) {
+            userId = existing.id;
+          } else {
+            userId = crypto.randomUUID();
+            const now = new Date();
+
+            await tx.insert(user).values({
+              id: userId,
+              name: customerName,
+              email: customerEmail,
+              phone: hasPhone ? customerPhone : null,
+              emailVerified: false,
+              role: "user",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        } else if (hasPhone) {
+          const sanitizedPhone = customerPhone!.replace(/[^0-9]/g, "");
+          const internalEmail = `phone.${sanitizedPhone}@internal.local`;
+
+          const [existingByPhone] = await tx
+            .select({ id: user.id })
+            .from(user)
+            .where(eq(user.phone, customerPhone));
+
+          if (existingByPhone) {
+            userId = existingByPhone.id;
+          } else {
+            const [existingByEmail] = await tx
+              .select({ id: user.id })
+              .from(user)
+              .where(eq(user.email, internalEmail));
+
+            if (existingByEmail) {
+              userId = existingByEmail.id;
+            } else {
+              userId = crypto.randomUUID();
+              const now = new Date();
+
+              await tx.insert(user).values({
+                id: userId,
+                name: customerName,
+                email: internalEmail,
+                phone: customerPhone,
+                emailVerified: false,
+                role: "user",
+                createdAt: now,
+                updatedAt: now,
+              });
             }
-          : undefined,
-      },
-      customer: {
-        tags: userTags,
-        email: customerEmail || undefined,
-        orderCount: previousOrderCount,
-      },
-      order: {
-        total: totalPrice,
-        city: shippingCity,
-      },
-    };
+          }
+        } else {
+          throw new Error("Morate uneti email ili telefon");
+        }
+      }
 
-    // Fetch enabled rules sorted by priority
-    const enabledRules = await db
-      .select()
-      .from(rules)
-      .where(eq(rules.enabled, true))
-      .orderBy(asc(rules.priority), asc(rules.createdAt));
+      // 2. Fetch order count + user tags for rule engine
+      const [orderCountResult] = await tx
+        .select({ count: count() })
+        .from(orders)
+        .where(eq(orders.userId, userId));
+      const previousOrderCount = Number(orderCountResult?.count ?? 0);
 
-    // Apply rules
-    const ruleAdjustments = applyRules(
-      enabledRules as Rule[],
-      ruleContext,
-      totalPrice,
-    );
-    const adjustedTotal =
-      ruleAdjustments.length > 0
-        ? calculateFinalPrice(totalPrice, ruleAdjustments)
-        : null;
+      const [userData] = await tx
+        .select({ tags: user.tags })
+        .from(user)
+        .where(eq(user.id, userId));
+      const userTags: string[] = userData?.tags
+        ? JSON.parse(userData.tags)
+        : [];
 
-    // Create wardrobe and order (manual rollback if order fails)
-    const now = new Date();
-    const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
+      // 3. Build rule context + fetch and apply rules
+      const ruleContext: RuleContext = {
+        wardrobe: {
+          width: pricingSnapshot.width,
+          height: pricingSnapshot.height,
+          depth: pricingSnapshot.depth,
+          area: pricing.totalArea,
+          columnCount,
+          shelfCount,
+          doorCount,
+          drawerCount,
+          hasBase: pricingSnapshot.hasBase,
+          hasDoors: doorCount > 0,
+          hasDrawers: drawerCount > 0,
+          hasMirror,
+          hasRod: rodCount > 0,
+          hasLed: ledCount > 0,
+          hasVerticalDivider: verticalDividerCount > 0,
+          rodCount,
+          ledCount,
+          verticalDividerCount,
+          baseHeight: pricingSnapshot.hasBase ? pricingSnapshot.baseHeight : 0,
+          ...doorMetrics,
+          material: {
+            id: resolvedMaterialId,
+            name: selectedMaterial.name,
+          },
+          frontMaterial: {
+            id: resolvedFrontMaterialId,
+            name: selectedFrontMaterial.name,
+          },
+          backMaterial: selectedBackMaterial
+            ? {
+                id: resolvedBackMaterialId!,
+                name: selectedBackMaterial.name,
+              }
+            : undefined,
+        },
+        customer: {
+          tags: userTags,
+          email: customerEmail || undefined,
+          orderCount: previousOrderCount,
+        },
+        order: {
+          total: totalPrice,
+          city: shippingCity,
+        },
+      };
 
-    const [wardrobe] = await db
-      .insert(wardrobes)
-      .values({
-        name: wardrobeName,
-        data: wardrobeSnapshot,
-        thumbnail,
-        cutList: wardrobeCutList,
-        userId,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning({ id: wardrobes.id });
+      const enabledRules = await tx
+        .select()
+        .from(rules)
+        .where(eq(rules.enabled, true))
+        .orderBy(asc(rules.priority), asc(rules.createdAt));
 
-    // Create order - rollback wardrobe if this fails
-    let order;
-    try {
-      [order] = await db
+      const ruleAdjustments = applyRules(
+        enabledRules as Rule[],
+        ruleContext,
+        totalPrice,
+      );
+      const adjustedTotal =
+        ruleAdjustments.length > 0
+          ? calculateFinalPrice(totalPrice, ruleAdjustments)
+          : null;
+
+      // 4. Insert wardrobe
+      const now = new Date();
+      const wardrobeName = `Porudžbina - ${now.toLocaleDateString("sr-RS")}`;
+
+      const [wardrobe] = await tx
+        .insert(wardrobes)
+        .values({
+          name: wardrobeName,
+          data: wardrobeSnapshot,
+          thumbnail,
+          cutList: wardrobeCutList,
+          userId,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: wardrobes.id });
+
+      // 5. Insert order
+      const [order] = await tx
         .insert(orders)
         .values({
           userId,
@@ -520,7 +594,6 @@ export async function POST(request: Request) {
           shippingCity,
           shippingPostalCode,
           notes: notes || null,
-          // Rule engine adjustments
           ruleAdjustments: ruleAdjustments.length > 0 ? ruleAdjustments : null,
           adjustedTotal,
           status: "open",
@@ -531,32 +604,41 @@ export async function POST(request: Request) {
           updatedAt: now,
         })
         .returning();
-    } catch (orderError) {
-      // Rollback: delete the wardrobe we just created
-      await db.delete(wardrobes).where(eq(wardrobes.id, wardrobe.id));
-      throw orderError;
-    }
 
-    // Update wardrobe name to include order number
-    const finalWardrobeName = `Porudžbina #${order.orderNumber}`;
-    await db
-      .update(wardrobes)
-      .set({ name: finalWardrobeName })
-      .where(eq(wardrobes.id, wardrobe.id));
+      // 6. Update wardrobe name with order number
+      const finalWardrobeName = `Porudžbina #${order.orderNumber}`;
+      await tx
+        .update(wardrobes)
+        .set({ name: finalWardrobeName })
+        .where(eq(wardrobes.id, wardrobe.id));
 
-    // Update user's default shipping address + newsletter preference
-    await db
-      .update(user)
-      .set({
-        shippingStreet,
-        shippingApartment: shippingApartment || null,
-        shippingCity,
-        shippingPostalCode,
-        phone: customerPhone || undefined, // Also update phone if provided
-        ...(newsletter !== undefined && { receiveNewsletter: newsletter }),
-        updatedAt: now,
-      })
-      .where(eq(user.id, userId));
+      // 7. Update user shipping address + newsletter preference
+      await tx
+        .update(user)
+        .set({
+          shippingStreet,
+          shippingApartment: shippingApartment || null,
+          shippingCity,
+          shippingPostalCode,
+          phone: customerPhone || undefined,
+          ...(newsletter !== undefined && { receiveNewsletter: newsletter }),
+          updatedAt: now,
+        })
+        .where(eq(user.id, userId));
+
+      return {
+        userId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        wardrobeId: wardrobe.id,
+        ruleAdjustments,
+        adjustedTotal,
+      };
+    });
+
+    // =========================================================================
+    // PHASE C: Post-transaction (external calls, emails)
+    // =========================================================================
 
     // Sync newsletter preference to Resend (fire-and-forget)
     if (newsletter && customerEmail) {
@@ -568,28 +650,21 @@ export async function POST(request: Request) {
       addToCustomersSegment(customerEmail, customerName.split(" ")[0]);
     }
 
-    const result = {
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      wardrobeId: wardrobe.id,
-    };
-
     // Visible adjustments for client display
-    const visibleAdjustments = ruleAdjustments.filter((adj) => adj.visible);
+    const visibleAdjustments = txResult.ruleAdjustments.filter(
+      (adj) => adj.visible,
+    );
 
     // Send emails (after transaction succeeds)
-    // Rate limiter in email-rate-limiter.ts handles delays automatically
-    // Use adjusted total for customer-facing price (if rules applied)
-    const finalPrice = adjustedTotal ?? totalPrice;
+    const finalPrice = txResult.adjustedTotal ?? totalPrice;
     try {
-      // Send customer confirmation if they provided email
       if (customerEmail && customerEmail.length > 0) {
         await sendOrderConfirmationEmail({
           to: customerEmail,
-          orderNumber: result.orderNumber,
+          orderNumber: txResult.orderNumber,
           customerName,
           totalPrice: finalPrice,
-          basePrice: adjustedTotal ? totalPrice : undefined,
+          basePrice: txResult.adjustedTotal ? totalPrice : undefined,
           adjustments:
             visibleAdjustments.length > 0 ? visibleAdjustments : undefined,
           shippingStreet,
@@ -598,10 +673,9 @@ export async function POST(request: Request) {
         });
       }
 
-      // Send notification to all admins with receiveOrderEmails enabled
       await sendAdminNewOrderEmail({
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
+        orderId: txResult.orderId,
+        orderNumber: txResult.orderNumber,
         customerName,
         customerEmail: customerEmail || null,
         customerPhone: customerPhone || null,
@@ -618,10 +692,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
-        wardrobeId: result.wardrobeId,
-        adjustedTotal,
+        orderId: txResult.orderId,
+        orderNumber: txResult.orderNumber,
+        wardrobeId: txResult.wardrobeId,
+        adjustedTotal: txResult.adjustedTotal,
         visibleAdjustments:
           visibleAdjustments.length > 0 ? visibleAdjustments : null,
       },
