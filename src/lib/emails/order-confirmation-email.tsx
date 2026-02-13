@@ -17,6 +17,8 @@ interface OrderConfirmationEmailProps {
   orderNumber: number;
   customerName: string;
   totalPrice: number;
+  basePrice?: number;
+  adjustments?: { description: string; amount: number }[];
   shippingStreet: string;
   shippingCity: string;
   shippingPostalCode: string;
@@ -56,6 +58,8 @@ export default function OrderConfirmationEmail({
   orderNumber,
   customerName,
   totalPrice,
+  basePrice,
+  adjustments,
   shippingStreet,
   shippingCity,
   shippingPostalCode,
@@ -105,12 +109,38 @@ export default function OrderConfirmationEmail({
               <Column style={detailValue}>{orderNumberLabel}</Column>
             </Row>
 
-            <Row style={detailRow}>
-              <Column style={detailLabel}>Ukupna cena:</Column>
-              <Column style={detailValueHighlight}>
-                {formatPrice(totalPrice)} RSD
-              </Column>
-            </Row>
+            {basePrice != null && adjustments && adjustments.length > 0 ? (
+              <>
+                <Row style={detailRow}>
+                  <Column style={detailLabel}>Osnovna cena:</Column>
+                  <Column style={detailValue}>
+                    {formatPrice(basePrice)} RSD
+                  </Column>
+                </Row>
+                {adjustments.map((adj, i) => (
+                  <Row key={i} style={detailRow}>
+                    <Column style={detailLabel}>{adj.description}</Column>
+                    <Column style={detailValue}>
+                      {adj.amount >= 0 ? "+" : ""}
+                      {formatPrice(adj.amount)} RSD
+                    </Column>
+                  </Row>
+                ))}
+                <Row style={detailRow}>
+                  <Column style={detailLabel}>Ukupna cena:</Column>
+                  <Column style={detailValueHighlight}>
+                    {formatPrice(totalPrice)} RSD
+                  </Column>
+                </Row>
+              </>
+            ) : (
+              <Row style={detailRow}>
+                <Column style={detailLabel}>Ukupna cena:</Column>
+                <Column style={detailValueHighlight}>
+                  {formatPrice(totalPrice)} RSD
+                </Column>
+              </Row>
+            )}
           </Section>
 
           {/* Shipping Address */}

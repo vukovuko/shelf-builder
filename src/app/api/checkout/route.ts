@@ -430,16 +430,48 @@ export async function POST(request: Request) {
     // Count wardrobe features
     const doorGroups = snapshot?.doorGroups ?? [];
     const doorCount = doorGroups.length;
-    const drawerCount = Object.values(snapshot?.compartmentExtras ?? {}).reduce(
+    const compartmentExtrasValues = Object.values(
+      snapshot?.compartmentExtras ?? {},
+    );
+    // Count drawers from BOTH sources:
+    // 1. elementConfigs[key].drawerCounts (per-sub-column drawers)
+    // 2. compartmentExtras[key].drawersCount (whole-compartment drawers)
+    const elementConfigValues = Object.values(snapshot?.elementConfigs ?? {});
+    const drawersFromConfigs = elementConfigValues.reduce(
+      (sum: number, cfg: any) =>
+        sum +
+        (Array.isArray(cfg?.drawerCounts)
+          ? cfg.drawerCounts.reduce((s: number, c: number) => s + (c ?? 0), 0)
+          : 0),
+      0,
+    );
+    const drawersFromExtras = compartmentExtrasValues.reduce(
       (sum: number, extras: any) => sum + (extras?.drawersCount ?? 0),
       0,
     );
-    const shelfCount = Object.values(
+    const drawerCount = drawersFromConfigs + drawersFromExtras;
+    const rodCount = compartmentExtrasValues.filter(
+      (extras: any) => extras?.rod === true,
+    ).length;
+    const ledCount = compartmentExtrasValues.filter(
+      (extras: any) => extras?.led === true,
+    ).length;
+    const verticalDividerCount = elementConfigValues.filter(
+      (cfg: any) => (cfg?.columns ?? 1) > 1,
+    ).length;
+    const bottomShelves = Object.values(
       snapshot?.columnHorizontalBoundaries ?? {},
     ).reduce(
       (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
       0,
     );
+    const topShelves = Object.values(
+      snapshot?.columnTopModuleShelves ?? {},
+    ).reduce(
+      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
+      0,
+    );
+    const shelfCount = bottomShelves + topShelves;
     const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
 
     // Check for mirrors
@@ -462,6 +494,13 @@ export async function POST(request: Request) {
         hasDoors: doorCount > 0,
         hasDrawers: drawerCount > 0,
         hasMirror,
+        hasRod: rodCount > 0,
+        hasLed: ledCount > 0,
+        hasVerticalDivider: verticalDividerCount > 0,
+        rodCount,
+        ledCount,
+        verticalDividerCount,
+        baseHeight: pricingSnapshot.hasBase ? pricingSnapshot.baseHeight : 0,
         material: {
           id: resolvedMaterialId,
           name: selectedMaterial.name,
@@ -600,6 +639,9 @@ export async function POST(request: Request) {
       wardrobeId: wardrobe.id,
     };
 
+    // Visible adjustments for client display
+    const visibleAdjustments = ruleAdjustments.filter((adj) => adj.visible);
+
     // Send emails (after transaction succeeds)
     // Rate limiter in email-rate-limiter.ts handles delays automatically
     // Use adjusted total for customer-facing price (if rules applied)
@@ -612,6 +654,9 @@ export async function POST(request: Request) {
           orderNumber: result.orderNumber,
           customerName,
           totalPrice: finalPrice,
+          basePrice: adjustedTotal ? totalPrice : undefined,
+          adjustments:
+            visibleAdjustments.length > 0 ? visibleAdjustments : undefined,
           shippingStreet,
           shippingCity,
           shippingPostalCode,
@@ -641,6 +686,9 @@ export async function POST(request: Request) {
         orderId: result.orderId,
         orderNumber: result.orderNumber,
         wardrobeId: result.wardrobeId,
+        adjustedTotal,
+        visibleAdjustments:
+          visibleAdjustments.length > 0 ? visibleAdjustments : null,
       },
       { status: 201 },
     );

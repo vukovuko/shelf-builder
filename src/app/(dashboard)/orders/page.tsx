@@ -43,6 +43,7 @@ export default async function UserOrdersPage() {
       paymentStatus: orders.paymentStatus,
       fulfillmentStatus: orders.fulfillmentStatus,
       totalPrice: orders.totalPrice,
+      adjustedTotal: orders.adjustedTotal,
       createdAt: orders.createdAt,
     })
     .from(orders)

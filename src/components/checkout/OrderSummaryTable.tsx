@@ -23,14 +23,23 @@ interface OrderSummaryTableProps {
       depth: number;
     };
   };
+  visibleAdjustments?: { description: string; amount: number }[] | null;
+  adjustedTotal?: number | null;
   formatPrice: (n: number) => string;
 }
 
 export function OrderSummaryTable({
   orderData,
+  visibleAdjustments,
+  adjustedTotal,
   formatPrice,
 }: OrderSummaryTableProps) {
   const areaM2 = orderData.totalArea / 10000;
+  const hasAdjustments =
+    visibleAdjustments &&
+    visibleAdjustments.length > 0 &&
+    adjustedTotal != null;
+  const finalPrice = adjustedTotal ?? orderData.totalPrice;
 
   return (
     <div className="rounded-lg border bg-muted/30 p-4 space-y-4 min-w-0">
@@ -148,17 +157,34 @@ export function OrderSummaryTable({
                   </td>
                 </tr>
               )}
+            {/* Rule adjustments (visible to customer) */}
+            {hasAdjustments &&
+              visibleAdjustments!.map((adj, i) => (
+                <tr key={`adj-${i}`}>
+                  <td className="py-2.5 pr-2" colSpan={2}>
+                    <div className="font-medium">{adj.description}</div>
+                  </td>
+                  <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                    -
+                  </td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                    {adj.amount >= 0 ? "+" : ""}
+                    {formatPrice(adj.amount)}
+                  </td>
+                </tr>
+              ))}
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-border">
               <td className="py-3 pr-2 font-semibold">Ukupno</td>
+              <td className="py-3 px-2" />
               <td className="py-3 pl-2 pr-3 text-right tabular-nums font-medium whitespace-nowrap">
                 {areaM2.toFixed(2)} m²
               </td>
               <td className="py-3 pl-3 text-right">
                 <div className="flex flex-col items-end leading-tight sm:flex-row sm:items-baseline sm:gap-1">
                   <span className="text-base sm:text-lg font-bold tabular-nums">
-                    {formatPrice(orderData.totalPrice)}
+                    {formatPrice(finalPrice)}
                   </span>
                   <span className="text-xs sm:text-sm font-medium">RSD</span>
                 </div>

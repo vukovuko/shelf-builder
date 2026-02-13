@@ -99,6 +99,14 @@ export function CheckoutDialog({
     customerName: string;
     customerEmail: string;
     customerPhone: string;
+    adjustedTotal: number | null;
+    visibleAdjustments: { description: string; amount: number }[] | null;
+  } | null>(null);
+
+  // Rule preview state (fetched on dialog open)
+  const [rulePreview, setRulePreview] = useState<{
+    adjustedTotal: number | null;
+    visibleAdjustments: { description: string; amount: number }[] | null;
   } | null>(null);
 
   // Turnstile CAPTCHA state
@@ -119,6 +127,24 @@ export function CheckoutDialog({
         value: orderData.totalPrice,
         currency: "RSD",
       });
+      // Fetch rule preview
+      fetch("/api/rules/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wardrobeSnapshot: orderData.wardrobeSnapshot,
+          materialId: orderData.materialId,
+          frontMaterialId: orderData.frontMaterialId,
+          backMaterialId: orderData.backMaterialId,
+          totalPrice: Math.round(orderData.totalPrice),
+          totalArea: orderData.totalArea,
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) setRulePreview(data);
+        })
+        .catch(() => {});
       fetch("/api/user/profile")
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -296,9 +322,11 @@ export function CheckoutDialog({
 
       const data = await res.json();
 
+      const finalPrice = data.adjustedTotal ?? Math.round(orderData.totalPrice);
+
       posthog.capture("order_completed", {
         order_number: data.orderNumber,
-        value: Math.round(orderData.totalPrice),
+        value: finalPrice,
         currency: "RSD",
         wardrobe_id: data.wardrobeId,
       });
@@ -309,6 +337,8 @@ export function CheckoutDialog({
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
+        adjustedTotal: data.adjustedTotal ?? null,
+        visibleAdjustments: data.visibleAdjustments ?? null,
       });
     } catch (err) {
       toast.error(
@@ -343,6 +373,7 @@ export function CheckoutDialog({
     });
     setErrors({});
     setOrderSuccess(null);
+    setRulePreview(null);
     setTurnstileToken(null);
     turnstileRef.current?.reset();
     onOpenChange(false);
@@ -355,6 +386,8 @@ export function CheckoutDialog({
           <OrderSuccess
             orderSuccess={orderSuccess}
             totalPrice={orderData.totalPrice}
+            adjustedTotal={orderSuccess.adjustedTotal}
+            visibleAdjustments={orderSuccess.visibleAdjustments}
             formatPrice={formatPrice}
             onClose={handleClose}
           />
@@ -373,6 +406,8 @@ export function CheckoutDialog({
               {/* Order Summary */}
               <OrderSummaryTable
                 orderData={orderData}
+                visibleAdjustments={rulePreview?.visibleAdjustments}
+                adjustedTotal={rulePreview?.adjustedTotal}
                 formatPrice={formatPrice}
               />
 

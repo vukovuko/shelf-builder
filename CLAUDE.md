@@ -2,6 +2,7 @@
 
 - **Don't run `npm run build`** - Let me run it since it's faster and I can tell you to do other stuff while it's running.
 - **Never run database commands** - Don't run any database commands (migrations, seeds, drizzle-kit, etc.) on your own. Just tell me what to run. If commands need to be sequential, tell me the order and I'll run them and paste errors or success from the terminal.
+- **Never assume user error** - When the user reports something isn't working (events not showing, features broken, etc.), NEVER suggest they might have: mistyped a filter, forgotten to push code, not waited for the build, been on the wrong environment, used wrong casing, or any other "did you check X?" blame-shifting. Instead, immediately investigate the actual code and find the real root cause.
 
 ---
 

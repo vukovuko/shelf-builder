@@ -13,6 +13,8 @@ interface OrderSuccessProps {
     customerPhone: string;
   };
   totalPrice: number;
+  adjustedTotal?: number | null;
+  visibleAdjustments?: { description: string; amount: number }[] | null;
   formatPrice: (n: number) => string;
   onClose: () => void;
 }
@@ -20,10 +22,17 @@ interface OrderSuccessProps {
 export function OrderSuccess({
   orderSuccess,
   totalPrice,
+  adjustedTotal,
+  visibleAdjustments,
   formatPrice,
   onClose,
 }: OrderSuccessProps) {
   const [copied, setCopied] = useState(false);
+  const hasAdjustments =
+    visibleAdjustments &&
+    visibleAdjustments.length > 0 &&
+    adjustedTotal != null;
+  const finalPrice = adjustedTotal ?? totalPrice;
 
   const copyOrderNumber = async () => {
     try {
@@ -90,10 +99,36 @@ export function OrderSuccess({
               <span>{orderSuccess.customerPhone}</span>
             </div>
           )}
-          <div className="border-t pt-2 mt-2 flex justify-between">
-            <span className="text-muted-foreground">Ukupno:</span>
-            <span className="font-bold">{formatPrice(totalPrice)} RSD</span>
-          </div>
+          {hasAdjustments ? (
+            <>
+              <div className="border-t pt-2 mt-2 flex justify-between">
+                <span className="text-muted-foreground">Osnovna cena:</span>
+                <span className="tabular-nums">
+                  {formatPrice(totalPrice)} RSD
+                </span>
+              </div>
+              {visibleAdjustments!.map((adj, i) => (
+                <div key={i} className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    {adj.description}
+                  </span>
+                  <span className="tabular-nums">
+                    {adj.amount >= 0 ? "+" : ""}
+                    {formatPrice(adj.amount)} RSD
+                  </span>
+                </div>
+              ))}
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-medium">Ukupno:</span>
+                <span className="font-bold">{formatPrice(finalPrice)} RSD</span>
+              </div>
+            </>
+          ) : (
+            <div className="border-t pt-2 mt-2 flex justify-between">
+              <span className="text-muted-foreground">Ukupno:</span>
+              <span className="font-bold">{formatPrice(finalPrice)} RSD</span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -102,6 +102,12 @@ function getFormulaFieldValue(
       return wardrobe.height;
     case "depth":
       return wardrobe.depth;
+    case "rodCount":
+      return wardrobe.rodCount;
+    case "ledCount":
+      return wardrobe.ledCount;
+    case "verticalDividerCount":
+      return wardrobe.verticalDividerCount;
     default:
       return null;
   }

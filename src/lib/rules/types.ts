@@ -180,6 +180,63 @@ export const AVAILABLE_FIELDS: FieldDefinition[] = [
     category: "wardrobe",
     type: "string",
   },
+  {
+    key: "wardrobe.backMaterial.id",
+    label: "Leđa materijal (ID)",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.backMaterial.name",
+    label: "Leđa materijal (ime)",
+    category: "wardrobe",
+    type: "string",
+  },
+
+  // Wardrobe Extras
+  {
+    key: "wardrobe.rodCount",
+    label: "Broj šipki",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.hasRod",
+    label: "Ima šipku",
+    category: "wardrobe",
+    type: "boolean",
+  },
+  {
+    key: "wardrobe.ledCount",
+    label: "Broj LED",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.hasLed",
+    label: "Ima LED",
+    category: "wardrobe",
+    type: "boolean",
+  },
+  {
+    key: "wardrobe.verticalDividerCount",
+    label: "Broj vertikalnih pregrada",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.hasVerticalDivider",
+    label: "Ima vertikalnu pregradu",
+    category: "wardrobe",
+    type: "boolean",
+  },
+  {
+    key: "wardrobe.baseHeight",
+    label: "Visina baze",
+    category: "wardrobe",
+    type: "number",
+    unit: "cm",
+  },
 
   // Customer
   {
@@ -282,7 +339,13 @@ export const FORMULA_FIELDS = [
   { key: "drawerCount", label: "Broj fioka" },
   { key: "shelfCount", label: "Broj polica" },
   { key: "columnCount", label: "Broj kolona" },
+  { key: "rodCount", label: "Broj šipki" },
+  { key: "ledCount", label: "Broj LED" },
+  { key: "verticalDividerCount", label: "Broj vert. pregrada" },
   { key: "area", label: "Površina (m²)" },
+  { key: "width", label: "Širina (cm)" },
+  { key: "height", label: "Visina (cm)" },
+  { key: "depth", label: "Dubina (cm)" },
 ] as const;
 
 export interface RuleActionConfig {
@@ -338,6 +401,13 @@ export interface RuleContextWardrobe {
   hasDoors: boolean;
   hasDrawers: boolean;
   hasMirror: boolean;
+  hasRod: boolean;
+  hasLed: boolean;
+  hasVerticalDivider: boolean;
+  rodCount: number;
+  ledCount: number;
+  verticalDividerCount: number;
+  baseHeight: number; // cm (0 if no base)
   material: { id: number; name: string };
   frontMaterial: { id: number; name: string };
   backMaterial?: { id: number; name: string };

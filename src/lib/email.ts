@@ -13,6 +13,8 @@ interface OrderConfirmationData {
   orderNumber: number;
   customerName: string;
   totalPrice: number;
+  basePrice?: number;
+  adjustments?: { description: string; amount: number }[];
   shippingStreet: string;
   shippingCity: string;
   shippingPostalCode: string;
@@ -24,6 +26,8 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       orderNumber: data.orderNumber,
       customerName: data.customerName,
       totalPrice: data.totalPrice,
+      basePrice: data.basePrice,
+      adjustments: data.adjustments,
       shippingStreet: data.shippingStreet,
       shippingCity: data.shippingCity,
       shippingPostalCode: data.shippingPostalCode,

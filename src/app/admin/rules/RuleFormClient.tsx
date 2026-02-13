@@ -824,21 +824,14 @@ function ActionRow({
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Fiksni broj ili formula sa promenljivom:</p>
               <div className="flex flex-wrap gap-1.5 mt-1">
-                <code className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
-                  doorCount
-                </code>
-                <code className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
-                  drawerCount
-                </code>
-                <code className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
-                  shelfCount
-                </code>
-                <code className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
-                  columnCount
-                </code>
-                <code className="px-1.5 py-0.5 bg-muted rounded text-[10px]">
-                  area
-                </code>
+                {FORMULA_FIELDS.map((f) => (
+                  <code
+                    key={f.key}
+                    className="px-1.5 py-0.5 bg-muted rounded text-[10px]"
+                  >
+                    {f.key}
+                  </code>
+                ))}
               </div>
               <p className="mt-1.5">
                 Primer:{" "}

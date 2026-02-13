@@ -34,6 +34,7 @@ interface Order {
     | "partially_fulfilled"
     | "fulfilled";
   totalPrice: number;
+  adjustedTotal: number | null;
   createdAt: Date;
 }
 
@@ -177,7 +178,7 @@ export function OrdersClient({ orders }: OrdersClientProps) {
 
                 <div className="text-right">
                   <p className="font-semibold text-lg">
-                    {formatPrice(order.totalPrice)} RSD
+                    {formatPrice(order.adjustedTotal ?? order.totalPrice)} RSD
                   </p>
                 </div>
               </div>
