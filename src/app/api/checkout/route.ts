@@ -638,24 +638,16 @@ export async function POST(request: Request) {
 
     // =========================================================================
     // PHASE C: Post-transaction (external calls, emails)
+    // Resend rate limit is 2 req/s — send important emails FIRST,
+    // then do fire-and-forget contact syncs AFTER with delays.
     // =========================================================================
-
-    // Sync newsletter preference to Resend (fire-and-forget)
-    if (newsletter && customerEmail) {
-      syncResendContact(customerEmail, customerName.split(" ")[0], true);
-    }
-
-    // Add to Customers segment (fire-and-forget)
-    if (customerEmail) {
-      addToCustomersSegment(customerEmail, customerName.split(" ")[0]);
-    }
 
     // Visible adjustments for client display
     const visibleAdjustments = txResult.ruleAdjustments.filter(
       (adj) => adj.visible,
     );
 
-    // Send emails (after transaction succeeds)
+    // Send emails first (these are the important ones)
     const finalPrice = txResult.adjustedTotal ?? totalPrice;
     try {
       if (customerEmail && customerEmail.length > 0) {
@@ -671,6 +663,9 @@ export async function POST(request: Request) {
           shippingCity,
           shippingPostalCode,
         });
+
+        // Wait 1s to respect Resend rate limit before sending admin email
+        await new Promise((r) => setTimeout(r, 1000));
       }
 
       await sendAdminNewOrderEmail({
@@ -688,6 +683,19 @@ export async function POST(request: Request) {
       // Log but don't fail the order
       console.error("Failed to send emails:", emailError);
     }
+
+    // Fire-and-forget Resend contact syncs AFTER emails
+    // (delayed to avoid hitting rate limit)
+    setTimeout(() => {
+      if (newsletter && customerEmail) {
+        syncResendContact(customerEmail, customerName.split(" ")[0], true);
+      }
+      if (customerEmail) {
+        setTimeout(() => {
+          addToCustomersSegment(customerEmail, customerName.split(" ")[0]);
+        }, 1500);
+      }
+    }, 1500);
 
     return NextResponse.json(
       {
