@@ -445,15 +445,15 @@ export function BlueprintView() {
                 }
               }
 
-              // Draw drawers
-              if (
-                extras.drawers &&
-                extras.drawersCount &&
-                extras.drawersCount > 0
-              ) {
+              // Draw drawers (from elementConfigs.drawerCounts)
+              const totalDrawerCount = (cfg.drawerCounts ?? []).reduce(
+                (sum: number, c: number) => sum + (c ?? 0),
+                0,
+              );
+              if (totalDrawerCount > 0) {
                 const drawerH = DRAWER_HEIGHT_CM;
                 const drawerGap = DRAWER_GAP_CM;
-                const numDrawers = Math.min(extras.drawersCount, 10);
+                const numDrawers = Math.min(totalDrawerCount, 10);
 
                 for (let drIdx = 0; drIdx < numDrawers; drIdx++) {
                   const drawerBottomY =

@@ -238,6 +238,66 @@ export const AVAILABLE_FIELDS: FieldDefinition[] = [
     unit: "cm",
   },
 
+  // Door details
+  {
+    key: "wardrobe.maxDoorHeight",
+    label: "Maks. visina vrata",
+    category: "wardrobe",
+    type: "number",
+    unit: "cm",
+  },
+  {
+    key: "wardrobe.minDoorHeight",
+    label: "Min. visina vrata",
+    category: "wardrobe",
+    type: "number",
+    unit: "cm",
+  },
+  {
+    key: "wardrobe.doubleDoorCount",
+    label: "Broj dvokrilnih vrata",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.singleDoorCount",
+    label: "Broj jednokrilnih vrata",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.mirrorDoorCount",
+    label: "Broj ogledalo vrata",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.drawerStyleDoorCount",
+    label: "Broj push-to-open vrata",
+    category: "wardrobe",
+    type: "number",
+  },
+
+  // Handle info
+  {
+    key: "wardrobe.handleCount",
+    label: "Ukupno ručki",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.handleName",
+    label: "Izabrana ručka (ime)",
+    category: "wardrobe",
+    type: "string",
+  },
+  {
+    key: "wardrobe.handleFinishName",
+    label: "Završna obrada ručke",
+    category: "wardrobe",
+    type: "string",
+  },
+
   // Customer
   {
     key: "customer.tags",
@@ -342,6 +402,11 @@ export const FORMULA_FIELDS = [
   { key: "rodCount", label: "Broj šipki" },
   { key: "ledCount", label: "Broj LED" },
   { key: "verticalDividerCount", label: "Broj vert. pregrada" },
+  { key: "handleCount", label: "Ukupno ručki" },
+  { key: "doubleDoorCount", label: "Broj dvokrilnih vrata" },
+  { key: "singleDoorCount", label: "Broj jednokrilnih vrata" },
+  { key: "mirrorDoorCount", label: "Broj ogledalo vrata" },
+  { key: "drawerStyleDoorCount", label: "Broj push-to-open vrata" },
   { key: "area", label: "Površina (m²)" },
   { key: "width", label: "Širina (cm)" },
   { key: "height", label: "Visina (cm)" },
@@ -408,6 +473,17 @@ export interface RuleContextWardrobe {
   ledCount: number;
   verticalDividerCount: number;
   baseHeight: number; // cm (0 if no base)
+  // Door details
+  maxDoorHeight: number; // cm (0 if no doors)
+  minDoorHeight: number; // cm (0 if no doors)
+  doubleDoorCount: number;
+  singleDoorCount: number;
+  mirrorDoorCount: number;
+  drawerStyleDoorCount: number;
+  // Handle info
+  handleCount: number; // 1/single, 2/double, 0/drawerStyle
+  handleName: string;
+  handleFinishName: string;
   material: { id: number; name: string };
   frontMaterial: { id: number; name: string };
   backMaterial?: { id: number; name: string };

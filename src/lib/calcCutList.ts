@@ -32,6 +32,8 @@ type PricingMaterial = {
 type ElementConfig = {
   columns: number;
   rowCounts: number[];
+  drawerCounts?: number[];
+  drawersExternal?: boolean[];
 };
 
 type CompartmentExtras = {
@@ -522,29 +524,31 @@ export function calculateCutList(
         );
       }
 
-      // Drawers (use front material)
-      if (extras.drawers) {
+      // Drawers (use front material) - from elementConfigs.drawerCounts per section
+      for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+        const drawerCount = Math.max(
+          0,
+          Math.floor(cfg.drawerCounts?.[secIdx] ?? 0),
+        );
+        if (drawerCount <= 0) continue;
+
+        const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
         const drawerH = DRAWER_HEIGHT;
         const gap = DRAWER_GAP;
         const per = drawerH + gap;
         const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
-        const countFromState = Math.max(
-          0,
-          Math.floor(extras.drawersCount ?? 0),
-        );
-        const usedCount =
-          countFromState > 0
-            ? Math.min(countFromState, maxDrawers)
-            : maxDrawers;
+        const usedCount = Math.min(drawerCount, maxDrawers);
 
         for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
-          addFront(
-            `${compKey}-F${drwIdx + 1}`,
-            `Fioka ${compKey} (${drwIdx + 1})`,
-            innerW,
-            drawerH,
-            compKey,
-          );
+          const code =
+            innerCols > 1
+              ? `${compKey}-S${secIdx + 1}F${drwIdx + 1}`
+              : `${compKey}-F${drwIdx + 1}`;
+          const desc =
+            innerCols > 1
+              ? `Fioka ${compKey} sek.${secIdx + 1} (${drwIdx + 1})`
+              : `Fioka ${compKey} (${drwIdx + 1})`;
+          addFront(code, desc, secW, drawerH, compKey);
         }
 
         // Auto-shelf above drawers if space remains
@@ -552,10 +556,12 @@ export function calculateCutList(
           const drawersTopY = usedCount * per;
           const remaining = compH - drawersTopY;
           if (remaining >= t) {
+            const shelfCode =
+              innerCols > 1 ? `${compKey}-S${secIdx + 1}PA` : `${compKey}-PA`;
             addKorpus(
-              `${compKey}-PA`,
+              shelfCode,
               `Polica iznad fioka ${compKey}`,
-              innerW,
+              secW,
               carcassD,
               compKey,
             );

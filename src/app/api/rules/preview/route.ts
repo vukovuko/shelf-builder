@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { user, orders, materials, rules } from "@/db/schema";
+import {
+  user,
+  orders,
+  materials,
+  rules,
+  handles,
+  handleFinishes,
+} from "@/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -8,6 +15,7 @@ import {
   applyRules,
   calculateFinalPrice,
   getVisibleAdjustments,
+  computeDoorMetrics,
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
@@ -38,6 +46,28 @@ export async function POST(req: Request) {
       .select({ id: materials.id, name: materials.name })
       .from(materials);
     const matMap = new Map(allMaterials.map((m) => [Number(m.id), m.name]));
+
+    // Fetch handles for door metrics
+    const pricingHandles = await db
+      .select({
+        id: handles.id,
+        legacyId: handles.legacyId,
+        name: handles.name,
+      })
+      .from(handles)
+      .where(eq(handles.published, true));
+    const allFinishes = await db
+      .select({
+        id: handleFinishes.id,
+        handleId: handleFinishes.handleId,
+        legacyId: handleFinishes.legacyId,
+        name: handleFinishes.name,
+      })
+      .from(handleFinishes);
+    const handlesWithFinishes = pricingHandles.map((h) => ({
+      ...h,
+      finishes: allFinishes.filter((f) => f.handleId === h.id),
+    }));
 
     // Count wardrobe features from snapshot
     const doorGroups = snapshot?.doorGroups ?? [];
@@ -103,6 +133,9 @@ export async function POST(req: Request) {
       .where(eq(user.id, userId));
     const userTags: string[] = userData?.tags ? JSON.parse(userData.tags) : [];
 
+    // Compute door metrics (heights, type counts, handle info)
+    const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
+
     // Build rule context
     const areaM2 = (totalArea ?? 0) / 10000;
     const ruleContext: RuleContext = {
@@ -126,6 +159,7 @@ export async function POST(req: Request) {
         ledCount,
         verticalDividerCount,
         baseHeight: snapshot?.hasBase ? Number(snapshot?.baseHeight ?? 0) : 0,
+        ...doorMetrics,
         material: {
           id: Number(materialId),
           name: matMap.get(Number(materialId)) ?? "",

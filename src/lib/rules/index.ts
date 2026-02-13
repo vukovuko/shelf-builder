@@ -47,3 +47,7 @@ export { getFieldValue, evaluateFormula } from "./fields";
 
 // Operators
 export { evaluateOperator } from "./operators";
+
+// Door metrics
+export { computeDoorMetrics } from "./computeDoorMetrics";
+export type { DoorMetrics, HandleLookupEntry } from "./computeDoorMetrics";

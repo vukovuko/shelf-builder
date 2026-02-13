@@ -258,9 +258,13 @@ export function exportElementSpecs(
           { arrows: true, ext: 2.5, font: 8 },
         );
       }
-      // Drawers region (occupies full width; count from extras) – match BlueprintView logic
+      // Drawers region (from elementConfigs.drawerCounts) – match BlueprintView logic
       const extras = (compartmentExtras as any)[letter] ?? {};
-      if (extras.drawers) {
+      const totalDrawerCount = ((cfg as any).drawerCounts ?? []).reduce(
+        (sum: number, c: number) => sum + (c ?? 0),
+        0,
+      );
+      if (totalDrawerCount > 0) {
         const drawerHcm = DRAWER_HEIGHT_CM;
         const gapCm = DRAWER_GAP_CM;
         const drawerHMm = drawerHcm / cmPerMmY;
@@ -270,12 +274,7 @@ export function exportElementSpecs(
           0,
           Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)),
         );
-        const countFromState = Math.max(
-          0,
-          Math.floor(Number(extras.drawersCount ?? 0)),
-        );
-        const used =
-          countFromState > 0 ? Math.min(countFromState, maxAuto) : maxAuto;
+        const used = Math.min(totalDrawerCount, maxAuto);
         let lastTopOffsetMm = 0;
         for (let d = 0; d < used; d++) {
           const bottomOffsetMm = d * (drawerHMm + gapMm);

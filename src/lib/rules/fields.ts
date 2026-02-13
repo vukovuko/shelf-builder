@@ -108,6 +108,16 @@ function getFormulaFieldValue(
       return wardrobe.ledCount;
     case "verticalDividerCount":
       return wardrobe.verticalDividerCount;
+    case "handleCount":
+      return wardrobe.handleCount;
+    case "doubleDoorCount":
+      return wardrobe.doubleDoorCount;
+    case "singleDoorCount":
+      return wardrobe.singleDoorCount;
+    case "mirrorDoorCount":
+      return wardrobe.mirrorDoorCount;
+    case "drawerStyleDoorCount":
+      return wardrobe.drawerStyleDoorCount;
     default:
       return null;
   }

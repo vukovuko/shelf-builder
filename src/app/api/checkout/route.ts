@@ -21,6 +21,7 @@ import { calculateCutList } from "@/lib/calcCutList";
 import {
   applyRules,
   calculateFinalPrice,
+  computeDoorMetrics,
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
@@ -479,6 +480,9 @@ export async function POST(request: Request) {
       (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
     );
 
+    // Compute door metrics (heights, type counts, handle info)
+    const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
+
     // Build rule context
     const ruleContext: RuleContext = {
       wardrobe: {
@@ -501,6 +505,7 @@ export async function POST(request: Request) {
         ledCount,
         verticalDividerCount,
         baseHeight: pricingSnapshot.hasBase ? pricingSnapshot.baseHeight : 0,
+        ...doorMetrics,
         material: {
           id: resolvedMaterialId,
           name: selectedMaterial.name,

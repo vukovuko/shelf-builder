@@ -58,6 +58,13 @@ export function applyWardrobeSnapshot(data: any) {
     (cfg.rowCounts || []).forEach((cnt: number, idx: number) =>
       st.setElementRowCount(key, idx, cnt),
     );
+    // Restore drawer counts and external flags
+    (cfg.drawerCounts || []).forEach((cnt: number, idx: number) => {
+      if (cnt > 0) st.setElementDrawerCount(key, idx, cnt);
+    });
+    (cfg.drawersExternal || []).forEach((ext: boolean, idx: number) => {
+      if (ext !== undefined) st.setElementDrawerExternal(key, idx, ext);
+    });
   });
 
   // Per-column horizontal boundaries - migrate old format (single value) to new (array)

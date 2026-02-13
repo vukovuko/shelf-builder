@@ -348,11 +348,9 @@ describe("calculateCutList", () => {
         selectedFrontMaterialId: 2,
         selectedBackMaterialId: 3,
         elementConfigs: {
-          A: { columns: 1, rowCounts: [0] },
+          A: { columns: 1, rowCounts: [0], drawerCounts: [3] },
         },
-        compartmentExtras: {
-          A: { drawers: true, drawersCount: 3 },
-        },
+        compartmentExtras: {},
         doorSelections: {},
         hasBase: false,
         baseHeight: 0,
@@ -1360,10 +1358,10 @@ describe("calculateCutList", () => {
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
         selectedBackMaterialId: 3,
-        elementConfigs: {},
-        compartmentExtras: {
-          A1: { drawers: true, drawersCount: 3 },
+        elementConfigs: {
+          A1: { columns: 1, rowCounts: [0], drawerCounts: [3] },
         },
+        compartmentExtras: {},
         doorSelections: {},
         hasBase: false,
         baseHeight: 0,
