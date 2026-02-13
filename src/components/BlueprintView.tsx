@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
-import { DRAWER_HEIGHT_CM, DRAWER_GAP_CM } from "@/lib/wardrobe-constants";
 import {
   buildBlocksFromBoundaries,
   getCompartmentsForColumn as getCompartments,
@@ -445,28 +444,33 @@ export function BlueprintView() {
                 }
               }
 
-              // Draw drawers (from elementConfigs.drawerCounts)
-              const totalDrawerCount = (cfg.drawerCounts ?? []).reduce(
-                (sum: number, c: number) => sum + (c ?? 0),
-                0,
-              );
-              if (totalDrawerCount > 0) {
-                const drawerH = DRAWER_HEIGHT_CM;
-                const drawerGap = DRAWER_GAP_CM;
-                const numDrawers = Math.min(totalDrawerCount, 10);
+              // Draw drawers per section (from elementConfigs.drawerCounts)
+              for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
+                if (drawerCount <= 0) continue;
 
-                for (let drIdx = 0; drIdx < numDrawers; drIdx++) {
-                  const drawerBottomY =
-                    safeBottomY + drIdx * (drawerH + drawerGap) + 1;
-                  const drawerTopY = drawerBottomY + drawerH;
+                const secX1 = compX1 + secIdx * sectionW + 4;
+                const secX2 = compX1 + (secIdx + 1) * sectionW - 4;
+                const secDrawerW = secX2 - secX1;
+                const compInnerH = safeTopY - safeBottomY;
+                // Match CarcassFrame: divide compartment equally among drawers
+                const drawerH = compInnerH / drawerCount;
+                const drawerGap = Math.min(1, drawerH * 0.03); // small visual gap
 
-                  if (drawerTopY <= safeTopY) {
+                for (let drIdx = 0; drIdx < drawerCount; drIdx++) {
+                  const drawerBottomY = safeBottomY + drIdx * drawerH;
+                  const drawerTopY = Math.min(
+                    drawerBottomY + drawerH - drawerGap,
+                    safeTopY,
+                  );
+
+                  if (drawerTopY > drawerBottomY) {
                     nodes.push(
                       <rect
-                        key={`drawer-${compKey}-${drIdx}`}
-                        x={compX1 + 4}
+                        key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                        x={secX1}
                         y={mapYForColumn(drawerTopY, colIdx)}
-                        width={compW - 8}
+                        width={secDrawerW}
                         height={(drawerTopY - drawerBottomY) * scale}
                         fill="url(#drawerHatch)"
                         stroke="#8b4513"
