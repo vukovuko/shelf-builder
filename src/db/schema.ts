@@ -260,6 +260,54 @@ export const handleFinishRelations = relations(handleFinishes, ({ one }) => ({
   }),
 }));
 
+// Accessories table (dodaci - drawer slides, hinges, etc.)
+export const accessories = pgTable("accessory", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  mainImage: text("mainImage"),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+// Accessory variants table (e.g., Obični, Slow-mo for a drawer slide)
+export const accessoryVariants = pgTable(
+  "accessoryVariant",
+  {
+    id: serial("id").primaryKey(),
+    accessoryId: integer("accessoryId")
+      .notNull()
+      .references(() => accessories.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    image: text("image"),
+    price: integer("price").notNull(),
+    costPrice: integer("costPrice").notNull().default(0),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    accessoryIdIdx: index("accessory_variant_accessory_id_idx").on(
+      table.accessoryId,
+    ),
+  }),
+);
+
+// Accessory relations
+export const accessoryRelations = relations(accessories, ({ many }) => ({
+  variants: many(accessoryVariants),
+}));
+
+export const accessoryVariantRelations = relations(
+  accessoryVariants,
+  ({ one }) => ({
+    accessory: one(accessories, {
+      fields: [accessoryVariants.accessoryId],
+      references: [accessories.id],
+    }),
+  }),
+);
+
 // Orders table
 export const orders = pgTable(
   "order",

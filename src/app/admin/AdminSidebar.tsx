@@ -10,6 +10,7 @@ import {
   Package,
   LayoutTemplate,
   DoorOpen,
+  Wrench,
   Settings2,
 } from "lucide-react";
 import {
@@ -60,6 +61,11 @@ const navItems = [
     title: "Ručke",
     href: "/admin/handles",
     icon: DoorOpen,
+  },
+  {
+    title: "Dodaci",
+    href: "/admin/accessories",
+    icon: Wrench,
   },
   {
     title: "Pravila",

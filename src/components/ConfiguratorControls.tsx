@@ -72,6 +72,7 @@ import {
   StepMaterials,
   StepBase,
   StepDoors,
+  StepAccessories,
   StepActions,
   StepFooter,
 } from "./configurator-steps";
@@ -922,6 +923,15 @@ export function ConfiguratorControls({
             </AccordionTrigger>
             <AccordionContent>
               <StepDoors />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="item-6" className="border-border">
+            <AccordionTrigger className="text-base font-bold hover:no-underline">
+              6. Dodaci
+            </AccordionTrigger>
+            <AccordionContent>
+              <StepAccessories />
             </AccordionContent>
           </AccordionItem>
 

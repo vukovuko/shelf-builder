@@ -15,6 +15,7 @@ import {
   useShelfStore,
   type Material,
   type Handle,
+  type Accessory,
   type ShelfState,
 } from "@/lib/store";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
@@ -51,6 +52,7 @@ interface DesignLayoutClientProps {
   } | null;
   initialMaterials: Material[];
   initialHandles: Handle[];
+  initialAccessories: Accessory[];
   isAdmin?: boolean;
 }
 
@@ -59,6 +61,7 @@ export function DesignLayoutClient({
   initialSession,
   initialMaterials,
   initialHandles,
+  initialAccessories,
   isAdmin = false,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
@@ -68,12 +71,18 @@ export function DesignLayoutClient({
   // Set materials and handles in store on mount
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
   const setHandles = useShelfStore((state: ShelfState) => state.setHandles);
+  const setAccessories = useShelfStore(
+    (state: ShelfState) => state.setAccessories,
+  );
   React.useEffect(() => {
     setMaterials(initialMaterials);
   }, [initialMaterials, setMaterials]);
   React.useEffect(() => {
     setHandles(initialHandles);
   }, [initialHandles, setHandles]);
+  React.useEffect(() => {
+    setAccessories(initialAccessories);
+  }, [initialAccessories, setAccessories]);
 
   // Track order context for "back to order" button
   const fromOrderId = useShelfStore((state: ShelfState) => state.fromOrderId);

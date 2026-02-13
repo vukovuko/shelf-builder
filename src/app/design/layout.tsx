@@ -2,7 +2,14 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
-import { materials, handles, handleFinishes, user } from "@/db/schema";
+import {
+  materials,
+  handles,
+  handleFinishes,
+  accessories,
+  accessoryVariants,
+  user,
+} from "@/db/schema";
 import { DesignLayoutClient } from "./DesignLayoutClient";
 
 export default async function DesignLayout({
@@ -11,12 +18,13 @@ export default async function DesignLayout({
   children: React.ReactNode;
 }) {
   // Fetch session, materials, and handles in parallel (only published for design page)
-  const [session, dbMaterials, dbHandles] = await Promise.all([
+  const [session, dbMaterials, dbHandles, dbAccessories] = await Promise.all([
     auth.api.getSession({
       headers: await headers(),
     }),
     db.select().from(materials).where(eq(materials.published, true)),
     db.select().from(handles).where(eq(handles.published, true)),
+    db.select().from(accessories).where(eq(accessories.published, true)),
   ]);
 
   // Serialize session for client (only pass what's needed)
@@ -73,6 +81,32 @@ export default async function DesignLayout({
     }),
   );
 
+  // Fetch variants for each accessory and serialize
+  const serializedAccessories = await Promise.all(
+    dbAccessories.map(async (a) => {
+      const variants = await db
+        .select()
+        .from(accessoryVariants)
+        .where(eq(accessoryVariants.accessoryId, a.id));
+
+      return {
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        mainImage: a.mainImage,
+        published: a.published,
+        variants: variants.map((v) => ({
+          id: v.id,
+          accessoryId: v.accessoryId,
+          name: v.name,
+          image: v.image,
+          price: v.price,
+          costPrice: v.costPrice,
+        })),
+      };
+    }),
+  );
+
   // Check if user is admin
   let isAdmin = false;
   if (session?.user?.id) {
@@ -89,6 +123,7 @@ export default async function DesignLayout({
       initialSession={initialSession}
       initialMaterials={serializedMaterials}
       initialHandles={serializedHandles}
+      initialAccessories={serializedAccessories}
       isAdmin={isAdmin}
     >
       {children}

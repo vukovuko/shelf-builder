@@ -33,6 +33,8 @@ export function getWardrobeSnapshot() {
     globalHandleFinish: s.globalHandleFinish,
     // Door settings mode (global vs per-door)
     doorSettingsMode: s.doorSettingsMode,
+    // Accessory selections (accessoryId → variantId)
+    selectedAccessories: s.selectedAccessories,
   };
 }
 
@@ -155,5 +157,7 @@ export function applyWardrobeSnapshot(data: any) {
     globalHandleFinish: data.globalHandleFinish || "chrome",
     // Door settings mode (default: "global")
     doorSettingsMode: data.doorSettingsMode || "global",
+    // Accessory selections
+    selectedAccessories: data.selectedAccessories || {},
   }));
 }

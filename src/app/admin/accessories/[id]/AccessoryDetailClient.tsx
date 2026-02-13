@@ -43,10 +43,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface HandleFinish {
+interface AccessoryVariant {
   id: number;
-  handleId: number;
-  legacyId: string | null;
+  accessoryId: number;
   name: string;
   image: string | null;
   price: number;
@@ -55,55 +54,58 @@ interface HandleFinish {
   updatedAt: string;
 }
 
-interface Handle {
+interface Accessory {
   id: number;
-  legacyId: string | null;
   name: string;
   description: string | null;
   mainImage: string | null;
   published: boolean;
   createdAt: string;
   updatedAt: string;
-  finishes: HandleFinish[];
+  variants: AccessoryVariant[];
 }
 
-interface HandleDetailClientProps {
-  handle: Handle;
+interface AccessoryDetailClientProps {
+  accessory: Accessory;
 }
 
-export function HandleDetailClient({
-  handle: initialHandle,
-}: HandleDetailClientProps) {
+export function AccessoryDetailClient({
+  accessory: initialAccessory,
+}: AccessoryDetailClientProps) {
   const router = useRouter();
-  const [handle, setHandle] = useState(initialHandle);
+  const [accessory, setAccessory] = useState(initialAccessory);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle form state
-  const [name, setName] = useState(initialHandle.name);
+  // Accessory form state
+  const [name, setName] = useState(initialAccessory.name);
   const [description, setDescription] = useState(
-    initialHandle.description ?? "",
+    initialAccessory.description ?? "",
   );
-  const [mainImage, setMainImage] = useState(initialHandle.mainImage ?? "");
-  const [published, setPublished] = useState(initialHandle.published);
+  const [mainImage, setMainImage] = useState(initialAccessory.mainImage ?? "");
+  const [published, setPublished] = useState(initialAccessory.published);
 
-  // Finish dialog state
-  const [finishDialogOpen, setFinishDialogOpen] = useState(false);
-  const [editingFinish, setEditingFinish] = useState<HandleFinish | null>(null);
-  const [finishName, setFinishName] = useState("");
-  const [finishImage, setFinishImage] = useState("");
-  const [finishPrice, setFinishPrice] = useState("");
-  const [savingFinish, setSavingFinish] = useState(false);
-  const [deletingFinishId, setDeletingFinishId] = useState<number | null>(null);
+  // Variant dialog state
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [editingVariant, setEditingVariant] = useState<AccessoryVariant | null>(
+    null,
+  );
+  const [variantName, setVariantName] = useState("");
+  const [variantImage, setVariantImage] = useState("");
+  const [variantPrice, setVariantPrice] = useState("");
+  const [savingVariant, setSavingVariant] = useState(false);
+  const [deletingVariantId, setDeletingVariantId] = useState<number | null>(
+    null,
+  );
 
   const hasChanges = useMemo(() => {
-    if (name !== handle.name) return true;
-    if ((description || null) !== handle.description) return true;
-    if ((mainImage || null) !== handle.mainImage) return true;
-    if (published !== handle.published) return true;
+    if (name !== accessory.name) return true;
+    if ((description || null) !== accessory.description) return true;
+    if ((mainImage || null) !== accessory.mainImage) return true;
+    if (published !== accessory.published) return true;
     return false;
-  }, [name, description, mainImage, published, handle]);
+  }, [name, description, mainImage, published, accessory]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -118,7 +120,7 @@ export function HandleDetailClient({
     };
 
     try {
-      const res = await fetch(`/api/admin/handles/${handle.id}`, {
+      const res = await fetch(`/api/admin/accessories/${accessory.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -130,12 +132,12 @@ export function HandleDetailClient({
       }
 
       const updated = await res.json();
-      setHandle(updated);
+      setAccessory(updated);
       setName(updated.name);
       setDescription(updated.description ?? "");
       setMainImage(updated.mainImage ?? "");
       setPublished(updated.published);
-      toast.success("Ručka sačuvana");
+      toast.success("Dodatak sačuvan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška pri čuvanju");
       toast.error(err instanceof Error ? err.message : "Greška pri čuvanju");
@@ -147,7 +149,7 @@ export function HandleDetailClient({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/handles/${handle.id}`, {
+      const res = await fetch(`/api/admin/accessories/${accessory.id}`, {
         method: "DELETE",
       });
 
@@ -156,43 +158,43 @@ export function HandleDetailClient({
         throw new Error(json.error || "Greška pri brisanju");
       }
 
-      toast.success("Ručka obrisana");
-      router.push("/admin/handles");
+      toast.success("Dodatak obrisan");
+      router.push("/admin/accessories");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Greška pri brisanju");
       setDeleting(false);
     }
   };
 
-  const openAddFinish = () => {
-    setEditingFinish(null);
-    setFinishName("");
-    setFinishImage("");
-    setFinishPrice("");
-    setFinishDialogOpen(true);
+  const openAddVariant = () => {
+    setEditingVariant(null);
+    setVariantName("");
+    setVariantImage("");
+    setVariantPrice("");
+    setVariantDialogOpen(true);
   };
 
-  const openEditFinish = (finish: HandleFinish) => {
-    setEditingFinish(finish);
-    setFinishName(finish.name);
-    setFinishImage(finish.image ?? "");
-    setFinishPrice(String(finish.price));
-    setFinishDialogOpen(true);
+  const openEditVariant = (variant: AccessoryVariant) => {
+    setEditingVariant(variant);
+    setVariantName(variant.name);
+    setVariantImage(variant.image ?? "");
+    setVariantPrice(String(variant.price));
+    setVariantDialogOpen(true);
   };
 
-  const handleFinishSubmit = async () => {
-    setSavingFinish(true);
+  const handleVariantSubmit = async () => {
+    setSavingVariant(true);
     try {
       const data = {
-        name: finishName,
-        image: finishImage || null,
-        price: Number(finishPrice),
+        name: variantName,
+        image: variantImage || null,
+        price: Number(variantPrice),
       };
 
       let res;
-      if (editingFinish) {
+      if (editingVariant) {
         res = await fetch(
-          `/api/admin/handles/${handle.id}/finishes/${editingFinish.id}`,
+          `/api/admin/accessories/${accessory.id}/variants/${editingVariant.id}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -200,7 +202,7 @@ export function HandleDetailClient({
           },
         );
       } else {
-        res = await fetch(`/api/admin/handles/${handle.id}/finishes`, {
+        res = await fetch(`/api/admin/accessories/${accessory.id}/variants`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -212,27 +214,29 @@ export function HandleDetailClient({
         throw new Error(json.error || "Greška");
       }
 
-      toast.success(editingFinish ? "Obrada ažurirana" : "Obrada dodana");
-      setFinishDialogOpen(false);
+      toast.success(
+        editingVariant ? "Varijanta ažurirana" : "Varijanta dodana",
+      );
+      setVariantDialogOpen(false);
 
-      // Re-fetch handle to update local state (router.refresh only updates server component props)
-      const freshRes = await fetch(`/api/admin/handles/${handle.id}`);
+      // Re-fetch accessory to update local state (router.refresh only updates server component props)
+      const freshRes = await fetch(`/api/admin/accessories/${accessory.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
-        setHandle(fresh);
+        setAccessory(fresh);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Greška");
     } finally {
-      setSavingFinish(false);
+      setSavingVariant(false);
     }
   };
 
-  const handleDeleteFinish = async (finishId: number) => {
-    setDeletingFinishId(finishId);
+  const handleDeleteVariant = async (variantId: number) => {
+    setDeletingVariantId(variantId);
     try {
       const res = await fetch(
-        `/api/admin/handles/${handle.id}/finishes/${finishId}`,
+        `/api/admin/accessories/${accessory.id}/variants/${variantId}`,
         {
           method: "DELETE",
         },
@@ -243,17 +247,17 @@ export function HandleDetailClient({
         throw new Error(json.error || "Greška pri brisanju");
       }
 
-      toast.success("Obrada obrisana");
+      toast.success("Varijanta obrisana");
 
-      const freshRes = await fetch(`/api/admin/handles/${handle.id}`);
+      const freshRes = await fetch(`/api/admin/accessories/${accessory.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
-        setHandle(fresh);
+        setAccessory(fresh);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Greška pri brisanju");
     } finally {
-      setDeletingFinishId(null);
+      setDeletingVariantId(null);
     }
   };
 
@@ -262,7 +266,7 @@ export function HandleDetailClient({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/admin/handles">
+            <Link href="/admin/accessories">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -270,24 +274,24 @@ export function HandleDetailClient({
             <Popover>
               <PopoverTrigger asChild>
                 <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
-                  {handle.name}
+                  {accessory.name}
                 </h1>
               </PopoverTrigger>
               <PopoverContent
                 side="bottom"
                 className="w-auto max-w-xs p-2 text-sm"
               >
-                {handle.name}
+                {accessory.name}
               </PopoverContent>
             </Popover>
             <div
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1 ${
-                handle.published
+                accessory.published
                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                   : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
               }`}
             >
-              {handle.published ? "Objavljeno" : "Draft"}
+              {accessory.published ? "Objavljeno" : "Draft"}
             </div>
           </div>
         </div>
@@ -307,10 +311,10 @@ export function HandleDetailClient({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Obrisati ručku?</AlertDialogTitle>
+              <AlertDialogTitle>Obrisati dodatak?</AlertDialogTitle>
               <AlertDialogDescription>
-                Ova akcija je nepovratna. Ručka &quot;{handle.name}&quot; će
-                biti trajno obrisana zajedno sa svim završnim obradama.
+                Ova akcija je nepovratna. Dodatak &quot;{accessory.name}&quot;
+                će biti trajno obrisan zajedno sa svim varijantama.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -337,7 +341,7 @@ export function HandleDetailClient({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="npr. Ručka 1"
+                placeholder="npr. Klizač"
               />
             </div>
 
@@ -347,7 +351,7 @@ export function HandleDetailClient({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="npr. Standard ručka 128mm"
+                placeholder="npr. Klizač za fioke"
               />
             </div>
 
@@ -357,7 +361,7 @@ export function HandleDetailClient({
                 id="mainImage"
                 value={mainImage}
                 onChange={(e) => setMainImage(e.target.value)}
-                placeholder="npr. /handles/handle_1/handle_1.png"
+                placeholder="npr. /accessories/klizac.png"
               />
             </div>
           </div>
@@ -368,9 +372,7 @@ export function HandleDetailClient({
               checked={published}
               onCheckedChange={setPublished}
             />
-            <Label htmlFor="published">
-              Objavljeno (vidljivo korisnicima na /design)
-            </Label>
+            <Label htmlFor="published">Objavljeno (vidljivo korisnicima)</Label>
           </div>
 
           {error && (
@@ -385,18 +387,18 @@ export function HandleDetailClient({
         </form>
       </Card>
 
-      {/* Finishes Section */}
+      {/* Variants Section */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Završne obrade</h2>
-          <Button onClick={openAddFinish} size="sm">
-            Dodaj obradu
+          <h2 className="text-xl font-semibold">Varijante</h2>
+          <Button onClick={openAddVariant} size="sm">
+            Dodaj varijantu
           </Button>
         </div>
 
-        {handle.finishes.length === 0 ? (
+        {accessory.variants.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
-            Nema završnih obrada. Dodajte prvu obradu.
+            Nema varijanti. Dodajte prvu varijantu.
           </p>
         ) : (
           <Table>
@@ -409,13 +411,13 @@ export function HandleDetailClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {handle.finishes.map((finish) => (
-                <TableRow key={finish.id}>
+              {accessory.variants.map((variant) => (
+                <TableRow key={variant.id}>
                   <TableCell>
-                    {finish.image ? (
+                    {variant.image ? (
                       <img
-                        src={finish.image}
-                        alt={finish.name}
+                        src={variant.image}
+                        alt={variant.name}
                         className="w-10 h-10 object-cover rounded"
                       />
                     ) : (
@@ -424,16 +426,16 @@ export function HandleDetailClient({
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{finish.name}</TableCell>
+                  <TableCell className="font-medium">{variant.name}</TableCell>
                   <TableCell>
-                    {finish.price.toLocaleString("sr-RS")} RSD
+                    {variant.price.toLocaleString("sr-RS")} RSD
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditFinish(finish)}
+                        onClick={() => openEditVariant(variant)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -442,7 +444,7 @@ export function HandleDetailClient({
                           <Button
                             variant="ghost"
                             size="icon"
-                            disabled={deletingFinishId === finish.id}
+                            disabled={deletingVariantId === variant.id}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -450,17 +452,17 @@ export function HandleDetailClient({
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Obrisati obradu?
+                              Obrisati varijantu?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Obrada &quot;{finish.name}&quot; će biti trajno
-                              obrisana.
+                              Varijanta &quot;{variant.name}&quot; će biti
+                              trajno obrisana.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Otkaži</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDeleteFinish(finish.id)}
+                              onClick={() => handleDeleteVariant(variant.id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Obriši
@@ -477,65 +479,65 @@ export function HandleDetailClient({
         )}
       </Card>
 
-      {/* Add/Edit Finish Dialog */}
-      <Dialog open={finishDialogOpen} onOpenChange={setFinishDialogOpen}>
+      {/* Add/Edit Variant Dialog */}
+      <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingFinish ? "Uredi obradu" : "Dodaj obradu"}
+              {editingVariant ? "Uredi varijantu" : "Dodaj varijantu"}
             </DialogTitle>
             <DialogDescription>
-              {editingFinish
-                ? "Izmeni podatke završne obrade"
-                : "Dodaj novu završnu obradu za ovu ručku"}
+              {editingVariant
+                ? "Izmeni podatke varijante"
+                : "Dodaj novu varijantu za ovaj dodatak"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="finishName">Naziv *</Label>
+              <Label htmlFor="variantName">Naziv *</Label>
               <Input
-                id="finishName"
-                value={finishName}
-                onChange={(e) => setFinishName(e.target.value)}
-                placeholder="npr. Chrome"
+                id="variantName"
+                value={variantName}
+                onChange={(e) => setVariantName(e.target.value)}
+                placeholder="npr. Slow-mo"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="finishImage">URL slike</Label>
+              <Label htmlFor="variantImage">URL slike</Label>
               <Input
-                id="finishImage"
-                value={finishImage}
-                onChange={(e) => setFinishImage(e.target.value)}
-                placeholder="npr. /handles/handle_1/chrome.png"
+                id="variantImage"
+                value={variantImage}
+                onChange={(e) => setVariantImage(e.target.value)}
+                placeholder="npr. /accessories/klizac-slowmo.png"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="finishPrice">Cena (RSD) *</Label>
+              <Label htmlFor="variantPrice">Cena (RSD) *</Label>
               <Input
-                id="finishPrice"
+                id="variantPrice"
                 type="number"
                 step="1"
                 min="0"
-                value={finishPrice}
-                onChange={(e) => setFinishPrice(e.target.value)}
-                placeholder="npr. 590"
+                value={variantPrice}
+                onChange={(e) => setVariantPrice(e.target.value)}
+                placeholder="npr. 1200"
               />
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setFinishDialogOpen(false)}
+              onClick={() => setVariantDialogOpen(false)}
             >
               Otkaži
             </Button>
             <Button
-              onClick={handleFinishSubmit}
-              disabled={savingFinish || !finishName || !finishPrice}
+              onClick={handleVariantSubmit}
+              disabled={savingVariant || !variantName || !variantPrice}
             >
-              {savingFinish
+              {savingVariant
                 ? "Čuvanje..."
-                : editingFinish
+                : editingVariant
                   ? "Sačuvaj"
                   : "Dodaj"}
             </Button>

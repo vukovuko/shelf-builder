@@ -53,6 +53,26 @@ export interface Handle {
   finishes: HandleFinish[];
 }
 
+// Accessory variant type for database accessory variants
+export interface AccessoryVariant {
+  id: number;
+  accessoryId: number;
+  name: string;
+  image: string | null;
+  price: number;
+  costPrice: number;
+}
+
+// Accessory type for database accessories (klizači, šarke, etc.)
+export interface Accessory {
+  id: number;
+  name: string;
+  description: string | null;
+  mainImage: string | null;
+  published: boolean;
+  variants: AccessoryVariant[];
+}
+
 // Door configuration options per element (UI only for now)
 export type DoorOption =
   | "none"
@@ -172,6 +192,12 @@ export interface ShelfState {
   // Handles from database
   handles: Handle[];
   setHandles: (handles: Handle[]) => void;
+  // Accessories from database (klizači, šarke, etc.)
+  accessories: Accessory[];
+  setAccessories: (accessories: Accessory[]) => void;
+  // Selected accessory variants: accessoryId → variantId (null = none)
+  selectedAccessories: Record<number, number | null>;
+  setSelectedAccessory: (accessoryId: number, variantId: number | null) => void;
   setWidth: (width: number) => void;
   setHeight: (height: number) => void;
   setDepth: (depth: number) => void;
@@ -524,6 +550,17 @@ export const useShelfStore = create<ShelfState>((set) => ({
   // Handles from database
   handles: [],
   setHandles: (handles) => set({ handles }),
+  // Accessories from database
+  accessories: [],
+  setAccessories: (accessories) => set({ accessories }),
+  selectedAccessories: {},
+  setSelectedAccessory: (accessoryId, variantId) =>
+    set((state) => ({
+      selectedAccessories: {
+        ...state.selectedAccessories,
+        [accessoryId]: variantId,
+      },
+    })),
   setWidth: (newWidth) =>
     set((state) => {
       const newWidthM = newWidth / 100;
@@ -2284,9 +2321,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
         selectedMaterialId: 1,
         selectedFrontMaterialId: undefined,
         selectedBackMaterialId: undefined,
-        // Preserve materials and handles (loaded from DB)
+        // Preserve materials, handles, accessories (loaded from DB)
         materials: state.materials,
         handles: state.handles,
+        accessories: state.accessories,
 
         // Row/shelf config
         rowCounts: [0, 0],
