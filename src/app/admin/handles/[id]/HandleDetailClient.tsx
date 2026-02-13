@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, Upload, X, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -96,6 +96,40 @@ export function HandleDetailClient({
   const [finishPrice, setFinishPrice] = useState("");
   const [savingFinish, setSavingFinish] = useState(false);
   const [deletingFinishId, setDeletingFinishId] = useState<number | null>(null);
+
+  // Upload state
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingFinishImg, setUploadingFinishImg] = useState(false);
+  const mainFileRef = useRef<HTMLInputElement>(null);
+  const finishFileRef = useRef<HTMLInputElement>(null);
+
+  const uploadFile = async (
+    file: File,
+    setUrl: (url: string) => void,
+    setLoading: (v: boolean) => void,
+  ) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "handles");
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Upload failed");
+      }
+      const { url } = await res.json();
+      setUrl(url);
+      toast.success("Slika uploadovana");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const hasChanges = useMemo(() => {
     if (name !== handle.name) return true;
@@ -352,12 +386,73 @@ export function HandleDetailClient({
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="mainImage">URL glavne slike</Label>
+              <Label>Glavna slika</Label>
+
+              {mainImage && (
+                <div className="relative w-32 h-32 mb-2">
+                  <img
+                    src={mainImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMainImage("")}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file?.type.startsWith("image/"))
+                    uploadFile(file, setMainImage, setUploadingMain);
+                }}
+                onClick={() => mainFileRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                  uploadingMain
+                    ? "border-muted bg-muted/50"
+                    : "border-muted-foreground/25 hover:border-primary hover:bg-muted/50"
+                }`}
+              >
+                {uploadingMain ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      Prevuci sliku ili klikni za upload
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={mainFileRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, setMainImage, setUploadingMain);
+                  e.target.value = "";
+                }}
+                hidden
+                accept="image/jpeg,image/png,image/webp"
+              />
+
               <Input
                 id="mainImage"
                 value={mainImage}
                 onChange={(e) => setMainImage(e.target.value)}
-                placeholder="npr. /handles/handle_1/handle_1.png"
+                placeholder="ili unesite URL ručno"
+                className="text-xs"
               />
             </div>
           </div>
@@ -501,12 +596,74 @@ export function HandleDetailClient({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="finishImage">URL slike</Label>
+              <Label>Slika obrade</Label>
+
+              {finishImage && (
+                <div className="relative w-24 h-24 mb-2">
+                  <img
+                    src={finishImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFinishImage("")}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file?.type.startsWith("image/"))
+                    uploadFile(file, setFinishImage, setUploadingFinishImg);
+                }}
+                onClick={() => finishFileRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                  uploadingFinishImg
+                    ? "border-muted bg-muted/50"
+                    : "border-muted-foreground/25 hover:border-primary hover:bg-muted/50"
+                }`}
+              >
+                {uploadingFinishImg ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      Prevuci ili klikni za upload
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                type="file"
+                ref={finishFileRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file)
+                    uploadFile(file, setFinishImage, setUploadingFinishImg);
+                  e.target.value = "";
+                }}
+                hidden
+                accept="image/jpeg,image/png,image/webp"
+              />
+
               <Input
                 id="finishImage"
                 value={finishImage}
                 onChange={(e) => setFinishImage(e.target.value)}
-                placeholder="npr. /handles/handle_1/chrome.png"
+                placeholder="ili unesite URL ručno"
+                className="text-xs"
               />
             </div>
             <div className="space-y-2">
