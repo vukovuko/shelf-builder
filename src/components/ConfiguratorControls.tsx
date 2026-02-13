@@ -650,6 +650,12 @@ export function ConfiguratorControls({
     (state: ShelfState) => state.globalHandleFinish,
   );
   const storeHandles = useShelfStore((state: ShelfState) => state.handles);
+  const storeAccessories = useShelfStore(
+    (state: ShelfState) => state.accessories,
+  );
+  const selectedAccessories = useShelfStore(
+    (state: ShelfState) => state.selectedAccessories,
+  );
   const doorSettingsMode = useShelfStore(
     (state: ShelfState) => state.doorSettingsMode,
   );
@@ -692,9 +698,12 @@ export function ConfiguratorControls({
           globalHandleId,
           globalHandleFinish,
           doorSettingsMode,
+          // Accessory selections
+          selectedAccessories,
         },
         materials,
         storeHandles,
+        storeAccessories,
       ),
     [
       width,
@@ -710,6 +719,8 @@ export function ConfiguratorControls({
       baseHeight,
       materials,
       storeHandles,
+      storeAccessories,
+      selectedAccessories,
       // Structural boundaries
       verticalBoundaries,
       columnHorizontalBoundaries,

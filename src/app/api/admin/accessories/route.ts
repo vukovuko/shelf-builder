@@ -10,6 +10,8 @@ const createAccessorySchema = z.object({
   description: z.string().optional(),
   mainImage: z.string().optional(),
   published: z.boolean().optional(),
+  pricingRule: z.enum(["none", "perDrawer", "perDoor", "fixed"]).optional(),
+  qtyPerUnit: z.number().int().min(1).optional(),
 });
 
 export async function GET() {
@@ -63,7 +65,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, description, mainImage, published } = validation.data;
+    const { name, description, mainImage, published, pricingRule, qtyPerUnit } =
+      validation.data;
 
     const [created] = await db
       .insert(accessories)
@@ -72,6 +75,8 @@ export async function POST(request: Request) {
         description: description || null,
         mainImage: mainImage || null,
         published: published ?? false,
+        pricingRule: pricingRule ?? "none",
+        qtyPerUnit: qtyPerUnit ?? 1,
       })
       .returning();
 

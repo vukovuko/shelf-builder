@@ -29,6 +29,20 @@ type PricingMaterial = {
   categories: string[];
 };
 
+// Accessory types for pricing
+type PricingAccessoryVariant = {
+  id: number;
+  price: number;
+};
+
+type PricingAccessory = {
+  id: number;
+  name: string;
+  pricingRule: "none" | "perDrawer" | "perDoor" | "fixed";
+  qtyPerUnit: number;
+  variants: PricingAccessoryVariant[];
+};
+
 type ElementConfig = {
   columns: number;
   rowCounts: number[];
@@ -79,9 +93,16 @@ export type WardrobeSnapshot = {
   globalHandleFinish?: string;
   // Door settings mode
   doorSettingsMode?: "global" | "per-door";
+  // Accessory selections (accessoryId → variantId)
+  selectedAccessories?: Record<number, number | null>;
 };
 
-export type MaterialType = "korpus" | "front" | "back" | "handles";
+export type MaterialType =
+  | "korpus"
+  | "front"
+  | "back"
+  | "handles"
+  | "accessories";
 
 export type CutListItem = {
   code: string;
@@ -100,6 +121,7 @@ export type PriceBreakdown = {
   front: { areaM2: number; price: number };
   back: { areaM2: number; price: number };
   handles: { count: number; price: number };
+  accessories: { count: number; price: number };
 };
 
 export type CutList = {
@@ -122,6 +144,7 @@ const emptyCutList: CutList = {
     front: { areaM2: 0, price: 0 },
     back: { areaM2: 0, price: 0 },
     handles: { count: 0, price: 0 },
+    accessories: { count: 0, price: 0 },
   },
 };
 
@@ -136,6 +159,7 @@ export function calculateCutList(
   snapshot: WardrobeSnapshot,
   materials: PricingMaterial[],
   handles: PricingHandle[] = [],
+  accessories: PricingAccessory[] = [],
 ): CutList {
   try {
     if (!snapshot || materials.length === 0) {
@@ -236,6 +260,10 @@ export function calculateCutList(
     }
 
     const items: CutListItem[] = [];
+
+    // Running counters for accessory pricing
+    let totalDrawerCount = 0;
+    let totalDoorLeaves = 0;
 
     // Helper to add korpus item
     const addKorpus = (
@@ -575,6 +603,7 @@ export function calculateCutList(
         const per = drawerH + gap;
         const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
         const usedCount = Math.min(drawerCount, maxDrawers);
+        totalDrawerCount += usedCount;
 
         for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
           const code =
@@ -729,6 +758,7 @@ export function calculateCutList(
             const doorTypeLabel = getDoorTypeLabel(doorType);
 
             if (doorType === "double" || doorType === "doubleMirror") {
+              totalDoorLeaves += 2;
               const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
               const isMirror = doorType === "doubleMirror";
               addFrontWithMaterial(
@@ -762,6 +792,7 @@ export function calculateCutList(
                 });
               }
             } else if (doorType === "drawerStyle") {
+              totalDoorLeaves += 1;
               // Drawer-style door - no handle (push-to-open)
               addFrontWithMaterial(
                 `${compKey}-V`,
@@ -772,6 +803,7 @@ export function calculateCutList(
                 doorMaterialId,
               );
             } else {
+              totalDoorLeaves += 1;
               // Single door (left, right, leftMirror, rightMirror)
               const isMirror =
                 doorType === "leftMirror" || doorType === "rightMirror";
@@ -1098,8 +1130,65 @@ export function calculateCutList(
       });
     });
 
-    // Total cost includes materials + handles
-    const totalCost = materialCost + totalHandlePrice;
+    // Accessory pricing
+    const selectedAccessories = snapshot.selectedAccessories ?? {};
+    const accessoryItems: {
+      name: string;
+      qty: number;
+      unitPrice: number;
+      totalPrice: number;
+    }[] = [];
+
+    for (const acc of accessories) {
+      const selectedVariantId = selectedAccessories[acc.id];
+      if (!selectedVariantId || acc.pricingRule === "none") continue;
+
+      const variant = acc.variants.find((v) => v.id === selectedVariantId);
+      if (!variant) continue;
+
+      let qty = 0;
+      if (acc.pricingRule === "perDrawer")
+        qty = totalDrawerCount * acc.qtyPerUnit;
+      else if (acc.pricingRule === "perDoor")
+        qty = totalDoorLeaves * acc.qtyPerUnit;
+      else if (acc.pricingRule === "fixed") qty = acc.qtyPerUnit;
+
+      if (qty > 0) {
+        accessoryItems.push({
+          name: acc.name,
+          qty,
+          unitPrice: variant.price,
+          totalPrice: qty * variant.price,
+        });
+      }
+    }
+
+    const totalAccessoryCount = accessoryItems.reduce(
+      (sum, a) => sum + a.qty,
+      0,
+    );
+    const totalAccessoryPrice = accessoryItems.reduce(
+      (sum, a) => sum + a.totalPrice,
+      0,
+    );
+
+    // Add accessory items to cut list for transparency
+    accessoryItems.forEach((a) => {
+      items.push({
+        code: `ACC-${a.name}`,
+        desc: `${a.name} (${a.qty}x \u00d7 ${a.unitPrice.toLocaleString("sr-RS")} RSD)`,
+        widthCm: 0,
+        heightCm: 0,
+        thicknessMm: 0,
+        areaM2: 0,
+        cost: a.totalPrice,
+        element: "accessories",
+        materialType: "accessories",
+      });
+    });
+
+    // Total cost includes materials + handles + accessories
+    const totalCost = materialCost + totalHandlePrice + totalAccessoryPrice;
 
     // Group by element
     const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
@@ -1142,6 +1231,10 @@ export function calculateCutList(
       handles: {
         count: totalHandleCount,
         price: Math.round(totalHandlePrice),
+      },
+      accessories: {
+        count: totalAccessoryCount,
+        price: Math.round(totalAccessoryPrice),
       },
     };
 

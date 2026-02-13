@@ -15,6 +15,8 @@ const updateAccessorySchema = z.object({
   description: z.string().nullable().optional(),
   mainImage: z.string().nullable().optional(),
   published: z.boolean().optional(),
+  pricingRule: z.enum(["none", "perDrawer", "perDoor", "fixed"]).optional(),
+  qtyPerUnit: z.number().int().min(1).optional(),
 });
 
 export async function GET(

@@ -260,6 +260,14 @@ export const handleFinishRelations = relations(handleFinishes, ({ one }) => ({
   }),
 }));
 
+// Pricing rule for accessories (how quantity is calculated)
+export const pricingRuleEnum = pgEnum("pricing_rule", [
+  "none", // Not priced (default)
+  "perDrawer", // qty = totalDrawers × qtyPerUnit
+  "perDoor", // qty = totalDoorLeaves × qtyPerUnit
+  "fixed", // qty = qtyPerUnit (flat per wardrobe)
+]);
+
 // Accessories table (dodaci - drawer slides, hinges, etc.)
 export const accessories = pgTable("accessory", {
   id: serial("id").primaryKey(),
@@ -267,6 +275,8 @@ export const accessories = pgTable("accessory", {
   description: text("description"),
   mainImage: text("mainImage"),
   published: boolean("published").notNull().default(false),
+  pricingRule: pricingRuleEnum("pricingRule").notNull().default("none"),
+  qtyPerUnit: integer("qtyPerUnit").notNull().default(1),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });

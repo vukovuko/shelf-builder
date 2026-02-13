@@ -81,6 +81,10 @@ export function MobileBottomTabs({
     (s: ShelfState) => s.globalHandleFinish,
   );
   const storeHandles = useShelfStore((s: ShelfState) => s.handles);
+  const storeAccessories = useShelfStore((s: ShelfState) => s.accessories);
+  const selectedAccessories = useShelfStore(
+    (s: ShelfState) => s.selectedAccessories,
+  );
   const doorSettingsMode = useShelfStore((s: ShelfState) => s.doorSettingsMode);
 
   const cutList = React.useMemo(
@@ -105,9 +109,11 @@ export function MobileBottomTabs({
           globalHandleId,
           globalHandleFinish,
           doorSettingsMode,
+          selectedAccessories,
         },
         materials,
         storeHandles,
+        storeAccessories,
       ),
     [
       width,
@@ -123,6 +129,8 @@ export function MobileBottomTabs({
       baseHeight,
       materials,
       storeHandles,
+      storeAccessories,
+      selectedAccessories,
       verticalBoundaries,
       columnHorizontalBoundaries,
       columnModuleBoundaries,

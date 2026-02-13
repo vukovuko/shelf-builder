@@ -63,6 +63,9 @@ export interface AccessoryVariant {
   costPrice: number;
 }
 
+// Pricing rule determines how accessory quantity is calculated
+export type PricingRule = "none" | "perDrawer" | "perDoor" | "fixed";
+
 // Accessory type for database accessories (klizači, šarke, etc.)
 export interface Accessory {
   id: number;
@@ -70,6 +73,8 @@ export interface Accessory {
   description: string | null;
   mainImage: string | null;
   published: boolean;
+  pricingRule: PricingRule;
+  qtyPerUnit: number;
   variants: AccessoryVariant[];
 }
 

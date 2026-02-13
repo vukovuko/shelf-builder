@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -54,12 +61,16 @@ interface AccessoryVariant {
   updatedAt: string;
 }
 
+type PricingRule = "none" | "perDrawer" | "perDoor" | "fixed";
+
 interface Accessory {
   id: number;
   name: string;
   description: string | null;
   mainImage: string | null;
   published: boolean;
+  pricingRule: PricingRule;
+  qtyPerUnit: number;
   createdAt: string;
   updatedAt: string;
   variants: AccessoryVariant[];
@@ -85,6 +96,12 @@ export function AccessoryDetailClient({
   );
   const [mainImage, setMainImage] = useState(initialAccessory.mainImage ?? "");
   const [published, setPublished] = useState(initialAccessory.published);
+  const [pricingRule, setPricingRule] = useState<PricingRule>(
+    initialAccessory.pricingRule ?? "none",
+  );
+  const [qtyPerUnit, setQtyPerUnit] = useState(
+    String(initialAccessory.qtyPerUnit ?? 1),
+  );
 
   // Variant dialog state
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
@@ -138,8 +155,18 @@ export function AccessoryDetailClient({
     if ((description || null) !== accessory.description) return true;
     if ((mainImage || null) !== accessory.mainImage) return true;
     if (published !== accessory.published) return true;
+    if (pricingRule !== (accessory.pricingRule ?? "none")) return true;
+    if (Number(qtyPerUnit) !== (accessory.qtyPerUnit ?? 1)) return true;
     return false;
-  }, [name, description, mainImage, published, accessory]);
+  }, [
+    name,
+    description,
+    mainImage,
+    published,
+    pricingRule,
+    qtyPerUnit,
+    accessory,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -151,6 +178,8 @@ export function AccessoryDetailClient({
       description: description || null,
       mainImage: mainImage || null,
       published,
+      pricingRule,
+      qtyPerUnit: Number(qtyPerUnit) || 1,
     };
 
     try {
@@ -171,6 +200,8 @@ export function AccessoryDetailClient({
       setDescription(updated.description ?? "");
       setMainImage(updated.mainImage ?? "");
       setPublished(updated.published);
+      setPricingRule(updated.pricingRule ?? "none");
+      setQtyPerUnit(String(updated.qtyPerUnit ?? 1));
       toast.success("Dodatak sačuvan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška pri čuvanju");
@@ -387,6 +418,43 @@ export function AccessoryDetailClient({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="npr. Klizač za fioke"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pricingRule">Pravilo obračuna</Label>
+              <Select
+                value={pricingRule}
+                onValueChange={(v) => setPricingRule(v as PricingRule)}
+              >
+                <SelectTrigger id="pricingRule">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Bez obračuna</SelectItem>
+                  <SelectItem value="perDrawer">Po fioci</SelectItem>
+                  <SelectItem value="perDoor">Po vratima</SelectItem>
+                  <SelectItem value="fixed">Fiksno</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qtyPerUnit">Količina po jedinici</Label>
+              <Input
+                id="qtyPerUnit"
+                type="number"
+                min={1}
+                value={qtyPerUnit}
+                onChange={(e) => setQtyPerUnit(e.target.value)}
+                placeholder="npr. 2"
+              />
+              <p className="text-xs text-muted-foreground">
+                {pricingRule === "perDrawer" &&
+                  "Koliko komada po fioci (npr. 2 klizača)"}
+                {pricingRule === "perDoor" && "Koliko komada po vratima"}
+                {pricingRule === "fixed" && "Ukupna količina za ceo ormar"}
+                {pricingRule === "none" && "Nema obračuna cene"}
+              </p>
             </div>
 
             <div className="space-y-2 md:col-span-2">

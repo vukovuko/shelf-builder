@@ -131,82 +131,11 @@ export async function POST(request: Request) {
       headers: await headers(),
     });
 
-    let userId: string;
-
-    if (session?.user) {
-      // User is logged in - use their ID
-      userId = session.user.id;
-    } else {
-      // Guest checkout - create or find user
+    // Pre-validate guest checkout has email or phone before entering transaction
+    if (!session?.user) {
       const hasRealEmail = customerEmail && customerEmail.length > 0;
       const hasPhone = customerPhone && customerPhone.length > 0;
-
-      if (hasRealEmail) {
-        // Check if user with this email already exists
-        const [existing] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.email, customerEmail));
-
-        if (existing) {
-          // Use existing user
-          userId = existing.id;
-        } else {
-          // Create new user with email (no login capability)
-          userId = crypto.randomUUID();
-          const now = new Date();
-
-          await db.insert(user).values({
-            id: userId,
-            name: customerName,
-            email: customerEmail,
-            phone: hasPhone ? customerPhone : null,
-            emailVerified: false,
-            role: "user",
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-      } else if (hasPhone) {
-        // Phone-only user
-        const sanitizedPhone = customerPhone!.replace(/[^0-9]/g, "");
-        const internalEmail = `phone.${sanitizedPhone}@internal.local`;
-
-        // Check if user with this phone already exists
-        const [existingByPhone] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.phone, customerPhone));
-
-        if (existingByPhone) {
-          userId = existingByPhone.id;
-        } else {
-          // Check by internal email too
-          const [existingByEmail] = await db
-            .select({ id: user.id })
-            .from(user)
-            .where(eq(user.email, internalEmail));
-
-          if (existingByEmail) {
-            userId = existingByEmail.id;
-          } else {
-            // Create new phone-only user
-            userId = crypto.randomUUID();
-            const now = new Date();
-
-            await db.insert(user).values({
-              id: userId,
-              name: customerName,
-              email: internalEmail,
-              phone: customerPhone,
-              emailVerified: false,
-              role: "user",
-              createdAt: now,
-              updatedAt: now,
-            });
-          }
-        }
-      } else {
+      if (!hasRealEmail && !hasPhone) {
         return NextResponse.json(
           { error: "Morate uneti email ili telefon" },
           { status: 400 },
@@ -214,6 +143,7 @@ export async function POST(request: Request) {
       }
     }
 
+    // Fetch pricing data (read-only, outside transaction)
     const pricingMaterials = await db
       .select({
         id: materials.id,
