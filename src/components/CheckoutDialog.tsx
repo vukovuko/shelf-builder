@@ -113,6 +113,9 @@ export function CheckoutDialog({
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
+  // Track if logged-in user is already subscribed (hide checkbox)
+  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
+
   // Address autocomplete state
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -162,6 +165,9 @@ export function CheckoutDialog({
                 data.shippingPostalCode || prev.shippingPostalCode,
               newsletter: data.receiveNewsletter ?? prev.newsletter,
             }));
+            if (data.receiveNewsletter) {
+              setAlreadySubscribed(true);
+            }
           }
         })
         .catch(() => {
@@ -372,6 +378,7 @@ export function CheckoutDialog({
       newsletter: false,
     });
     setErrors({});
+    setAlreadySubscribed(false);
     setOrderSuccess(null);
     setRulePreview(null);
     setTurnstileToken(null);
@@ -590,25 +597,27 @@ export function CheckoutDialog({
                 />
               </div>
 
-              {/* Newsletter opt-in */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="newsletter"
-                  checked={formData.newsletter}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      newsletter: checked === true,
-                    }))
-                  }
-                />
-                <Label
-                  htmlFor="newsletter"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  Želim da primam novosti i promocije
-                </Label>
-              </div>
+              {/* Newsletter opt-in (hidden if already subscribed) */}
+              {!alreadySubscribed && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="newsletter"
+                    checked={formData.newsletter}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        newsletter: checked === true,
+                      }))
+                    }
+                  />
+                  <Label
+                    htmlFor="newsletter"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Želim da primam novosti i promocije
+                  </Label>
+                </div>
+              )}
 
               {/* Turnstile CAPTCHA */}
               <div className="relative pb-5">

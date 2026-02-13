@@ -27,8 +27,11 @@ function InteractionHint() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Check if hint was already dismissed
-    const dismissed = sessionStorage.getItem(HINT_DISMISSED_KEY);
+    // Only show on /design page, not admin previews
+    if (!window.location.pathname.startsWith("/design")) return;
+
+    // Check if hint was already dismissed (persists across sessions)
+    const dismissed = localStorage.getItem(HINT_DISMISSED_KEY);
     if (!dismissed) {
       // Show after 3 seconds to ensure everything is loaded
       const showTimer = setTimeout(() => {
@@ -37,7 +40,7 @@ function InteractionHint() {
       // Auto-hide after 15 seconds total (visible for 12 seconds)
       const hideTimer = setTimeout(() => {
         setVisible(false);
-        sessionStorage.setItem(HINT_DISMISSED_KEY, "true");
+        localStorage.setItem(HINT_DISMISSED_KEY, "true");
       }, 15000);
       return () => {
         clearTimeout(showTimer);
@@ -48,7 +51,7 @@ function InteractionHint() {
 
   const dismiss = () => {
     setVisible(false);
-    sessionStorage.setItem(HINT_DISMISSED_KEY, "true");
+    localStorage.setItem(HINT_DISMISSED_KEY, "true");
   };
 
   if (!visible) return null;
