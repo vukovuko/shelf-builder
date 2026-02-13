@@ -387,7 +387,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
                     aria-invalid={!!errors.name}
                   />
                   {errors.name && (
-                    <p className="absolute left-0 top-full mt-1 text-xs text-destructive">
+                    <p className="absolute bottom-0 left-0 text-xs text-destructive">
                       {errors.name}
                     </p>
                   )}
@@ -771,7 +771,7 @@ function ActionRow({
                 aria-invalid={!!itemNameError}
               />
               {itemNameError && (
-                <p className="absolute left-0 top-full mt-1 text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {itemNameError}
                 </p>
               )}
@@ -801,7 +801,7 @@ function ActionRow({
                 aria-invalid={!!itemPriceError}
               />
               {itemPriceError && (
-                <p className="absolute left-0 top-full mt-1 text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {itemPriceError}
                 </p>
               )}
@@ -872,7 +872,7 @@ function ActionRow({
                 aria-invalid={!!valueError}
               />
               {valueError && (
-                <p className="absolute left-0 top-full mt-1 text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {valueError}
                 </p>
               )}
@@ -923,7 +923,7 @@ function ActionRow({
                 aria-invalid={!!valueError}
               />
               {valueError && (
-                <p className="absolute left-0 top-full mt-1 text-xs text-destructive">
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
                   {valueError}
                 </p>
               )}
