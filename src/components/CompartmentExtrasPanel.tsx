@@ -44,6 +44,8 @@ export function CompartmentExtrasPanel({
   const columnTopModuleShelves = useShelfStore(
     (s: ShelfState) => s.columnTopModuleShelves,
   );
+  const hasBase = useShelfStore((s: ShelfState) => s.hasBase);
+  const baseHeight = useShelfStore((s: ShelfState) => s.baseHeight);
 
   const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
   const setElementColumns = useShelfStore(
@@ -107,13 +109,23 @@ export function CompartmentExtrasPanel({
   }
 
   // Get column height (use columnHeights or default to global height)
-  const colH = (columnHeights[colIdx] ?? height) / 100; // cm to meters
+  // NaN-safe: ?? doesn't catch NaN, so check explicitly
+  const colHRaw = columnHeights[colIdx];
+  const colH = (colHRaw != null && !isNaN(colHRaw) ? colHRaw : height) / 100;
+
+  // Base height in meters
+  const baseH = hasBase ? baseHeight / 100 : 0;
 
   // Get bottom module shelves for this column
   const shelves = columnHorizontalBoundaries[colIdx] || [];
 
   // Check for module boundary (top/bottom split)
-  const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+  // NaN-safe: ?? doesn't catch NaN
+  const moduleBoundaryRaw = columnModuleBoundaries[colIdx];
+  const moduleBoundary =
+    moduleBoundaryRaw != null && !isNaN(moduleBoundaryRaw)
+      ? moduleBoundaryRaw
+      : null;
   const hasModuleBoundary =
     moduleBoundary !== null && colH > TARGET_BOTTOM_HEIGHT;
 
@@ -159,7 +171,7 @@ export function CompartmentExtrasPanel({
       }
     } else {
       // Bottom module compartment
-      bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
+      bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
 
       if (hasModuleBoundary && compIdx === bottomModuleCompartments - 1) {
         // Last compartment in bottom module (with module boundary)
@@ -175,6 +187,10 @@ export function CompartmentExtrasPanel({
 
     compartmentHeightCm = Math.round((topY - bottomY) * 100);
   }
+
+  // Guard against NaN from invalid geometry
+  if (isNaN(compartmentHeightCm)) compartmentHeightCm = 0;
+  if (isNaN(compartmentWidthCm)) compartmentWidthCm = 0;
 
   // Calculate limits based on compartment dimensions
   const maxVerticalDividers = Math.max(
@@ -281,10 +297,10 @@ export function CompartmentExtrasPanel({
         {/* "Whole compartment is a drawer" - disabled when dividers or shelves exist, or height > 40cm */}
         {(() => {
           const hasSubdivisions =
-            config.columns > 1 || (config.rowCounts?.[0] ?? 0) > 0;
+            config.columns > 1 || (config.rowCounts?.[0] || 0) > 0;
           const tooTallForDrawer = compartmentHeightCm > MAX_DRAWER_HEIGHT_CM;
           const drawerDisabled = hasSubdivisions || tooTallForDrawer;
-          const isChecked = (config.drawerCounts?.[0] ?? 0) > 0;
+          const isChecked = (config.drawerCounts?.[0] || 0) > 0;
           return (
             <div className="mt-3 pt-3 border-t space-y-2">
               <label
@@ -335,8 +351,8 @@ export function CompartmentExtrasPanel({
         <div className="space-y-4 pb-3 border-b">
           <span className="text-sm font-medium">Sekcije</span>
           {Array.from({ length: config.columns }).map((_, idx) => {
-            const shelfCount = config.rowCounts?.[idx] ?? 0;
-            const drawerCount = config.drawerCounts?.[idx] ?? 0;
+            const shelfCount = config.rowCounts?.[idx] || 0;
+            const drawerCount = config.drawerCounts?.[idx] || 0;
             return (
               <div key={idx} className="space-y-2 p-2 bg-muted/30 rounded">
                 <span className="text-xs font-medium text-muted-foreground">
@@ -555,10 +571,10 @@ export function CompartmentExtrasPanel({
               variant="outline"
               size="icon"
               onClick={() => {
-                const count = config.rowCounts?.[0] ?? 0;
+                const count = config.rowCounts?.[0] || 0;
                 setElementRowCount(compartmentKey, 0, Math.max(count - 1, 0));
               }}
-              disabled={(config.rowCounts?.[0] ?? 0) <= 0}
+              disabled={(config.rowCounts?.[0] || 0) <= 0}
               className="h-7 w-7"
             >
               –
@@ -567,7 +583,7 @@ export function CompartmentExtrasPanel({
               min={0}
               max={maxHorizontalShelves}
               step={1}
-              value={[config.rowCounts?.[0] ?? 0]}
+              value={[config.rowCounts?.[0] || 0]}
               onValueChange={([val]) =>
                 setElementRowCount(compartmentKey, 0, val)
               }
@@ -578,26 +594,26 @@ export function CompartmentExtrasPanel({
               variant="outline"
               size="icon"
               onClick={() => {
-                const count = config.rowCounts?.[0] ?? 0;
+                const count = config.rowCounts?.[0] || 0;
                 setElementRowCount(
                   compartmentKey,
                   0,
                   Math.min(count + 1, maxHorizontalShelves),
                 );
               }}
-              disabled={(config.rowCounts?.[0] ?? 0) >= maxHorizontalShelves}
+              disabled={(config.rowCounts?.[0] || 0) >= maxHorizontalShelves}
               className="h-7 w-7"
             >
               +
             </Button>
             <span className="text-xs w-4 text-right">
-              {config.rowCounts?.[0] ?? 0}
+              {config.rowCounts?.[0] || 0}
             </span>
           </div>
           {/* Drawers - only show when shelves > 0 (no-shelf case is in "Vertikalne pregrade" section) */}
           {(() => {
-            const shelfCount = config.rowCounts?.[0] ?? 0;
-            const drawerCount = config.drawerCounts?.[0] ?? 0;
+            const shelfCount = config.rowCounts?.[0] || 0;
+            const drawerCount = config.drawerCounts?.[0] || 0;
             const isExternal = config.drawersExternal?.[0] ?? true;
 
             // No shelves = drawer checkbox is in "Vertikalne pregrade" section

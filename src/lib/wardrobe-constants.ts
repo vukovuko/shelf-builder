@@ -99,6 +99,7 @@ export function distributeShelvesEvenly(
   panelThicknessM: number,
 ): number[] {
   if (shelfCount <= 0) return [];
+  if (isNaN(columnHeightM) || isNaN(panelThicknessM)) return [];
 
   // Usable height = column height minus top and bottom panels
   const usableHeight = columnHeightM - 2 * panelThicknessM;

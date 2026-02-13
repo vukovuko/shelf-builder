@@ -12,6 +12,7 @@ import {
   MIN_SHELF_HEIGHT_CM,
 } from "./wardrobe-constants";
 import { getDefaultBoundariesX } from "./wardrobe-utils";
+import { reconcileWardrobeState } from "./reconcileWardrobeState";
 
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
@@ -395,6 +396,8 @@ function getCompartmentHeightCm(
   compKey: string,
   state: {
     height: number;
+    hasBase: boolean;
+    baseHeight: number;
     columnHeights: Record<number, number>;
     columnHorizontalBoundaries: Record<number, number[]>;
     columnModuleBoundaries: Record<number, number | null>;
@@ -405,10 +408,18 @@ function getCompartmentHeightCm(
   const rowNum = parseInt(compKey.match(/\d+$/)?.[0] ?? "1", 10);
   const colIdx = colLetter.charCodeAt(0) - 65;
   const t = DEFAULT_PANEL_THICKNESS_M;
+  const baseH = state.hasBase ? state.baseHeight / 100 : 0;
 
-  const colH = (state.columnHeights[colIdx] ?? state.height) / 100; // meters
+  // NaN-safe lookups: ?? doesn't catch NaN, so check explicitly
+  const colHRaw = state.columnHeights[colIdx];
+  const colH =
+    (colHRaw != null && !isNaN(colHRaw) ? colHRaw : state.height) / 100;
   const shelves = state.columnHorizontalBoundaries[colIdx] || [];
-  const moduleBoundary = state.columnModuleBoundaries[colIdx] ?? null;
+  const moduleBoundaryRaw = state.columnModuleBoundaries[colIdx];
+  const moduleBoundary =
+    moduleBoundaryRaw != null && !isNaN(moduleBoundaryRaw)
+      ? moduleBoundaryRaw
+      : null;
   const hasModule = moduleBoundary !== null && colH > TARGET_BOTTOM_HEIGHT;
   const bottomCompCount = shelves.length + 1;
   const topShelves = hasModule
@@ -426,7 +437,7 @@ function getCompartmentHeightCm(
     bottomY = topIdx === 0 ? moduleBoundary + t : topShelves[topIdx - 1];
     topY = topIdx === topShelves.length ? colH - t : topShelves[topIdx];
   } else {
-    bottomY = compIdx === 0 ? t : shelves[compIdx - 1];
+    bottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
     if (hasModule && compIdx === bottomCompCount - 1) {
       topY = moduleBoundary - t;
     } else if (compIdx === shelves.length) {
@@ -436,7 +447,8 @@ function getCompartmentHeightCm(
     }
   }
 
-  return Math.round((topY - bottomY) * 100);
+  const result = Math.round((topY - bottomY) * 100);
+  return isNaN(result) ? 0 : result;
 }
 
 export const useShelfStore = create<ShelfState>((set) => ({
@@ -565,7 +577,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         }
       }
 
-      return {
+      const widthUpdates = {
         width: newWidth,
         verticalBoundaries: newBoundaries,
         columnHorizontalBoundaries: newColumnHorizontalBoundaries,
@@ -573,6 +585,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnModuleBoundaries: newColumnModuleBoundaries,
         columnTopModuleShelves: newColumnTopModuleShelves,
       };
+      const reconciled = reconcileWardrobeState({
+        ...state,
+        ...widthUpdates,
+      } as any);
+      return { ...widthUpdates, ...(reconciled as any) };
     }),
   setHeight: (newHeight) =>
     set((state) => {
@@ -761,7 +778,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         }
       });
 
-      return {
+      const heightUpdates = {
         height: newHeight,
         columnHeights: {}, // Reset ALL manual column heights (intentional)
         columnHorizontalBoundaries: newColumnBoundaries,
@@ -769,6 +786,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnTopModuleShelves: newTopModuleShelves,
         elementConfigs: newElementConfigs,
       };
+      const reconciled = reconcileWardrobeState({
+        ...state,
+        ...heightUpdates,
+      } as any);
+      return { ...heightUpdates, ...(reconciled as any) };
     }),
   setDepth: (depth) => set({ depth }),
   setPanelThickness: (panelThickness) => set({ panelThickness }),
@@ -884,10 +906,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Clamp count based on compartment height
       const compHeightCm = getCompartmentHeightCm(key, state);
-      const maxShelves = Math.max(
-        0,
-        Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1,
-      );
+      const maxShelves = isNaN(compHeightCm)
+        ? 0
+        : Math.max(0, Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1);
       const clampedCount = Math.min(count, maxShelves);
 
       const rowCounts = [...current.rowCounts];
@@ -993,7 +1014,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
   hasBase: false,
   baseHeight: 3,
   setHasBase: (val) => set({ hasBase: val }),
-  setBaseHeight: (val) => set({ baseHeight: Math.max(3, val) }),
+  setBaseHeight: (val) =>
+    set({ baseHeight: Math.max(3, isNaN(val) ? 3 : val) }),
   // Extras defaults
   extrasMode: false,
   setExtrasMode: (val) => set({ extrasMode: val }),
@@ -1552,7 +1574,12 @@ export const useShelfStore = create<ShelfState>((set) => ({
     set((state) => {
       const boundaries = [...state.verticalBoundaries];
       boundaries[index] = x;
-      return { verticalBoundaries: boundaries };
+      const seamUpdate = { verticalBoundaries: boundaries };
+      const reconciled = reconcileWardrobeState({
+        ...state,
+        ...seamUpdate,
+      } as any);
+      return { ...seamUpdate, ...(reconciled as any) };
     }),
   setVerticalBoundaries: (boundaries) =>
     set({ verticalBoundaries: boundaries }),
@@ -1948,7 +1975,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         );
       }
 
-      return {
+      const colHeightUpdates = {
         height: newGlobalHeight,
         columnHeights: { ...state.columnHeights, [colIdx]: heightCm },
         columnHorizontalBoundaries: newColumnBoundaries,
@@ -1957,6 +1984,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
         elementConfigs: newElementConfigs,
         compartmentExtras: newCompartmentExtras,
       };
+      const reconciled = reconcileWardrobeState({
+        ...state,
+        ...colHeightUpdates,
+      } as any);
+      return { ...colHeightUpdates, ...(reconciled as any) };
     }),
   resetColumnHeights: () => set({ columnHeights: {} }),
   // Hovered column for bottom bar controls
@@ -2096,7 +2128,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         topBounds,
       );
 
-      return {
+      const moduleBoundaryUpdates = {
         columnModuleBoundaries: {
           ...state.columnModuleBoundaries,
           [colIdx]: clampedY,
@@ -2104,6 +2136,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnTopModuleShelves: newTopShelves,
         elementConfigs: newElementConfigs,
       };
+      const reconciled = reconcileWardrobeState({
+        ...state,
+        ...moduleBoundaryUpdates,
+      } as any);
+      return { ...moduleBoundaryUpdates, ...(reconciled as any) };
     }),
   // Per-column top module shelves (only valid when module boundary exists)
   columnTopModuleShelves: {},
