@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
-import { Ban } from "lucide-react";
 
 export function StepAccessories() {
   const accessories = useShelfStore((s: ShelfState) => s.accessories);
@@ -41,6 +40,15 @@ export function StepAccessories() {
     return count;
   }, [doorGroups]);
 
+  // Auto-select first variant for accessories that have no selection
+  useEffect(() => {
+    for (const acc of accessories) {
+      if (acc.variants.length > 0 && selectedAccessories[acc.id] == null) {
+        setSelectedAccessory(acc.id, acc.variants[0].id);
+      }
+    }
+  }, [accessories, selectedAccessories, setSelectedAccessory]);
+
   if (accessories.length === 0) {
     return (
       <div className="py-8 text-center">
@@ -64,26 +72,20 @@ export function StepAccessories() {
                   {accessory.description}
                 </p>
               )}
+              {accessory.pricingRule === "perDrawer" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Dodaje se na svaku fioku
+                </p>
+              )}
+              {accessory.pricingRule === "perDoor" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Dodaje se na svaka vrata
+                </p>
+              )}
             </div>
 
             {/* Variant selection grid */}
             <div className="grid grid-cols-2 gap-2">
-              {/* "None" option */}
-              <button
-                type="button"
-                onClick={() => setSelectedAccessory(accessory.id, null)}
-                className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all ${
-                  selectedVariantId === null
-                    ? "border-primary bg-primary/10 ring-1 ring-primary"
-                    : "border-border hover:border-muted-foreground/40 hover:bg-muted/50"
-                }`}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                  <Ban className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className="text-xs font-medium">Bez dodatka</span>
-              </button>
-
               {/* Variant options */}
               {accessory.variants.map((variant) => {
                 const isSelected = selectedVariantId === variant.id;

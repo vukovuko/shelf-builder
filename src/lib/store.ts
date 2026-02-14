@@ -10,6 +10,7 @@ import {
   DEFAULT_PANEL_THICKNESS_M,
   MIN_DRAG_GAP,
   MIN_SHELF_HEIGHT_CM,
+  SLIDING_DOOR_MIN_COLUMNS,
 } from "./wardrobe-constants";
 import { getDefaultBoundariesX } from "./wardrobe-utils";
 import { reconcileWardrobeState } from "./reconcileWardrobeState";
@@ -285,6 +286,9 @@ export interface ShelfState {
   setGlobalHandle: (handleId: string) => void;
   setGlobalHandleFinish: (finish: string) => void;
   setDoorSettingsMode: (mode: DoorSettingsMode) => void;
+  // Sliding doors (klizeća vrata) - mutually exclusive with per-compartment doors
+  slidingDoors: boolean;
+  setSlidingDoors: (enabled: boolean) => void;
   showInfoButtons: boolean;
   setShowInfoButtons: (show: boolean) => void;
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
@@ -626,6 +630,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columnHeights: newColumnHeights,
         columnModuleBoundaries: newColumnModuleBoundaries,
         columnTopModuleShelves: newColumnTopModuleShelves,
+        // Auto-disable sliding doors if < 2 columns
+        ...(state.slidingDoors &&
+        newBoundaries.length + 1 < SLIDING_DOOR_MIN_COLUMNS
+          ? { slidingDoors: false }
+          : {}),
       };
       const reconciled = reconcileWardrobeState({
         ...state,
@@ -1137,6 +1146,31 @@ export const useShelfStore = create<ShelfState>((set) => ({
   globalHandleId: "handle_1", // Default handle for all doors
   globalHandleFinish: "chrome", // Default handle finish for all doors
   doorSettingsMode: "global", // Default to global mode
+  slidingDoors: false,
+  setSlidingDoors: (enabled: boolean) =>
+    set((state) => {
+      if (enabled) {
+        // Need at least 2 columns for sliding doors
+        const w = state.width / 100;
+        const boundaries =
+          state.verticalBoundaries.length > 0
+            ? state.verticalBoundaries
+            : getDefaultBoundariesX(w);
+        const numColumns = boundaries.length + 1;
+        if (numColumns < SLIDING_DOOR_MIN_COLUMNS) return state;
+
+        return {
+          slidingDoors: true,
+          doorGroups: [],
+          doorSelections: {},
+          selectedDoorCompartments: [],
+          doorSelectionDragging: false,
+          doorSelectionStart: null,
+          doorSelectionCurrent: null,
+        };
+      }
+      return { slidingDoors: false };
+    }),
   setDoorMaterial: (groupId: string, materialId: number) =>
     set((state) => ({
       doorGroups: state.doorGroups.map((g: DoorGroup) =>
@@ -1624,8 +1658,19 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return { ...seamUpdate, ...(reconciled as any) };
     }),
   setVerticalBoundaries: (boundaries) =>
-    set({ verticalBoundaries: boundaries }),
-  resetVerticalBoundaries: () => set({ verticalBoundaries: [] }),
+    set((state) => ({
+      verticalBoundaries: boundaries,
+      // Auto-disable sliding doors if fewer than 2 columns
+      ...(state.slidingDoors && boundaries.length + 1 < SLIDING_DOOR_MIN_COLUMNS
+        ? { slidingDoors: false }
+        : {}),
+    })),
+  resetVerticalBoundaries: () =>
+    set((state) => ({
+      verticalBoundaries: [],
+      // Reset to 1 column = disable sliding doors
+      ...(state.slidingDoors ? { slidingDoors: false } : {}),
+    })),
   // Per-column horizontal boundaries (array of Y positions, sorted bottom to top)
   columnHorizontalBoundaries: {},
   setColumnHorizontalBoundaries: (colIndex, boundaries) =>
@@ -2359,6 +2404,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         globalHandleId: "handle_1",
         globalHandleFinish: "chrome",
         doorSettingsMode: "global" as DoorSettingsMode,
+        slidingDoors: false,
 
         // UI state
         activeAccordionStep: "item-1",

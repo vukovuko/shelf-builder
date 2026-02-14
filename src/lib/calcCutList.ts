@@ -4,6 +4,7 @@ import {
   MIN_TOP_HEIGHT,
   DRAWER_HEIGHT,
   DRAWER_GAP,
+  SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
 import { buildBlocksX } from "./wardrobe-utils";
 
@@ -95,6 +96,8 @@ export type WardrobeSnapshot = {
   doorSettingsMode?: "global" | "per-door";
   // Accessory selections (accessoryId → variantId)
   selectedAccessories?: Record<number, number | null>;
+  // Sliding doors (klizeća vrata)
+  slidingDoors?: boolean;
 };
 
 export type MaterialType =
@@ -178,6 +181,7 @@ export function calculateCutList(
     const globalHandleId = snapshot.globalHandleId ?? "handle_1";
     const globalHandleFinish = snapshot.globalHandleFinish ?? "chrome";
     const doorSettingsMode = snapshot.doorSettingsMode ?? "global";
+    const slidingDoors = snapshot.slidingDoors ?? false;
 
     // Get materials and prices
     const mat = materials.find(
@@ -635,107 +639,223 @@ export function calculateCutList(
         }
       }
 
-      // Doors - check doorGroups first (new system), fall back to doorSelections (legacy)
-      // Find if this compartment is part of a door group
-      // Check both exact match and base key (strip sub-indices)
-      const doorGroup = doorGroups.find((g) =>
-        g.compartments.some((gCompKey) => {
-          // Direct match
-          if (gCompKey === compKey) return true;
-          // Check if group uses sub-key that belongs to this compartment
-          const parsed = parseSubCompKey(gCompKey);
-          return parsed && parsed.compKey === compKey;
-        }),
-      );
+      // Doors - skip per-compartment doors when sliding doors are active
+      if (slidingDoors) {
+        // Sliding door panels are added separately after all compartments
+      } else {
+        // Doors - check doorGroups first (new system), fall back to doorSelections (legacy)
+        // Find if this compartment is part of a door group
+        // Check both exact match and base key (strip sub-indices)
+        const doorGroup = doorGroups.find((g) =>
+          g.compartments.some((gCompKey) => {
+            // Direct match
+            if (gCompKey === compKey) return true;
+            // Check if group uses sub-key that belongs to this compartment
+            const parsed = parseSubCompKey(gCompKey);
+            return parsed && parsed.compKey === compKey;
+          }),
+        );
 
-      if (doorGroup) {
-        // Use new doorGroups system - only process if this is the FIRST compartment in the group
-        // This prevents adding the door multiple times for multi-compartment groups
-        const firstCompKey = doorGroup.compartments[0];
-        const firstParsed = parseSubCompKey(firstCompKey);
-        const isFirstComp = firstParsed
-          ? firstParsed.compKey === compKey
-          : firstCompKey === compKey;
+        if (doorGroup) {
+          // Use new doorGroups system - only process if this is the FIRST compartment in the group
+          // This prevents adding the door multiple times for multi-compartment groups
+          const firstCompKey = doorGroup.compartments[0];
+          const firstParsed = parseSubCompKey(firstCompKey);
+          const isFirstComp = firstParsed
+            ? firstParsed.compKey === compKey
+            : firstCompKey === compKey;
 
-        if (isFirstComp) {
-          const doorType = doorGroup.type;
-          if (doorType && doorType !== "none") {
-            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+          if (isFirstComp) {
+            const doorType = doorGroup.type;
+            if (doorType && doorType !== "none") {
+              const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
 
-            // Calculate total door height for multi-compartment groups
-            let totalDoorH = compH;
-            if (doorGroup.compartments.length > 1) {
-              // Check if all compartments share the same base key (all sub-compartments of current compartment)
-              const allSameBase = doorGroup.compartments.every((cKey) => {
-                const parsed = parseSubCompKey(cKey);
-                return parsed && parsed.compKey === compKey;
-              });
-
-              if (allSameBase) {
-                // All sub-compartments of the current base compartment
-                // Door spans the entire base compartment, so use compH
-                totalDoorH = compH;
-              } else {
-                // Multiple different base compartments - sum unique heights
-                const uniqueBaseKeys = new Set<string>();
-                totalDoorH = doorGroup.compartments.reduce((sum, cKey) => {
+              // Calculate total door height for multi-compartment groups
+              let totalDoorH = compH;
+              if (doorGroup.compartments.length > 1) {
+                // Check if all compartments share the same base key (all sub-compartments of current compartment)
+                const allSameBase = doorGroup.compartments.every((cKey) => {
                   const parsed = parseSubCompKey(cKey);
-                  const baseKey = parsed ? parsed.compKey : cKey;
+                  return parsed && parsed.compKey === compKey;
+                });
 
-                  // Only add height once per unique base key
-                  if (uniqueBaseKeys.has(baseKey)) {
-                    return sum;
-                  }
-                  uniqueBaseKeys.add(baseKey);
+                if (allSameBase) {
+                  // All sub-compartments of the current base compartment
+                  // Door spans the entire base compartment, so use compH
+                  totalDoorH = compH;
+                } else {
+                  // Multiple different base compartments - sum unique heights
+                  const uniqueBaseKeys = new Set<string>();
+                  totalDoorH = doorGroup.compartments.reduce((sum, cKey) => {
+                    const parsed = parseSubCompKey(cKey);
+                    const baseKey = parsed ? parsed.compKey : cKey;
 
-                  const compMatch = baseKey.match(/^([A-Z]+)(\d+)/);
-                  if (compMatch) {
-                    const cIdx = parseInt(compMatch[2]) - 1;
-                    if (
-                      cIdx >= 0 &&
-                      cIdx < numCompartments &&
-                      allYs[cIdx] !== undefined &&
-                      allYs[cIdx + 1] !== undefined
-                    ) {
-                      const cYStart = allYs[cIdx];
-                      const cYEnd = allYs[cIdx + 1];
-                      return sum + Math.max(cYEnd - cYStart - t, 0);
+                    // Only add height once per unique base key
+                    if (uniqueBaseKeys.has(baseKey)) {
+                      return sum;
                     }
-                  }
-                  return sum;
-                }, 0);
+                    uniqueBaseKeys.add(baseKey);
+
+                    const compMatch = baseKey.match(/^([A-Z]+)(\d+)/);
+                    if (compMatch) {
+                      const cIdx = parseInt(compMatch[2]) - 1;
+                      if (
+                        cIdx >= 0 &&
+                        cIdx < numCompartments &&
+                        allYs[cIdx] !== undefined &&
+                        allYs[cIdx + 1] !== undefined
+                      ) {
+                        const cYStart = allYs[cIdx];
+                        const cYEnd = allYs[cIdx + 1];
+                        return sum + Math.max(cYEnd - cYStart - t, 0);
+                      }
+                    }
+                    return sum;
+                  }, 0);
+                }
+              }
+
+              // Get per-door material if in per-door mode
+              const doorMaterialId =
+                doorSettingsMode === "per-door" &&
+                doorGroup.materialId !== undefined
+                  ? doorGroup.materialId
+                  : undefined;
+
+              // Get handle info for this door
+              const doorHandleId =
+                doorSettingsMode === "per-door" && doorGroup.handleId
+                  ? doorGroup.handleId
+                  : globalHandleId;
+              const doorHandleFinish =
+                doorSettingsMode === "per-door" && doorGroup.handleFinish
+                  ? doorGroup.handleFinish
+                  : globalHandleFinish;
+
+              const groupId = doorGroup.id;
+
+              // Format compartment label - simplify sub-compartments to base key
+              const uniqueBaseKeys = new Set<string>();
+              doorGroup.compartments.forEach((cKey) => {
+                const parsed = parseSubCompKey(cKey);
+                uniqueBaseKeys.add(parsed ? parsed.compKey : cKey);
+              });
+              const compartmentLabel = Array.from(uniqueBaseKeys).join("+");
+
+              // Human-readable door type names
+              const getDoorTypeLabel = (type: string): string => {
+                switch (type) {
+                  case "left":
+                    return "leva";
+                  case "right":
+                    return "desna";
+                  case "double":
+                    return "dvokrilna";
+                  case "leftMirror":
+                    return "leva sa ogledalom";
+                  case "rightMirror":
+                    return "desna sa ogledalom";
+                  case "doubleMirror":
+                    return "dvokrilna sa ogledalom";
+                  case "drawerStyle":
+                    return "fioka stil";
+                  default:
+                    return type;
+                }
+              };
+              const doorTypeLabel = getDoorTypeLabel(doorType);
+
+              if (doorType === "double" || doorType === "doubleMirror") {
+                totalDoorLeaves += 2;
+                const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+                const isMirror = doorType === "doubleMirror";
+                addFrontWithMaterial(
+                  `${compKey}-VL`,
+                  `Vrata ${compartmentLabel} levo krilo${isMirror ? " (ogledalo)" : ""}`,
+                  leafW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                addFrontWithMaterial(
+                  `${compKey}-VD`,
+                  `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
+                  leafW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                // Add 2 handles for double doors
+                const handlePrice = getHandlePrice(
+                  doorHandleId,
+                  doorHandleFinish,
+                );
+                if (handlePrice > 0) {
+                  handleItems.push({
+                    handleId: doorHandleId,
+                    finishId: doorHandleFinish,
+                    count: 2,
+                    price: handlePrice * 2,
+                    element: compKey,
+                  });
+                }
+              } else if (doorType === "drawerStyle") {
+                totalDoorLeaves += 1;
+                // Drawer-style door - no handle (push-to-open)
+                addFrontWithMaterial(
+                  `${compKey}-V`,
+                  `Vrata ${compartmentLabel} (${doorTypeLabel})`,
+                  doorW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+              } else {
+                totalDoorLeaves += 1;
+                // Single door (left, right, leftMirror, rightMirror)
+                const isMirror =
+                  doorType === "leftMirror" || doorType === "rightMirror";
+                addFrontWithMaterial(
+                  `${compKey}-V`,
+                  `Vrata ${compartmentLabel} (${doorTypeLabel})`,
+                  doorW,
+                  totalDoorH,
+                  compKey,
+                  doorMaterialId,
+                );
+                // Add 1 handle for single door
+                const handlePrice = getHandlePrice(
+                  doorHandleId,
+                  doorHandleFinish,
+                );
+                if (handlePrice > 0) {
+                  handleItems.push({
+                    handleId: doorHandleId,
+                    finishId: doorHandleFinish,
+                    count: 1,
+                    price: handlePrice,
+                    element: compKey,
+                  });
+                }
               }
             }
+          }
+          // Skip if not first compartment - door already added
+        } else {
+          // Legacy doorSelections system (for backward compatibility)
+          const doorSel = doorSelections[compKey];
+          if (doorSel && doorSel !== "none") {
+            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
+            const doorH = compH;
 
-            // Get per-door material if in per-door mode
-            const doorMaterialId =
-              doorSettingsMode === "per-door" &&
-              doorGroup.materialId !== undefined
-                ? doorGroup.materialId
-                : undefined;
+            // Get handle price using global settings (legacy mode)
+            const handlePrice = getHandlePrice(
+              globalHandleId,
+              globalHandleFinish,
+            );
 
-            // Get handle info for this door
-            const doorHandleId =
-              doorSettingsMode === "per-door" && doorGroup.handleId
-                ? doorGroup.handleId
-                : globalHandleId;
-            const doorHandleFinish =
-              doorSettingsMode === "per-door" && doorGroup.handleFinish
-                ? doorGroup.handleFinish
-                : globalHandleFinish;
-
-            const groupId = doorGroup.id;
-
-            // Format compartment label - simplify sub-compartments to base key
-            const uniqueBaseKeys = new Set<string>();
-            doorGroup.compartments.forEach((cKey) => {
-              const parsed = parseSubCompKey(cKey);
-              uniqueBaseKeys.add(parsed ? parsed.compKey : cKey);
-            });
-            const compartmentLabel = Array.from(uniqueBaseKeys).join("+");
-
-            // Human-readable door type names
-            const getDoorTypeLabel = (type: string): string => {
+            // Human-readable door type for legacy
+            const getLegacyDoorTypeLabel = (type: string): string => {
               switch (type) {
                 case "left":
                   return "leva";
@@ -755,75 +875,56 @@ export function calculateCutList(
                   return type;
               }
             };
-            const doorTypeLabel = getDoorTypeLabel(doorType);
 
-            if (doorType === "double" || doorType === "doubleMirror") {
-              totalDoorLeaves += 2;
+            if (doorSel === "double" || doorSel === "doubleMirror") {
               const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
-              const isMirror = doorType === "doubleMirror";
-              addFrontWithMaterial(
+              const isMirror = doorSel === "doubleMirror";
+              addFront(
                 `${compKey}-VL`,
-                `Vrata ${compartmentLabel} levo krilo${isMirror ? " (ogledalo)" : ""}`,
+                `Vrata ${compKey} levo krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
-                totalDoorH,
+                doorH,
                 compKey,
-                doorMaterialId,
               );
-              addFrontWithMaterial(
+              addFront(
                 `${compKey}-VD`,
-                `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
+                `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
-                totalDoorH,
+                doorH,
                 compKey,
-                doorMaterialId,
               );
               // Add 2 handles for double doors
-              const handlePrice = getHandlePrice(
-                doorHandleId,
-                doorHandleFinish,
-              );
               if (handlePrice > 0) {
                 handleItems.push({
-                  handleId: doorHandleId,
-                  finishId: doorHandleFinish,
+                  handleId: globalHandleId,
+                  finishId: globalHandleFinish,
                   count: 2,
                   price: handlePrice * 2,
                   element: compKey,
                 });
               }
-            } else if (doorType === "drawerStyle") {
-              totalDoorLeaves += 1;
-              // Drawer-style door - no handle (push-to-open)
-              addFrontWithMaterial(
+            } else if (doorSel === "drawerStyle") {
+              // Drawer-style door - no handle
+              addFront(
                 `${compKey}-V`,
-                `Vrata ${compartmentLabel} (${doorTypeLabel})`,
+                `Vrata ${compKey} (fioka stil)`,
                 doorW,
-                totalDoorH,
+                doorH,
                 compKey,
-                doorMaterialId,
               );
             } else {
-              totalDoorLeaves += 1;
-              // Single door (left, right, leftMirror, rightMirror)
-              const isMirror =
-                doorType === "leftMirror" || doorType === "rightMirror";
-              addFrontWithMaterial(
+              addFront(
                 `${compKey}-V`,
-                `Vrata ${compartmentLabel} (${doorTypeLabel})`,
+                `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
                 doorW,
-                totalDoorH,
+                doorH,
                 compKey,
-                doorMaterialId,
               );
               // Add 1 handle for single door
-              const handlePrice = getHandlePrice(
-                doorHandleId,
-                doorHandleFinish,
-              );
               if (handlePrice > 0) {
                 handleItems.push({
-                  handleId: doorHandleId,
-                  finishId: doorHandleFinish,
+                  handleId: globalHandleId,
+                  finishId: globalHandleFinish,
                   count: 1,
                   price: handlePrice,
                   element: compKey,
@@ -832,99 +933,7 @@ export function calculateCutList(
             }
           }
         }
-        // Skip if not first compartment - door already added
-      } else {
-        // Legacy doorSelections system (for backward compatibility)
-        const doorSel = doorSelections[compKey];
-        if (doorSel && doorSel !== "none") {
-          const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
-          const doorH = compH;
-
-          // Get handle price using global settings (legacy mode)
-          const handlePrice = getHandlePrice(
-            globalHandleId,
-            globalHandleFinish,
-          );
-
-          // Human-readable door type for legacy
-          const getLegacyDoorTypeLabel = (type: string): string => {
-            switch (type) {
-              case "left":
-                return "leva";
-              case "right":
-                return "desna";
-              case "double":
-                return "dvokrilna";
-              case "leftMirror":
-                return "leva sa ogledalom";
-              case "rightMirror":
-                return "desna sa ogledalom";
-              case "doubleMirror":
-                return "dvokrilna sa ogledalom";
-              case "drawerStyle":
-                return "fioka stil";
-              default:
-                return type;
-            }
-          };
-
-          if (doorSel === "double" || doorSel === "doubleMirror") {
-            const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
-            const isMirror = doorSel === "doubleMirror";
-            addFront(
-              `${compKey}-VL`,
-              `Vrata ${compKey} levo krilo${isMirror ? " (ogledalo)" : ""}`,
-              leafW,
-              doorH,
-              compKey,
-            );
-            addFront(
-              `${compKey}-VD`,
-              `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
-              leafW,
-              doorH,
-              compKey,
-            );
-            // Add 2 handles for double doors
-            if (handlePrice > 0) {
-              handleItems.push({
-                handleId: globalHandleId,
-                finishId: globalHandleFinish,
-                count: 2,
-                price: handlePrice * 2,
-                element: compKey,
-              });
-            }
-          } else if (doorSel === "drawerStyle") {
-            // Drawer-style door - no handle
-            addFront(
-              `${compKey}-V`,
-              `Vrata ${compKey} (fioka stil)`,
-              doorW,
-              doorH,
-              compKey,
-            );
-          } else {
-            addFront(
-              `${compKey}-V`,
-              `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
-              doorW,
-              doorH,
-              compKey,
-            );
-            // Add 1 handle for single door
-            if (handlePrice > 0) {
-              handleItems.push({
-                handleId: globalHandleId,
-                finishId: globalHandleFinish,
-                count: 1,
-                price: handlePrice,
-                element: compKey,
-              });
-            }
-          }
-        }
-      }
+      } // end !slidingDoors
 
       // Back panels are added per-module (not per-compartment) — see section 6 below
     };
@@ -1098,6 +1107,29 @@ export function calculateCutList(
         }
       }
     });
+
+    // ==========================================
+    // 7. SLIDING DOOR PANELS (one per column)
+    // ==========================================
+    if (slidingDoors) {
+      columns.forEach((col, colIdx) => {
+        const colLetter = String.fromCharCode(65 + colIdx);
+        const colInnerW = Math.max(col.width - 2 * t, 0);
+        const panelW = colInnerW + SLIDING_DOOR_OVERLAP_M;
+        const panelH = h - (hasBase ? baseH : 0);
+
+        if (panelW > 0 && panelH > 0) {
+          addFront(
+            `KV-${colLetter}`,
+            `Klizeća vrata ${colLetter}`,
+            panelW,
+            panelH,
+            `KV-${colLetter}`,
+          );
+          totalDoorLeaves += 1;
+        }
+      });
+    }
 
     // ==========================================
     // Calculate totals

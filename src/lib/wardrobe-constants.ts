@@ -34,6 +34,12 @@ export const MAX_HORIZONTAL_SHELVES_INNER = 10; // Max 10 shelves within a compa
 export const MIN_DOOR_HEIGHT_CM = 27; // Minimum door height
 export const MAX_DOOR_HEIGHT_CM = 280; // Maximum door height
 
+// Sliding door constants (klizeća vrata)
+export const SLIDING_DOOR_OVERLAP_M = 5 / 100; // 5cm overlap beyond column inner width
+export const SLIDING_DOOR_Z_GAP_M = 2 / 1000; // 2mm gap between staggered panels in Z
+export const SLIDING_DOOR_THICKNESS_M = 18 / 1000; // 18mm panel thickness
+export const SLIDING_DOOR_MIN_COLUMNS = 2; // Minimum columns required for sliding doors
+
 // ============================================
 // SHELF CONSTRAINTS CONFIG
 // Edit these values to change shelf constraints

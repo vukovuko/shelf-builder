@@ -161,6 +161,8 @@ function StoreInvalidator() {
   // Door groups for 3D rendering
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
+  // Sliding doors
+  const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
   // Dimension lines toggle
   const showDimensions = useShelfStore((s: ShelfState) => s.showDimensions);
   // Edges only mode (for download)
@@ -194,6 +196,7 @@ function StoreInvalidator() {
     doorSelectionDragging,
     doorGroups,
     showDoors,
+    slidingDoors,
     showDimensions,
     showEdgesOnly,
     fitRequestId,

@@ -21,6 +21,9 @@ import {
   DEFAULT_PANEL_THICKNESS_M,
   MIN_SHELF_HEIGHT_CM,
   MIN_DIVIDER_WIDTH_CM,
+  SLIDING_DOOR_OVERLAP_M,
+  SLIDING_DOOR_Z_GAP_M,
+  SLIDING_DOOR_THICKNESS_M,
 } from "@/lib/wardrobe-constants";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
@@ -129,6 +132,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Door groups for 3D rendering
     const doorGroups = useShelfStore((state: ShelfState) => state.doorGroups);
     const showDoors = useShelfStore((state: ShelfState) => state.showDoors);
+    const slidingDoors = useShelfStore(
+      (state: ShelfState) => state.slidingDoors,
+    );
     // Edges only mode (for "Preuzmi Ivice" download)
     const showEdgesOnly = useShelfStore(
       (state: ShelfState) => state.showEdgesOnly,
@@ -1780,6 +1786,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         {showDoors &&
           isStep5Active &&
           !showEdgesOnly &&
+          !slidingDoors &&
           doorGroups.map((group: DoorGroup) => {
             // Find which column this door belongs to
             const colIdx = columns.findIndex((_, idx) => {
@@ -2116,6 +2123,48 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                   </mesh>
                 )}
               </React.Fragment>
+            );
+          })}
+
+        {/* Sliding door panels - one per column, staggered in Z */}
+        {showDoors &&
+          isStep5Active &&
+          !showEdgesOnly &&
+          slidingDoors &&
+          columns.map((col, colIdx) => {
+            const colCenterX = (col.start + col.end) / 2;
+            const colInnerW = col.width - 2 * t;
+            const colH = getColumnHeight(colIdx);
+
+            const panelW = colInnerW + SLIDING_DOOR_OVERLAP_M;
+            const panelH = colH - baseH;
+            const panelCenterY = baseH + panelH / 2;
+
+            // Stagger each panel further forward in Z
+            const baseZ = d / 2 + SLIDING_DOOR_THICKNESS_M / 2 + 0.001;
+            const panelZ =
+              baseZ +
+              colIdx * (SLIDING_DOOR_THICKNESS_M + SLIDING_DOOR_Z_GAP_M);
+
+            const frontMat = materials.find(
+              (m: any) => m.id === selectedFrontMaterialId,
+            );
+            const panelColor = frontMat?.img ? "#e8e8e8" : "#b4befe";
+
+            return (
+              <mesh
+                key={`sliding-${colIdx}`}
+                position={[colCenterX, panelCenterY, panelZ]}
+              >
+                <boxGeometry
+                  args={[panelW, panelH, SLIDING_DOOR_THICKNESS_M]}
+                />
+                <meshStandardMaterial
+                  color={panelColor}
+                  roughness={0.5}
+                  metalness={0.1}
+                />
+              </mesh>
             );
           })}
 

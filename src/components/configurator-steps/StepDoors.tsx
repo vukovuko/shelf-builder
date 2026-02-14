@@ -2,7 +2,10 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
-import { TARGET_BOTTOM_HEIGHT_CM } from "@/lib/wardrobe-constants";
+import {
+  TARGET_BOTTOM_HEIGHT_CM,
+  SLIDING_DOOR_MIN_COLUMNS,
+} from "@/lib/wardrobe-constants";
 import { toLetters, buildBlocksX } from "@/lib/wardrobe-utils";
 import { CompartmentSchematic } from "../CompartmentSchematic";
 import { DoorOptionsPanel } from "../DoorOptionsPanel";
@@ -37,17 +40,21 @@ export function StepDoors({ compact }: StepDoorsProps) {
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
   const setShowDoors = useShelfStore((s: ShelfState) => s.setShowDoors);
+  const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
+  const setSlidingDoors = useShelfStore((s: ShelfState) => s.setSlidingDoors);
+
+  const w = width / 100;
+  const columns = buildBlocksX(
+    w,
+    verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
+  );
+  const numColumns = columns.length;
+  const canEnableSliding = numColumns >= SLIDING_DOOR_MIN_COLUMNS;
 
   const compartmentHeights = (() => {
-    const w = width / 100;
     const t = 0.018;
     const baseH = hasBase ? baseHeight / 100 : 0;
     const splitThreshold = TARGET_BOTTOM_HEIGHT_CM / 100;
-
-    const columns = buildBlocksX(
-      w,
-      verticalBoundaries.length > 0 ? verticalBoundaries : undefined,
-    );
 
     const heights: Record<string, number> = {};
 
@@ -156,20 +163,38 @@ export function StepDoors({ compact }: StepDoorsProps) {
 
   return (
     <div className={compact ? "space-y-2 pt-2" : "space-y-4 pt-4"}>
-      {selectedDoorCompartments.length === 0 ? (
-        <div className={compact ? "space-y-1" : "space-y-3"}>
-          {!compact && <CompartmentSchematic />}
-          <p className="text-xs text-center text-muted-foreground">
-            Kliknite na pregradu ili prevucite za višestruki izbor
-          </p>
-        </div>
-      ) : (
+      {slidingDoors ? (
         <DoorOptionsPanel
-          selectedKeys={selectedDoorCompartments}
+          selectedKeys={[]}
           compartmentHeights={compartmentHeights}
+          canEnableSliding={canEnableSliding}
+          slidingDoors={slidingDoors}
+          setSlidingDoors={setSlidingDoors}
+          numColumns={numColumns}
         />
+      ) : (
+        <>
+          {selectedDoorCompartments.length === 0 ? (
+            <div className={compact ? "space-y-1" : "space-y-3"}>
+              {!compact && <CompartmentSchematic />}
+              <p className="text-xs text-center text-muted-foreground">
+                Kliknite na pregradu ili prevucite za višestruki izbor
+              </p>
+            </div>
+          ) : (
+            <DoorOptionsPanel
+              selectedKeys={selectedDoorCompartments}
+              compartmentHeights={compartmentHeights}
+              canEnableSliding={canEnableSliding}
+              slidingDoors={slidingDoors}
+              setSlidingDoors={setSlidingDoors}
+              numColumns={numColumns}
+            />
+          )}
+        </>
       )}
-      {doorGroups.length > 0 && (
+
+      {(doorGroups.length > 0 || slidingDoors) && (
         <Button
           variant="ghost"
           onClick={() => setShowDoors(!showDoors)}

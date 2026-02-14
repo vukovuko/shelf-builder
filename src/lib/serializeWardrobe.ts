@@ -35,6 +35,8 @@ export function getWardrobeSnapshot() {
     doorSettingsMode: s.doorSettingsMode,
     // Accessory selections (accessoryId → variantId)
     selectedAccessories: s.selectedAccessories,
+    // Sliding doors (klizeća vrata)
+    slidingDoors: s.slidingDoors,
   };
 }
 
@@ -159,5 +161,7 @@ export function applyWardrobeSnapshot(data: any) {
     doorSettingsMode: data.doorSettingsMode || "global",
     // Accessory selections
     selectedAccessories: data.selectedAccessories || {},
+    // Sliding doors
+    slidingDoors: data.slidingDoors ?? false,
   }));
 }

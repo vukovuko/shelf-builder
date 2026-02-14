@@ -11,7 +11,15 @@ import {
   type DoorGroup,
   type Material,
 } from "@/lib/store";
-import { X, DoorOpen, DoorClosed, Trash2, Square, Layers } from "lucide-react";
+import {
+  X,
+  DoorOpen,
+  DoorClosed,
+  Trash2,
+  Square,
+  Layers,
+  PanelLeft,
+} from "lucide-react";
 import {
   MIN_DOOR_HEIGHT_CM,
   MAX_DOOR_HEIGHT_CM,
@@ -23,11 +31,19 @@ import { HandlePickerModal } from "./HandlePickerModal";
 interface DoorOptionsPanelProps {
   selectedKeys: string[];
   compartmentHeights: Record<string, number>; // key -> height in cm
+  canEnableSliding?: boolean;
+  slidingDoors?: boolean;
+  setSlidingDoors?: (enabled: boolean) => void;
+  numColumns?: number;
 }
 
 export function DoorOptionsPanel({
   selectedKeys,
   compartmentHeights,
+  canEnableSliding,
+  slidingDoors,
+  setSlidingDoors,
+  numColumns,
 }: DoorOptionsPanelProps) {
   const setDoorForSelection = useShelfStore(
     (s: ShelfState) => s.setDoorForSelection,
@@ -262,6 +278,36 @@ export function DoorOptionsPanel({
     },
   ];
 
+  // When sliding doors are active, show simplified view
+  if (slidingDoors) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Izaberite tip vrata:</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="default"
+              className="justify-start gap-2 text-xs px-2 col-span-2"
+              onClick={() => setSlidingDoors?.(false)}
+            >
+              <PanelLeft size={16} />
+              <span className="truncate">Klizeća vrata</span>
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1 p-3 border rounded-lg bg-muted/50">
+          <p className="text-sm text-muted-foreground">
+            {numColumns} klizna panela (po 1 za svaku kolonu).
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Paneli se postavljaju jedan ispred drugog i mogu da klize
+            levo-desno.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Header with selection info */}
@@ -339,6 +385,16 @@ export function DoorOptionsPanel({
                 </Button>
               );
             })}
+            {canEnableSliding && (
+              <Button
+                variant="outline"
+                className="justify-start gap-2 text-xs px-2 col-span-2"
+                onClick={() => setSlidingDoors?.(true)}
+              >
+                <PanelLeft size={16} />
+                <span className="truncate">Klizeća vrata</span>
+              </Button>
+            )}
           </div>
         </div>
       ) : (
