@@ -356,7 +356,7 @@ export function DesignLayoutClient({
       )}
 
       <main
-        className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-32 md:pt-0 md:pb-0"}`}
+        className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-24 md:pt-0 md:pb-0"}`}
       >
         {fromOrderId && fromOrderNumber && (
           <div className="absolute top-2 left-2 hidden md:block z-20">

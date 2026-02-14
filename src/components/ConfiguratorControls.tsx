@@ -672,6 +672,7 @@ export function ConfiguratorControls({
   const columnTopModuleShelves = useShelfStore(
     (state: ShelfState) => state.columnTopModuleShelves,
   );
+  const slidingDoors = useShelfStore((state: ShelfState) => state.slidingDoors);
   // Precompute cut list using top-level values to avoid hooks inside conditional modal
   const cutList = React.useMemo(
     () =>
@@ -693,6 +694,8 @@ export function ConfiguratorControls({
           columnHorizontalBoundaries,
           columnModuleBoundaries,
           columnTopModuleShelves,
+          // Sliding doors
+          slidingDoors,
           // Door groups and handle settings for pricing
           doorGroups,
           globalHandleId,
@@ -726,6 +729,7 @@ export function ConfiguratorControls({
       columnHorizontalBoundaries,
       columnModuleBoundaries,
       columnTopModuleShelves,
+      slidingDoors,
       // Door groups and handle settings
       doorGroups,
       globalHandleId,

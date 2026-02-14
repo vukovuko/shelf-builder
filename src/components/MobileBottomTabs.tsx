@@ -1,14 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Ruler,
-  LayoutGrid,
-  Palette,
-  Square,
-  DoorOpen,
-  Menu,
-} from "lucide-react";
+import { Menu } from "lucide-react";
 import { toast } from "sonner";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { calculateCutList } from "@/lib/calcCutList";
@@ -21,6 +14,7 @@ import {
   StepMaterials,
   StepBase,
   StepDoors,
+  StepAccessories,
 } from "./configurator-steps";
 
 interface MobileBottomTabsProps {
@@ -29,12 +23,13 @@ interface MobileBottomTabsProps {
 }
 
 const TABS = [
-  { key: "item-1", label: "Dimenzije", icon: Ruler },
-  { key: "item-2", label: "Kolone", icon: LayoutGrid },
-  { key: "item-3", label: "Materijal", icon: Palette },
-  { key: "item-4", label: "Baza", icon: Square },
-  { key: "item-5", label: "Vrata", icon: DoorOpen },
-  { key: "menu", label: "Meni", icon: Menu },
+  { key: "item-1", label: "Dimenzije" },
+  { key: "item-2", label: "Kolone" },
+  { key: "item-3", label: "Materijal" },
+  { key: "item-4", label: "Baza" },
+  { key: "item-5", label: "Vrata" },
+  { key: "item-6", label: "Dodaci" },
+  { key: "menu", label: "Meni" },
 ] as const;
 
 export function MobileBottomTabs({
@@ -75,6 +70,10 @@ export function MobileBottomTabs({
   const columnModuleBoundaries = useShelfStore(
     (s: ShelfState) => s.columnModuleBoundaries,
   );
+  const columnTopModuleShelves = useShelfStore(
+    (s: ShelfState) => s.columnTopModuleShelves,
+  );
+  const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const globalHandleId = useShelfStore((s: ShelfState) => s.globalHandleId);
   const globalHandleFinish = useShelfStore(
@@ -105,6 +104,8 @@ export function MobileBottomTabs({
           verticalBoundaries,
           columnHorizontalBoundaries,
           columnModuleBoundaries,
+          columnTopModuleShelves,
+          slidingDoors,
           doorGroups,
           globalHandleId,
           globalHandleFinish,
@@ -134,6 +135,8 @@ export function MobileBottomTabs({
       verticalBoundaries,
       columnHorizontalBoundaries,
       columnModuleBoundaries,
+      columnTopModuleShelves,
+      slidingDoors,
       doorGroups,
       globalHandleId,
       globalHandleFinish,
@@ -225,7 +228,7 @@ export function MobileBottomTabs({
     <div className="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col">
       {/* Expandable step panel */}
       {isStepTab && (
-        <div className="bg-sidebar border-t border-sidebar-border max-h-[35vh] overflow-y-auto px-3 pb-2 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="bg-sidebar border-t border-sidebar-border max-h-[30vh] overflow-y-auto px-3 pb-2 animate-in slide-in-from-bottom-2 duration-200">
           {activeTab === "item-1" && <StepDimensions compact />}
           {activeTab === "item-2" && (
             <StepColumns materials={materials} compact />
@@ -235,45 +238,46 @@ export function MobileBottomTabs({
           )}
           {activeTab === "item-4" && <StepBase compact />}
           {activeTab === "item-5" && <StepDoors compact />}
+          {activeTab === "item-6" && <StepAccessories />}
         </div>
       )}
 
-      {/* Tab bar */}
-      <div className="bg-sidebar border-t border-sidebar-border flex items-center justify-around px-1 py-1.5 safe-area-bottom">
-        {TABS.map(({ key, label, icon: Icon }) => {
+      {/* Scrollable chip tab bar */}
+      <div className="bg-sidebar border-t border-sidebar-border overflow-x-auto flex gap-1.5 px-2 py-1.5 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+        {TABS.map(({ key, label }) => {
           const isActive = activeTab === key;
+          const isMenu = key === "menu";
           return (
             <button
               key={key}
               type="button"
               onClick={() => handleTabClick(key)}
-              className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-md text-[10px] min-w-0 transition-colors ${
+              className={`whitespace-nowrap px-3 py-1 rounded-full text-xs border transition-colors flex-shrink-0 ${
                 isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-muted-foreground border-border hover:text-foreground"
               }`}
             >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              <span className="truncate">{label}</span>
+              {isMenu ? <Menu className="h-3.5 w-3.5" /> : label}
             </button>
           );
         })}
       </div>
 
-      {/* Compact price footer with order button */}
-      <div className="bg-sidebar border-t border-sidebar-border px-3 py-2 flex items-center gap-2 safe-area-bottom">
-        <div className="flex-1 flex flex-col">
-          <span className="text-xs text-muted-foreground">
-            {fmt2(cutList.totalArea)} m²
-          </span>
+      {/* 50:50 price | order footer */}
+      <div className="bg-sidebar border-t border-sidebar-border grid grid-cols-2 safe-area-bottom">
+        <div className="flex flex-col justify-center px-3 py-1.5">
           <span className="text-sm font-bold">
             {fmt2(cutList.totalCost)} RSD
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {fmt2(cutList.totalArea)} m²
           </span>
         </div>
         <button
           type="button"
           onClick={handleOrderClick}
-          className="px-4 py-2 bg-accent text-accent-foreground rounded-lg font-bold uppercase text-sm hover:bg-accent/90 active:scale-95 transition-all"
+          className="bg-accent text-accent-foreground font-bold uppercase text-sm hover:bg-accent/90 active:scale-95 transition-all"
         >
           Poruči
         </button>
