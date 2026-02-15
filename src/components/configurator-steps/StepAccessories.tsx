@@ -15,6 +15,7 @@ export function StepAccessories() {
     (s: ShelfState) => s.compartmentExtras,
   );
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
+  const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
 
   // Count total drawers across all compartments
   const totalDrawers = useMemo(() => {
@@ -40,14 +41,30 @@ export function StepAccessories() {
     return count;
   }, [doorGroups]);
 
-  // Auto-select first variant for accessories that have no selection
+  // Filter variants: sliding door variants only when slidingDoors is on, hide them otherwise
+  const filterVariants = (variants: (typeof accessories)[0]["variants"]) => {
+    const hasSlidingVariant = variants.some((v) =>
+      v.name.toLowerCase().includes("klizna vrata"),
+    );
+    if (!hasSlidingVariant) return variants;
+    return variants.filter((v) => {
+      const isSliding = v.name.toLowerCase().includes("klizna vrata");
+      return slidingDoors ? isSliding : !isSliding;
+    });
+  };
+
+  // Auto-select first visible variant for accessories that have no valid selection
   useEffect(() => {
     for (const acc of accessories) {
-      if (acc.variants.length > 0 && selectedAccessories[acc.id] == null) {
-        setSelectedAccessory(acc.id, acc.variants[0].id);
+      const visible = filterVariants(acc.variants);
+      if (visible.length === 0) continue;
+      const currentSelection = selectedAccessories[acc.id];
+      const isCurrentVisible = visible.some((v) => v.id === currentSelection);
+      if (currentSelection == null || !isCurrentVisible) {
+        setSelectedAccessory(acc.id, visible[0].id);
       }
     }
-  }, [accessories, selectedAccessories, setSelectedAccessory]);
+  }, [accessories, selectedAccessories, setSelectedAccessory, slidingDoors]);
 
   if (accessories.length === 0) {
     return (
@@ -86,8 +103,8 @@ export function StepAccessories() {
 
             {/* Variant selection grid */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Variant options */}
-              {accessory.variants.map((variant) => {
+              {/* Variant options (filtered by sliding doors state) */}
+              {filterVariants(accessory.variants).map((variant) => {
                 const isSelected = selectedVariantId === variant.id;
 
                 return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
 import {
   TARGET_BOTTOM_HEIGHT_CM,
@@ -42,6 +42,9 @@ export function StepDoors({ compact }: StepDoorsProps) {
   const setShowDoors = useShelfStore((s: ShelfState) => s.setShowDoors);
   const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
   const setSlidingDoors = useShelfStore((s: ShelfState) => s.setSlidingDoors);
+  const setActiveAccordionStep = useShelfStore(
+    (s: ShelfState) => s.setActiveAccordionStep,
+  );
 
   const w = width / 100;
   const columns = buildBlocksX(
@@ -207,6 +210,17 @@ export function StepDoors({ compact }: StepDoorsProps) {
             <Eye className="h-4 w-4 mr-2" />
           )}
           {showDoors ? "Sakrij vrata na slici" : "Prikaži vrata na slici"}
+        </Button>
+      )}
+
+      {!compact && (
+        <Button
+          variant="default"
+          className="w-full mt-4 gap-2"
+          onClick={() => setActiveAccordionStep("item-6")}
+        >
+          Sledeći korak
+          <ArrowRight className="h-4 w-4" />
         </Button>
       )}
     </div>

@@ -949,9 +949,10 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       />
                     )}
 
-                    {/* Door circles - SHOW when Step 5 active */}
+                    {/* Door circles - SHOW when Step 5 active (hidden for sliding doors) */}
                     {/* Renders one circle per sub-space if compartment has subdivisions */}
                     {isStep5Active &&
+                      !slidingDoors &&
                       (() => {
                         const cfg = elementConfigs[compKey] ?? {
                           columns: 1,
