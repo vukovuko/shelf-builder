@@ -14,19 +14,25 @@ export function StepAccessories() {
   const compartmentExtras = useShelfStore(
     (s: ShelfState) => s.compartmentExtras,
   );
+  const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
   const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
   const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
 
-  // Count total drawers across all compartments
+  // Count total drawers from BOTH sources (matches checkout route logic)
   const totalDrawers = useMemo(() => {
     let count = 0;
-    for (const extras of Object.values(compartmentExtras)) {
-      if (extras.drawers && extras.drawersCount) {
-        count += extras.drawersCount;
+    // 1. elementConfigs.drawerCounts (per-sub-column drawers — primary source)
+    for (const cfg of Object.values(elementConfigs)) {
+      if (Array.isArray(cfg.drawerCounts)) {
+        for (const c of cfg.drawerCounts) count += c ?? 0;
       }
     }
+    // 2. compartmentExtras.drawersCount (whole-compartment drawers)
+    for (const extras of Object.values(compartmentExtras)) {
+      if (extras.drawersCount) count += extras.drawersCount;
+    }
     return count;
-  }, [compartmentExtras]);
+  }, [elementConfigs, compartmentExtras]);
 
   // Count total door leaves across all door groups
   const totalDoorLeaves = useMemo(() => {
@@ -41,6 +47,33 @@ export function StepAccessories() {
     return count;
   }, [doorGroups]);
 
+  // Hide entire accessories when irrelevant
+  const visibleAccessories = useMemo(() => {
+    return accessories.filter((acc) => {
+      const nameLower = acc.name.toLowerCase();
+      const isSarke = nameLower.includes("šark") || nameLower.includes("sark");
+      const isKlizaci =
+        nameLower.includes("klizač") || nameLower.includes("klizac");
+
+      // Šarke: need regular doors (not sliding)
+      if (isSarke && (slidingDoors || totalDoorLeaves === 0)) return false;
+
+      // Klizači: need drawers OR sliding doors
+      if (isKlizaci && totalDrawers === 0 && !slidingDoors) return false;
+
+      // Generic fallback for any future accessories with pricing rules
+      if (acc.pricingRule === "perDoor" && totalDoorLeaves === 0) return false;
+      if (
+        acc.pricingRule === "perDrawer" &&
+        totalDrawers === 0 &&
+        !slidingDoors
+      )
+        return false;
+
+      return true;
+    });
+  }, [accessories, totalDoorLeaves, totalDrawers, slidingDoors]);
+
   // Filter variants: sliding door variants only when slidingDoors is on, hide them otherwise
   const filterVariants = (variants: (typeof accessories)[0]["variants"]) => {
     const hasSlidingVariant = variants.some((v) =>
@@ -53,9 +86,16 @@ export function StepAccessories() {
     });
   };
 
-  // Auto-select first visible variant for accessories that have no valid selection
+  // Auto-select first visible variant for visible accessories, clear hidden ones
   useEffect(() => {
     for (const acc of accessories) {
+      const isVisible = visibleAccessories.some((va) => va.id === acc.id);
+      if (!isVisible) {
+        if (selectedAccessories[acc.id] != null) {
+          setSelectedAccessory(acc.id, null);
+        }
+        continue;
+      }
       const visible = filterVariants(acc.variants);
       if (visible.length === 0) continue;
       const currentSelection = selectedAccessories[acc.id];
@@ -64,19 +104,27 @@ export function StepAccessories() {
         setSelectedAccessory(acc.id, visible[0].id);
       }
     }
-  }, [accessories, selectedAccessories, setSelectedAccessory, slidingDoors]);
+  }, [
+    accessories,
+    visibleAccessories,
+    selectedAccessories,
+    setSelectedAccessory,
+    slidingDoors,
+  ]);
 
-  if (accessories.length === 0) {
+  if (visibleAccessories.length === 0) {
     return (
       <div className="py-8 text-center">
-        <p className="text-sm text-muted-foreground">Nema dostupnih dodataka</p>
+        <p className="text-sm text-muted-foreground">
+          Nema potrebnih dodataka za trenutnu konfiguraciju
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5 pt-3">
-      {accessories.map((accessory) => {
+      {visibleAccessories.map((accessory) => {
         const selectedVariantId = selectedAccessories[accessory.id] ?? null;
 
         return (
