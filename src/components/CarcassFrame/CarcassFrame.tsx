@@ -2132,19 +2132,26 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           !showEdgesOnly &&
           slidingDoors &&
           columns.map((col, colIdx) => {
-            const colCenterX = (col.start + col.end) / 2;
             const colInnerW = col.width - 2 * t;
             const colH = getColumnHeight(colIdx);
+            const isFirst = colIdx === 0;
+            const isLast = colIdx === columns.length - 1;
 
-            const panelW = colInnerW + SLIDING_DOOR_OVERLAP_M;
+            // Edge doors: overlap only on the inner side, flush on the outer side
+            // Inner doors: overlap on both sides
+            const overlapLeft = isFirst ? 0 : SLIDING_DOOR_OVERLAP_M / 2;
+            const overlapRight = isLast ? 0 : SLIDING_DOOR_OVERLAP_M / 2;
+            const panelW = colInnerW + overlapLeft + overlapRight;
+            const colCenterX =
+              (col.start + col.end) / 2 + (overlapRight - overlapLeft) / 2;
             const panelH = colH - baseH;
             const panelCenterY = baseH + panelH / 2;
 
-            // Stagger each panel further forward in Z
+            // Alternate between inner track (odd doors: 1st,3rd) and outer track (even doors: 2nd,4th)
             const baseZ = d / 2 + SLIDING_DOOR_THICKNESS_M / 2 + 0.001;
+            const track = colIdx % 2;
             const panelZ =
-              baseZ +
-              colIdx * (SLIDING_DOOR_THICKNESS_M + SLIDING_DOOR_Z_GAP_M);
+              baseZ + track * (SLIDING_DOOR_THICKNESS_M + SLIDING_DOOR_Z_GAP_M);
 
             const frontMat = materials.find(
               (m: any) => m.id === selectedFrontMaterialId,
