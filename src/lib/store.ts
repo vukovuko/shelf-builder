@@ -1159,6 +1159,17 @@ export const useShelfStore = create<ShelfState>((set) => ({
         const numColumns = boundaries.length + 1;
         if (numColumns < SLIDING_DOOR_MIN_COLUMNS) return state;
 
+        // Convert external drawers to internal (behind sliding doors)
+        // Note: drawersExternal defaults to undefined (treated as external via ?? true)
+        const updatedConfigs = Object.fromEntries(
+          Object.entries(state.elementConfigs).map(([key, cfg]) => {
+            const hasDrawers = cfg.drawerCounts?.some((c) => c > 0) ?? false;
+            if (!hasDrawers) return [key, cfg];
+            const len = cfg.drawerCounts!.length;
+            return [key, { ...cfg, drawersExternal: Array(len).fill(false) }];
+          }),
+        );
+
         return {
           slidingDoors: true,
           doorGroups: [],
@@ -1167,6 +1178,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
           doorSelectionDragging: false,
           doorSelectionStart: null,
           doorSelectionCurrent: null,
+          elementConfigs: updatedConfigs,
         };
       }
       return { slidingDoors: false };
