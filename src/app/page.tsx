@@ -5,9 +5,36 @@ import { StatsCards } from "@/components/smoothui/stats-2";
 import { TestimonialsStars } from "@/components/smoothui/testimonials";
 import { faqJsonLd } from "@/lib/faq-data";
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${baseUrl}/#organization`,
+  name: "Ormani po meri",
+  url: baseUrl,
+  logo: {
+    "@type": "ImageObject",
+    url: `${baseUrl}/ormani-po-meri-logo.webp`,
+  },
+  image: `${baseUrl}/ormani-po-meri-logo.webp`,
+  description:
+    "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
+  sameAs: [
+    "https://www.facebook.com/vuko.vukasinovic/",
+    "https://www.instagram.com/vuko_vukasinovic/",
+    "https://www.linkedin.com/in/vuko-vukasinovic/",
+  ],
+};
+
 export default function HomePage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

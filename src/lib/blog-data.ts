@@ -1,9 +1,35 @@
+import type { SocialLink } from "@/components/SocialIcons";
+
+export const blogAuthor = {
+  name: "Vuko Vukašinović",
+  image: "/authors/Vuko-Vukašinović.png",
+  bio: "Full-stack developer sa strašću za dizajn i moderne web tehnologije. Kreira alate koji pojednostavljuju proces uređenja doma.",
+  socials: [
+    {
+      platform: "linkedin",
+      label: "LinkedIn",
+      url: "https://www.linkedin.com/in/vuko-vukasinovic/",
+    },
+    {
+      platform: "instagram",
+      label: "Instagram",
+      url: "https://www.instagram.com/vuko_vukasinovic/",
+    },
+    {
+      platform: "facebook",
+      label: "Facebook",
+      url: "https://www.facebook.com/vuko.vukasinovic/",
+    },
+  ] satisfies SocialLink[],
+};
+
 export interface BlogPost {
   slug: string;
   title: string;
   description: string;
   date: string;
   readTime: string;
+  image?: string;
   content: string;
 }
 
