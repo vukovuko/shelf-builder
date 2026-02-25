@@ -14,9 +14,21 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
+  title: "Ormani po meri | 3D Konfigurator za Ormare i Police po Meri",
   description:
-    "Profesionalni 3D konfigurator za dizajniranje ormana i polica. Izaberite dimenzije, materijale, fioke i vrata. Preuzmi specifikaciju u PDF formatu.",
+    "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke. Preko 30 premium materijala. Preuzmite PDF specifikaciju.",
+  keywords: [
+    "ormani po meri",
+    "police po meri",
+    "konfigurator ormana",
+    "ormar po meri",
+    "polica po meri",
+    "3D konfigurator",
+    "nameštaj po meri",
+    "plakari po meri",
+    "klizna vrata",
+    "ormar konfigurator online",
+  ],
   manifest: "/site.webmanifest",
   icons: {
     icon: [
@@ -46,19 +58,33 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
     type: "website",
     siteName: "Ormani po meri",
-    title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
+    title: "Ormani po meri | 3D Konfigurator za Ormare i Police po Meri",
     description:
-      "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+      "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
     locale: "sr_RS",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ormani po meri - Dizajnirajte Vaš Orman po Želji",
+    title: "Ormani po meri | 3D Konfigurator za Ormare i Police po Meri",
     description:
-      "Profesionalni 3D konfigurator za dizajniranje ormana i polica",
+      "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
   },
 };
 
@@ -73,6 +99,58 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0a0a0a" />
         <meta name="color-scheme" content="dark" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "/#organization",
+                  name: "Ormani po meri",
+                  url: "/",
+                  logo: {
+                    "@type": "ImageObject",
+                    url: "/ormani-po-meri-logo.webp",
+                  },
+                  description:
+                    "Profesionalni 3D konfigurator za dizajniranje ormana i polica po meri.",
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "/#website",
+                  url: "/",
+                  name: "Ormani po meri",
+                  description:
+                    "Dizajnirajte orman po meri online uz besplatan 3D konfigurator.",
+                  publisher: { "@id": "/#organization" },
+                  inLanguage: "sr-Latn",
+                },
+                {
+                  "@type": "WebApplication",
+                  "@id": "/design#configurator",
+                  name: "Konfigurator ormana",
+                  description:
+                    "Besplatan 3D konfigurator za dizajniranje ormana po meri. Birajte dimenzije, materijale, vrata i dodatke.",
+                  url: "/design",
+                  applicationCategory: "DesignApplication",
+                  operatingSystem: "All",
+                  browserRequirements: "Requires JavaScript and WebGL",
+                  offers: {
+                    "@type": "Offer",
+                    price: "0",
+                    priceCurrency: "RSD",
+                  },
+                  creator: { "@id": "/#organization" },
+                  featureList:
+                    "3D vizualizacija, Izbor materijala, Klizna vrata, Fioke, Police, PDF specifikacija",
+                  inLanguage: "sr-Latn",
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className={`${poppins.variable} ${poppins.className} antialiased`}>
         <NextTopLoader color="#7c3aed" showSpinner={false} />

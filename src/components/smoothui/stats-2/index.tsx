@@ -32,7 +32,7 @@ const iconMap = {
 };
 
 export function StatsCards({
-  title = "Zašto ShelfBuilder?",
+  title = "Zašto Polica po meri?",
   description = "Brojke koje govore umesto nas",
   stats = [
     {
@@ -67,7 +67,7 @@ export function StatsCards({
   const isInView = useInView(ref, { once: true });
 
   return (
-    <section className="py-20">
+    <section className="py-10 lg:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <motion.div
           className="mb-16 text-center"

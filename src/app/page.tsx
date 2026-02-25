@@ -1,27 +1,39 @@
+import { FaqSearchable } from "@/components/smoothui/faq-3";
+import { FooterComplex } from "@/components/smoothui/footer-2";
+import { HeroGrid } from "@/components/smoothui/header-1";
 import { StatsCards } from "@/components/smoothui/stats-2";
+import { TestimonialsStars } from "@/components/smoothui/testimonials";
+import { faqJsonLd } from "@/lib/faq-data";
 
 export default function HomePage() {
   return (
     <main>
-      <section className="flex min-h-screen flex-col items-center justify-center px-6 py-16 md:p-24 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            Platforma za dizajn ormana
-          </h1>
-          <p className="mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-            Buducnost dizajna ormana po meri.
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <HeroGrid />
+      <StatsCards />
+      <FaqSearchable />
+      <TestimonialsStars />
+      <section className="py-10 lg:py-20 text-center">
+        <div className="mx-auto max-w-2xl px-6">
+          <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
+            Spremni da započnete?
+          </h2>
+          <p className="mx-auto mb-8 max-w-xl text-foreground/70 text-lg">
+            Vaš savršen orman je samo par klikova daleko. Pokrenite konfigurator
+            i dizajnirajte orman koji odgovara vašem prostoru.
           </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/design"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-white shadow hover:opacity-90 transition"
-            >
-              Pocni sa dizajnom
-            </a>
-          </div>
+          <a
+            href="/design"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition"
+          >
+            Pokrenite konfigurator
+          </a>
         </div>
       </section>
-      <StatsCards />
+      <FooterComplex />
     </main>
   );
 }

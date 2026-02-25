@@ -1,0 +1,22 @@
+.mainGrid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  border: 0.5px solid color-mix(in oklch, var(--border) 40%, transparent);
+}
+
+.cell {
+  border: 0.5px solid color-mix(in oklch, var(--border) 20%, transparent);
+  transition: background 0.3s ease;
+  cursor: pointer;
+}
+
+.cell:hover {
+  opacity: 0.6;
+}
