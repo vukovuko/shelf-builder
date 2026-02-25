@@ -9,7 +9,7 @@ const menuItems: { id: string; name: string; href: string }[] = [
   { id: "home", name: "Početna", href: "/" },
   { id: "design", name: "Konfigurator", href: "/design" },
   { id: "blog", name: "Blog", href: "/blog" },
-  { id: "faq", name: "Kontakt", href: "/faq" },
+  { id: "contact", name: "Kontakt", href: "/contact" },
 ];
 
 // Animation constants

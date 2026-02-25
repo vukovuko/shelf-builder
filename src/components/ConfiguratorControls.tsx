@@ -271,7 +271,7 @@ export function ConfiguratorControls({
       toast.success(`"${wardrobeName}" je sačuvan`, {
         action: {
           label: "Pogledaj",
-          onClick: () => router.push("/wardrobes"),
+          onClick: () => router.push("/account/wardrobes"),
         },
       });
       setSaveDialogOpen(false);
@@ -794,28 +794,28 @@ export function ConfiguratorControls({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/wardrobes" className="flex items-center">
+                <Link href="/account/wardrobes" className="flex items-center">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   Moji Ormani
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuItem asChild>
-                <Link href="/orders" className="flex items-center">
+                <Link href="/account/orders" className="flex items-center">
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Porudžbine
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuItem asChild>
-                <Link href="/account" className="flex items-center">
+                <Link href="/account/settings" className="flex items-center">
                   <Settings className="h-4 w-4 mr-2" />
                   Nalog
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuItem asChild>
-                <Link href="/contact" className="flex items-center">
+                <Link href="/account/contact" className="flex items-center">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Kontakt
                 </Link>

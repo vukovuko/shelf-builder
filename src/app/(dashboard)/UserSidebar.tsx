@@ -30,22 +30,22 @@ const navItems = [
   },
   {
     title: "Moji ormani",
-    href: "/wardrobes",
+    href: "/account/wardrobes",
     icon: FolderOpen,
   },
   {
     title: "Porudžbine",
-    href: "/orders",
+    href: "/account/orders",
     icon: ShoppingBag,
   },
   {
     title: "Nalog",
-    href: "/account",
+    href: "/account/settings",
     icon: User,
   },
   {
     title: "Kontakt",
-    href: "/contact",
+    href: "/account/contact",
     icon: MessageSquare,
   },
 ];
@@ -62,7 +62,7 @@ export function UserSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-3">
         <Link
-          href="/wardrobes"
+          href="/account/wardrobes"
           className="flex items-center gap-2"
           onClick={handleLinkClick}
         >
@@ -80,7 +80,7 @@ export function UserSidebar() {
               {navItems.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/wardrobes" &&
+                  (item.href !== "/account/wardrobes" &&
                     pathname.startsWith(item.href));
 
                 return (

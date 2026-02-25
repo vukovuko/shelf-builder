@@ -58,7 +58,7 @@ export function LockedPreviewBar() {
 
   function handleBack() {
     setIsPreviewMode(false);
-    router.push("/wardrobes");
+    router.push("/account/wardrobes");
   }
 
   return (
