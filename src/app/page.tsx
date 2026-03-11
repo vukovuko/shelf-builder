@@ -26,6 +26,45 @@ const organizationJsonLd = {
     "https://www.instagram.com/vuko_vukasinovic/",
     "https://www.linkedin.com/in/vuko-vukasinovic/",
   ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Usluge",
+    itemListElement: [
+      {
+        "@type": "OfferCatalog",
+        name: "Izrada nameštaja po meri",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Izrada ormana po meri",
+              description:
+                "Profesionalna izrada ormana, plakara i polica po meri od premium materijala. Preko 30 dostupnih materijala.",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Montaža nameštaja",
+              description:
+                "Stručna montaža ormana i polica na lokaciji. Tim iskusnih montažera obezbeđuje preciznu ugradnju.",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Dostava nameštaja",
+              description:
+                "Dostava gotovog nameštaja na adresu. Sigurno pakovanje i transport do vašeg doma.",
+            },
+          },
+        ],
+      },
+    ],
+  },
 };
 
 export default function HomePage() {

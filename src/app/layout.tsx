@@ -13,7 +13,11 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
   title: "Ormani po meri | 3D Konfigurator za Ormare i Police po Meri",
   description:
     "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke. Preko 30 premium materijala. Preuzmite PDF specifikaciju.",
@@ -79,6 +83,7 @@ export const metadata: Metadata = {
     description:
       "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
     locale: "sr_RS",
+    images: [{ url: "/ormani-po-meri-logo.webp" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -106,34 +111,22 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@graph": [
                 {
-                  "@type": "Organization",
-                  "@id": "/#organization",
-                  name: "Ormani po meri",
-                  url: "/",
-                  logo: {
-                    "@type": "ImageObject",
-                    url: "/ormani-po-meri-logo.webp",
-                  },
-                  description:
-                    "Profesionalni 3D konfigurator za dizajniranje ormana i polica po meri.",
-                },
-                {
                   "@type": "WebSite",
-                  "@id": "/#website",
-                  url: "/",
+                  "@id": `${baseUrl}/#website`,
+                  url: baseUrl,
                   name: "Ormani po meri",
                   description:
                     "Dizajnirajte orman po meri online uz besplatan 3D konfigurator.",
-                  publisher: { "@id": "/#organization" },
+                  publisher: { "@id": `${baseUrl}/#organization` },
                   inLanguage: "sr-Latn",
                 },
                 {
                   "@type": "WebApplication",
-                  "@id": "/design#configurator",
+                  "@id": `${baseUrl}/design#configurator`,
                   name: "Konfigurator ormana",
                   description:
                     "Besplatan 3D konfigurator za dizajniranje ormana po meri. Birajte dimenzije, materijale, vrata i dodatke.",
-                  url: "/design",
+                  url: `${baseUrl}/design`,
                   applicationCategory: "DesignApplication",
                   operatingSystem: "All",
                   browserRequirements: "Requires JavaScript and WebGL",
@@ -142,7 +135,7 @@ export default function RootLayout({
                     price: "0",
                     priceCurrency: "RSD",
                   },
-                  creator: { "@id": "/#organization" },
+                  creator: { "@id": `${baseUrl}/#organization` },
                   featureList:
                     "3D vizualizacija, Izbor materijala, Klizna vrata, Fioke, Police, PDF specifikacija",
                   inLanguage: "sr-Latn",
