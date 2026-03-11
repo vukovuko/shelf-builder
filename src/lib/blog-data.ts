@@ -94,6 +94,83 @@ Unutrašnjost ormana prilagodite vašim potrebama:
 
 Najlakši način da dizajnirate orman po meri je da pokrenete naš [besplatni 3D konfigurator](/design). Za par minuta možete kreirati orman po vašim merama, izabrati materijale i videti rezultat uživo u 3D prikazu. Na kraju dobijate detaljnu specifikaciju sa cenama.`,
   },
+  {
+    slug: "organizacija-ormana-saveti",
+    title: "Kako organizovati orman: 7 praktičnih saveta za više prostora",
+    description:
+      "Naučite kako da maksimalno iskoristite prostor u ormanu. Praktični saveti za raspored polica, fioka i vešalica koji donose red i preglednost.",
+    date: "2026-03-10",
+    readTime: "6 min",
+    content: `Kupili ste orman, ali odeća se i dalje gomila? Problem obično nije u veličini ormana, već u organizaciji. Sa pravim rasporedom unutrašnjosti, čak i manji orman može da primi iznenađujuće mnogo stvari — i da sve bude na dohvat ruke.
+
+## 1. Podelite orman na zone
+
+Efikasna organizacija počinje podelom ormana na zone prema učestalosti korišćenja:
+
+- **Zona na dohvat ruke (90–170cm)** — svakodnevna odeća. Ovde idu košulje, majice, pantalone i haljine koje nosite redovno.
+- **Gornja zona (iznad 170cm)** — sezonska odeća i stvari koje ređe koristite. Zimske jakne leti, letnje haljine zimi, putni koferi.
+- **Donja zona (ispod 90cm)** — cipele, teže stvari i fioke za donji veš i aksesoar.
+
+U našem konfiguratoru ovo možete postići kombinacijom polica, šipke za vešalice i fioka u različitim kolonama.
+
+## 2. Koristite vertikalni prostor
+
+Većina ljudi ne koristi gornji deo ormana dovoljno. Evo kako da to promenite:
+
+- **Dupla šipka** — umesto jedne šipke na 170cm, stavite dve: jednu na 170cm za duže komade i jednu na 100cm za košulje i sakoe. Kolona širine 60–80cm je idealna za ovo.
+- **Police do vrha** — dodajte police iznad šipke za vešalice. Korpe i kutije na policama čuvaju sezonsku odeću uredno.
+- **Vertikalni pregradnik** — deli široku kolonu na dva dela za bolje razdvajanje kategorija odeće.
+
+## 3. Fioke su vaš najbolji prijatelj
+
+Fioke čuvaju stvari preglednim i čistim. Za razliku od polica gde se gomile odeće mešaju, fioke imaju jasne granice:
+
+- **Donji veš i čarape** — jedna do dve fioke su dovoljne za većinu ljudi.
+- **Majice i preklop** — umesto gomile na polici, složite majice u fioke vertikalnim pregibom (KonMari metod).
+- **Aksesoar** — kravate, kaiševi, nakit — sve na jednom mestu.
+
+Preporučujemo 3–5 fioka na dnu jedne kolone. Naš konfigurator automatski raspoređuje fioke sa optimalnim razmakom.
+
+## 4. Prilagodite police razmacima
+
+Greška koju mnogi prave: police na jednakim razmacima. Umesto toga, prilagodite razmak sadržaju:
+
+- **25–30cm razmak** — za složenu odeću (majice, džemperi).
+- **35–40cm razmak** — za posteljinu, peškire, torbe.
+- **15–20cm razmak** — za cipele (idealno u donjem delu).
+
+U konfiguratoru možete dodavati police u svakom odeljku i rasporediti ih prema potrebi.
+
+## 5. Odvojite svakodnevno od sezonskog
+
+Jedan od najvažnijih principa organizacije: ne trpajte sve u isti prostor.
+
+- **Prednja strana ormana** — odeća za trenutnu sezonu.
+- **Gornje police** — vansezonska odeća u vakuum kesama ili kutijama.
+- **Zasebna kolona** — ako imate prostora, posvetite jednu kolonu isključivo sezonskim stvarima i rotiranje radite dva puta godišnje.
+
+## 6. Iskoristite vrata ormana
+
+Unutrašnja strana vrata je često zapostavljen prostor:
+
+- **Kukice** — za kaiševi, torbice, šalove.
+- **Organajzeri koji vise** — za cipele, aksesoar ili sredstva za čišćenje.
+- **Ogledalo** — praktično i vizuelno povećava prostor.
+
+Ovo važi za krilna vrata. Ako birate klizna vrata, imajte u vidu da nemaju unutrašnji prostor za dodatke.
+
+## 7. Održavajte sistem
+
+Najbolja organizacija ne vredi ako je ne održavate. Jednostavna pravila:
+
+- **Pravilo „jedna unutra, jedna napolje"** — kad kupite nešto novo, odložite nešto staro.
+- **Sezonska revizija** — dva puta godišnje pregledajte sadržaj i odložite ono što ne nosite.
+- **Vraćajte na mesto** — 30 sekundi da vratite stvar na mesto je bolje od sata organizovanja vikendom.
+
+## Dizajnirajte orman koji radi za vas
+
+Organizacija počinje od dobrog dizajna. Naš [besplatni 3D konfigurator](/design) vam omogućava da isplanirate svaku kolonu, policu i fioku pre izrade. Vidite rezultat uživo u 3D prikazu, menjajte raspored dok ne pronađete savršenu kombinaciju — i naručite orman koji je od prvog dana organizovan.`,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
