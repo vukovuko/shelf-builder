@@ -8,53 +8,41 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: new Date(post.date),
-    changeFrequency: "monthly",
-    priority: 0.6,
   }));
 
   return [
     {
       url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 1,
+      lastModified: new Date("2026-03-11"),
     },
     {
       url: `${baseUrl}/design`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.9,
+      lastModified: new Date("2026-03-11"),
     },
     {
       url: `${baseUrl}/blog`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.7,
+      lastModified: new Date(
+        blogPosts.length > 0
+          ? blogPosts[blogPosts.length - 1].date
+          : "2026-03-10",
+      ),
     },
     ...blogEntries,
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
+      lastModified: new Date("2026-03-10"),
     },
     {
       url: `${baseUrl}/faq`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
+      lastModified: new Date("2026-02-20"),
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
+      lastModified: new Date("2026-02-15"),
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
+      lastModified: new Date("2026-02-15"),
     },
   ];
 }
