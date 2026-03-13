@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
   const image = post.image ?? "/ormani-po-meri-logo.webp";
   return {
-    title: `${post.title} | Ormani po meri`,
+    title: post.title,
     description: post.description,
     openGraph: {
       title: post.title,

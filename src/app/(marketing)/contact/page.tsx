@@ -6,9 +6,9 @@ import { HeroHeader } from "@/components/smoothui/shared";
 import { PublicContactForm } from "./PublicContactForm";
 
 export const metadata: Metadata = {
-  title: "Kontakt | Ormani po meri",
+  title: "Kontakt | Ormani po Meri — Pošaljite Nam Poruku",
   description:
-    "Kontaktirajte nas za sva pitanja o ormanima po meri, konfiguratoru, materijalima, cenama i isporuci.",
+    "Imate pitanje o ormanima po meri? Kontaktirajte nas za konsultacije o dimenzijama, materijalima, cenama, izradi, montaži i dostavi nameštaja po meri.",
 };
 
 export default async function ContactPage() {

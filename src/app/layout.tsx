@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "Ormani po meri | 3D Konfigurator za Ormare i Police po Meri",
   description:
-    "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke. Preko 30 premium materijala. Preuzmite PDF specifikaciju.",
+    "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke. Preko 30 premium materijala.",
   keywords: [
     "ormani po meri",
     "police po meri",
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: "/",
+    canonical: "./",
   },
   robots: {
     index: true,

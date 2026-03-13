@@ -6,18 +6,18 @@ import { HeroHeader } from "@/components/smoothui/shared";
 import { blogPosts, formatDate } from "@/lib/blog-data";
 
 export const metadata: Metadata = {
-  title: "Blog | Ormani po meri",
+  title: "Blog o Ormanima po Meri | Saveti za Uređenje Doma",
   description:
-    "Saveti, vodiči i inspiracija za uređenje doma. Saznajte sve o ormanima po meri, materijalima i organizaciji prostora.",
+    "Praktični saveti za izbor i organizaciju ormana po meri. Vodiči za materijale, dimenzije, unutrašnju opremu i dizajn nameštaja za vaš dom.",
 };
 
 export default function BlogPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Blog | Ormani po meri",
+    name: "Blog o Ormanima po Meri | Saveti za Uređenje Doma",
     description:
-      "Saveti, vodiči i inspiracija za uređenje doma. Saznajte sve o ormanima po meri, materijalima i organizaciji prostora.",
+      "Praktični saveti za izbor i organizaciju ormana po meri. Vodiči za materijale, dimenzije, unutrašnju opremu i dizajn nameštaja za vaš dom.",
     inLanguage: "sr-Latn",
     mainEntity: {
       "@type": "ItemList",

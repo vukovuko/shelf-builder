@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -11,6 +12,12 @@ import {
   user,
 } from "@/db/schema";
 import { DesignLayoutClient } from "./DesignLayoutClient";
+
+export const metadata: Metadata = {
+  title: "3D Konfigurator Ormana | Dizajnirajte Ormar po Meri Online",
+  description:
+    "Besplatan 3D konfigurator za ormare po meri. Birajte dimenzije, materijale, police, fioke i vrata. Vizualizujte orman uživo i preuzmite PDF specifikaciju.",
+};
 
 export default async function DesignLayout({
   children,

@@ -5,7 +5,7 @@ import { HeroHeader } from "@/components/smoothui/shared";
 import { faqJsonLd } from "@/lib/faq-data";
 
 export const metadata: Metadata = {
-  title: "Česta pitanja | Ormani po meri",
+  title: "Česta Pitanja o Ormanima po Meri | FAQ",
   description:
     "Odgovori na najčešća pitanja o konfiguratoru ormana po meri. Saznajte sve o dimenzijama, materijalima, kliznim vratima, cenama i naručivanju.",
 };
