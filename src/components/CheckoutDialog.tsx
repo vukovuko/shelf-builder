@@ -388,28 +388,39 @@ export function CheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:!max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="sm:!max-w-3xl max-h-[90vh] !p-0 !gap-0 flex flex-col overflow-hidden">
         {orderSuccess ? (
-          <OrderSuccess
-            orderSuccess={orderSuccess}
-            totalPrice={orderData.totalPrice}
-            adjustedTotal={orderSuccess.adjustedTotal}
-            visibleAdjustments={orderSuccess.visibleAdjustments}
-            formatPrice={formatPrice}
-            onClose={handleClose}
-          />
+          <div className="overflow-y-auto p-6">
+            <OrderSuccess
+              orderSuccess={orderSuccess}
+              totalPrice={orderData.totalPrice}
+              adjustedTotal={orderSuccess.adjustedTotal}
+              visibleAdjustments={orderSuccess.visibleAdjustments}
+              formatPrice={formatPrice}
+              onClose={handleClose}
+            />
+          </div>
         ) : (
           // Checkout Form
-          <>
-            <DialogHeader className="text-left">
-              <DialogTitle className="flex items-start gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Poruči orman
-              </DialogTitle>
-              <DialogDescription>Popunite podatke za dostavu</DialogDescription>
-            </DialogHeader>
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col min-h-0 flex-1"
+          >
+            {/* Sticky Header */}
+            <div className="flex-shrink-0 border-b px-4 sm:px-6 pt-5 pb-3 sm:pt-6 sm:pb-4">
+              <DialogHeader className="text-left">
+                <DialogTitle className="flex items-start gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Poruči orman
+                </DialogTitle>
+                <DialogDescription>
+                  Popunite podatke za dostavu
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 min-w-0">
               {/* Order Summary */}
               <OrderSummaryTable
                 orderData={orderData}
@@ -635,8 +646,11 @@ export function CheckoutDialog({
                   </p>
                 )}
               </div>
+            </div>
 
-              <DialogFooter className="pt-4">
+            {/* Sticky Footer */}
+            <div className="flex-shrink-0 border-t px-4 sm:px-6 py-3 sm:py-4">
+              <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
@@ -670,8 +684,8 @@ export function CheckoutDialog({
                   )}
                 </Button>
               </DialogFooter>
-            </form>
-          </>
+            </div>
+          </form>
         )}
       </DialogContent>
     </Dialog>
