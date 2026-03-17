@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { authClient } from "@/lib/auth-client";
 
@@ -431,7 +430,7 @@ export function AccountClient({ user }: AccountClientProps) {
 
       <div className="space-y-6">
         {/* Personal Info */}
-        <Card className="overflow-hidden">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
             <User className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -593,28 +592,15 @@ export function AccountClient({ user }: AccountClientProps) {
               {user.createdAt ? formatDate(user.createdAt) : "N/A"}
             </p>
           </div>
-        </Card>
+        </div>
 
         {/* Shipping Address */}
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Adresa za dostavu
-              </h2>
-            </div>
-            {!isEditingAddress && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setIsEditingAddress(true)}
-              >
-                <Pencil className="h-3 w-3 mr-1.5" />
-                {hasAddress ? "Izmeni" : "Dodaj"}
-              </Button>
-            )}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Adresa za dostavu
+            </h2>
           </div>
 
           <div className="px-5 py-4">
@@ -747,28 +733,37 @@ export function AccountClient({ user }: AccountClientProps) {
                   </Button>
                 </div>
               </div>
-            ) : hasAddress ? (
-              <div className="text-sm space-y-0.5">
-                <p>{user.shippingStreet}</p>
-                {user.shippingApartment && (
-                  <p className="text-muted-foreground">
-                    {user.shippingApartment}
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-left group"
+                onClick={() => setIsEditingAddress(true)}
+              >
+                {hasAddress ? (
+                  <div className="text-sm space-y-0.5">
+                    <p>{user.shippingStreet}</p>
+                    {user.shippingApartment && (
+                      <p className="text-muted-foreground">
+                        {user.shippingApartment}
+                      </p>
+                    )}
+                    <p className="text-muted-foreground">
+                      {user.shippingPostalCode} {user.shippingCity}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Dodajte adresu za dostavu
                   </p>
                 )}
-                <p className="text-muted-foreground">
-                  {user.shippingPostalCode} {user.shippingCity}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Dodajte adresu da biste ubrzali proces naručivanja.
-              </p>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </button>
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Notifications */}
-        <Card className="overflow-hidden">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
             <Bell className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -788,7 +783,7 @@ export function AccountClient({ user }: AccountClientProps) {
               onCheckedChange={handleToggleNewsletter}
             />
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

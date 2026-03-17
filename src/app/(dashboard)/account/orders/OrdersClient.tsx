@@ -1,10 +1,9 @@
 "use client";
 
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -13,6 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { formatDateSrLatn } from "@/lib/date-format";
 
 interface Order {
   id: string;
@@ -96,19 +96,11 @@ function getFulfillmentBadgeVariant(
 }
 
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat("sr-RS", {
+  return new Intl.NumberFormat("sr-Latn-RS", {
     style: "decimal",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
-}
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString("sr-RS", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 interface OrdersClientProps {
@@ -118,13 +110,11 @@ interface OrdersClientProps {
 export function OrdersClient({ orders }: OrdersClientProps) {
   return (
     <div className="mx-auto max-w-5xl py-10 px-4">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Moje Porudžbine</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Pregled vaših porudžbina
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Moje Porudžbine</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Pregled vaših porudžbina
+        </p>
       </div>
 
       {orders.length === 0 ? (
@@ -145,46 +135,57 @@ export function OrdersClient({ orders }: OrdersClientProps) {
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="space-y-4">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden divide-y divide-border">
           {orders.map((order) => (
-            <Card key={order.id} className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-lg">
-                      #{order.orderNumber}
-                    </span>
-                    {order.status === "cancelled" && (
-                      <Badge variant="destructive">
-                        {statusLabels[order.status]}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(order.createdAt)}
-                  </p>
+            <Link
+              key={order.id}
+              href={`/account/orders/${order.id}`}
+              className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors group"
+            >
+              {/* Left: order number + date */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">
+                    #{order.orderNumber}
+                  </span>
+                  {order.status === "cancelled" && (
+                    <Badge
+                      variant="destructive"
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {statusLabels[order.status]}
+                    </Badge>
+                  )}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={getPaymentBadgeVariant(order.paymentStatus)}>
-                    {paymentLabels[order.paymentStatus]}
-                  </Badge>
-                  <Badge
-                    variant={getFulfillmentBadgeVariant(
-                      order.fulfillmentStatus,
-                    )}
-                  >
-                    {fulfillmentLabels[order.fulfillmentStatus]}
-                  </Badge>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-semibold text-lg">
-                    {formatPrice(order.adjustedTotal ?? order.totalPrice)} RSD
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatDateSrLatn(order.createdAt)}
+                </p>
               </div>
-            </Card>
+
+              {/* Middle: status badges */}
+              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                <Badge
+                  variant={getPaymentBadgeVariant(order.paymentStatus)}
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {paymentLabels[order.paymentStatus]}
+                </Badge>
+                <Badge
+                  variant={getFulfillmentBadgeVariant(order.fulfillmentStatus)}
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {fulfillmentLabels[order.fulfillmentStatus]}
+                </Badge>
+              </div>
+
+              {/* Right: price + chevron */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatPrice(order.adjustedTotal ?? order.totalPrice)} RSD
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </Link>
           ))}
         </div>
       )}
