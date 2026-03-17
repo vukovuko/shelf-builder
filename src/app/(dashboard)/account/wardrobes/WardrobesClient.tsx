@@ -187,19 +187,16 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4">
+    <div className="mx-auto max-w-4xl py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Moji Ormani</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold">Moji Ormani</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Upravljajte sačuvanim dizajnima ormana
           </p>
         </div>
         <Link href="/design">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novi Orman
-          </Button>
+          <Button>Novi orman</Button>
         </Link>
       </div>
 
@@ -224,7 +221,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {wardrobes.map((wardrobe) => (
             <Card
               key={wardrobe.id}
@@ -235,7 +232,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                 {wardrobe.thumbnail ? (
                   <img
                     src={wardrobe.thumbnail}
-                    alt={wardrobe.name}
+                    alt={`Pregled ormana: ${wardrobe.name}`}
                     className="object-cover w-full h-full"
                   />
                 ) : (

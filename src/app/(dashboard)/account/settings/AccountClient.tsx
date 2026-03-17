@@ -4,7 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Pencil, X, Check, Loader2, Mail, MapPin, Bell } from "lucide-react";
+import {
+  Pencil,
+  X,
+  Check,
+  Loader2,
+  Mail,
+  MapPin,
+  Bell,
+  User,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,8 +38,8 @@ const nameSchema = z
 const phoneSchema = z
   .string()
   .regex(
-    /^(\+?[1-9]\d{6,14})?$/,
-    "Nevažeći format telefona (npr. +381601234567)",
+    /^(\+?\d[\d\s\-]{5,18})?$/,
+    "Nevažeći format telefona (npr. 063 855 9864 ili +381601234567)",
   )
   .or(z.literal(""));
 
@@ -375,14 +385,12 @@ export function AccountClient({ user }: AccountClientProps) {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Podešavanja naloga</h1>
-          <p className="text-muted-foreground mt-1">
-            Upravljajte informacijama o vašem nalogu
-          </p>
-        </div>
+    <div className="mx-auto max-w-2xl py-10 px-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Podešavanja naloga</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Upravljajte informacijama o vašem nalogu
+        </p>
       </div>
 
       {/* Email Verification Banner */}
@@ -421,317 +429,367 @@ export function AccountClient({ user }: AccountClientProps) {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {/* Name - Editable */}
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Ime
-          </label>
-          {isEditingName ? (
-            <div className="flex items-center gap-2 mt-1">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isLoading}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveName();
-                  if (e.key === "Escape") handleCancelEditName();
-                }}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleSaveName}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleCancelEditName}
-                disabled={isLoading}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="text-base">{user.name}</p>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setIsEditingName(true)}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Email
-          </label>
-          <p className="text-base">{user.email}</p>
-        </div>
-
-        {/* Phone - Editable */}
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Telefon
-          </label>
-          {isEditingPhone ? (
-            <div className="flex items-center gap-2 mt-1">
-              <Input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={isLoading}
-                autoFocus
-                placeholder="+381 60 123 4567"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSavePhone();
-                  if (e.key === "Escape") handleCancelEditPhone();
-                }}
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleSavePhone}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleCancelEditPhone}
-                disabled={isLoading}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="text-base">{user.phone || "Nije unet"}</p>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setIsEditingPhone(true)}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Created At */}
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">
-            Nalog kreiran
-          </label>
-          <p className="text-base">
-            {user.createdAt ? formatDate(user.createdAt) : "N/A"}
-          </p>
-        </div>
-
-        {/* Email Verified */}
-        {user.emailVerified !== undefined && (
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
-              Email verifikovan
-            </label>
-            <p className="text-base">
-              {user.emailVerified ? "✓ Verifikovan" : "✗ Nije verifikovan"}
-            </p>
+      <div className="space-y-6">
+        {/* Personal Info */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Lični podaci
+            </h2>
           </div>
-        )}
-      </div>
 
-      {/* Shipping Address Section */}
-      <Card className="mt-8 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Adresa za dostavu</h2>
-          </div>
-          {!isEditingAddress && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditingAddress(true)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              {hasAddress ? "Izmeni" : "Dodaj"}
-            </Button>
-          )}
-        </div>
-
-        {isEditingAddress ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-4">
-              <div className="relative" ref={suggestionRef}>
-                <Label htmlFor="shippingStreet">Ulica i broj *</Label>
-                <div className="relative">
+          {/* Name */}
+          <div className="px-5 py-4 border-b border-border">
+            {isEditingName ? (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Ime
+                </label>
+                <div className="flex items-center gap-2 mt-1.5">
                   <Input
-                    id="shippingStreet"
-                    value={addressData.shippingStreet}
-                    onChange={(e) => handleStreetChange(e.target.value)}
-                    onFocus={() =>
-                      suggestions.length > 0 && setShowSuggestions(true)
-                    }
-                    placeholder="Bulevar Kralja Aleksandra 123"
-                    className="mt-1"
-                    autoComplete="off"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
+                    autoFocus
+                    autoComplete="name"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") handleCancelEditName();
+                    }}
                   />
-                  {loadingSuggestions && (
-                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
-                      {suggestions.map((s) => (
-                        <button
-                          key={s.placeId}
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
-                          onClick={() => handleSelectSuggestion(s)}
-                        >
-                          <div className="font-medium text-sm">
-                            {s.mainText}
-                          </div>
-                          {s.secondaryText && (
-                            <div className="text-xs text-muted-foreground">
-                              {s.secondaryText}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                    disabled={isLoading}
+                    className="shrink-0"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditName}
+                    disabled={isLoading}
+                    className="shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="shippingApartment">Sprat/Stan</Label>
-                <Input
-                  id="shippingApartment"
-                  value={addressData.shippingApartment}
-                  onChange={(e) =>
-                    setAddressData((prev) => ({
-                      ...prev,
-                      shippingApartment: e.target.value,
-                    }))
-                  }
-                  placeholder="3/12"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
-              <div>
-                <Label htmlFor="shippingCity">Grad/Opština *</Label>
-                <Input
-                  id="shippingCity"
-                  value={addressData.shippingCity}
-                  onChange={(e) =>
-                    setAddressData((prev) => ({
-                      ...prev,
-                      shippingCity: e.target.value,
-                    }))
-                  }
-                  placeholder="Beograd"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="shippingPostalCode">Poštanski broj *</Label>
-                <Input
-                  id="shippingPostalCode"
-                  value={addressData.shippingPostalCode}
-                  onChange={(e) =>
-                    setAddressData((prev) => ({
-                      ...prev,
-                      shippingPostalCode: e.target.value,
-                    }))
-                  }
-                  placeholder="11000"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={handleCancelEditAddress}
-                disabled={isLoading}
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-left group"
+                onClick={() => setIsEditingName(true)}
               >
-                Otkaži
-              </Button>
-              <Button onClick={handleSaveAddress} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Čuvanje...
-                  </>
-                ) : (
-                  "Sačuvaj adresu"
-                )}
-              </Button>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Ime
+                  </p>
+                  <p className="text-sm mt-0.5">{user.name}</p>
+                </div>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </div>
+
+          {/* Email */}
+          <div className="px-5 py-4 border-b border-border">
+            <p className="text-xs font-medium text-muted-foreground">Email</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-sm">{user.email}</p>
+              {user.emailVerified !== undefined && (
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                    user.emailVerified
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "bg-amber-500/15 text-amber-400",
+                  )}
+                >
+                  {user.emailVerified ? "Verifikovan" : "Nije verifikovan"}
+                </span>
+              )}
             </div>
           </div>
-        ) : hasAddress ? (
-          <div className="text-sm space-y-1">
-            <p className="font-medium">{user.shippingStreet}</p>
-            {user.shippingApartment && (
-              <p className="text-muted-foreground">{user.shippingApartment}</p>
+
+          {/* Phone */}
+          <div className="px-5 py-4 border-b border-border">
+            {isEditingPhone ? (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Telefon
+                </label>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={isLoading}
+                    autoFocus
+                    autoComplete="tel"
+                    placeholder="+381 60 123 4567"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSavePhone();
+                      if (e.key === "Escape") handleCancelEditPhone();
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleSavePhone}
+                    disabled={isLoading}
+                    className="shrink-0"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleCancelEditPhone}
+                    disabled={isLoading}
+                    className="shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-left group"
+                onClick={() => setIsEditingPhone(true)}
+              >
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Telefon
+                  </p>
+                  <p className="text-sm mt-0.5">
+                    {user.phone || (
+                      <span className="text-muted-foreground italic">
+                        Dodajte broj telefona
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
             )}
-            <p className="text-muted-foreground">
-              {user.shippingPostalCode} {user.shippingCity}
-            </p>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Niste dodali adresu za dostavu. Dodajte adresu da biste ubrzali
-            proces naručivanja.
-          </p>
-        )}
-      </Card>
 
-      {/* Notifications Section */}
-      <Card className="mt-6 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Obaveštenja</h2>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Novosti i promocije</p>
+          {/* Created At — subtle footer */}
+          <div className="px-5 py-3 bg-muted/30">
             <p className="text-xs text-muted-foreground">
-              Primajte email o novim materijalima, akcijama i savetima.
+              Nalog kreiran{" "}
+              {user.createdAt ? formatDate(user.createdAt) : "N/A"}
             </p>
           </div>
-          <Switch
-            checked={receiveNewsletter}
-            onCheckedChange={handleToggleNewsletter}
-          />
-        </div>
-      </Card>
+        </Card>
+
+        {/* Shipping Address */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Adresa za dostavu
+              </h2>
+            </div>
+            {!isEditingAddress && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setIsEditingAddress(true)}
+              >
+                <Pencil className="h-3 w-3 mr-1.5" />
+                {hasAddress ? "Izmeni" : "Dodaj"}
+              </Button>
+            )}
+          </div>
+
+          <div className="px-5 py-4">
+            {isEditingAddress ? (
+              <div className="space-y-4">
+                <div className="relative" ref={suggestionRef}>
+                  <Label htmlFor="shippingStreet" className="text-xs">
+                    Ulica i broj *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="shippingStreet"
+                      value={addressData.shippingStreet}
+                      onChange={(e) => handleStreetChange(e.target.value)}
+                      onFocus={() =>
+                        suggestions.length > 0 && setShowSuggestions(true)
+                      }
+                      placeholder="Bulevar Kralja Aleksandra 123"
+                      className="mt-1"
+                      autoComplete="off"
+                    />
+                    {loadingSuggestions && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.placeId}
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
+                            onClick={() => handleSelectSuggestion(s)}
+                          >
+                            <div className="font-medium text-sm">
+                              {s.mainText}
+                            </div>
+                            {s.secondaryText && (
+                              <div className="text-xs text-muted-foreground">
+                                {s.secondaryText}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="shippingCity" className="text-xs">
+                      Grad/Opština *
+                    </Label>
+                    <Input
+                      id="shippingCity"
+                      value={addressData.shippingCity}
+                      onChange={(e) =>
+                        setAddressData((prev) => ({
+                          ...prev,
+                          shippingCity: e.target.value,
+                        }))
+                      }
+                      placeholder="Beograd"
+                      className="mt-1"
+                      autoComplete="address-level2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="shippingPostalCode" className="text-xs">
+                      Poštanski broj *
+                    </Label>
+                    <Input
+                      id="shippingPostalCode"
+                      value={addressData.shippingPostalCode}
+                      onChange={(e) =>
+                        setAddressData((prev) => ({
+                          ...prev,
+                          shippingPostalCode: e.target.value,
+                        }))
+                      }
+                      placeholder="11000"
+                      className="mt-1"
+                      autoComplete="postal-code"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="shippingApartment" className="text-xs">
+                      Sprat/Stan
+                    </Label>
+                    <Input
+                      id="shippingApartment"
+                      value={addressData.shippingApartment}
+                      onChange={(e) =>
+                        setAddressData((prev) => ({
+                          ...prev,
+                          shippingApartment: e.target.value,
+                        }))
+                      }
+                      placeholder="3/12"
+                      className="mt-1"
+                      autoComplete="address-line2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelEditAddress}
+                    disabled={isLoading}
+                  >
+                    Otkaži
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAddress}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Čuvanje...
+                      </>
+                    ) : (
+                      "Sačuvaj adresu"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : hasAddress ? (
+              <div className="text-sm space-y-0.5">
+                <p>{user.shippingStreet}</p>
+                {user.shippingApartment && (
+                  <p className="text-muted-foreground">
+                    {user.shippingApartment}
+                  </p>
+                )}
+                <p className="text-muted-foreground">
+                  {user.shippingPostalCode} {user.shippingCity}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Dodajte adresu da biste ubrzali proces naručivanja.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Notifications */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Obaveštenja
+            </h2>
+          </div>
+
+          <div className="flex items-center justify-between px-5 py-4">
+            <div>
+              <p className="text-sm font-medium">Novosti i promocije</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Primajte email o novim materijalima, akcijama i savetima.
+              </p>
+            </div>
+            <Switch
+              checked={receiveNewsletter}
+              onCheckedChange={handleToggleNewsletter}
+            />
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

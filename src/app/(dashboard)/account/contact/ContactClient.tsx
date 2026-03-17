@@ -110,17 +110,17 @@ export function ContactClient({
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4">
+    <div className="mx-auto max-w-2xl py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Kontakt</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold">Kontakt</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Imate pitanje ili sugestiju? Pošaljite nam poruku.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name field */}
         <div className="space-y-2">
           <Label htmlFor="name">
@@ -133,6 +133,7 @@ export function ContactClient({
             onChange={(e) => setName(e.target.value)}
             placeholder="Vaše ime i prezime"
             disabled={sending}
+            autoComplete="name"
           />
         </div>
 
@@ -146,6 +147,7 @@ export function ContactClient({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="vas@email.com"
             disabled={sending}
+            autoComplete="email"
           />
           <p className="text-xs text-muted-foreground">
             Obavezno ako ne unosite broj telefona
@@ -162,6 +164,7 @@ export function ContactClient({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+381 60 123 4567"
             disabled={sending}
+            autoComplete="tel"
           />
           <p className="text-xs text-muted-foreground">
             Obavezno ako ne unosite email

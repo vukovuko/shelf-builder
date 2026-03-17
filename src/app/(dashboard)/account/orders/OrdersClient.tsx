@@ -117,11 +117,13 @@ interface OrdersClientProps {
 
 export function OrdersClient({ orders }: OrdersClientProps) {
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4">
+    <div className="mx-auto max-w-2xl py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Moje Porudžbine</h1>
-          <p className="text-muted-foreground mt-1">Pregled vaših porudžbina</p>
+          <h1 className="text-2xl font-bold">Moje Porudžbine</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Pregled vaših porudžbina
+          </p>
         </div>
       </div>
 

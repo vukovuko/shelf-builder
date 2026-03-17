@@ -494,68 +494,54 @@ export function CheckoutDialog({
               <div className="space-y-1">
                 <h3 className="font-medium text-sm mb-2">Adresa za dostavu</h3>
 
-                <div className="grid grid-cols-[1fr_80px] gap-3">
-                  <div className="relative pb-5" ref={suggestionRef}>
-                    <Label htmlFor="shippingStreet">Ulica i broj *</Label>
-                    <div className="relative">
-                      <Input
-                        id="shippingStreet"
-                        name="shippingStreet"
-                        value={formData.shippingStreet}
-                        onChange={handleStreetChange}
-                        onFocus={() =>
-                          suggestions.length > 0 && setShowSuggestions(true)
-                        }
-                        placeholder="Bulevar Kralja Aleksandra 123"
-                        className={`mt-2 ${errors.shippingStreet ? "border-destructive" : ""}`}
-                        autoComplete="off"
-                      />
-                      {loadingSuggestions && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-1 h-4 w-4 animate-spin text-muted-foreground" />
-                      )}
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
-                          {suggestions.map((s) => (
-                            <button
-                              key={s.placeId}
-                              type="button"
-                              className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
-                              onClick={() => handleSelectSuggestion(s)}
-                            >
-                              <div className="font-medium text-sm">
-                                {s.mainText}
+                <div className="relative pb-5" ref={suggestionRef}>
+                  <Label htmlFor="shippingStreet">Ulica i broj *</Label>
+                  <div className="relative">
+                    <Input
+                      id="shippingStreet"
+                      name="shippingStreet"
+                      value={formData.shippingStreet}
+                      onChange={handleStreetChange}
+                      onFocus={() =>
+                        suggestions.length > 0 && setShowSuggestions(true)
+                      }
+                      placeholder="Bulevar Kralja Aleksandra 123"
+                      className={`mt-2 ${errors.shippingStreet ? "border-destructive" : ""}`}
+                      autoComplete="off"
+                    />
+                    {loadingSuggestions && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 mt-1 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.placeId}
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-accent transition-colors border-b last:border-b-0"
+                            onClick={() => handleSelectSuggestion(s)}
+                          >
+                            <div className="font-medium text-sm">
+                              {s.mainText}
+                            </div>
+                            {s.secondaryText && (
+                              <div className="text-xs text-muted-foreground">
+                                {s.secondaryText}
                               </div>
-                              {s.secondaryText && (
-                                <div className="text-xs text-muted-foreground">
-                                  {s.secondaryText}
-                                </div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {errors.shippingStreet && (
-                      <p className="absolute bottom-0 left-0 text-xs text-destructive">
-                        {errors.shippingStreet}
-                      </p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
-
-                  <div className="relative pb-5">
-                    <Label htmlFor="shippingApartment">Sprat/Stan</Label>
-                    <Input
-                      id="shippingApartment"
-                      name="shippingApartment"
-                      value={formData.shippingApartment}
-                      onChange={handleChange}
-                      placeholder="3/12"
-                      className="mt-2"
-                    />
-                  </div>
+                  {errors.shippingStreet && (
+                    <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                      {errors.shippingStreet}
+                    </p>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-[1fr_80px] sm:grid-cols-[2fr_1fr] gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="relative pb-5">
                     <Label htmlFor="shippingCity">Grad/Opština *</Label>
                     <Input
@@ -588,6 +574,18 @@ export function CheckoutDialog({
                         {errors.shippingPostalCode}
                       </p>
                     )}
+                  </div>
+
+                  <div className="relative pb-5">
+                    <Label htmlFor="shippingApartment">Sprat/Stan</Label>
+                    <Input
+                      id="shippingApartment"
+                      name="shippingApartment"
+                      value={formData.shippingApartment}
+                      onChange={handleChange}
+                      placeholder="3/12"
+                      className="mt-2"
+                    />
                   </div>
                 </div>
               </div>
