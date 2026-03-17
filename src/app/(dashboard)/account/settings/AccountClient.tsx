@@ -493,7 +493,7 @@ export function AccountClient({ user }: AccountClientProps) {
                   </p>
                   <p className="text-sm mt-0.5">{user.name}</p>
                 </div>
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
@@ -580,7 +580,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     )}
                   </p>
                 </div>
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
@@ -756,7 +756,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     Dodajte adresu za dostavu
                   </p>
                 )}
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0" />
               </button>
             )}
           </div>
