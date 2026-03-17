@@ -3,6 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const menuItems: { id: string; name: string; href: string }[] = [
@@ -33,77 +36,64 @@ const TRANSLATE_X_OFFSET = -10;
 
 export const HeroHeader = () => {
   const [menuState, setMenuState] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <div className="relative">
       <header>
-        <nav className="absolute top-0 left-0 z-20 w-full transition-all duration-300">
+        <nav
+          aria-label="Glavna navigacija"
+          className="absolute top-0 left-0 z-20 w-full transition-all duration-300"
+        >
           <div className="mx-auto max-w-5xl px-6">
             <div className="relative flex flex-wrap items-center justify-between gap-6 py-6 transition-all duration-200 lg:gap-0">
               <div className="flex w-full justify-between gap-6 lg:w-auto">
-                <a
+                <Link
                   aria-label="Polica po meri"
                   className="flex items-center gap-2"
                   href="/"
                 >
-                  <img
-                    alt="Ormani po meri"
+                  <Image
+                    alt="Ormani po meri logo"
                     className="h-8 w-auto"
+                    height={32}
+                    priority
                     src="/ormani-po-meri-logo.webp"
+                    width={120}
                   />
-                </a>
+                </Link>
 
                 <button
-                  aria-label={menuState === true ? "Close Menu" : "Open Menu"}
+                  aria-label={menuState ? "Close Menu" : "Open Menu"}
                   className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
                   onClick={() => setMenuState(!menuState)}
                   type="button"
                 >
-                  <AnimatePresence mode="wait">
-                    {menuState ? (
-                      <motion.div
-                        animate={{ opacity: 1, rotate: 0, scale: SCALE_MAX }}
-                        exit={{
-                          opacity: 0,
-                          rotate: -ROTATION_ANGLE,
-                          scale: SCALE_MIN,
-                        }}
-                        initial={{
-                          opacity: 0,
-                          rotate: ROTATION_ANGLE,
-                          scale: SCALE_MIN,
-                        }}
-                        key="close"
-                        transition={{
-                          duration: ANIMATION_DURATION,
-                          ease: EASE_OUT_QUART,
-                        }}
-                      >
-                        <X className="m-auto size-6" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        animate={{ opacity: 1, rotate: 0, scale: SCALE_MAX }}
-                        exit={{
-                          opacity: 0,
-                          rotate: ROTATION_ANGLE,
-                          scale: SCALE_MIN,
-                        }}
-                        initial={{
-                          opacity: 0,
-                          rotate: -ROTATION_ANGLE,
-                          scale: SCALE_MIN,
-                        }}
-                        key="menu"
-                        transition={{
-                          duration: ANIMATION_DURATION,
-                          ease: EASE_OUT_QUART,
-                        }}
-                      >
-                        <Menu className="m-auto size-6" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <div className="relative size-6">
+                    <motion.div
+                      animate={{
+                        opacity: menuState ? 0 : 1,
+                        rotate: menuState ? 90 : 0,
+                      }}
+                      className="absolute inset-0"
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Menu className="size-6" />
+                    </motion.div>
+                    <motion.div
+                      animate={{
+                        opacity: menuState ? 1 : 0,
+                        rotate: menuState ? 0 : -90,
+                      }}
+                      className="absolute inset-0"
+                      transition={{ duration: 0.15 }}
+                    >
+                      <X className="size-6" />
+                    </motion.div>
+                  </div>
                 </button>
 
                 <div className="m-auto hidden size-fit lg:block">
@@ -111,9 +101,15 @@ export const HeroHeader = () => {
                     {menuItems.map((item) => (
                       <li key={item.id}>
                         <Button asChild size="sm" variant="ghost">
-                          <a className="text-base" href={item.href}>
+                          <Link
+                            aria-current={
+                              isActive(item.href) ? "page" : undefined
+                            }
+                            className="text-base hover:text-primary focus-visible:text-primary"
+                            href={item.href}
+                          >
                             <span>{item.name}</span>
-                          </a>
+                          </Link>
                         </Button>
                       </li>
                     ))}
@@ -146,13 +142,16 @@ export const HeroHeader = () => {
                               ease: EASE_OUT_QUART,
                             }}
                           >
-                            <a
-                              className="block text-muted-foreground duration-150 hover:text-accent-foreground"
+                            <Link
+                              aria-current={
+                                isActive(item.href) ? "page" : undefined
+                              }
+                              className="block py-1 text-muted-foreground duration-150 hover:text-accent-foreground focus-visible:text-primary"
                               href={item.href}
                               onClick={() => setMenuState(false)}
                             >
                               <span>{item.name}</span>
-                            </a>
+                            </Link>
                           </motion.li>
                         ))}
                       </ul>
@@ -173,7 +172,7 @@ export const HeroHeader = () => {
                         size="sm"
                         type="button"
                       >
-                        <a href="/design">Započnite dizajn</a>
+                        <Link href="/design">Započnite dizajn</Link>
                       </Button>
                     </motion.div>
                   </motion.div>

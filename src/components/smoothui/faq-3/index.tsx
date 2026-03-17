@@ -11,17 +11,19 @@ export interface FaqSearchableProps {
   searchPlaceholder?: string;
   noResultsText?: string;
   faqs?: FaqItem[];
+  headingAs?: "h1" | "h2";
 }
 
 export function FaqSearchable({
-  title = "Često postavljana pitanja",
+  title = "Često postavljana pitanja o ormanima po meri",
   description = "Pretražite odgovore na najčešća pitanja o konfiguratoru",
   searchPlaceholder = "Pretražite pitanja...",
   noResultsText = "Nema rezultata. Pokušajte sa drugim pojmom.",
   faqs = faqItems,
+  headingAs: Heading = "h2",
 }: FaqSearchableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
   const shouldReduceMotion = useReducedMotion();
 
   const filteredFaqs = useMemo(() => {
@@ -49,20 +51,18 @@ export function FaqSearchable({
     : { type: "spring" as const, duration: 0.25, bounce: 0 };
 
   return (
-    <section id="faq" className="py-10 lg:py-20">
-      <div className="mx-auto max-w-4xl px-6">
+    <section id="faq" className="py-8 lg:py-14">
+      <div className="mx-auto max-w-5xl px-6">
         <motion.div
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-          className="mb-12 text-center"
+          className="mb-12"
           initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
           transition={springTransition}
         >
-          <h2 className="mb-4 font-bold text-3xl text-foreground lg:text-4xl">
+          <Heading className="mb-4 font-bold text-3xl text-foreground lg:text-4xl">
             {title}
-          </h2>
-          <p className="mx-auto max-w-2xl text-foreground/70 text-lg">
-            {description}
-          </p>
+          </Heading>
+          <p className="max-w-2xl text-foreground/70 text-lg">{description}</p>
         </motion.div>
 
         <motion.div
@@ -74,10 +74,10 @@ export function FaqSearchable({
             delay: shouldReduceMotion ? 0 : 0.1,
           }}
         >
-          <Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-foreground/40" />
+          <Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-foreground/50" />
           <input
             aria-label="Search frequently asked questions"
-            className="w-full rounded-xl border border-border bg-background py-4 pr-4 pl-12 text-foreground transition-colors placeholder:text-foreground/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-xl border border-border bg-background py-4 pr-4 pl-12 text-foreground transition-colors placeholder:text-foreground/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setOpenIndex(null);
@@ -142,14 +142,16 @@ export function FaqSearchable({
                     }}
                   >
                     <button
+                      aria-controls={`faq-answer-${originalIndex}`}
                       aria-expanded={isOpen}
                       className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-background/50"
+                      id={`faq-question-${originalIndex}`}
                       onClick={() => toggleAccordion(originalIndex)}
                       type="button"
                     >
-                      <h3 className="pr-4 font-medium text-foreground">
+                      <p className="pr-4 font-medium text-foreground">
                         {faq.question}
-                      </h3>
+                      </p>
                       <motion.div
                         animate={{
                           rotate: isOpen ? 180 : 0,
@@ -172,7 +174,10 @@ export function FaqSearchable({
                               ? { height: "auto", opacity: 1 }
                               : { height: "auto", opacity: 1 }
                           }
+                          aria-labelledby={`faq-question-${originalIndex}`}
                           className="overflow-hidden"
+                          id={`faq-answer-${originalIndex}`}
+                          role="region"
                           exit={
                             shouldReduceMotion
                               ? {

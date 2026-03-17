@@ -1,8 +1,11 @@
 import { FaqSearchable } from "@/components/smoothui/faq-3";
+import { Features } from "@/components/smoothui/features";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroGrid } from "@/components/smoothui/header-1";
 import { StatsCards } from "@/components/smoothui/stats-2";
 import { TestimonialsStars } from "@/components/smoothui/testimonials";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { faqJsonLd } from "@/lib/faq-data";
 
 const baseUrl =
@@ -80,23 +83,17 @@ export default function HomePage() {
       />
       <HeroGrid />
       <StatsCards />
+      <Features />
       <FaqSearchable />
       <TestimonialsStars />
-      <section className="py-10 lg:py-20 text-center">
-        <div className="mx-auto max-w-2xl px-6">
-          <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
+      <section className="py-8 lg:py-14 text-center">
+        <div className="mx-auto max-w-5xl px-6">
+          <p className="mb-8 text-3xl font-bold text-foreground lg:text-4xl">
             Spremni da započnete?
-          </h2>
-          <p className="mx-auto mb-8 max-w-xl text-foreground/70 text-lg">
-            Vaš savršen orman je samo par klikova daleko. Pokrenite konfigurator
-            i dizajnirajte orman koji odgovara vašem prostoru.
           </p>
-          <a
-            href="/design"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition"
-          >
-            Pokrenite konfigurator
-          </a>
+          <Button asChild size="lg">
+            <Link href="/design">Pokrenite konfigurator</Link>
+          </Button>
         </div>
       </section>
       <FooterComplex />

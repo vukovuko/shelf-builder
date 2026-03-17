@@ -32,6 +32,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: post.description,
+    alternates: {
+      canonical: `/blog/${slug}`,
+    },
     openGraph: {
       title: post.title,
       description: post.description,
@@ -125,7 +128,7 @@ export default async function BlogPostPage({ params }: Props) {
       />
       <HeroHeader />
       <main className="pt-24">
-        <article className="py-10 lg:py-20">
+        <article className="py-8 lg:py-14">
           <div className="mx-auto max-w-3xl px-6">
             <Link
               href="/blog"

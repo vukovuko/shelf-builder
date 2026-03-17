@@ -35,6 +35,7 @@ yarn-error.log*
 !.env.example
 .claude/
 docs/
+.impeccable.md
 
 # vercel
 .vercel

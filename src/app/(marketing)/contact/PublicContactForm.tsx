@@ -26,30 +26,36 @@ export function PublicContactForm({
   const [message, setMessage] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!name.trim() || name.trim().length < 2) {
+      newErrors.name = "Ime i prezime je obavezno (min 2 karaktera)";
+    }
+    if (!email.trim() && !phone.trim()) {
+      newErrors.email = "Unesite email ili broj telefona";
+      newErrors.phone = "Unesite email ili broj telefona";
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = "Unesite ispravan email";
+    }
+    if (!message.trim() || message.trim().length < 10) {
+      newErrors.message = "Poruka mora imati najmanje 10 karaktera";
+    }
+    if (!turnstileToken) {
+      newErrors.turnstile = "Molimo sačekajte verifikaciju";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || name.trim().length < 2) {
-      toast.error("Ime i prezime je obavezno (min 2 karaktera)");
-      return;
-    }
-    if (!email.trim() && !phone.trim()) {
-      toast.error("Unesite email ili broj telefona");
-      return;
-    }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.error("Unesite ispravan email");
-      return;
-    }
-    if (!message.trim() || message.trim().length < 10) {
-      toast.error("Poruka mora imati najmanje 10 karaktera");
-      return;
-    }
-    if (!turnstileToken) {
-      toast.error("Molimo sačekajte verifikaciju");
-      return;
-    }
+    if (!validate()) return;
 
     setSending(true);
     try {
@@ -75,6 +81,7 @@ export function PublicContactForm({
         setPhone("");
         setMessage("");
         setTurnstileToken(null);
+        setErrors({});
         turnstileRef.current?.reset();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -90,7 +97,7 @@ export function PublicContactForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-4" noValidate>
       <div className="space-y-2">
         <Label htmlFor="name">
           Ime i prezime <span className="text-destructive">*</span>
@@ -98,11 +105,22 @@ export function PublicContactForm({
         <Input
           id="name"
           type="text"
+          autoComplete="name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (errors.name) setErrors((p) => ({ ...p, name: "" }));
+          }}
           placeholder="Vaše ime i prezime"
           disabled={sending}
+          aria-describedby={errors.name ? "name-error" : undefined}
+          aria-invalid={!!errors.name}
         />
+        {errors.name && (
+          <p id="name-error" className="text-xs text-destructive">
+            {errors.name}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -110,14 +128,26 @@ export function PublicContactForm({
         <Input
           id="email"
           type="email"
+          autoComplete="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) setErrors((p) => ({ ...p, email: "" }));
+          }}
           placeholder="vas@email.com"
           disabled={sending}
+          aria-describedby={errors.email ? "email-error" : "email-hint"}
+          aria-invalid={!!errors.email}
         />
-        <p className="text-xs text-muted-foreground">
-          Obavezno ako ne unosite broj telefona
-        </p>
+        {errors.email ? (
+          <p id="email-error" className="text-xs text-destructive">
+            {errors.email}
+          </p>
+        ) : (
+          <p id="email-hint" className="text-xs text-muted-foreground">
+            Obavezno ako ne unosite broj telefona
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -125,14 +155,26 @@ export function PublicContactForm({
         <Input
           id="phone"
           type="tel"
+          autoComplete="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            if (errors.phone) setErrors((p) => ({ ...p, phone: "" }));
+          }}
           placeholder="+381 60 123 4567"
           disabled={sending}
+          aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
+          aria-invalid={!!errors.phone}
         />
-        <p className="text-xs text-muted-foreground">
-          Obavezno ako ne unosite email
-        </p>
+        {errors.phone ? (
+          <p id="phone-error" className="text-xs text-destructive">
+            {errors.phone}
+          </p>
+        ) : (
+          <p id="phone-hint" className="text-xs text-muted-foreground">
+            Obavezno ako ne unosite email
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -142,12 +184,25 @@ export function PublicContactForm({
         <Textarea
           id="message"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            setMessage(e.target.value);
+            if (errors.message) setErrors((p) => ({ ...p, message: "" }));
+          }}
           placeholder="Vaša poruka..."
           rows={5}
           disabled={sending}
+          aria-describedby={errors.message ? "message-error" : "message-hint"}
+          aria-invalid={!!errors.message}
         />
-        <p className="text-xs text-muted-foreground">Minimum 10 karaktera</p>
+        {errors.message ? (
+          <p id="message-error" className="text-xs text-destructive">
+            {errors.message}
+          </p>
+        ) : (
+          <p id="message-hint" className="text-xs text-muted-foreground">
+            Minimum 10 karaktera
+          </p>
+        )}
       </div>
 
       <Turnstile
@@ -158,6 +213,9 @@ export function PublicContactForm({
         onError={() => setTurnstileToken(null)}
         onExpire={() => setTurnstileToken(null)}
       />
+      {errors.turnstile && (
+        <p className="text-xs text-destructive">{errors.turnstile}</p>
+      )}
 
       <Button
         type="submit"

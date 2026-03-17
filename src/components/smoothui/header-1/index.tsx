@@ -1,19 +1,18 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AnimatedGroup, AnimatedText, HeroHeader } from "../shared";
+import { HeroHeader } from "../shared";
 import styles from "./hero-grid.module.css";
 
 const CELL_SIZE = 120; // px
 const COLORS = [
-  "oklch(0.72 0.2 352.53)", // blue
-  "#A764FF",
-  "#4B94FD",
-  "#FD4B4E",
-  "#FF8743",
+  "var(--primary)",
+  "var(--accent)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 function getRandomColor() {
@@ -27,7 +26,6 @@ function SubGrid() {
     null,
     null,
   ]);
-  // Add refs for leave timeouts
   const leaveTimeouts = useRef<(NodeJS.Timeout | null)[]>([
     null,
     null,
@@ -36,7 +34,6 @@ function SubGrid() {
   ]);
 
   function handleHover(cellIdx: number) {
-    // Clear any pending timeout for this cell
     const timeout = leaveTimeouts.current[cellIdx];
     if (timeout) {
       clearTimeout(timeout);
@@ -47,13 +44,11 @@ function SubGrid() {
     );
   }
   function handleLeave(cellIdx: number) {
-    // Add a small delay before removing the color
     leaveTimeouts.current[cellIdx] = setTimeout(() => {
       setCellColors((prev) => prev.map((c, i) => (i === cellIdx ? null : c)));
       leaveTimeouts.current[cellIdx] = null;
     }, 120);
   }
-  // Cleanup on unmount
   useEffect(
     () => () => {
       for (const t of leaveTimeouts.current) {
@@ -68,7 +63,7 @@ function SubGrid() {
   return (
     <div className={styles.subgrid} style={{ pointerEvents: "none" }}>
       {[0, 1, 2, 3].map((cellIdx) => (
-        <button
+        <div
           className={styles.cell}
           key={cellIdx}
           onMouseEnter={() => handleHover(cellIdx)}
@@ -77,7 +72,6 @@ function SubGrid() {
             background: cellColors[cellIdx] || "transparent",
             pointerEvents: "auto",
           }}
-          type="button"
         />
       ))}
     </div>
@@ -88,20 +82,29 @@ function InteractiveGrid() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [grid, setGrid] = useState({ columns: 0, rows: 0 });
 
-  useEffect(() => {
-    function updateGrid() {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setGrid({
-          columns: Math.ceil(width / CELL_SIZE),
-          rows: Math.ceil(height / CELL_SIZE),
-        });
-      }
+  const updateGrid = useCallback(() => {
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      setGrid({
+        columns: Math.ceil(width / CELL_SIZE),
+        rows: Math.ceil(height / CELL_SIZE),
+      });
     }
-    updateGrid();
-    window.addEventListener("resize", updateGrid);
-    return () => window.removeEventListener("resize", updateGrid);
   }, []);
+
+  useEffect(() => {
+    updateGrid();
+    let rafId = 0;
+    function onResize() {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateGrid);
+    }
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(rafId);
+    };
+  }, [updateGrid]);
 
   const total = grid.columns * grid.rows;
 
@@ -140,42 +143,26 @@ export function HeroGrid() {
         <section className="relative overflow-hidden py-24 lg:py-36">
           {/* Interactive animated grid background */}
           <InteractiveGrid />
-          <AnimatedGroup
-            className="pointer-events-none flex flex-col items-center gap-6 text-center"
-            preset="blur-slide"
-          >
+          <div className="relative z-10 flex flex-col items-center gap-6 text-center">
             <div>
-              <AnimatedText
-                as="h1"
-                className="mb-6 text-pretty font-bold text-2xl tracking-tight lg:text-5xl"
-              >
+              <h1 className="mb-6 text-pretty font-bold text-3xl tracking-tight lg:text-5xl">
                 Polica <span className="text-primary">po meri</span>
-              </AnimatedText>
-              <AnimatedText
-                as="p"
-                className="mx-auto max-w-3xl text-muted-foreground lg:text-xl"
-                delay={0.15}
-              >
+              </h1>
+              <p className="mx-auto max-w-3xl text-muted-foreground lg:text-xl">
                 Konfigurator koji vam omogućava da kreirate savršen orman za vaš
                 prostor. Izaberite dimenzije, materijale, vrata i dodatke — sve
                 na jednom mestu.
-              </AnimatedText>
+              </p>
             </div>
-            <AnimatedGroup
-              className="pointer-events-auto mt-6 flex justify-center gap-3"
-              preset="slide"
-            >
+            <div className="mt-6 flex justify-center gap-3">
               <Button asChild variant="outline" size="lg">
                 <a href="#faq">Kako funkcioniše?</a>
               </Button>
               <Button asChild size="lg">
-                <Link href="/design">
-                  Započnite dizajn
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                <Link href="/design">Započnite dizajn</Link>
               </Button>
-            </AnimatedGroup>
-          </AnimatedGroup>
+            </div>
+          </div>
         </section>
       </div>
     </div>

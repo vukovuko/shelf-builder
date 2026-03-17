@@ -19,7 +19,7 @@ export default function FaqPage() {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
-        <FaqSearchable />
+        <FaqSearchable headingAs="h1" />
       </main>
       <FooterComplex />
     </div>

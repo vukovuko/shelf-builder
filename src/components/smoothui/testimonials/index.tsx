@@ -1,9 +1,6 @@
-"use client";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
-import { motion } from "motion/react";
 
 interface Testimonial {
   name: string;
@@ -46,102 +43,38 @@ const testimonials: Testimonial[] = [
 export function TestimonialsStars() {
   return (
     <section>
-      <div className="py-10 lg:py-24">
+      <div className="py-8 lg:py-14">
         <div className="container mx-auto w-full max-w-5xl px-6">
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <h2 className="font-semibold text-4xl text-foreground">
+          <div className="mb-12">
+            <p className="font-semibold text-2xl text-foreground md:text-3xl lg:text-4xl">
               Utisci korisnika
-            </h2>
-            <p className="my-4 text-balance text-lg text-muted-foreground">
+            </p>
+            <p className="my-4 max-w-2xl text-balance text-lg text-muted-foreground">
               Pogledajte šta naši korisnici kažu o konfiguratoru. Stvarna
               iskustva ljudi koji su dizajnirali orman po meri.
             </p>
-          </motion.div>
-          <motion.div
-            animate={{ opacity: 1 }}
-            className="grid gap-6 lg:grid-cols-2"
-            initial={{ opacity: 0 }}
-            transition={{
-              duration: 0.6,
-              ease: [0.22, 1, 0.36, 1],
-              delay: 0.2,
-            }}
-          >
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                animate={{ opacity: 1, y: 0 }}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {testimonials.map((testimonial) => (
+              <div
                 className="group rounded-2xl border border-transparent px-4 py-3 duration-200 hover:border-border hover:bg-background/50"
-                initial={{ opacity: 0, y: 30 }}
                 key={testimonial.name}
-                transition={{
-                  duration: 0.5,
-                  ease: [0.22, 1, 0.36, 1],
-                  delay: index * 0.15,
-                }}
-                whileHover={{
-                  y: -4,
-                  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
-                }}
               >
-                <motion.div
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex gap-1"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: index * 0.15 + 0.2,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
+                <div className="flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <motion.div
-                      animate={{ opacity: 1, scale: 1 }}
-                      initial={{ opacity: 0, scale: 0 }}
+                    <Star
                       key={`${testimonial.name}-star-${i}`}
-                      transition={{
-                        duration: 0.3,
-                        delay: index * 0.15 + 0.2 + i * 0.05,
-                        ease: [0.68, -0.55, 0.265, 1.55],
-                      }}
-                    >
-                      <Star
-                        className={cn(
-                          "size-4 transition-colors duration-200",
-                          i < testimonial.stars
-                            ? "fill-primary stroke-primary"
-                            : "fill-muted stroke-border",
-                        )}
-                      />
-                    </motion.div>
+                      className={cn(
+                        "size-4",
+                        i < testimonial.stars
+                          ? "fill-primary stroke-primary"
+                          : "fill-muted stroke-border",
+                      )}
+                    />
                   ))}
-                </motion.div>
-                <motion.p
-                  animate={{ opacity: 1, y: 0 }}
-                  className="my-4 text-foreground"
-                  initial={{ opacity: 0, y: 10 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: index * 0.15 + 0.4,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  {testimonial.content}
-                </motion.p>
-                <motion.div
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, x: -10 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: index * 0.15 + 0.5,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
+                </div>
+                <p className="my-4 text-foreground">{testimonial.content}</p>
+                <div className="flex items-center gap-2">
                   <Avatar className="size-6 border border-transparent shadow ring-1 ring-foreground/10">
                     <AvatarFallback>
                       {testimonial.name.charAt(0)}
@@ -157,10 +90,10 @@ export function TestimonialsStars() {
                   <span className="text-muted-foreground text-sm">
                     {testimonial.role}
                   </span>
-                </motion.div>
-              </motion.div>
+                </div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

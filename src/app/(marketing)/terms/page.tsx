@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
 
@@ -13,36 +15,142 @@ export default function TermsPage() {
     <div className="relative">
       <HeroHeader />
       <main className="pt-24">
-        <section className="py-10 lg:py-20">
+        <section className="py-8 lg:py-14">
           <div className="mx-auto max-w-3xl px-6">
+            <Link
+              href="/"
+              className="mb-8 inline-flex items-center text-sm text-foreground/50 hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Nazad na početnu
+            </Link>
             <h1 className="mb-8 text-3xl font-bold text-foreground lg:text-4xl">
               Uslovi korišćenja
             </h1>
             <p className="mb-8 text-foreground/50 text-sm">
               Poslednje ažuriranje: februar 2026.
             </p>
+            <nav
+              aria-label="Sadržaj"
+              className="mb-10 rounded-xl border border-border bg-background/50 p-5"
+            >
+              <p className="mb-3 font-semibold text-sm text-foreground">
+                Sadržaj
+              </p>
+              <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+                <li>
+                  <a
+                    href="#terms-1"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Opšte odredbe
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-2"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Korišćenje konfiguratora
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-3"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Nalog korisnika
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-4"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Porudžbine i cene
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-5"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Isporuka i montaža
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-6"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Reklamacije i povraćaj
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-7"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Intelektualna svojina
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-8"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Ograničenje odgovornosti
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-9"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Izmene uslova
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#terms-10"
+                    className="text-foreground/70 hover:text-primary transition-colors"
+                  >
+                    Merodavno pravo
+                  </a>
+                </li>
+              </ol>
+            </nav>
             <div className="space-y-8 text-foreground/70 leading-relaxed">
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-1">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   1. Opšte odredbe
-                </h2>
+                </p>
                 <p>
                   Korišćenjem platforme Ormani po meri (u daljem tekstu:
                   &quot;platforma&quot;) prihvatate ove uslove korišćenja.
                   Platforma omogućava online konfiguraciju ormana i polica po
-                  meri putem 3D konfiguratora, kao i naručivanje proizvoda na
-                  osnovu kreirane konfiguracije.
+                  meri putem 3D{" "}
+                  <Link href="/design" className="text-primary hover:underline">
+                    konfiguratora
+                  </Link>
+                  , kao i naručivanje proizvoda na osnovu kreirane
+                  konfiguracije.
                 </p>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-2">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   2. Korišćenje konfiguratora
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
-                    Konfigurator je besplatan alat za dizajniranje ormana po
-                    meri.
+                    <Link
+                      href="/design"
+                      className="text-primary hover:underline"
+                    >
+                      Konfigurator
+                    </Link>{" "}
+                    je besplatan alat za dizajniranje ormana po meri.
                   </li>
                   <li>
                     Za čuvanje dizajna i slanje porudžbina potrebna je
@@ -60,10 +168,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-3">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   3. Nalog korisnika
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
                     Odgovorni ste za tačnost podataka navedenih prilikom
@@ -83,10 +191,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-4">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   4. Porudžbine i cene
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
                     Slanjem porudžbine iz konfiguratora šaljete zahtev za
@@ -108,10 +216,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-5">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   5. Isporuka i montaža
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
                     Rokovi isporuke zavise od kompleksnosti porudžbine i
@@ -127,10 +235,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-6">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   6. Reklamacije i povraćaj
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
                     S obzirom da su proizvodi izrađeni po meri, povraćaj nije
@@ -142,7 +250,14 @@ export default function TermsPage() {
                   </li>
                   <li>
                     Reklamacija mora sadržati opis problema i fotografije —
-                    možete je poslati putem kontakt forme.
+                    možete je poslati putem{" "}
+                    <Link
+                      href="/contact"
+                      className="text-primary hover:underline"
+                    >
+                      kontakt forme
+                    </Link>
+                    .
                   </li>
                   <li>
                     U slučaju opravdane reklamacije, obavezujemo se da otklonimo
@@ -151,10 +266,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-7">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   7. Intelektualna svojina
-                </h2>
+                </p>
                 <p>
                   Sav sadržaj na platformi, uključujući dizajn, kod,
                   vizualizacije i tekstove, vlasništvo je Ormani po meri i
@@ -164,10 +279,10 @@ export default function TermsPage() {
                 </p>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-8">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   8. Ograničenje odgovornosti
-                </h2>
+                </p>
                 <ul className="list-disc space-y-2 pl-6">
                   <li>
                     Platforma je dostupna &quot;kakva jeste&quot; — ne
@@ -184,10 +299,10 @@ export default function TermsPage() {
                 </ul>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-9">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   9. Izmene uslova
-                </h2>
+                </p>
                 <p>
                   Zadržavamo pravo da izmenimo ove uslove korišćenja. O
                   značajnim izmenama ćemo vas obavestiti putem emaila ili
@@ -196,10 +311,10 @@ export default function TermsPage() {
                 </p>
               </div>
 
-              <div>
-                <h2 className="mb-3 text-xl font-semibold text-foreground">
+              <div id="terms-10">
+                <p className="mb-3 text-xl font-semibold text-foreground">
                   10. Merodavno pravo
-                </h2>
+                </p>
                 <p>
                   Na ove uslove korišćenja primenjuje se zakon Republike Srbije.
                   Za sve sporove nadležan je sud u Beogradu.

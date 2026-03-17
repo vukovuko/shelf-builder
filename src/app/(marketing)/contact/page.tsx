@@ -18,7 +18,7 @@ export default async function ContactPage() {
     <div className="relative">
       <HeroHeader />
       <main className="pt-24">
-        <section className="py-10 lg:py-20">
+        <section className="py-8 lg:py-14">
           <div className="mx-auto max-w-3xl px-6">
             <h1 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
               Kontakt
