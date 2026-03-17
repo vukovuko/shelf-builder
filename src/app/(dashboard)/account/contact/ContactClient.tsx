@@ -110,7 +110,7 @@ export function ContactClient({
   };
 
   return (
-    <div className="mx-auto max-w-2xl py-10 px-4">
+    <div className="mx-auto max-w-5xl py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">Kontakt</h1>

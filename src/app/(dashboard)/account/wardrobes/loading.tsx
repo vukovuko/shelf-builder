@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WardrobesLoading() {
   return (
-    <div className="mx-auto max-w-4xl py-10 px-4">
+    <div className="mx-auto max-w-5xl py-10 px-4">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">Moji Ormani</h1>
@@ -16,7 +16,7 @@ export default function WardrobesLoading() {
         <Button disabled>Novi orman</Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <Card key={i} className="overflow-hidden gap-0 py-0">
             <Skeleton className="aspect-[4/3] w-full" />
