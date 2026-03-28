@@ -500,6 +500,35 @@ describe("calculateCutList", () => {
       );
       expect(groupedCount).toBe(result.items.length);
     });
+
+    it("puts carcass, shelves, and back panel under the same column element", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 200,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        verticalBoundaries: [0],
+        columnHorizontalBoundaries: { 0: [1] },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const elementAItems = result.grouped.A ?? [];
+      const elementACodes = elementAItems.map((item) => item.code);
+
+      expect(result.grouped.KORPUS).toBeUndefined();
+      expect(elementACodes).toContain("SL");
+      expect(elementACodes).toContain("A-DON");
+      expect(elementACodes).toContain("A-GOR");
+      expect(elementACodes).toContain("A-P1");
+      expect(elementACodes).toContain("A-Z");
+    });
   });
 
   // ============================================

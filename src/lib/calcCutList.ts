@@ -151,6 +151,29 @@ const emptyCutList: CutList = {
   },
 };
 
+export function getCutListGroupKey(element: string): string {
+  if (!element) {
+    return "OSTALO";
+  }
+
+  const slidingDoorMatch = element.match(/^KV-([A-Z]+)$/);
+  if (slidingDoorMatch) {
+    return slidingDoorMatch[1];
+  }
+
+  const normalizedElement = parseSubCompKey(element)?.compKey ?? element;
+  const compartmentMatch = normalizedElement.match(/^([A-Z]+)\d+$/);
+  if (compartmentMatch) {
+    return compartmentMatch[1];
+  }
+
+  if (/^[A-Z]+$/.test(normalizedElement)) {
+    return normalizedElement;
+  }
+
+  return element;
+}
+
 /**
  * Calculate cut list following exact CarcassFrame structure:
  * - Uses verticalBoundaries for actual column widths
@@ -399,8 +422,10 @@ export function calculateCutList(
     // 1. OUTER SIDE PANELS (2 for entire wardrobe)
     // ==========================================
     // Side L and Side R - full height, carcass depth
-    addKorpus("SL", "Leva stranica (spoljna)", carcassD, h, "KORPUS");
-    addKorpus("SD", "Desna stranica (spoljna)", carcassD, h, "KORPUS");
+    const firstColumnLetter = String.fromCharCode(65);
+    const lastColumnLetter = String.fromCharCode(65 + numColumns - 1);
+    addKorpus("SL", "Leva stranica (spoljna)", carcassD, h, firstColumnLetter);
+    addKorpus("SD", "Desna stranica (spoljna)", carcassD, h, lastColumnLetter);
 
     // ==========================================
     // 2. VERTICAL SEAM PANELS (2 per seam)
@@ -408,19 +433,21 @@ export function calculateCutList(
     // At each vertical boundary, there are 2 panels (one from each adjacent column)
     const seamH = h; // Seams go full height to floor (through base area)
     verticalBoundaries.forEach((_, seamIdx) => {
+      const leftColumnLetter = String.fromCharCode(65 + seamIdx);
+      const rightColumnLetter = String.fromCharCode(65 + seamIdx + 1);
       addKorpus(
         `VS${seamIdx + 1}L`,
         `Vertikalna pregrada ${seamIdx + 1} (leva)`,
         carcassD,
         seamH,
-        "KORPUS",
+        leftColumnLetter,
       );
       addKorpus(
         `VS${seamIdx + 1}D`,
         `Vertikalna pregrada ${seamIdx + 1} (desna)`,
         carcassD,
         seamH,
-        "KORPUS",
+        rightColumnLetter,
       );
     });
 
@@ -1224,7 +1251,8 @@ export function calculateCutList(
 
     // Group by element
     const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
-      (acc[it.element] = acc[it.element] || []).push(it);
+      const groupKey = getCutListGroupKey(it.element);
+      (acc[groupKey] = acc[groupKey] || []).push(it);
       return acc;
     }, {});
 

@@ -31,7 +31,7 @@ import {
 } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
-import { calculateCutList } from "@/lib/calcCutList";
+import { calculateCutList, getCutListGroupKey } from "@/lib/calcCutList";
 import {
   DRAWER_HEIGHT_CM,
   DRAWER_GAP_CM,
@@ -1747,7 +1747,7 @@ export function OrderDetailClient({
 function groupByElement(items: CutListItem[]): Record<string, CutListItem[]> {
   return items.reduce(
     (acc, item) => {
-      const key = item.element;
+      const key = getCutListGroupKey(item.element);
       if (!acc[key]) acc[key] = [];
       acc[key].push(item);
       return acc;
