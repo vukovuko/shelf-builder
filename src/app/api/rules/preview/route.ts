@@ -75,6 +75,7 @@ export async function POST(req: Request) {
         handleId: handleFinishes.handleId,
         legacyId: handleFinishes.legacyId,
         name: handleFinishes.name,
+        price: handleFinishes.price,
       })
       .from(handleFinishes);
     const handlesWithFinishes = pricingHandles.map((h) => ({

@@ -22,9 +22,7 @@ function getReferencedColumnCount(snapshot: CompartmentSnapshot): number {
     .map((key) => Number(key))
     .filter(Number.isInteger);
 
-  return referencedIndexes.length > 0
-    ? Math.max(...referencedIndexes) + 1
-    : 0;
+  return referencedIndexes.length > 0 ? Math.max(...referencedIndexes) + 1 : 0;
 }
 
 export function computeCompartmentCount(

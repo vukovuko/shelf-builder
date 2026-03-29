@@ -58,10 +58,7 @@ describe("buildCabinetShellRects", () => {
 
     const bottom = rects.find(
       (rect) =>
-        rect.x === 13 &&
-        rect.width === 74 &&
-        rect.height === 3 &&
-        rect.y > 100,
+        rect.x === 13 && rect.width === 74 && rect.height === 3 && rect.y > 100,
     );
 
     expect(bottom?.y).toBe(202);

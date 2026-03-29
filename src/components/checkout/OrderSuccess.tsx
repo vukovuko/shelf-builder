@@ -122,13 +122,17 @@ export function OrderSuccess({
               ))}
               <div className="border-t pt-2 flex justify-between">
                 <span className="font-medium">Ukupno:</span>
-                <span className="font-bold">{formatPrice(resolvedFinalPrice)} RSD</span>
+                <span className="font-bold">
+                  {formatPrice(resolvedFinalPrice)} RSD
+                </span>
               </div>
             </>
           ) : (
             <div className="border-t pt-2 mt-2 flex justify-between">
               <span className="text-muted-foreground">Ukupno:</span>
-              <span className="font-bold">{formatPrice(resolvedFinalPrice)} RSD</span>
+              <span className="font-bold">
+                {formatPrice(resolvedFinalPrice)} RSD
+              </span>
             </div>
           )}
         </div>

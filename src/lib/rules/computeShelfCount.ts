@@ -22,9 +22,7 @@ function getReferencedColumnCount(snapshot: ShelfSnapshot): number {
     .map((key) => Number(key))
     .filter(Number.isInteger);
 
-  return referencedIndexes.length > 0
-    ? Math.max(...referencedIndexes) + 1
-    : 0;
+  return referencedIndexes.length > 0 ? Math.max(...referencedIndexes) + 1 : 0;
 }
 
 function countValidShelves(
@@ -58,8 +56,11 @@ export function computeShelfCount(snapshot: ShelfSnapshot | null | undefined) {
   let shelfCount = 0;
 
   for (let colIdx = 0; colIdx < columnCount; colIdx++) {
-    const colHeightCm = snapshot.columnHeights?.[colIdx] ?? snapshot.height ?? 0;
-    const innerBottom = snapshot.hasBase ? Number(snapshot.baseHeight ?? 0) + tCm : tCm;
+    const colHeightCm =
+      snapshot.columnHeights?.[colIdx] ?? snapshot.height ?? 0;
+    const innerBottom = snapshot.hasBase
+      ? Number(snapshot.baseHeight ?? 0) + tCm
+      : tCm;
     const innerTop = colHeightCm - tCm;
 
     const rawModuleBoundary = snapshot.columnModuleBoundaries?.[colIdx];
