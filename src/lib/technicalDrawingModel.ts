@@ -379,8 +379,6 @@ export function buildDoubleSeamCenterLine(params: {
 
   return { x1: x, y1: y, x2: x, y2: y + height };
 }
-<<<<<<< Updated upstream
-=======
 
 export function buildDoubleSeamJointLines(params: {
   x: number;
@@ -422,4 +420,3 @@ export function buildDoubleSeamJointLines(params: {
     },
   ];
 }
->>>>>>> Stashed changes

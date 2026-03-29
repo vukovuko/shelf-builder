@@ -46,15 +46,9 @@ export function BlueprintSideView({
   const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
   const moduleBoundaryCm = moduleBoundary !== null ? moduleBoundary * 100 : null;
   const hasModuleBoundary =
-<<<<<<< Updated upstream
-    moduleBoundary !== null &&
-    moduleBoundary > 0 &&
-    moduleBoundary < maxColHeight;
-=======
     moduleBoundaryCm !== null &&
     moduleBoundaryCm > 0 &&
     moduleBoundaryCm < maxColHeight;
->>>>>>> Stashed changes
   const sideRects = buildSideViewSectionRects({
     x: sideViewX,
     y: shellTopY,
