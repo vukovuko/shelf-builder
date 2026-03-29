@@ -216,8 +216,12 @@ describe("calculateCutList", () => {
       };
 
       const result = calculateCutList(snapshot, mockMaterials);
-      const leftSidePanels = result.items.filter((i) => i.code.startsWith("SL"));
-      const rightSidePanels = result.items.filter((i) => i.code.startsWith("SD"));
+      const leftSidePanels = result.items.filter((i) =>
+        i.code.startsWith("SL"),
+      );
+      const rightSidePanels = result.items.filter((i) =>
+        i.code.startsWith("SD"),
+      );
 
       expect(leftSidePanels.map((i) => i.code).sort()).toEqual(["SLD", "SLG"]);
       expect(

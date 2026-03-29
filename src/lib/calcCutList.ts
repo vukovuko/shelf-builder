@@ -373,10 +373,11 @@ export function calculateCutList(
       index: number,
       moduleSuffix = "",
       extraPrefix = "",
-    ) => `${label} ${getElementScope(elementKey)}${moduleSuffix} ${extraPrefix}(${index})`.replace(
-      /\s+/g,
-      " ",
-    );
+    ) =>
+      `${label} ${getElementScope(elementKey)}${moduleSuffix} ${extraPrefix}(${index})`.replace(
+        /\s+/g,
+        " ",
+      );
 
     // Helper to add korpus item
     const addKorpus = (
@@ -573,11 +574,7 @@ export function calculateCutList(
         );
         addKorpus(
           `VS${seamIdx + 1}L${span.suffix}`,
-          getSidePanelDescription(
-            "Desna",
-            getElementScope(elementKey),
-            "",
-          ),
+          getSidePanelDescription("Desna", getElementScope(elementKey), ""),
           carcassD,
           span.height,
           elementKey,
@@ -596,11 +593,7 @@ export function calculateCutList(
         );
         addKorpus(
           `VS${seamIdx + 1}D${span.suffix}`,
-          getSidePanelDescription(
-            "Leva",
-            getElementScope(elementKey),
-            "",
-          ),
+          getSidePanelDescription("Leva", getElementScope(elementKey), ""),
           carcassD,
           span.height,
           elementKey,
@@ -653,10 +646,7 @@ export function calculateCutList(
         if (needsModuleSplit) {
           addKorpus(
             `${colLetter}-MB1`,
-            getElementPanelDescription(
-              "Donja ploča spoja modula",
-              colLetter,
-            ),
+            getElementPanelDescription("Donja ploča spoja modula", colLetter),
             innerW,
             carcassD,
             colLetter,

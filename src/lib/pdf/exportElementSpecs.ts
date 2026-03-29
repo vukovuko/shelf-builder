@@ -82,7 +82,8 @@ export function exportElementSpecs(
       const isTopModule = parsedElement?.isTopModule ?? false;
       const { wCm, hCm: columnHeightCm, colIdx } = getElementDimsCm(elementKey);
       const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-      const moduleBoundaryCm = moduleBoundary !== null ? moduleBoundary * 100 : null;
+      const moduleBoundaryCm =
+        moduleBoundary !== null ? moduleBoundary * 100 : null;
       const innerBottom = hasBase ? baseHeight + tCm : tCm;
       const innerTop = columnHeightCm - tCm;
       const hasValidBoundary =
@@ -91,8 +92,10 @@ export function exportElementSpecs(
         moduleBoundaryCm > innerBottom + tCm &&
         moduleBoundaryCm < innerTop - tCm;
 
-      const moduleStartCm = isTopModule && hasValidBoundary ? moduleBoundaryCm! : 0;
-      const moduleEndCm = !isTopModule && hasValidBoundary ? moduleBoundaryCm! : columnHeightCm;
+      const moduleStartCm =
+        isTopModule && hasValidBoundary ? moduleBoundaryCm! : 0;
+      const moduleEndCm =
+        !isTopModule && hasValidBoundary ? moduleBoundaryCm! : columnHeightCm;
       const moduleHeightCm = Math.max(moduleEndCm - moduleStartCm, 0);
 
       return {
@@ -221,7 +224,9 @@ export function exportElementSpecs(
           bottomY: comp.bottomY - moduleStartCm,
           topY: comp.topY - moduleStartCm,
         }));
-      const visibleCompartmentKeys = new Set(compartmentDefs.map((comp) => comp.key));
+      const visibleCompartmentKeys = new Set(
+        compartmentDefs.map((comp) => comp.key),
+      );
 
       // ===============================================
       // PROPORTIONAL BOX SIZE CALCULATION
@@ -275,7 +280,7 @@ export function exportElementSpecs(
         fillGray = 245,
       ) => {
         if (widthMm <= 0 || heightMm <= 0) return;
-        doc.setFillColor(fillGray);
+        doc.setFillColor(fillGray, fillGray, fillGray);
         doc.rect(x, y, widthMm, heightMm, "FD");
       };
 
@@ -297,7 +302,13 @@ export function exportElementSpecs(
         includeRight: true,
       });
       shellRects.forEach((rect) => {
-        drawPanel(rect.x, rect.y, rect.width, rect.height, rect.tone === "outer" ? 242 : 245);
+        drawPanel(
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          rect.tone === "outer" ? 242 : 245,
+        );
       });
       buildCabinetShellJointLines({
         x: boxX,
@@ -547,7 +558,9 @@ export function exportElementSpecs(
       const sideY = dimY + 10 + dimensionRowsHeight;
       const sideTopBottomThickness = tCm / (elementHcm / Math.max(sideH, 1));
       const sideBackThickness = 0.5 / (elementHcm / Math.max(sideH, 1));
-      const sideBaseMm = appliesBase ? Math.max(0, baseHeight / (elementHcm / Math.max(sideH, 1))) : 0;
+      const sideBaseMm = appliesBase
+        ? Math.max(0, baseHeight / (elementHcm / Math.max(sideH, 1)))
+        : 0;
 
       const sideRects = buildSideViewSectionRects({
         x: sideX,
@@ -559,7 +572,8 @@ export function exportElementSpecs(
         baseHeight: sideBaseMm,
       });
       sideRects.forEach((rect) => {
-        const toneGray = rect.tone === "back" ? 218 : rect.tone === "outer" ? 242 : 245;
+        const toneGray =
+          rect.tone === "back" ? 218 : rect.tone === "outer" ? 242 : 245;
         drawPanel(rect.x, rect.y, rect.width, rect.height, toneGray);
       });
       if (appliesBase && sideBaseMm > 0) {
@@ -567,7 +581,9 @@ export function exportElementSpecs(
         doc.rect(sideX, sideY + sideH - sideBaseMm, sideW, sideBaseMm, "FD");
       }
       doc.setFontSize(8);
-      doc.text("Pogled sa strane", sideX + sideW / 2, sideY - 2, { align: "center" as any });
+      doc.text("Pogled sa strane", sideX + sideW / 2, sideY - 2, {
+        align: "center" as any,
+      });
       doc.setFontSize(baseFont);
 
       const contentBottomY = Math.max(

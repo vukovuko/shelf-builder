@@ -42,7 +42,9 @@ export function BlueprintSideView({
   const backThickness = 0.5 * scale;
   const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
   const hasModuleBoundary =
-    moduleBoundary !== null && moduleBoundary > 0 && moduleBoundary < maxColHeight;
+    moduleBoundary !== null &&
+    moduleBoundary > 0 &&
+    moduleBoundary < maxColHeight;
   const sideRects = buildSideViewSectionRects({
     x: sideViewX,
     y: sideViewY + sideYOffset,

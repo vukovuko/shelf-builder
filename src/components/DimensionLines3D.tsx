@@ -318,7 +318,11 @@ export function DimensionLines3D({
               </div>
             </Html>
             <Html
-              position={[centerX, boundary + topModuleHeight / 2, zFront + 0.01]}
+              position={[
+                centerX,
+                boundary + topModuleHeight / 2,
+                zFront + 0.01,
+              ]}
               center
               zIndexRange={[0, 0]}
               style={{ pointerEvents: "none" }}

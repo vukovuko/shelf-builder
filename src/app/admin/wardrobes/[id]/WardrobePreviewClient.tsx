@@ -39,15 +39,10 @@ import {
 } from "@/components/ui/accordion";
 import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
-import {
-  useShelfStore,
-  type Material,
-  type ShelfState,
-} from "@/lib/store";
+import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
-import {
-} from "@/lib/wardrobe-constants";
+import {} from "@/lib/wardrobe-constants";
 
 interface CutListItem {
   code: string;

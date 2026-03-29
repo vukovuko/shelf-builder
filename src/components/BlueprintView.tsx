@@ -284,7 +284,9 @@ export function BlueprintView() {
                 const panel = createPanelRect(
                   `col-shell-left-${colIdx}-${spanIdx}`,
                   colX,
-                  frontViewY + scaledHeight - (span.start + span.height) * scale,
+                  frontViewY +
+                    scaledHeight -
+                    (span.start + span.height) * scale,
                   panelThicknessPx,
                   span.height * scale,
                   panelFill,
@@ -298,7 +300,9 @@ export function BlueprintView() {
                 const panel = createPanelRect(
                   `col-shell-right-${colIdx}-${spanIdx}`,
                   colX + colW - panelThicknessPx,
-                  frontViewY + scaledHeight - (span.start + span.height) * scale,
+                  frontViewY +
+                    scaledHeight -
+                    (span.start + span.height) * scale,
                   panelThicknessPx,
                   span.height * scale,
                   panelFill,
@@ -335,7 +339,10 @@ export function BlueprintView() {
 
             if (renderSplitLeft) {
               sideSpans.slice(0, -1).forEach((span, lineIdx) => {
-                const jointY = frontViewY + scaledHeight - (span.start + span.height) * scale;
+                const jointY =
+                  frontViewY +
+                  scaledHeight -
+                  (span.start + span.height) * scale;
                 nodes.push(
                   <line
                     key={`col-left-joint-${colIdx}-${lineIdx}`}
@@ -352,7 +359,10 @@ export function BlueprintView() {
 
             if (renderSplitRight) {
               sideSpans.slice(0, -1).forEach((span, lineIdx) => {
-                const jointY = frontViewY + scaledHeight - (span.start + span.height) * scale;
+                const jointY =
+                  frontViewY +
+                  scaledHeight -
+                  (span.start + span.height) * scale;
                 nodes.push(
                   <line
                     key={`col-right-joint-${colIdx}-${lineIdx}`}
@@ -400,7 +410,9 @@ export function BlueprintView() {
                   createPanelRect(
                     `vdiv-left-${i}-${panelIdx}`,
                     seamX - panelThicknessPx,
-                    frontViewY + scaledHeight - (span.start + span.height) * scale,
+                    frontViewY +
+                      scaledHeight -
+                      (span.start + span.height) * scale,
                     panelThicknessPx,
                     span.height * scale,
                     seamPanelFill,
@@ -410,7 +422,9 @@ export function BlueprintView() {
                   createPanelRect(
                     `vdiv-right-${i}-${panelIdx}`,
                     seamX,
-                    frontViewY + scaledHeight - (span.start + span.height) * scale,
+                    frontViewY +
+                      scaledHeight -
+                      (span.start + span.height) * scale,
                     panelThicknessPx,
                     span.height * scale,
                     seamPanelFill,
@@ -436,7 +450,9 @@ export function BlueprintView() {
                 })()}
                 {leftSpans.slice(0, -1).map((span, lineIdx) => {
                   const jointY =
-                    frontViewY + scaledHeight - (span.start + span.height) * scale;
+                    frontViewY +
+                    scaledHeight -
+                    (span.start + span.height) * scale;
                   return (
                     <line
                       key={`vdiv-left-joint-${i}-${lineIdx}`}
@@ -451,7 +467,9 @@ export function BlueprintView() {
                 })}
                 {rightSpans.slice(0, -1).map((span, lineIdx) => {
                   const jointY =
-                    frontViewY + scaledHeight - (span.start + span.height) * scale;
+                    frontViewY +
+                    scaledHeight -
+                    (span.start + span.height) * scale;
                   return (
                     <line
                       key={`vdiv-right-joint-${i}-${lineIdx}`}

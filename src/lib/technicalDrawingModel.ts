@@ -211,8 +211,15 @@ export function buildEvenShelfRects(params: {
   shelfThickness: number;
   tone?: TechnicalRectTone;
 }): TechnicalRect[] {
-  const { x, width, topY, bottomY, shelfCount, shelfThickness, tone = "inner" } =
-    params;
+  const {
+    x,
+    width,
+    topY,
+    bottomY,
+    shelfCount,
+    shelfThickness,
+    tone = "inner",
+  } = params;
   if (shelfCount <= 0 || width <= 0 || bottomY <= topY || shelfThickness <= 0) {
     return [];
   }
@@ -326,13 +333,33 @@ export function buildCabinetShellJointLines(params: {
   const bottomY = y + height - baseHeight - panelThicknessY;
 
   if (includeLeft) {
-    lines.push({ x1: innerLeft, y1: y, x2: innerLeft, y2: y + panelThicknessY });
-    lines.push({ x1: innerLeft, y1: bottomY, x2: innerLeft, y2: bottomY + panelThicknessY });
+    lines.push({
+      x1: innerLeft,
+      y1: y,
+      x2: innerLeft,
+      y2: y + panelThicknessY,
+    });
+    lines.push({
+      x1: innerLeft,
+      y1: bottomY,
+      x2: innerLeft,
+      y2: bottomY + panelThicknessY,
+    });
   }
 
   if (includeRight) {
-    lines.push({ x1: innerRight, y1: y, x2: innerRight, y2: y + panelThicknessY });
-    lines.push({ x1: innerRight, y1: bottomY, x2: innerRight, y2: bottomY + panelThicknessY });
+    lines.push({
+      x1: innerRight,
+      y1: y,
+      x2: innerRight,
+      y2: y + panelThicknessY,
+    });
+    lines.push({
+      x1: innerRight,
+      y1: bottomY,
+      x2: innerRight,
+      y2: bottomY + panelThicknessY,
+    });
   }
 
   return lines;

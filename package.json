@@ -9,6 +9,7 @@
     "lint": "biome check",
     "lint:fix": "biome check --write --unsafe",
     "format": "biome format --write",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
     "db:generate": "drizzle-kit generate",
