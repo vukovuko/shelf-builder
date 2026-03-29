@@ -174,6 +174,7 @@ export function StepDoors({ compact }: StepDoorsProps) {
           slidingDoors={slidingDoors}
           setSlidingDoors={setSlidingDoors}
           numColumns={numColumns}
+          compact={compact}
         />
       ) : (
         <>
@@ -192,6 +193,7 @@ export function StepDoors({ compact }: StepDoorsProps) {
               slidingDoors={slidingDoors}
               setSlidingDoors={setSlidingDoors}
               numColumns={numColumns}
+              compact={compact}
             />
           )}
         </>

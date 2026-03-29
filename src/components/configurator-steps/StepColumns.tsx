@@ -32,6 +32,7 @@ export function StepColumns({ materials, compact }: StepColumnsProps) {
         <CompartmentExtrasPanel
           compartmentKey={selectedCompartmentKey}
           materials={materials}
+          compact={compact}
         />
       )}
 

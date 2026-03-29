@@ -19,11 +19,13 @@ import { X } from "lucide-react";
 interface CompartmentExtrasPanelProps {
   compartmentKey: string;
   materials: Material[];
+  compact?: boolean;
 }
 
 export function CompartmentExtrasPanel({
   compartmentKey,
   materials,
+  compact,
 }: CompartmentExtrasPanelProps) {
   // Store selectors
   const width = useShelfStore((s: ShelfState) => s.width);
@@ -225,10 +227,16 @@ export function CompartmentExtrasPanel({
   const ledDisabled = isSubdivided;
 
   return (
-    <div className="space-y-4">
+    <div className={compact ? "space-y-2" : "space-y-4"}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b">
-        <span className="font-semibold text-lg">Pregrada</span>
+      <div className="flex items-center justify-between pb-1 border-b">
+        <span
+          className={
+            compact ? "font-semibold text-sm" : "font-semibold text-lg"
+          }
+        >
+          Pregrada
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -245,7 +253,9 @@ export function CompartmentExtrasPanel({
       </div>
 
       {/* Section: Vertikalne pregrade (inner columns) */}
-      <div className="space-y-2 pb-3 border-b">
+      <div
+        className={`${compact ? "space-y-1.5 pb-2" : "space-y-2 pb-3"} border-b`}
+      >
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Vertikalne pregrade</span>
           <span className="text-xs text-muted-foreground">
@@ -348,7 +358,9 @@ export function CompartmentExtrasPanel({
 
       {/* Section: Per-section config (shelves + drawers) */}
       {config.columns > 1 ? (
-        <div className="space-y-4 pb-3 border-b">
+        <div
+          className={`${compact ? "space-y-2 pb-2" : "space-y-4 pb-3"} border-b`}
+        >
           <span className="text-sm font-medium">Sekcije</span>
           {Array.from({ length: config.columns }).map((_, idx) => {
             const shelfCount = config.rowCounts?.[idx] || 0;
@@ -562,7 +574,9 @@ export function CompartmentExtrasPanel({
         </div>
       ) : (
         /* Single section - show shelves (and drawers when shelves > 0) */
-        <div className="space-y-3 pb-3 border-b">
+        <div
+          className={`${compact ? "space-y-2 pb-2" : "space-y-3 pb-3"} border-b`}
+        >
           <span className="text-sm font-medium">Police</span>
           {/* Shelves */}
           <div className="flex items-center gap-2">
@@ -703,7 +717,7 @@ export function CompartmentExtrasPanel({
       )}
 
       {/* Section: Dodaci (Extras) */}
-      <div className="space-y-2">
+      <div className={compact ? "space-y-1.5" : "space-y-2"}>
         <span className="text-sm font-medium">Dodaci</span>
 
         <Button
