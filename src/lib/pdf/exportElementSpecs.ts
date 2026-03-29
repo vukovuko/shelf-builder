@@ -6,19 +6,32 @@ import {
   type Handle,
 } from "@/lib/store";
 import {
+  buildBlocksFromBoundaries,
+  getCompartmentsForColumn,
+} from "@/lib/blueprintHelpers";
+import {
   DRAWER_HEIGHT_CM,
   DRAWER_GAP_CM,
-  MAX_SEGMENT_X_CM,
   TARGET_BOTTOM_HEIGHT_CM,
   MIN_TOP_HEIGHT_CM,
 } from "@/lib/wardrobe-constants";
+import {
+  buildCabinetShellRects,
+  buildCabinetShellJointLines,
+  buildDoubleSeamCenterLine,
+  buildEvenShelfRects,
+  buildSideViewSectionRects,
+  buildSectionDividerRects,
+  computeSectionBounds,
+} from "@/lib/technicalDrawingModel";
 import type { CutList } from "@/lib/calcCutList";
 
 export function exportElementSpecs(
   cutList: CutList,
   fmt2: (n: number) => string,
   materials: Material[],
-  storeHandles: Handle[],
+  storeHandles: Handle[] = [],
+  options?: { filename?: string },
 ) {
   try {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -30,26 +43,18 @@ export function exportElementSpecs(
     // Sizing helpers from store
     const widthCm = useShelfStore.getState().width; // cm
     const heightCm = useShelfStore.getState().height; // cm
+    const depthCm = useShelfStore.getState().depth; // cm
     const hasBase = useShelfStore.getState().hasBase;
     const baseHeight = useShelfStore.getState().baseHeight; // cm
-    const nBlocksX = Math.max(1, Math.ceil(widthCm / MAX_SEGMENT_X_CM));
-    const hasSplitY = heightCm > TARGET_BOTTOM_HEIGHT_CM;
-    let bottomModuleCm = Math.min(TARGET_BOTTOM_HEIGHT_CM, heightCm);
-    const topModuleCm = hasSplitY
-      ? Math.max(MIN_TOP_HEIGHT_CM, heightCm - TARGET_BOTTOM_HEIGHT_CM)
-      : 0;
-    if (hasSplitY && heightCm - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM) {
-      // Adjust bottom if top had to be enlarged
-      bottomModuleCm = heightCm - topModuleCm;
-    }
-    const nModulesY = hasSplitY ? 2 : 1;
-
-    // Precompute block widths in cm (match BlueprintView: equal division across blocks)
-    const equalBlockW = widthCm / nBlocksX;
-    const blockWidthsCm: number[] = Array.from(
-      { length: nBlocksX },
-      () => equalBlockW,
-    );
+    const verticalBoundaries = useShelfStore.getState().verticalBoundaries;
+    const columnHorizontalBoundaries =
+      useShelfStore.getState().columnHorizontalBoundaries;
+    const columnModuleBoundaries =
+      useShelfStore.getState().columnModuleBoundaries;
+    const columnTopModuleShelves =
+      useShelfStore.getState().columnTopModuleShelves;
+    const columnHeights = useShelfStore.getState().columnHeights;
+    const columns = buildBlocksFromBoundaries(widthCm, verticalBoundaries);
 
     // Letter index helpers (A..Z..AA..)
     const fromLetters = (s: string) => {
@@ -62,16 +67,12 @@ export function exportElementSpecs(
 
     const getElementDimsCm = (letter: string) => {
       const idx = fromLetters(letter);
-      const rowIdx = Math.floor(idx / nBlocksX); // 0 bottom, 1 top if split
-      const colIdx = idx % nBlocksX;
-      const wCm = blockWidthsCm[colIdx] ?? widthCm; // fallback to total
-      const hCm =
-        nModulesY === 1
-          ? heightCm
-          : rowIdx === 0
-            ? bottomModuleCm
-            : topModuleCm;
-      return { wCm, hCm, rowIdx, colIdx };
+      const col = columns[idx];
+      return {
+        wCm: col?.width ?? widthCm,
+        hCm: columnHeights[idx] ?? heightCm,
+        colIdx: idx,
+      };
     };
 
     // Draw helpers: dimension lines
@@ -152,16 +153,27 @@ export function exportElementSpecs(
       // Internal layout using elementConfigs and extras
       const elementConfigs = useShelfStore.getState().elementConfigs;
       const compartmentExtras = useShelfStore.getState().compartmentExtras;
-      const cfg = (elementConfigs as any)[letter] ?? {
-        columns: 1,
-        rowCounts: [0],
-      };
-      const cols = Math.max(1, Number(cfg.columns) || 1);
-      const {
-        wCm: elementWcm,
-        hCm: elementHcm,
-        rowIdx,
-      } = getElementDimsCm(letter);
+      const { wCm: elementWcm, hCm: elementHcm, colIdx } = getElementDimsCm(
+        letter,
+      );
+      const compartmentDefs = getCompartmentsForColumn({
+        colIdx,
+        columnHeights,
+        height: heightCm,
+        columnHorizontalBoundaries,
+        columnModuleBoundaries,
+        columnTopModuleShelves,
+        hasBase,
+        baseHeight,
+        tCm: Number(materials.find((m) => String(m.id) === String(useShelfStore.getState().selectedMaterialId))?.thickness ?? 18) / 10,
+      });
+      const primaryCfg =
+        (elementConfigs as any)[`${letter}1`] ??
+        (elementConfigs as any)[letter] ?? {
+          columns: 1,
+          rowCounts: [0],
+        };
+      const cols = Math.max(1, Number(primaryCfg.columns) || 1);
 
       // ===============================================
       // PROPORTIONAL BOX SIZE CALCULATION
@@ -193,8 +205,6 @@ export function exportElementSpecs(
 
       const boxX = margin;
       const boxY = margin + 10;
-      // Outer box
-      doc.rect(boxX, boxY, boxW, boxH, "S");
 
       const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
       const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
@@ -207,13 +217,56 @@ export function exportElementSpecs(
       const tOffsetXmm = tCm / cmPerMmX;
       const tOffsetYmm = tCm / cmPerMmY;
       // Base region inside element (applies to lower module or single)
-      const appliesBase =
-        hasBase && (heightCm <= TARGET_BOTTOM_HEIGHT_CM || rowIdx === 0);
+      const appliesBase = hasBase;
       const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
       const innerTopMmY = boxY + tOffsetYmm;
       const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
       const innerLeftMmX = boxX + tOffsetXmm;
       const innerRightMmX = boxX + boxW - tOffsetXmm;
+      const mapY = (yFromFloorCm: number) => {
+        const clamped = Math.max(0, Math.min(elementHcm, yFromFloorCm));
+        return boxY + boxH - clamped / cmPerMmY;
+      };
+
+      const drawPanel = (
+        x: number,
+        y: number,
+        widthMm: number,
+        heightMm: number,
+        fillGray = 245,
+      ) => {
+        if (widthMm <= 0 || heightMm <= 0) return;
+        doc.setFillColor(fillGray);
+        doc.rect(x, y, widthMm, heightMm, "FD");
+      };
+
+      const innerPanelSpan = Math.max(innerRightMmX - innerLeftMmX, 0);
+      const panelSpanHeight = Math.max(boxH - baseMm, 0);
+
+      const shellRects = buildCabinetShellRects({
+        x: boxX,
+        y: boxY,
+        width: boxW,
+        height: boxH,
+        panelThicknessX: tOffsetXmm,
+        panelThicknessY: tOffsetYmm,
+        baseHeight: baseMm,
+      });
+      shellRects.forEach((rect) => {
+        drawPanel(rect.x, rect.y, rect.width, rect.height, rect.tone === "outer" ? 242 : 245);
+      });
+      buildCabinetShellJointLines({
+        x: boxX,
+        y: boxY,
+        width: boxW,
+        height: boxH,
+        panelThicknessX: tOffsetXmm,
+        panelThicknessY: tOffsetYmm,
+        baseHeight: baseMm,
+      }).forEach((line) => {
+        doc.line(line.x1, line.y1, line.x2, line.y2);
+      });
+
       // Draw base (hatched rectangle) if applicable
       if (appliesBase && baseMm > 0) {
         const by = boxY + boxH - baseMm;
@@ -228,39 +281,151 @@ export function exportElementSpecs(
         });
         doc.setFontSize(baseFont);
       }
-      // Vertical dividers (between inner left/right), equal division per app
-      for (let c = 1; c < cols; c++) {
-        const x = innerLeftMmX + (c * (innerRightMmX - innerLeftMmX)) / cols;
-        doc.line(x, boxY + 1, x, boxY + boxH - 1);
+
+      const sections = computeSectionBounds({
+        x: innerLeftMmX,
+        width: innerPanelSpan,
+        sectionCount: cols,
+        dividerThickness: tOffsetXmm,
+      });
+
+      buildSectionDividerRects({
+        x: innerLeftMmX,
+        width: innerPanelSpan,
+        y: boxY,
+        height: panelSpanHeight,
+        sectionCount: cols,
+        dividerThickness: tOffsetXmm,
+      }).forEach((rect) => {
+        drawPanel(rect.x, rect.y, rect.width, rect.height, 233);
+      });
+
+      if (cols > 1) {
+        sections.slice(1).forEach((section) => {
+          const seamLine = buildDoubleSeamCenterLine({
+            x: section.x - tOffsetXmm,
+            y: boxY,
+            height: panelSpanHeight,
+          });
+          if (seamLine) {
+            doc.line(seamLine.x1, seamLine.y1, seamLine.x2, seamLine.y2);
+          }
+        });
       }
-      // Shelves per compartment (distributed evenly)
-      let firstCompGapCm: number | null = null;
-      for (let c = 0; c < cols; c++) {
-        const count = Math.max(0, Math.floor(Number(cfg.rowCounts?.[c] ?? 0)));
-        if (count <= 0) continue;
-        const compX0 = boxX + (c * boxW) / cols + 1;
-        const compX1 = boxX + ((c + 1) * boxW) / cols - 1;
-        const innerH = Math.max(innerBottomMmY - innerTopMmY, 0);
-        const gapMm = innerH / (count + 1);
-        const gapCm = gapMm * cmPerMmY;
-        if (firstCompGapCm == null) firstCompGapCm = gapCm;
-        for (let s = 1; s <= count; s++) {
-          const y = innerTopMmY + s * gapMm;
-          doc.line(compX0, y, compX1, y);
+
+      const colHForShelves = columnHeights[colIdx] ?? heightCm;
+      const mainShelves = columnHorizontalBoundaries[colIdx] || [];
+      mainShelves
+        .map((s) => s * 100)
+        .filter((shelfY) => shelfY > 0 && shelfY < colHForShelves)
+        .forEach((shelfY) => {
+          drawPanel(
+            innerLeftMmX,
+            mapY(shelfY + tCm / 2),
+            innerRightMmX - innerLeftMmX,
+            tOffsetYmm,
+            250,
+          );
+        });
+
+      const colHMeters = (columnHeights[colIdx] ?? heightCm) / 100;
+      const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+      const innerBottomForBoundary = hasBase ? baseHeight + tCm : tCm;
+      const innerTopForBoundary = (columnHeights[colIdx] ?? heightCm) - tCm;
+      if (moduleBoundary !== null && colHMeters > TARGET_BOTTOM_HEIGHT_CM / 100) {
+        const moduleBoundaryYCm = moduleBoundary * 100;
+        const isValidBoundary =
+          moduleBoundaryYCm > innerBottomForBoundary + tCm &&
+          moduleBoundaryYCm < innerTopForBoundary - tCm;
+        if (isValidBoundary) {
+          drawPanel(
+            innerLeftMmX,
+            mapY(moduleBoundaryYCm),
+            innerRightMmX - innerLeftMmX,
+            tOffsetYmm,
+            233,
+          );
+          drawPanel(
+            innerLeftMmX,
+            mapY(moduleBoundaryYCm + tCm),
+            innerRightMmX - innerLeftMmX,
+            tOffsetYmm,
+            233,
+          );
         }
-        // Draw a combined vertical dimension for these gaps on the left side
-        const dimXLeft = boxX - 6;
-        drawDimV(
-          dimXLeft,
-          innerTopMmY,
-          innerTopMmY + gapMm,
-          `${fmt2(gapCm)} cm × ${count + 1}`,
-          { arrows: true, ext: 2.5, font: 8 },
-        );
       }
+
+      const topShelves = columnTopModuleShelves[colIdx] || [];
+      if (topShelves.length > 0 && moduleBoundary !== null) {
+        const moduleBoundaryYCm = moduleBoundary * 100;
+        topShelves
+          .map((s) => s * 100)
+          .filter(
+            (shelfY) =>
+              shelfY > moduleBoundaryYCm + tCm && shelfY < innerTopForBoundary,
+          )
+          .forEach((shelfY) => {
+            drawPanel(
+              innerLeftMmX,
+              mapY(shelfY + tCm / 2),
+              innerRightMmX - innerLeftMmX,
+              tOffsetYmm,
+              250,
+            );
+          });
+      }
+
+      compartmentDefs.forEach((comp) => {
+        const compCfg = (elementConfigs as any)[comp.key] ?? {
+          columns: 1,
+          rowCounts: [0],
+        };
+        const compInnerCols = Math.max(1, Number(compCfg.columns) || 1);
+        const compInnerSpan = innerRightMmX - innerLeftMmX;
+        const compSections = computeSectionBounds({
+          x: innerLeftMmX,
+          width: compInnerSpan,
+          sectionCount: compInnerCols,
+          dividerThickness: tOffsetXmm,
+        });
+        const safeBottomY = Math.max(0, Math.min(elementHcm, comp.bottomY));
+        const safeTopY = Math.max(0, Math.min(elementHcm, comp.topY));
+        if (safeTopY <= safeBottomY) return;
+
+        buildSectionDividerRects({
+          x: innerLeftMmX,
+          width: compInnerSpan,
+          y: mapY(safeTopY),
+          height: (safeTopY - safeBottomY) / cmPerMmY,
+          sectionCount: compInnerCols,
+          dividerThickness: tOffsetXmm,
+        }).forEach((rect) => {
+          drawPanel(rect.x, rect.y, rect.width, rect.height, 233);
+        });
+
+        for (let secIdx = 0; secIdx < compInnerCols; secIdx++) {
+          const shelfCount = Math.max(
+            0,
+            Math.floor(Number(compCfg.rowCounts?.[secIdx] ?? 0)),
+          );
+          if (shelfCount <= 0) continue;
+          const section = compSections[secIdx];
+          if (!section) continue;
+          buildEvenShelfRects({
+            x: section.x,
+            width: section.width,
+            topY: mapY(safeTopY),
+            bottomY: mapY(safeBottomY),
+            shelfCount,
+            shelfThickness: tOffsetYmm,
+          }).forEach((rect) => {
+            drawPanel(rect.x, rect.y, rect.width, rect.height, 250);
+          });
+        }
+      });
       // Drawers region (from elementConfigs.drawerCounts) – match BlueprintView logic
-      const extras = (compartmentExtras as any)[letter] ?? {};
-      const totalDrawerCount = ((cfg as any).drawerCounts ?? []).reduce(
+      const extras = (compartmentExtras as any)[`${letter}1`] ?? {};
+      const totalDrawerCount = ((primaryCfg as any).drawerCounts ?? []).reduce(
         (sum: number, c: number) => sum + (c ?? 0),
         0,
       );
@@ -309,7 +474,13 @@ export function exportElementSpecs(
           const shelfOffsetMm = lastTopOffsetMm + gapMm + tCm / cmPerMmY;
           if (shelfOffsetMm < innerHMm) {
             const shelfY = innerBottomMmY - shelfOffsetMm;
-            doc.line(innerLeftMmX, shelfY, innerRightMmX, shelfY);
+            drawPanel(
+              innerLeftMmX,
+              shelfY - tOffsetYmm / 2,
+              innerRightMmX - innerLeftMmX,
+              tOffsetYmm,
+              250,
+            );
           }
         }
       }
@@ -333,16 +504,8 @@ export function exportElementSpecs(
       }
       // Optional central divider
       if (extras.verticalDivider) {
-        const x = boxX + boxW / 2;
-        // Emulate dashed line by drawing short segments
-        const dashLen = 2;
-        const gapLen = 2;
-        let yy = boxY + 1;
-        while (yy < boxY + boxH - 1) {
-          const y2 = Math.min(yy + dashLen, boxY + boxH - 1);
-          doc.line(x, yy, x, y2);
-          yy = y2 + gapLen;
-        }
+        const x = boxX + boxW / 2 - tOffsetXmm / 2;
+        drawPanel(x, boxY, tOffsetXmm, panelSpanHeight, 233);
       }
       // Dimension lines and labels (outer)
       const dimY = boxY + boxH + 6;
@@ -370,6 +533,42 @@ export function exportElementSpecs(
           });
         }
       }
+
+      const sideMaxW = 34;
+      const sideScale = Math.min(
+        sideMaxW / Math.max(1, depthCm),
+        boxH / Math.max(1, elementHcm),
+      );
+      const sideW = depthCm * sideScale;
+      const sideH = elementHcm * sideScale;
+      const sideX = margin + 2;
+      const sideY = dimY + (cols > 1 ? 14 : 10);
+      const sideTopBottomThickness = tCm / (elementHcm / Math.max(sideH, 1));
+      const sideBackThickness = 0.5 / (elementHcm / Math.max(sideH, 1));
+      const sideBaseMm = appliesBase ? Math.max(0, baseHeight / (elementHcm / Math.max(sideH, 1))) : 0;
+
+      const sideRects = buildSideViewSectionRects({
+        x: sideX,
+        y: sideY,
+        depth: sideW,
+        height: sideH,
+        topBottomThickness: sideTopBottomThickness,
+        backThickness: sideBackThickness,
+        baseHeight: sideBaseMm,
+      });
+      sideRects.forEach((rect) => {
+        const toneGray = rect.tone === "back" ? 218 : rect.tone === "outer" ? 242 : 245;
+        drawPanel(rect.x, rect.y, rect.width, rect.height, toneGray);
+      });
+      if (appliesBase && sideBaseMm > 0) {
+        doc.setFillColor("#e6e6e6");
+        doc.rect(sideX, sideY + sideH - sideBaseMm, sideW, sideBaseMm, "FD");
+      }
+      doc.setFontSize(8);
+      doc.text("Pogled sa strane", sideX + sideW / 2, sideY - 2, { align: "center" as any });
+      doc.setFontSize(baseFont);
+
+      const contentBottomY = Math.max(sideY + sideH + 10, boxY + boxH + 14);
 
       // ===============================================
       // DOOR TYPE LABEL & HANDLE INFORMATION
@@ -491,7 +690,7 @@ export function exportElementSpecs(
       // Numeric column indices (right-align these)
       const numericCols = [2, 3, 4, 5, 6];
 
-      let y = Math.max(boxY + boxH + 14, dimY + (cols > 1 ? 10 : 6));
+      let y = Math.max(contentBottomY, dimY + (cols > 1 ? 10 : 6));
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       headers.forEach((h, i) => {
@@ -589,7 +788,7 @@ export function exportElementSpecs(
       }
       doc.setFont("helvetica", "normal");
     });
-    doc.save("specifikacija-elemenata.pdf");
+    doc.save(options?.filename ?? "specifikacija-elemenata.pdf");
   } catch (e) {
     console.error("PDF export failed", e);
   }

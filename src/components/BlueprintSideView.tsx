@@ -1,3 +1,5 @@
+import { buildSideViewSectionRects } from "@/lib/technicalDrawingModel";
+
 interface BlueprintSideViewProps {
   sideViewX: number;
   sideViewY: number;
@@ -31,6 +33,26 @@ export function BlueprintSideView({
   );
   const scaledMaxHeight = maxColHeight * scale;
   const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
+  const topBottomThickness = 1.8 * scale;
+  const backThickness = 0.5 * scale;
+  const sideRects = buildSideViewSectionRects({
+    x: sideViewX,
+    y: sideViewY + sideYOffset,
+    depth: scaledDepth,
+    height: scaledMaxHeight,
+    topBottomThickness,
+    backThickness,
+    baseHeight: hasBase ? scaledBaseHeight : 0,
+  });
+
+  const toneFill: Record<string, string> = {
+    outer: "url(#diagonalHatch)",
+    inner: "#f3f3f3",
+    seam: "#ececec",
+    base: "url(#crossHatch)",
+    back: "#d9d9d9",
+    drawer: "url(#drawerHatch)",
+  };
 
   return (
     <g>
@@ -46,16 +68,19 @@ export function BlueprintSideView({
         Pogled sa strane
       </text>
 
-      {/* Main rectangle with hatching - uses max column height */}
-      <rect
-        x={sideViewX}
-        y={sideViewY + sideYOffset}
-        width={scaledDepth}
-        height={scaledMaxHeight}
-        fill="url(#diagonalHatch)"
-        stroke="#000"
-        strokeWidth="2"
-      />
+      {/* Section panels with visible thickness */}
+      {sideRects.map((rect, index) => (
+        <rect
+          key={`side-panel-${index}`}
+          x={rect.x}
+          y={rect.y}
+          width={rect.width}
+          height={rect.height}
+          fill={toneFill[rect.tone]}
+          stroke="#000"
+          strokeWidth={rect.tone === "outer" ? "1.2" : "0.8"}
+        />
+      ))}
 
       {/* Base */}
       {hasBase && scaledBaseHeight > 0 && (
@@ -144,6 +169,16 @@ export function BlueprintSideView({
           {depth} cm
         </text>
       </g>
+
+      <text
+        x={sideViewX + scaledDepth / 2}
+        y={sideViewY + sideYOffset + 12}
+        fontSize="8"
+        fontFamily="Arial, sans-serif"
+        textAnchor="middle"
+      >
+        Presek: stranica + gornja/donja + leda
+      </text>
     </g>
   );
 }

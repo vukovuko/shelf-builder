@@ -8,6 +8,15 @@ import {
   createMapY,
   createMapYForColumn,
 } from "@/lib/blueprintHelpers";
+import {
+  buildCabinetShellRects,
+  buildCabinetShellJointLines,
+  buildDoubleSeamCenterLine,
+  buildDoubleSeamRects,
+  buildEvenShelfRects,
+  buildSectionDividerRects,
+  computeSectionBounds,
+} from "@/lib/technicalDrawingModel";
 import { BlueprintHeader } from "./BlueprintHeader";
 import { BlueprintSideView } from "./BlueprintSideView";
 
@@ -46,6 +55,11 @@ export function BlueprintView() {
   const mat = materials.find((m: Material) => m.id === selectedMaterialId);
   const tCm = Number(mat?.thickness ?? 18) / 10; // thickness in cm
   const thicknessMm = Number(mat?.thickness ?? 18);
+  const panelStroke = "#111";
+  const panelFill = "#f5f5f5";
+  const seamPanelFill = "#e9e9e9";
+  const innerPanelFill = "#fafafa";
+  const panelStrokeWidth = 0.9;
 
   // Drawing layout
   const padding = 60;
@@ -59,6 +73,7 @@ export function BlueprintView() {
   const scaleX = maxDrawingWidth / (width + depth + 80);
   const scaleY = maxDrawingHeight / height;
   const scale = Math.min(scaleX, scaleY, 2.5);
+  const panelThicknessPx = tCm * scale;
   const scaleRatio = Math.round(100 / scale); // For "Razmer 1:X"
 
   // Scaled dimensions
@@ -107,6 +122,32 @@ export function BlueprintView() {
 
   // Global space counter
   let globalSpaceNum = 1;
+
+  const createPanelRect = (
+    key: string,
+    x: number,
+    y: number,
+    widthPx: number,
+    heightPx: number,
+    fill = panelFill,
+  ) => {
+    if (widthPx <= 0 || heightPx <= 0) {
+      return null;
+    }
+
+    return (
+      <rect
+        key={key}
+        x={x}
+        y={y}
+        width={widthPx}
+        height={heightPx}
+        fill={fill}
+        stroke={panelStroke}
+        strokeWidth={panelStrokeWidth}
+      />
+    );
+  };
 
   return (
     <div className="w-full h-full bg-white flex items-center justify-center">
@@ -173,29 +214,6 @@ export function BlueprintView() {
             Pogled spreda
           </text>
 
-          {/* Per-column frames with individual heights */}
-          {columns.map((col, colIdx) => {
-            const colH = columnHeights[colIdx] ?? height;
-            const scaledColH = colH * scale;
-            const colX = frontViewX + col.start * scale;
-            const colW = col.width * scale;
-            // Y offset: shorter columns start lower (bottom-aligned)
-            const yOffset = scaledHeight - scaledColH;
-
-            return (
-              <rect
-                key={`col-frame-${colIdx}`}
-                x={colX}
-                y={frontViewY + yOffset}
-                width={colW}
-                height={scaledColH}
-                fill="none"
-                stroke="#000"
-                strokeWidth="2"
-              />
-            );
-          })}
-
           {/* Base with cross-hatch - per column */}
           {hasBase &&
             scaledBaseHeight > 0 &&
@@ -217,26 +235,117 @@ export function BlueprintView() {
               );
             })}
 
-          {/* Vertical seams between columns (SOLID lines) */}
-          {/* Seams extend to the MINIMUM height of adjacent columns */}
+          {/* Per-column carcass panels with actual panel thickness */}
+          {columns.map((col, colIdx) => {
+            const colH = columnHeights[colIdx] ?? height;
+            const scaledColH = colH * scale;
+            const colX = frontViewX + col.start * scale;
+            const colW = col.width * scale;
+            const yOffset = scaledHeight - scaledColH;
+            const colTopY = frontViewY + yOffset;
+            const colBottomY = frontViewY + scaledHeight;
+            const shellPanels = buildCabinetShellRects({
+              x: colX,
+              y: colTopY,
+              width: colW,
+              height: scaledColH,
+              panelThicknessX: panelThicknessPx,
+              panelThicknessY: panelThicknessPx,
+              baseHeight: scaledBaseHeight,
+              includeLeft: colIdx === 0,
+              includeRight: colIdx === columns.length - 1,
+            });
+            const nodes: React.ReactNode[] = shellPanels
+              .map((panel, panelIdx) =>
+                createPanelRect(
+                  `col-shell-${colIdx}-${panelIdx}`,
+                  panel.x,
+                  panel.y,
+                  panel.width,
+                  panel.height,
+                  panel.tone === "outer" ? panelFill : innerPanelFill,
+                ),
+              )
+              .filter(Boolean);
+
+            const shellJointLines = buildCabinetShellJointLines({
+              x: colX,
+              y: colTopY,
+              width: colW,
+              height: scaledColH,
+              panelThicknessX: panelThicknessPx,
+              panelThicknessY: panelThicknessPx,
+              baseHeight: scaledBaseHeight,
+              includeLeft: colIdx === 0,
+              includeRight: colIdx === columns.length - 1,
+            });
+
+            shellJointLines.forEach((line, lineIdx) => {
+              nodes.push(
+                <line
+                  key={`col-joint-${colIdx}-${lineIdx}`}
+                  x1={line.x1}
+                  y1={line.y1}
+                  x2={line.x2}
+                  y2={line.y2}
+                  stroke="#000"
+                  strokeWidth="1"
+                />,
+              );
+            });
+
+            return <g key={`col-frame-${colIdx}`}>{nodes}</g>;
+          })}
+
+          {/* Vertical seams between columns rendered as two touching panels */}
           {columns.slice(0, -1).map((col, i) => {
             const leftColH = columnHeights[i] ?? height;
             const rightColH = columnHeights[i + 1] ?? height;
-            const seamH = Math.min(leftColH, rightColH); // Use minimum of adjacent columns
+            const seamH = Math.min(leftColH, rightColH);
             const scaledSeamH = seamH * scale;
-            const yOffset = scaledHeight - scaledSeamH; // Bottom-aligned offset
+            const yOffset = scaledHeight - scaledSeamH;
+            const seamTopY = frontViewY + yOffset;
+            const seamBottomY = frontViewY + scaledHeight;
+            const seamX = frontViewX + col.end * scale;
 
-            const dividerX = frontViewX + col.end * scale;
+            const seamPanels = buildDoubleSeamRects({
+              x: seamX,
+              y: seamTopY,
+              height: seamBottomY - seamTopY,
+              thickness: panelThicknessPx,
+            });
+
             return (
-              <line
-                key={`vdiv-${i}`}
-                x1={dividerX}
-                y1={frontViewY + yOffset}
-                x2={dividerX}
-                y2={frontViewY + scaledHeight - scaledBaseHeight}
-                stroke="#000"
-                strokeWidth="1.5"
-              />
+              <g key={`vdiv-${i}`}>
+                {seamPanels.map((panel, panelIdx) =>
+                  createPanelRect(
+                    `vdiv-${i}-${panelIdx}`,
+                    panel.x,
+                    panel.y,
+                    panel.width,
+                    panel.height,
+                    seamPanelFill,
+                  ),
+                )}
+                {(() => {
+                  const seamCenterLine = buildDoubleSeamCenterLine({
+                    x: seamX,
+                    y: seamTopY,
+                    height: seamBottomY - seamTopY,
+                  });
+                  if (!seamCenterLine) return null;
+                  return (
+                    <line
+                      x1={seamCenterLine.x1}
+                      y1={seamCenterLine.y1}
+                      x2={seamCenterLine.x2}
+                      y2={seamCenterLine.y2}
+                      stroke="#000"
+                      strokeWidth="0.8"
+                    />
+                  );
+                })()}
+              </g>
             );
           })}
 
@@ -245,6 +354,8 @@ export function BlueprintView() {
             const x1 = frontViewX + col.start * scale;
             const x2 = frontViewX + col.end * scale;
             const colCenterX = (x1 + x2) / 2;
+            const colInnerX1 = x1 + panelThicknessPx;
+            const colInnerX2 = x2 - panelThicknessPx;
 
             const compartments = getCompartmentsForColumn(colIdx);
             const nodes: React.ReactNode[] = [];
@@ -257,17 +368,26 @@ export function BlueprintView() {
             shelfYsCm.forEach((shelfY: number, shIdx: number) => {
               // Only draw shelves within this column's height
               if (shelfY > 0 && shelfY < colHForShelves) {
-                nodes.push(
-                  <line
-                    key={`shelf-${colIdx}-${shIdx}`}
-                    x1={x1}
-                    y1={mapYForColumn(shelfY, colIdx)}
-                    x2={x2}
-                    y2={mapYForColumn(shelfY, colIdx)}
-                    stroke="#000"
-                    strokeWidth="1"
-                  />,
-                );
+                const shelfRects = buildEvenShelfRects({
+                  x: colInnerX1,
+                  width: Math.max(colInnerX2 - colInnerX1, 0),
+                  topY: mapYForColumn(shelfY + tCm / 2, colIdx),
+                  bottomY:
+                    mapYForColumn(shelfY + tCm / 2, colIdx) + panelThicknessPx,
+                  shelfCount: 1,
+                  shelfThickness: panelThicknessPx,
+                });
+                const shelfPanel = shelfRects[0]
+                  ? createPanelRect(
+                      `shelf-${colIdx}-${shIdx}`,
+                      shelfRects[0].x,
+                      shelfRects[0].y,
+                      shelfRects[0].width,
+                      shelfRects[0].height,
+                      innerPanelFill,
+                    )
+                  : null;
+                if (shelfPanel) nodes.push(shelfPanel);
               }
             });
 
@@ -287,17 +407,24 @@ export function BlueprintView() {
                 moduleBoundaryYCm < innerTopForBoundary - tCm;
 
               if (isValidBoundary) {
-                nodes.push(
-                  <line
-                    key={`module-boundary-${colIdx}`}
-                    x1={x1}
-                    y1={mapYForColumn(moduleBoundaryYCm, colIdx)}
-                    x2={x2}
-                    y2={mapYForColumn(moduleBoundaryYCm, colIdx)}
-                    stroke="#000"
-                    strokeWidth="1.5"
-                  />,
+                const lowerBoundaryPanel = createPanelRect(
+                  `module-boundary-lower-${colIdx}`,
+                  colInnerX1,
+                  mapYForColumn(moduleBoundaryYCm, colIdx),
+                  Math.max(colInnerX2 - colInnerX1, 0),
+                  panelThicknessPx,
+                  seamPanelFill,
                 );
+                const upperBoundaryPanel = createPanelRect(
+                  `module-boundary-upper-${colIdx}`,
+                  colInnerX1,
+                  mapYForColumn(moduleBoundaryYCm + tCm, colIdx),
+                  Math.max(colInnerX2 - colInnerX1, 0),
+                  panelThicknessPx,
+                  seamPanelFill,
+                );
+                if (lowerBoundaryPanel) nodes.push(lowerBoundaryPanel);
+                if (upperBoundaryPanel) nodes.push(upperBoundaryPanel);
               }
             }
 
@@ -324,17 +451,15 @@ export function BlueprintView() {
                     shelfY > moduleBoundaryYCmForTopShelves + tCm &&
                     shelfY < innerTopForBoundary
                   ) {
-                    nodes.push(
-                      <line
-                        key={`top-shelf-${colIdx}-${shIdx}`}
-                        x1={x1}
-                        y1={mapYForColumn(shelfY, colIdx)}
-                        x2={x2}
-                        y2={mapYForColumn(shelfY, colIdx)}
-                        stroke="#000"
-                        strokeWidth="1"
-                      />,
+                    const topShelfPanel = createPanelRect(
+                      `top-shelf-${colIdx}-${shIdx}`,
+                      colInnerX1,
+                      mapYForColumn(shelfY + tCm / 2, colIdx),
+                      Math.max(colInnerX2 - colInnerX1, 0),
+                      panelThicknessPx,
+                      innerPanelFill,
                     );
+                    if (topShelfPanel) nodes.push(topShelfPanel);
                   }
                 });
               }
@@ -353,8 +478,9 @@ export function BlueprintView() {
 
               const compX1 = x1;
               const compX2 = x2;
-              const compW = compX2 - compX1;
-              const sectionW = compW / innerCols;
+              const compInnerX1 = compX1 + panelThicknessPx;
+              const compInnerX2 = compX2 - panelThicknessPx;
+              const innerPanelSpan = Math.max(compInnerX2 - compInnerX1, 0);
 
               // Clamp compartment bounds to be within column frame
               const safeBottomY = Math.max(
@@ -370,49 +496,69 @@ export function BlueprintView() {
 
               // Draw inner vertical dividers (DASHED lines)
               if (innerCols > 1) {
-                for (let divIdx = 1; divIdx < innerCols; divIdx++) {
-                  const divX = compX1 + divIdx * sectionW;
-                  nodes.push(
-                    <line
-                      key={`vd-${compKey}-${divIdx}`}
-                      x1={divX}
-                      y1={mapYForColumn(safeTopY, colIdx)}
-                      x2={divX}
-                      y2={mapYForColumn(safeBottomY, colIdx)}
-                      stroke="#666"
-                      strokeWidth="0.75"
-                      strokeDasharray="3,2"
-                    />,
+                const dividerRects = buildSectionDividerRects({
+                  x: compInnerX1,
+                  width: innerPanelSpan,
+                  y: mapYForColumn(safeTopY, colIdx),
+                  height: (safeTopY - safeBottomY) * scale,
+                  sectionCount: innerCols,
+                  dividerThickness: panelThicknessPx,
+                });
+
+                dividerRects.forEach((rect, divIdx) => {
+                  const dividerPanel = createPanelRect(
+                    `vd-${compKey}-${divIdx}`,
+                    rect.x,
+                    rect.y,
+                    rect.width,
+                    rect.height,
+                    seamPanelFill,
                   );
-                }
+                  if (dividerPanel) nodes.push(dividerPanel);
+                });
               }
 
               // Draw inner shelves per section
+              const sections = computeSectionBounds({
+                x: compInnerX1,
+                width: innerPanelSpan,
+                sectionCount: innerCols,
+                dividerThickness: panelThicknessPx,
+              });
               for (let secIdx = 0; secIdx < innerCols; secIdx++) {
                 const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                 if (shelfCount <= 0) {
                   continue;
                 }
 
-                const secX1 = compX1 + secIdx * sectionW + 2;
-                const secX2 = compX1 + (secIdx + 1) * sectionW - 2;
+                const section = sections[secIdx];
+                if (!section) continue;
+
+                const secX1 = section.x;
+                const secX2 = section.x + section.width;
                 const usableH = safeTopY - safeBottomY;
                 const gap = usableH / (shelfCount + 1);
 
-                for (let shIdx = 1; shIdx <= shelfCount; shIdx++) {
-                  const shelfY = safeBottomY + shIdx * gap;
-                  nodes.push(
-                    <line
-                      key={`ish-${compKey}-${secIdx}-${shIdx}`}
-                      x1={secX1}
-                      y1={mapYForColumn(shelfY, colIdx)}
-                      x2={secX2}
-                      y2={mapYForColumn(shelfY, colIdx)}
-                      stroke="#666"
-                      strokeWidth="0.75"
-                    />,
+                const innerShelfRects = buildEvenShelfRects({
+                  x: secX1,
+                  width: Math.max(secX2 - secX1, 0),
+                  topY: mapYForColumn(safeTopY, colIdx),
+                  bottomY: mapYForColumn(safeBottomY, colIdx),
+                  shelfCount,
+                  shelfThickness: panelThicknessPx,
+                });
+
+                innerShelfRects.forEach((rect, shIdx) => {
+                  const innerShelfPanel = createPanelRect(
+                    `ish-${compKey}-${secIdx}-${shIdx}`,
+                    rect.x,
+                    rect.y,
+                    rect.width,
+                    rect.height,
+                    innerPanelFill,
                   );
-                }
+                  if (innerShelfPanel) nodes.push(innerShelfPanel);
+                });
 
                 // Draw height labels for spaces between inner shelves
                 // Always show labels regardless of height (user requirement)
@@ -449,9 +595,13 @@ export function BlueprintView() {
                 const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
                 if (drawerCount <= 0) continue;
 
-                const secX1 = compX1 + secIdx * sectionW + 4;
-                const secX2 = compX1 + (secIdx + 1) * sectionW - 4;
+                const section = sections[secIdx];
+                if (!section) continue;
+
+                const secX1 = section.x + 4;
+                const secX2 = section.x + section.width - 4;
                 const secDrawerW = secX2 - secX1;
+                if (secDrawerW <= 0) continue;
                 const compInnerH = safeTopY - safeBottomY;
                 // Match CarcassFrame: divide compartment equally among drawers
                 const drawerH = compInnerH / drawerCount;
