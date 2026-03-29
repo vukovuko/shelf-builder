@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { calculateCutList, type WardrobeSnapshot } from "../calcCutList";
+import {
+  calculateCutList,
+  getCutListGroupKey,
+  type WardrobeSnapshot,
+} from "../calcCutList";
 
 const mockMaterials = [
   { id: 1, price: 5000, thickness: 18, categories: ["iverica"] },
@@ -225,10 +229,10 @@ describe("calculateCutList", () => {
       ).toEqual([100, 150]);
 
       expect(leftSidePanels.find((i) => i.code === "SLD")?.desc).toBe(
-        "Leva stranica (spoljna) donji modul",
+        "Leva stranica elementa A (spoljna)",
       );
       expect(leftSidePanels.find((i) => i.code === "SLG")?.desc).toBe(
-        "Leva stranica (spoljna) gornji modul",
+        "Leva stranica elementa A1 (spoljna)",
       );
     });
 
@@ -253,16 +257,16 @@ describe("calculateCutList", () => {
       const result = calculateCutList(snapshot, mockMaterials);
 
       expect(result.items.find((i) => i.code === "VS1LD")?.desc).toBe(
-        "Desna stranica elementa A donji modul",
+        "Desna stranica elementa A",
       );
       expect(result.items.find((i) => i.code === "VS1LG")?.desc).toBe(
-        "Desna stranica elementa A gornji modul",
+        "Desna stranica elementa A1",
       );
       expect(result.items.find((i) => i.code === "VS1DD")?.desc).toBe(
-        "Leva stranica elementa B donji modul",
+        "Leva stranica elementa B",
       );
       expect(result.items.find((i) => i.code === "VS1DG")?.desc).toBe(
-        "Leva stranica elementa B gornji modul",
+        "Leva stranica elementa B1",
       );
     });
   });
@@ -597,6 +601,37 @@ describe("calculateCutList", () => {
   });
 
   describe("grouped output", () => {
+    it("keeps top module as a separate element key", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 250,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        columnModuleBoundaries: { 0: 2 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+
+      expect(result.grouped.A).toBeDefined();
+      expect(result.grouped.A1).toBeDefined();
+
+      const bottomCodes = (result.grouped.A ?? []).map((item) => item.code);
+      const topCodes = (result.grouped.A1 ?? []).map((item) => item.code);
+
+      expect(bottomCodes).toContain("A-DON");
+      expect(bottomCodes).toContain("A-MB1");
+      expect(topCodes).toContain("A-GOR");
+      expect(topCodes).toContain("A-MB2");
+      expect(topCodes).toContain("A-ZG");
+    });
+
     it("groups items by element", () => {
       const snapshot: WardrobeSnapshot = {
         width: 200,
@@ -624,6 +659,12 @@ describe("calculateCutList", () => {
         0,
       );
       expect(groupedCount).toBe(result.items.length);
+    });
+
+    it("preserves explicit top-module element keys during grouping", () => {
+      expect(getCutListGroupKey("A")).toBe("A");
+      expect(getCutListGroupKey("A1")).toBe("A1");
+      expect(getCutListGroupKey("A1.0.1")).toBe("A");
     });
 
     it("puts carcass, shelves, and back panel under the same column element", () => {

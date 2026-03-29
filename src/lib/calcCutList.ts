@@ -152,9 +152,37 @@ const emptyCutList: CutList = {
   },
 };
 
+const TOP_MODULE_ELEMENT_SUFFIX = "1";
+
+export function getTopModuleElementKey(columnKey: string): string {
+  return `${columnKey}${TOP_MODULE_ELEMENT_SUFFIX}`;
+}
+
+export function parseCutListElementKey(elementKey: string): {
+  columnKey: string;
+  isTopModule: boolean;
+} | null {
+  const match = elementKey.match(/^([A-Z]+)(1)?$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    columnKey: match[1],
+    isTopModule: match[2] === TOP_MODULE_ELEMENT_SUFFIX,
+  };
+}
+
 export function getCutListGroupKey(element: string): string {
   if (!element) {
     return "OSTALO";
+  }
+
+  const directElement = parseCutListElementKey(element);
+  if (directElement) {
+    return directElement.isTopModule
+      ? getTopModuleElementKey(directElement.columnKey)
+      : directElement.columnKey;
   }
 
   const slidingDoorMatch = element.match(/^KV-([A-Z]+)$/);
@@ -322,6 +350,9 @@ export function calculateCutList(
       ].filter((span) => span.height > 0);
     };
 
+    const getModuleElementKey = (columnKey: string, isTopModule: boolean) =>
+      isTopModule ? getTopModuleElementKey(columnKey) : columnKey;
+
     const getSidePanelDescription = (
       side: "Leva" | "Desna",
       scope: string,
@@ -484,12 +515,20 @@ export function calculateCutList(
       leftOuterHeight,
       leftOuterHeight > TARGET_BOTTOM_HEIGHT ? leftOuterBoundary : null,
     ).forEach((span) => {
+      const elementKey = getModuleElementKey(
+        firstColumnLetter,
+        span.suffix === "G",
+      );
       addKorpus(
         `SL${span.suffix}`,
-        getSidePanelDescription("Leva", "(spoljna)", span.descSuffix),
+        getSidePanelDescription(
+          "Leva",
+          `${getElementScope(elementKey)} (spoljna)`,
+          "",
+        ),
         carcassD,
         span.height,
-        firstColumnLetter,
+        elementKey,
       );
     });
 
@@ -499,12 +538,20 @@ export function calculateCutList(
       rightOuterHeight,
       rightOuterHeight > TARGET_BOTTOM_HEIGHT ? rightOuterBoundary : null,
     ).forEach((span) => {
+      const elementKey = getModuleElementKey(
+        lastColumnLetter,
+        span.suffix === "G",
+      );
       addKorpus(
         `SD${span.suffix}`,
-        getSidePanelDescription("Desna", "(spoljna)", span.descSuffix),
+        getSidePanelDescription(
+          "Desna",
+          `${getElementScope(elementKey)} (spoljna)`,
+          "",
+        ),
         carcassD,
         span.height,
-        lastColumnLetter,
+        elementKey,
       );
     });
 
@@ -520,16 +567,20 @@ export function calculateCutList(
         leftSeamHeight,
         leftSeamHeight > TARGET_BOTTOM_HEIGHT ? leftSeamBoundary : null,
       ).forEach((span) => {
+        const elementKey = getModuleElementKey(
+          leftColumnLetter,
+          span.suffix === "G",
+        );
         addKorpus(
           `VS${seamIdx + 1}L${span.suffix}`,
           getSidePanelDescription(
             "Desna",
-            `elementa ${leftColumnLetter}`,
-            span.descSuffix,
+            getElementScope(elementKey),
+            "",
           ),
           carcassD,
           span.height,
-          leftColumnLetter,
+          elementKey,
         );
       });
 
@@ -539,16 +590,20 @@ export function calculateCutList(
         rightSeamHeight,
         rightSeamHeight > TARGET_BOTTOM_HEIGHT ? rightSeamBoundary : null,
       ).forEach((span) => {
+        const elementKey = getModuleElementKey(
+          rightColumnLetter,
+          span.suffix === "G",
+        );
         addKorpus(
           `VS${seamIdx + 1}D${span.suffix}`,
           getSidePanelDescription(
             "Leva",
-            `elementa ${rightColumnLetter}`,
-            span.descSuffix,
+            getElementScope(elementKey),
+            "",
           ),
           carcassD,
           span.height,
-          rightColumnLetter,
+          elementKey,
         );
       });
     });
@@ -558,6 +613,7 @@ export function calculateCutList(
     // ==========================================
     columns.forEach((col, colIdx) => {
       const colLetter = String.fromCharCode(65 + colIdx);
+      const topElementKey = getTopModuleElementKey(colLetter);
       const innerW = Math.max(col.width - 2 * t, 0);
 
       if (innerW > 0) {
@@ -584,10 +640,13 @@ export function calculateCutList(
         // Top panel
         addKorpus(
           `${colLetter}-GOR`,
-          getElementPanelDescription("Gornja ploča", colLetter),
+          getElementPanelDescription(
+            "Gornja ploča",
+            needsModuleSplit ? topElementKey : colLetter,
+          ),
           innerW,
           carcassD,
-          colLetter,
+          needsModuleSplit ? topElementKey : colLetter,
         );
 
         // Module boundary panels (if h > 200cm) - 2 panels touching
@@ -606,11 +665,11 @@ export function calculateCutList(
             `${colLetter}-MB2`,
             getElementPanelDescription(
               "Gornja ploča spoja modula",
-              colLetter,
+              topElementKey,
             ),
             innerW,
             carcassD,
-            colLetter,
+            topElementKey,
           );
         }
       }
@@ -658,17 +717,18 @@ export function calculateCutList(
       const topShelfYs = columnTopModuleShelves[colIdx] || [];
       topShelfYs.forEach((_, shelfIdx) => {
         if (innerW > 0) {
+          const topElementKey = getTopModuleElementKey(colLetter);
           addKorpus(
             `${colLetter}-TP${shelfIdx + 1}`,
             getIndexedElementDescription(
               "Polica",
-              colLetter,
+              topElementKey,
               shelfIdx + 1,
-              " gornji modul",
+              "",
             ),
             innerW,
             carcassD,
-            colLetter,
+            topElementKey,
           );
         }
       });
@@ -682,6 +742,7 @@ export function calculateCutList(
       colLetter: string,
       colIdx: number,
       compKey: string,
+      elementKey: string,
       compH: number,
       innerW: number,
       col: { start: number; end: number; width: number },
@@ -703,7 +764,7 @@ export function calculateCutList(
             `Vertikalni divider ${compKey} (${divIdx})`,
             carcassD,
             compH,
-            compKey,
+            elementKey,
           );
         }
       }
@@ -722,7 +783,7 @@ export function calculateCutList(
             `Polica ${getElementScope(compKey)} sekcija ${secIdx + 1} (${shelfNum + 1})`,
             secW,
             carcassD,
-            compKey,
+            elementKey,
           );
         }
       }
@@ -735,7 +796,7 @@ export function calculateCutList(
           `Vertikalni divider (srednji) ${compKey}`,
           carcassD,
           compH,
-          compKey,
+          elementKey,
         );
       }
 
@@ -764,7 +825,7 @@ export function calculateCutList(
             innerCols > 1
               ? `Fioka ${compKey} sek.${secIdx + 1} (${drwIdx + 1})`
               : `Fioka ${compKey} (${drwIdx + 1})`;
-          addFront(code, desc, secW, drawerH, compKey);
+          addFront(code, desc, secW, drawerH, elementKey);
         }
 
         // Auto-shelf above drawers if space remains
@@ -779,7 +840,7 @@ export function calculateCutList(
               `Polica iznad fioka ${getElementScope(compKey)}`,
               secW,
               carcassD,
-              compKey,
+              elementKey,
             );
           }
         }
@@ -920,7 +981,7 @@ export function calculateCutList(
                   `Vrata ${compartmentLabel} levo krilo${isMirror ? " (ogledalo)" : ""}`,
                   leafW,
                   totalDoorH,
-                  compKey,
+                  elementKey,
                   doorMaterialId,
                 );
                 addFrontWithMaterial(
@@ -928,7 +989,7 @@ export function calculateCutList(
                   `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
                   leafW,
                   totalDoorH,
-                  compKey,
+                  elementKey,
                   doorMaterialId,
                 );
                 // Add 2 handles for double doors
@@ -942,7 +1003,7 @@ export function calculateCutList(
                     finishId: doorHandleFinish,
                     count: 2,
                     price: handlePrice * 2,
-                    element: compKey,
+                    element: elementKey,
                   });
                 }
               } else if (doorType === "drawerStyle") {
@@ -953,7 +1014,7 @@ export function calculateCutList(
                   `Vrata ${compartmentLabel} (${doorTypeLabel})`,
                   doorW,
                   totalDoorH,
-                  compKey,
+                  elementKey,
                   doorMaterialId,
                 );
               } else {
@@ -966,7 +1027,7 @@ export function calculateCutList(
                   `Vrata ${compartmentLabel} (${doorTypeLabel})`,
                   doorW,
                   totalDoorH,
-                  compKey,
+                  elementKey,
                   doorMaterialId,
                 );
                 // Add 1 handle for single door
@@ -980,7 +1041,7 @@ export function calculateCutList(
                     finishId: doorHandleFinish,
                     count: 1,
                     price: handlePrice,
-                    element: compKey,
+                    element: elementKey,
                   });
                 }
               }
@@ -1030,14 +1091,14 @@ export function calculateCutList(
                 `Vrata ${compKey} levo krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
                 doorH,
-                compKey,
+                elementKey,
               );
               addFront(
                 `${compKey}-VD`,
                 `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
                 leafW,
                 doorH,
-                compKey,
+                elementKey,
               );
               // Add 2 handles for double doors
               if (handlePrice > 0) {
@@ -1046,7 +1107,7 @@ export function calculateCutList(
                   finishId: globalHandleFinish,
                   count: 2,
                   price: handlePrice * 2,
-                  element: compKey,
+                  element: elementKey,
                 });
               }
             } else if (doorSel === "drawerStyle") {
@@ -1056,7 +1117,7 @@ export function calculateCutList(
                 `Vrata ${compKey} (fioka stil)`,
                 doorW,
                 doorH,
-                compKey,
+                elementKey,
               );
             } else {
               addFront(
@@ -1064,7 +1125,7 @@ export function calculateCutList(
                 `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
                 doorW,
                 doorH,
-                compKey,
+                elementKey,
               );
               // Add 1 handle for single door
               if (handlePrice > 0) {
@@ -1073,7 +1134,7 @@ export function calculateCutList(
                   finishId: globalHandleFinish,
                   count: 1,
                   price: handlePrice,
-                  element: compKey,
+                  element: elementKey,
                 });
               }
             }
@@ -1127,6 +1188,7 @@ export function calculateCutList(
 
       for (let compIdx = 0; compIdx < bottomNumComps; compIdx++) {
         const compKey = `${colLetter}${compIdx + 1}`;
+        const elementKey = colLetter;
         const compYStart = bottomAllYs[compIdx];
         const compYEnd = bottomAllYs[compIdx + 1];
         // Edge boundaries are panel surfaces; shelf boundaries are shelf centers
@@ -1142,6 +1204,7 @@ export function calculateCutList(
           colLetter,
           colIdx,
           compKey,
+          elementKey,
           compH,
           innerW,
           col,
@@ -1170,6 +1233,7 @@ export function calculateCutList(
         for (let compIdx = 0; compIdx < topNumComps; compIdx++) {
           // Top module compartments continue numbering (e.g., A2, A3, etc.)
           const compKey = `${colLetter}${bottomNumComps + compIdx + 1}`;
+          const elementKey = getTopModuleElementKey(colLetter);
           const compYStart = topAllYs[compIdx];
           const compYEnd = topAllYs[compIdx + 1];
           // Same shelf-deduction logic as bottom module
@@ -1184,6 +1248,7 @@ export function calculateCutList(
             colLetter,
             colIdx,
             compKey,
+            elementKey,
             compH,
             innerW,
             col,
@@ -1224,27 +1289,20 @@ export function calculateCutList(
         if (backW > 0 && bottomH > 0) {
           addBack(
             `${colLetter}-ZD`,
-            getElementPanelDescription(
-              "Zadnja strana",
-              colLetter,
-              " donji modul",
-            ),
+            getElementPanelDescription("Zadnja strana", colLetter),
             backW,
             bottomH,
             colLetter,
           );
         }
         if (backW > 0 && topH > 0) {
+          const topElementKey = getTopModuleElementKey(colLetter);
           addBack(
             `${colLetter}-ZG`,
-            getElementPanelDescription(
-              "Zadnja strana",
-              colLetter,
-              " gornji modul",
-            ),
+            getElementPanelDescription("Zadnja strana", topElementKey),
             backW,
             topH,
-            colLetter,
+            topElementKey,
           );
         }
       } else {

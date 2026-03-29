@@ -20,10 +20,10 @@ import {
   buildEvenShelfRects,
   buildSideViewSectionRects,
   buildSectionDividerRects,
-  buildVerticalPanelSpans,
   computeSectionBounds,
 } from "@/lib/technicalDrawingModel";
 import type { CutList } from "@/lib/calcCutList";
+import { parseCutListElementKey as parseGroupedElementKey } from "@/lib/calcCutList";
 
 export function exportElementSpecs(
   cutList: CutList,
@@ -64,13 +64,48 @@ export function exportElementSpecs(
       return n - 1; // zero-based
     };
 
-    const getElementDimsCm = (letter: string) => {
-      const idx = fromLetters(letter);
+    const getElementDimsCm = (elementKey: string) => {
+      const parsedElement = parseGroupedElementKey(elementKey);
+      const baseLetter = parsedElement?.columnKey ?? elementKey;
+      const idx = fromLetters(baseLetter);
       const col = columns[idx];
       return {
         wCm: col?.width ?? widthCm,
         hCm: columnHeights[idx] ?? heightCm,
         colIdx: idx,
+      };
+    };
+
+    const getElementModuleLayout = (elementKey: string, tCm: number) => {
+      const parsedElement = parseGroupedElementKey(elementKey);
+      const baseLetter = parsedElement?.columnKey ?? elementKey;
+      const isTopModule = parsedElement?.isTopModule ?? false;
+      const { wCm, hCm: columnHeightCm, colIdx } = getElementDimsCm(elementKey);
+      const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+      const moduleBoundaryCm = moduleBoundary !== null ? moduleBoundary * 100 : null;
+      const innerBottom = hasBase ? baseHeight + tCm : tCm;
+      const innerTop = columnHeightCm - tCm;
+      const hasValidBoundary =
+        moduleBoundaryCm !== null &&
+        columnHeightCm > TARGET_BOTTOM_HEIGHT_CM &&
+        moduleBoundaryCm > innerBottom + tCm &&
+        moduleBoundaryCm < innerTop - tCm;
+
+      const moduleStartCm = isTopModule && hasValidBoundary ? moduleBoundaryCm! : 0;
+      const moduleEndCm = !isTopModule && hasValidBoundary ? moduleBoundaryCm! : columnHeightCm;
+      const moduleHeightCm = Math.max(moduleEndCm - moduleStartCm, 0);
+
+      return {
+        baseLetter,
+        colIdx,
+        wCm,
+        columnHeightCm,
+        isTopModule,
+        hasValidBoundary,
+        moduleStartCm,
+        moduleEndCm,
+        moduleHeightCm,
+        appliesBase: hasBase && !isTopModule,
       };
     };
 
@@ -152,10 +187,21 @@ export function exportElementSpecs(
       // Internal layout using elementConfigs and extras
       const elementConfigs = useShelfStore.getState().elementConfigs;
       const compartmentExtras = useShelfStore.getState().compartmentExtras;
-      const { wCm: elementWcm, hCm: elementHcm, colIdx } = getElementDimsCm(
-        letter,
+      const currentMaterialId = useShelfStore.getState().selectedMaterialId;
+      const mat = materials.find(
+        (m) => String(m.id) === String(currentMaterialId),
       );
-      const compartmentDefs = getCompartmentsForColumn({
+      const tCm = Number(mat?.thickness ?? 18) / 10; // cm
+      const moduleLayout = getElementModuleLayout(letter, tCm);
+      const {
+        colIdx,
+        wCm: elementWcm,
+        moduleHeightCm: elementHcm,
+        moduleStartCm,
+        moduleEndCm,
+        appliesBase,
+      } = moduleLayout;
+      const allCompartmentDefs = getCompartmentsForColumn({
         colIdx,
         columnHeights,
         height: heightCm,
@@ -164,8 +210,18 @@ export function exportElementSpecs(
         columnTopModuleShelves,
         hasBase,
         baseHeight,
-        tCm: Number(materials.find((m) => String(m.id) === String(useShelfStore.getState().selectedMaterialId))?.thickness ?? 18) / 10,
+        tCm,
       });
+      const compartmentDefs = allCompartmentDefs
+        .filter(
+          (comp) => comp.bottomY >= moduleStartCm && comp.topY <= moduleEndCm,
+        )
+        .map((comp) => ({
+          ...comp,
+          bottomY: comp.bottomY - moduleStartCm,
+          topY: comp.topY - moduleStartCm,
+        }));
+      const visibleCompartmentKeys = new Set(compartmentDefs.map((comp) => comp.key));
 
       // ===============================================
       // PROPORTIONAL BOX SIZE CALCULATION
@@ -200,23 +256,14 @@ export function exportElementSpecs(
 
       const cmPerMmX = elementWcm / boxW; // how many cm are represented by 1mm in drawing (X)
       const cmPerMmY = elementHcm / boxH; // how many cm are represented by 1mm in drawing (Y)
-      // Material thickness in cm from selected material
-      const currentMaterialId = useShelfStore.getState().selectedMaterialId;
-      const mat = materials.find(
-        (m) => String(m.id) === String(currentMaterialId),
-      );
-      const tCm = Number(mat?.thickness ?? 18) / 10; // cm
       const tOffsetXmm = tCm / cmPerMmX;
       const tOffsetYmm = tCm / cmPerMmY;
       // Base region inside element (applies to lower module or single)
-      const appliesBase = hasBase;
       const baseMm = appliesBase ? Math.max(0, baseHeight / cmPerMmY) : 0;
-      const innerTopMmY = boxY + tOffsetYmm;
-      const innerBottomMmY = boxY + boxH - tOffsetYmm - baseMm;
       const innerLeftMmX = boxX + tOffsetXmm;
       const innerRightMmX = boxX + boxW - tOffsetXmm;
-      const mapY = (yFromFloorCm: number) => {
-        const clamped = Math.max(0, Math.min(elementHcm, yFromFloorCm));
+      const mapY = (yFromLocalCm: number) => {
+        const clamped = Math.max(0, Math.min(elementHcm, yFromLocalCm));
         return boxY + boxH - clamped / cmPerMmY;
       };
 
@@ -237,15 +284,6 @@ export function exportElementSpecs(
         compKey: string;
         sections: Array<{ x: number; width: number }>;
       }> = [];
-      const colHMeters = (columnHeights[colIdx] ?? heightCm) / 100;
-      const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-      const hasModuleBoundary =
-        moduleBoundary !== null && colHMeters > TARGET_BOTTOM_HEIGHT_CM / 100;
-      const sideSpans = buildVerticalPanelSpans({
-        totalHeight: elementHcm,
-        splitAt: hasModuleBoundary ? moduleBoundary : null,
-      });
-      const renderSplitSides = sideSpans.length > 1;
 
       const shellRects = buildCabinetShellRects({
         x: boxX,
@@ -255,20 +293,12 @@ export function exportElementSpecs(
         panelThicknessX: tOffsetXmm,
         panelThicknessY: tOffsetYmm,
         baseHeight: baseMm,
-        includeLeft: !renderSplitSides,
-        includeRight: !renderSplitSides,
+        includeLeft: true,
+        includeRight: true,
       });
       shellRects.forEach((rect) => {
         drawPanel(rect.x, rect.y, rect.width, rect.height, rect.tone === "outer" ? 242 : 245);
       });
-      if (renderSplitSides) {
-        sideSpans.forEach((span) => {
-          const panelY = mapY(span.start + span.height);
-          const panelH = span.height / cmPerMmY;
-          drawPanel(boxX, panelY, tOffsetXmm, panelH, 242);
-          drawPanel(boxX + boxW - tOffsetXmm, panelY, tOffsetXmm, panelH, 242);
-        });
-      }
       buildCabinetShellJointLines({
         x: boxX,
         y: boxY,
@@ -277,18 +307,11 @@ export function exportElementSpecs(
         panelThicknessX: tOffsetXmm,
         panelThicknessY: tOffsetYmm,
         baseHeight: baseMm,
-        includeLeft: !renderSplitSides,
-        includeRight: !renderSplitSides,
+        includeLeft: true,
+        includeRight: true,
       }).forEach((line) => {
         doc.line(line.x1, line.y1, line.x2, line.y2);
       });
-      if (renderSplitSides) {
-        sideSpans.slice(0, -1).forEach((span) => {
-          const jointY = mapY(span.start + span.height);
-          doc.line(boxX, jointY, boxX + tOffsetXmm, jointY);
-          doc.line(boxX + boxW - tOffsetXmm, jointY, boxX + boxW, jointY);
-        });
-      }
 
       // Draw base (hatched rectangle) if applicable
       if (appliesBase && baseMm > 0) {
@@ -305,59 +328,29 @@ export function exportElementSpecs(
         doc.setFontSize(baseFont);
       }
 
-      const colHForShelves = columnHeights[colIdx] ?? heightCm;
       const mainShelves = columnHorizontalBoundaries[colIdx] || [];
       mainShelves
         .map((s) => s * 100)
-        .filter((shelfY) => shelfY > 0 && shelfY < colHForShelves)
+        .filter((shelfY) => shelfY > moduleStartCm && shelfY < moduleEndCm)
         .forEach((shelfY) => {
           drawPanel(
             innerLeftMmX,
-            mapY(shelfY + tCm / 2),
+            mapY(shelfY - moduleStartCm + tCm / 2),
             innerRightMmX - innerLeftMmX,
             tOffsetYmm,
             250,
           );
         });
 
-      const innerBottomForBoundary = hasBase ? baseHeight + tCm : tCm;
-      const innerTopForBoundary = (columnHeights[colIdx] ?? heightCm) - tCm;
-      if (moduleBoundary !== null && colHMeters > TARGET_BOTTOM_HEIGHT_CM / 100) {
-        const moduleBoundaryYCm = moduleBoundary * 100;
-        const isValidBoundary =
-          moduleBoundaryYCm > innerBottomForBoundary + tCm &&
-          moduleBoundaryYCm < innerTopForBoundary - tCm;
-        if (isValidBoundary) {
-          drawPanel(
-            innerLeftMmX,
-            mapY(moduleBoundaryYCm),
-            innerRightMmX - innerLeftMmX,
-            tOffsetYmm,
-            233,
-          );
-          drawPanel(
-            innerLeftMmX,
-            mapY(moduleBoundaryYCm + tCm),
-            innerRightMmX - innerLeftMmX,
-            tOffsetYmm,
-            233,
-          );
-        }
-      }
-
       const topShelves = columnTopModuleShelves[colIdx] || [];
-      if (topShelves.length > 0 && moduleBoundary !== null) {
-        const moduleBoundaryYCm = moduleBoundary * 100;
+      if (topShelves.length > 0) {
         topShelves
           .map((s) => s * 100)
-          .filter(
-            (shelfY) =>
-              shelfY > moduleBoundaryYCm + tCm && shelfY < innerTopForBoundary,
-          )
+          .filter((shelfY) => shelfY > moduleStartCm && shelfY < moduleEndCm)
           .forEach((shelfY) => {
             drawPanel(
               innerLeftMmX,
-              mapY(shelfY + tCm / 2),
+              mapY(shelfY - moduleStartCm + tCm / 2),
               innerRightMmX - innerLeftMmX,
               tOffsetYmm,
               250,
@@ -569,10 +562,6 @@ export function exportElementSpecs(
         const toneGray = rect.tone === "back" ? 218 : rect.tone === "outer" ? 242 : 245;
         drawPanel(rect.x, rect.y, rect.width, rect.height, toneGray);
       });
-      if (hasModuleBoundary) {
-        const sideJointY = sideY + sideH - moduleBoundary * sideScale;
-        doc.line(sideX, sideJointY, sideX + sideW, sideJointY);
-      }
       if (appliesBase && sideBaseMm > 0) {
         doc.setFillColor("#e6e6e6");
         doc.rect(sideX, sideY + sideH - sideBaseMm, sideW, sideBaseMm, "FD");
@@ -602,7 +591,8 @@ export function exportElementSpecs(
         (g: { compartments: string[] }) =>
           g.compartments.some((c: string) => {
             const parsed = parseSubCompKey(c);
-            return (parsed ? parsed.compKey : c).startsWith(letter);
+            const compKey = parsed ? parsed.compKey : c;
+            return visibleCompartmentKeys.has(compKey);
           }),
       );
 
