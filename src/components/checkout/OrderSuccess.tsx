@@ -12,8 +12,9 @@ interface OrderSuccessProps {
     customerEmail: string;
     customerPhone: string;
   };
-  totalPrice: number;
+  basePrice: number;
   adjustedTotal?: number | null;
+  finalTotal?: number | null;
   visibleAdjustments?: { description: string; amount: number }[] | null;
   formatPrice: (n: number) => string;
   onClose: () => void;
@@ -21,8 +22,9 @@ interface OrderSuccessProps {
 
 export function OrderSuccess({
   orderSuccess,
-  totalPrice,
+  basePrice,
   adjustedTotal,
+  finalTotal,
   visibleAdjustments,
   formatPrice,
   onClose,
@@ -32,7 +34,7 @@ export function OrderSuccess({
     visibleAdjustments &&
     visibleAdjustments.length > 0 &&
     adjustedTotal != null;
-  const finalPrice = adjustedTotal ?? totalPrice;
+  const resolvedFinalPrice = finalTotal ?? adjustedTotal ?? basePrice;
 
   const copyOrderNumber = async () => {
     try {
@@ -104,7 +106,7 @@ export function OrderSuccess({
               <div className="border-t pt-2 mt-2 flex justify-between">
                 <span className="text-muted-foreground">Osnovna cena:</span>
                 <span className="tabular-nums">
-                  {formatPrice(totalPrice)} RSD
+                  {formatPrice(basePrice)} RSD
                 </span>
               </div>
               {visibleAdjustments!.map((adj, i) => (
@@ -120,13 +122,13 @@ export function OrderSuccess({
               ))}
               <div className="border-t pt-2 flex justify-between">
                 <span className="font-medium">Ukupno:</span>
-                <span className="font-bold">{formatPrice(finalPrice)} RSD</span>
+                <span className="font-bold">{formatPrice(resolvedFinalPrice)} RSD</span>
               </div>
             </>
           ) : (
             <div className="border-t pt-2 mt-2 flex justify-between">
               <span className="text-muted-foreground">Ukupno:</span>
-              <span className="font-bold">{formatPrice(finalPrice)} RSD</span>
+              <span className="font-bold">{formatPrice(resolvedFinalPrice)} RSD</span>
             </div>
           )}
         </div>

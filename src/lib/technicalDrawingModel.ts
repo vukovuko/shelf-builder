@@ -87,29 +87,9 @@ export function buildCabinetShellRects(params: {
   }
 
   const rects: TechnicalRect[] = [];
-  const panelSpanHeight = Math.max(height - baseHeight, 0);
+  const panelSpanHeight = Math.max(height, 0);
   const innerWidth = Math.max(width - 2 * panelThicknessX, 0);
   const bottomY = y + height - baseHeight - panelThicknessY;
-
-  if (includeLeft && panelThicknessX > 0 && panelSpanHeight > 0) {
-    rects.push({
-      x,
-      y,
-      width: panelThicknessX,
-      height: panelSpanHeight,
-      tone: outerTone,
-    });
-  }
-
-  if (includeRight && panelThicknessX > 0 && panelSpanHeight > 0) {
-    rects.push({
-      x: x + width - panelThicknessX,
-      y,
-      width: panelThicknessX,
-      height: panelSpanHeight,
-      tone: outerTone,
-    });
-  }
 
   if (includeTop && innerWidth > 0 && panelThicknessY > 0) {
     rects.push({
@@ -128,6 +108,26 @@ export function buildCabinetShellRects(params: {
       width: innerWidth,
       height: panelThicknessY,
       tone: horizontalTone,
+    });
+  }
+
+  if (includeLeft && panelThicknessX > 0 && panelSpanHeight > 0) {
+    rects.push({
+      x,
+      y,
+      width: panelThicknessX,
+      height: panelSpanHeight,
+      tone: outerTone,
+    });
+  }
+
+  if (includeRight && panelThicknessX > 0 && panelSpanHeight > 0) {
+    rects.push({
+      x: x + width - panelThicknessX,
+      y,
+      width: panelThicknessX,
+      height: panelSpanHeight,
+      tone: outerTone,
     });
   }
 
@@ -247,6 +247,7 @@ export function buildSideViewSectionRects(params: {
   topBottomThickness: number;
   backThickness: number;
   baseHeight?: number;
+  includeInnerPanels?: boolean;
 }): TechnicalRect[] {
   const {
     x,
@@ -256,35 +257,18 @@ export function buildSideViewSectionRects(params: {
     topBottomThickness,
     backThickness,
     baseHeight = 0,
+    includeInnerPanels = true,
   } = params;
 
   if (depth <= 0 || height <= 0) {
     return [];
   }
 
-  const rects: TechnicalRect[] = [
-    {
-      x,
-      y,
-      width: depth,
-      height: Math.max(height - baseHeight, 0),
-      tone: "outer",
-    },
-  ];
+  const rects: TechnicalRect[] = [];
 
   const innerWidth = Math.max(depth - backThickness, 0);
 
-  if (backThickness > 0) {
-    rects.push({
-      x,
-      y,
-      width: backThickness,
-      height: Math.max(height - baseHeight, 0),
-      tone: "back",
-    });
-  }
-
-  if (innerWidth > 0 && topBottomThickness > 0) {
+  if (includeInnerPanels && innerWidth > 0 && topBottomThickness > 0) {
     rects.push({
       x: x + backThickness,
       y,
@@ -298,6 +282,24 @@ export function buildSideViewSectionRects(params: {
       width: innerWidth,
       height: topBottomThickness,
       tone: "inner",
+    });
+  }
+
+  rects.push({
+    x,
+    y,
+    width: depth,
+    height: Math.max(height, 0),
+    tone: "outer",
+  });
+
+  if (backThickness > 0) {
+    rects.push({
+      x,
+      y,
+      width: backThickness,
+      height: Math.max(height, 0),
+      tone: "back",
     });
   }
 
@@ -377,3 +379,47 @@ export function buildDoubleSeamCenterLine(params: {
 
   return { x1: x, y1: y, x2: x, y2: y + height };
 }
+<<<<<<< Updated upstream
+=======
+
+export function buildDoubleSeamJointLines(params: {
+  x: number;
+  y: number;
+  height: number;
+  thickness: number;
+  panelThicknessY?: number;
+  baseHeight?: number;
+}): TechnicalLine[] {
+  const {
+    x,
+    y,
+    height,
+    thickness,
+    panelThicknessY = thickness,
+    baseHeight = 0,
+  } = params;
+
+  if (height <= 0 || thickness <= 0 || panelThicknessY <= 0) {
+    return [];
+  }
+
+  const bottomY = y + height - baseHeight - panelThicknessY;
+
+  return [
+    { x1: x - thickness, y1: y, x2: x - thickness, y2: y + panelThicknessY },
+    { x1: x + thickness, y1: y, x2: x + thickness, y2: y + panelThicknessY },
+    {
+      x1: x - thickness,
+      y1: bottomY,
+      x2: x - thickness,
+      y2: bottomY + panelThicknessY,
+    },
+    {
+      x1: x + thickness,
+      y1: bottomY,
+      x2: x + thickness,
+      y2: bottomY + panelThicknessY,
+    },
+  ];
+}
+>>>>>>> Stashed changes

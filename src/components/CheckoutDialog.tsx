@@ -52,6 +52,7 @@ interface CheckoutDialogProps {
       front: { areaM2: number; price: number };
       back: { areaM2: number; price: number };
       handles?: { count: number; price: number };
+      accessories?: { count: number; price: number };
     };
     dimensions: {
       width: number;
@@ -99,6 +100,8 @@ export function CheckoutDialog({
     customerName: string;
     customerEmail: string;
     customerPhone: string;
+    baseTotal: number;
+    finalTotal: number;
     adjustedTotal: number | null;
     visibleAdjustments: { description: string; amount: number }[] | null;
   } | null>(null);
@@ -328,7 +331,14 @@ export function CheckoutDialog({
 
       const data = await res.json();
 
-      const finalPrice = data.adjustedTotal ?? Math.round(orderData.totalPrice);
+      const baseTotal =
+        typeof data.baseTotal === "number"
+          ? data.baseTotal
+          : Math.round(orderData.totalPrice);
+      const finalPrice =
+        typeof data.finalTotal === "number"
+          ? data.finalTotal
+          : data.adjustedTotal ?? baseTotal;
 
       posthog.capture("order_completed", {
         order_number: data.orderNumber,
@@ -343,6 +353,8 @@ export function CheckoutDialog({
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
+        baseTotal,
+        finalTotal: finalPrice,
         adjustedTotal: data.adjustedTotal ?? null,
         visibleAdjustments: data.visibleAdjustments ?? null,
       });
@@ -393,8 +405,9 @@ export function CheckoutDialog({
           <div className="overflow-y-auto p-6">
             <OrderSuccess
               orderSuccess={orderSuccess}
-              totalPrice={orderData.totalPrice}
+              basePrice={orderSuccess.baseTotal}
               adjustedTotal={orderSuccess.adjustedTotal}
+              finalTotal={orderSuccess.finalTotal}
               visibleAdjustments={orderSuccess.visibleAdjustments}
               formatPrice={formatPrice}
               onClose={handleClose}

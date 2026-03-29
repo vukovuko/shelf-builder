@@ -16,6 +16,7 @@ interface OrderSummaryTableProps {
       front: { areaM2: number; price: number };
       back: { areaM2: number; price: number };
       handles?: { count: number; price: number };
+      accessories?: { count: number; price: number };
     };
     dimensions: {
       width: number;
@@ -154,6 +155,26 @@ export function OrderSummaryTable({
                   </td>
                   <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
                     {formatPrice(orderData.priceBreakdown.handles.price)}
+                  </td>
+                </tr>
+              )}
+            {orderData.priceBreakdown.accessories &&
+              orderData.priceBreakdown.accessories.count > 0 && (
+                <tr>
+                  <td className="py-2.5 pr-2">
+                    <div className="text-muted-foreground text-xs">Dodaci</div>
+                    <div className="font-medium">
+                      {orderData.priceBreakdown.accessories.count} kom
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                    -
+                  </td>
+                  <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                    -
+                  </td>
+                  <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                    {formatPrice(orderData.priceBreakdown.accessories.price)}
                   </td>
                 </tr>
               )}

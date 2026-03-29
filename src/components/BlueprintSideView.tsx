@@ -38,21 +38,32 @@ export function BlueprintSideView({
   const maxColHeight = columnHeights[sideColIdx] ?? height;
   const scaledMaxHeight = maxColHeight * scale;
   const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
+  const shellTopY = sideViewY + sideYOffset;
+  const shellBottomY = sideViewY + scaledHeight;
   const topBottomThickness = 1.8 * scale;
   const backThickness = 0.5 * scale;
+  const backFrontX = sideViewX + backThickness;
   const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
+  const moduleBoundaryCm = moduleBoundary !== null ? moduleBoundary * 100 : null;
   const hasModuleBoundary =
+<<<<<<< Updated upstream
     moduleBoundary !== null &&
     moduleBoundary > 0 &&
     moduleBoundary < maxColHeight;
+=======
+    moduleBoundaryCm !== null &&
+    moduleBoundaryCm > 0 &&
+    moduleBoundaryCm < maxColHeight;
+>>>>>>> Stashed changes
   const sideRects = buildSideViewSectionRects({
     x: sideViewX,
-    y: sideViewY + sideYOffset,
+    y: shellTopY,
     depth: scaledDepth,
     height: scaledMaxHeight,
     topBottomThickness,
     backThickness,
     baseHeight: hasBase ? scaledBaseHeight : 0,
+    includeInnerPanels: false,
   });
 
   const toneFill: Record<string, string> = {
@@ -78,32 +89,7 @@ export function BlueprintSideView({
         Pogled sa strane
       </text>
 
-      {/* Section panels with visible thickness */}
-      {sideRects.map((rect, index) => (
-        <rect
-          key={`side-panel-${index}`}
-          x={rect.x}
-          y={rect.y}
-          width={rect.width}
-          height={rect.height}
-          fill={toneFill[rect.tone]}
-          stroke="#000"
-          strokeWidth={rect.tone === "outer" ? "1.2" : "0.8"}
-        />
-      ))}
-
-      {hasModuleBoundary && (
-        <line
-          x1={sideViewX}
-          y1={sideViewY + scaledHeight - moduleBoundary * scale}
-          x2={sideViewX + scaledDepth}
-          y2={sideViewY + scaledHeight - moduleBoundary * scale}
-          stroke="#000"
-          strokeWidth="0.9"
-        />
-      )}
-
-      {/* Base */}
+      {/* Base hatch behind shell so it does not visually cut the side panel */}
       {hasBase && scaledBaseHeight > 0 && (
         <rect
           x={sideViewX}
@@ -111,8 +97,78 @@ export function BlueprintSideView({
           width={scaledDepth}
           height={scaledBaseHeight}
           fill="url(#crossHatch)"
+          stroke="none"
+        />
+      )}
+
+      {/* Section panels with visible thickness */}
+      {sideRects.map((rect, index) => {
+        if (rect.tone === "outer") {
+          return (
+            <g key={`side-panel-${index}`}>
+              <rect
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                fill="#ffffff"
+                stroke="none"
+              />
+              <rect
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                fill={toneFill.outer}
+                stroke="none"
+              />
+            </g>
+          );
+        }
+
+        return (
+          <rect
+            key={`side-panel-${index}`}
+            x={rect.x}
+            y={rect.y}
+            width={rect.width}
+            height={rect.height}
+            fill={toneFill[rect.tone]}
+            stroke="none"
+          />
+        );
+      })}
+
+      {hasModuleBoundary && (
+        <line
+          x1={sideViewX}
+          y1={sideViewY + scaledHeight - moduleBoundaryCm * scale}
+          x2={sideViewX + scaledDepth}
+          y2={sideViewY + scaledHeight - moduleBoundaryCm * scale}
           stroke="#000"
-          strokeWidth="1"
+          strokeWidth="0.9"
+        />
+      )}
+
+      {/* Final outer contour on top so side edges visually meet the exact top/bottom limits */}
+      <rect
+        x={sideViewX}
+        y={shellTopY}
+        width={scaledDepth}
+        height={scaledMaxHeight}
+        fill="none"
+        stroke="#000"
+        strokeWidth="1.2"
+      />
+
+      {backThickness > 0 && (
+        <line
+          x1={backFrontX}
+          y1={shellTopY}
+          x2={backFrontX}
+          y2={shellBottomY}
+          stroke="#000"
+          strokeWidth="0.8"
         />
       )}
 
@@ -120,35 +176,35 @@ export function BlueprintSideView({
       <g>
         <line
           x1={sideViewX + scaledDepth + 18}
-          y1={sideViewY + sideYOffset}
+          y1={shellTopY}
           x2={sideViewX + scaledDepth + 18}
-          y2={sideViewY + scaledHeight}
+          y2={shellBottomY}
           stroke="#000"
           strokeWidth="0.75"
         />
         <line
           x1={sideViewX + scaledDepth + 13}
-          y1={sideViewY + sideYOffset}
+          y1={shellTopY}
           x2={sideViewX + scaledDepth + 23}
-          y2={sideViewY + sideYOffset}
+          y2={shellTopY}
           stroke="#000"
           strokeWidth="0.75"
         />
         <line
           x1={sideViewX + scaledDepth + 13}
-          y1={sideViewY + scaledHeight}
+          y1={shellBottomY}
           x2={sideViewX + scaledDepth + 23}
-          y2={sideViewY + scaledHeight}
+          y2={shellBottomY}
           stroke="#000"
           strokeWidth="0.75"
         />
         <text
           x={sideViewX + scaledDepth + 28}
-          y={sideViewY + sideYOffset + scaledMaxHeight / 2}
+          y={shellTopY + scaledMaxHeight / 2}
           fontSize="11"
           fontFamily="Arial, sans-serif"
           textAnchor="middle"
-          transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${sideViewY + sideYOffset + scaledMaxHeight / 2})`}
+          transform={`rotate(-90 ${sideViewX + scaledDepth + 28} ${shellTopY + scaledMaxHeight / 2})`}
         >
           {Math.round(maxColHeight)} cm
         </text>

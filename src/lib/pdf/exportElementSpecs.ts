@@ -570,6 +570,7 @@ export function exportElementSpecs(
         topBottomThickness: sideTopBottomThickness,
         backThickness: sideBackThickness,
         baseHeight: sideBaseMm,
+        includeInnerPanels: false,
       });
       sideRects.forEach((rect) => {
         const toneGray =

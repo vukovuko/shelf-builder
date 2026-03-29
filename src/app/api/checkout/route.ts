@@ -9,6 +9,8 @@ import {
   rules,
   handles,
   handleFinishes,
+  accessories,
+  accessoryVariants,
 } from "@/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -177,10 +179,36 @@ export async function POST(request: Request) {
       })
       .from(handleFinishes);
 
+    const pricingAccessories = await db
+      .select({
+        id: accessories.id,
+        name: accessories.name,
+        pricingRule: accessories.pricingRule,
+        qtyPerUnit: accessories.qtyPerUnit,
+      })
+      .from(accessories)
+      .where(eq(accessories.published, true));
+
+    const allAccessoryVariants = await db
+      .select({
+        id: accessoryVariants.id,
+        accessoryId: accessoryVariants.accessoryId,
+        name: accessoryVariants.name,
+        price: accessoryVariants.price,
+      })
+      .from(accessoryVariants);
+
     // Group finishes by handle
     const handlesWithFinishes = pricingHandles.map((h) => ({
       ...h,
       finishes: allFinishes.filter((f) => f.handleId === h.id),
+    }));
+
+    const accessoriesWithVariants = pricingAccessories.map((accessory) => ({
+      ...accessory,
+      variants: allAccessoryVariants.filter(
+        (variant) => variant.accessoryId === accessory.id,
+      ),
     }));
 
     const snapshot = wardrobeSnapshot as Record<string, any>;
@@ -264,12 +292,15 @@ export async function POST(request: Request) {
       globalHandleId: snapshot?.globalHandleId,
       globalHandleFinish: snapshot?.globalHandleFinish,
       doorSettingsMode: snapshot?.doorSettingsMode,
+      selectedAccessories: snapshot?.selectedAccessories ?? {},
+      slidingDoors: Boolean(snapshot?.slidingDoors),
     };
 
     const pricing = calculateCutList(
       pricingSnapshot,
       pricingMaterials,
       handlesWithFinishes,
+      accessoriesWithVariants,
     );
     const totalPrice = Math.round(pricing.totalCost);
     const area = Math.round(pricing.totalArea * 10000);
@@ -306,6 +337,10 @@ export async function POST(request: Request) {
       handles: {
         count: pricing.priceBreakdown.handles.count,
         price: pricing.priceBreakdown.handles.price,
+      },
+      accessories: {
+        count: pricing.priceBreakdown.accessories.count,
+        price: pricing.priceBreakdown.accessories.price,
       },
     };
 
@@ -695,6 +730,8 @@ export async function POST(request: Request) {
         orderId: txResult.orderId,
         orderNumber: txResult.orderNumber,
         wardrobeId: txResult.wardrobeId,
+        baseTotal: totalPrice,
+        finalTotal: finalPrice,
         adjustedTotal: txResult.adjustedTotal,
         visibleAdjustments:
           visibleAdjustments.length > 0 ? visibleAdjustments : null,
