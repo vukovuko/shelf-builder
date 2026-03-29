@@ -10,6 +10,9 @@ interface DimensionLines3DProps {
   panelThickness: number; // meters
   hasBase: boolean;
   baseHeight: number; // meters
+  columns: { start: number; end: number; width: number }[];
+  columnHeights: Record<number, number>;
+  columnModuleBoundaries: Record<number, number | null>;
 }
 
 /**
@@ -28,11 +31,13 @@ export function DimensionLines3D({
   panelThickness,
   hasBase,
   baseHeight,
+  columns,
+  columnHeights,
+  columnModuleBoundaries,
 }: DimensionLines3DProps) {
   const w = width;
   const h = height;
   const d = depth;
-  const t = panelThickness;
   const baseH = hasBase ? baseHeight : 0;
 
   // Offsets for dimension lines (distance from wardrobe)
@@ -41,6 +46,7 @@ export function DimensionLines3D({
   const tickSize = 0.02; // 2cm tick marks
   const bottomOffset = 0.08; // 8cm below wardrobe for width line
   const sideOffset = 0.08; // 8cm to the side for depth line
+  const columnOffset = bottomOffset + 0.08;
 
   // Z position - front face
   const zFront = d / 2;
@@ -215,6 +221,125 @@ export function DimensionLines3D({
           </div>
         </Html>
       </group>
+
+      {/* ============================================ */}
+      {/* PER-COLUMN WIDTHS - Bottom */}
+      {/* ============================================ */}
+      {columns.length > 1 && (
+        <group>
+          {columns.map((column, index) => {
+            const x0 = column.start;
+            const x1 = column.end;
+            const centerX = (x0 + x1) / 2;
+            return (
+              <group key={`col-width-${index}`}>
+                <Line
+                  points={[
+                    [x0, -columnOffset, zFront] as Vector3Tuple,
+                    [x1, -columnOffset, zFront] as Vector3Tuple,
+                  ]}
+                  color="white"
+                  lineWidth={1}
+                />
+                <Line
+                  points={[
+                    [x0, -columnOffset - tickSize / 2, zFront] as Vector3Tuple,
+                    [x0, -columnOffset + tickSize / 2, zFront] as Vector3Tuple,
+                  ]}
+                  color="white"
+                  lineWidth={1}
+                />
+                <Line
+                  points={[
+                    [x1, -columnOffset - tickSize / 2, zFront] as Vector3Tuple,
+                    [x1, -columnOffset + tickSize / 2, zFront] as Vector3Tuple,
+                  ]}
+                  color="white"
+                  lineWidth={1}
+                />
+                <Html
+                  position={[centerX, -columnOffset - 0.03, zFront]}
+                  center
+                  zIndexRange={[0, 0]}
+                  style={{ pointerEvents: "none" }}
+                >
+                  <div
+                    style={{
+                      color: "white",
+                      fontSize: "11px",
+                      whiteSpace: "nowrap",
+                      textShadow: "0 0 4px rgba(0,0,0,0.8)",
+                    }}
+                  >
+                    {toCm(column.width)}
+                  </div>
+                </Html>
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* ============================================ */}
+      {/* MODULE HEIGHTS - Front face labels per split column */}
+      {/* ============================================ */}
+      {columns.map((column, index) => {
+        const colHeightCm = columnHeights[index] ?? toCm(h);
+        const colHeight = colHeightCm / 100;
+        const boundary = columnModuleBoundaries[index] ?? null;
+        if (boundary === null || boundary <= 0 || boundary >= colHeight) {
+          return null;
+        }
+
+        const centerX = (column.start + column.end) / 2;
+        const bottomModuleHeight = boundary;
+        const topModuleHeight = colHeight - boundary;
+
+        return (
+          <group key={`module-height-${index}`}>
+            <Html
+              position={[centerX, bottomModuleHeight / 2, zFront + 0.01]}
+              center
+              zIndexRange={[0, 0]}
+              style={{ pointerEvents: "none" }}
+            >
+              <div
+                style={{
+                  color: "white",
+                  fontSize: "11px",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 0 4px rgba(0,0,0,0.9)",
+                  background: "rgba(0,0,0,0.22)",
+                  padding: "1px 4px",
+                  borderRadius: "4px",
+                }}
+              >
+                {toCm(bottomModuleHeight)}
+              </div>
+            </Html>
+            <Html
+              position={[centerX, boundary + topModuleHeight / 2, zFront + 0.01]}
+              center
+              zIndexRange={[0, 0]}
+              style={{ pointerEvents: "none" }}
+            >
+              <div
+                style={{
+                  color: "white",
+                  fontSize: "11px",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 0 4px rgba(0,0,0,0.9)",
+                  background: "rgba(0,0,0,0.22)",
+                  padding: "1px 4px",
+                  borderRadius: "4px",
+                }}
+              >
+                {toCm(topModuleHeight)}
+              </div>
+            </Html>
+          </group>
+        );
+      })}
 
       {/* ============================================ */}
       {/* TOTAL DEPTH - Right side */}

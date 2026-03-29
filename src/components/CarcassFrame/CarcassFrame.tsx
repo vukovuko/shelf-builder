@@ -9,6 +9,7 @@ import {
   type Material,
   parseSubCompKey,
 } from "@/lib/store";
+import { buildVerticalPanelSpans } from "@/lib/technicalDrawingModel";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
   getMinColumnHeightCm,
@@ -1745,27 +1746,43 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             rightCol.end - rightMinWidth,
           );
 
-          // Seam heights - full height to floor (seams extend through base)
-          const seamLeftH = leftH;
-          const seamRightH = rightH;
-          // Seam Y positions (centered from floor)
-          const seamLeftY = seamLeftH / 2;
-          const seamRightY = seamRightH / 2;
+          const seamLeftSpans = buildVerticalPanelSpans({
+            totalHeight: leftH,
+            splitAt: leftHasModuleBoundary ? leftModuleBoundary : null,
+          });
+          const seamRightSpans = buildVerticalPanelSpans({
+            totalHeight: rightH,
+            splitAt: rightHasModuleBoundary ? rightModuleBoundary : null,
+          });
 
           return (
             <React.Fragment key={`seam-${idx}`}>
               {/* Left seam panel - belongs to LEFT column (verticalZ to prevent edge bleeding) */}
-              <Panel
-                position={[seamX - t / 2, seamLeftY, verticalZ]}
-                size={[t, seamLeftH, carcassD]}
-                showEdgesOnly={showEdgesOnly}
-              />
+              {seamLeftSpans.map((span, spanIdx) => (
+                <Panel
+                  key={`seam-left-${idx}-${spanIdx}`}
+                  position={[
+                    seamX - t / 2,
+                    span.start + span.height / 2,
+                    verticalZ,
+                  ]}
+                  size={[t, span.height, carcassD]}
+                  showEdgesOnly={showEdgesOnly}
+                />
+              ))}
               {/* Right seam panel - belongs to RIGHT column (verticalZ to prevent edge bleeding) */}
-              <Panel
-                position={[seamX + t / 2, seamRightY, verticalZ]}
-                size={[t, seamRightH, carcassD]}
-                showEdgesOnly={showEdgesOnly}
-              />
+              {seamRightSpans.map((span, spanIdx) => (
+                <Panel
+                  key={`seam-right-${idx}-${spanIdx}`}
+                  position={[
+                    seamX + t / 2,
+                    span.start + span.height / 2,
+                    verticalZ,
+                  ]}
+                  size={[t, span.height, carcassD]}
+                  showEdgesOnly={showEdgesOnly}
+                />
+              ))}
               {/* Drag handle - positioned at max height so it's always visible, HIDE when Step 2/5 active */}
               {!hideUIForSteps && (
                 <SeamHandle
@@ -2188,6 +2205,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             panelThickness={t}
             hasBase={hasBase}
             baseHeight={baseH}
+            columns={columns}
+            columnHeights={columnHeights}
+            columnModuleBoundaries={columnModuleBoundaries}
           />
         )}
       </group>

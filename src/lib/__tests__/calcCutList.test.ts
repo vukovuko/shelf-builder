@@ -109,6 +109,59 @@ describe("calculateCutList", () => {
       // 1 boundary = 2 seam panels (left + right side)
       expect(seamPanels.length).toBe(2);
     });
+
+    it("uses per-column heights for outer and seam panels", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 200,
+        height: 220,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        verticalBoundaries: [0],
+        columnHeights: { 0: 180, 1: 220 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const leftOuter = result.items.find((i) => i.code === "SL");
+      const rightOuter = result.items.find((i) => i.code === "SD");
+      const leftSeam = result.items.find((i) => i.code === "VS1L");
+      const rightSeam = result.items.find((i) => i.code === "VS1D");
+
+      expect(leftOuter?.heightCm).toBeCloseTo(180, 5);
+      expect(rightOuter?.heightCm).toBeCloseTo(220, 5);
+      expect(leftSeam?.heightCm).toBeCloseTo(180, 5);
+      expect(rightSeam?.heightCm).toBeCloseTo(220, 5);
+    });
+
+    it("labels seam panels as element side panels", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 200,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        verticalBoundaries: [0],
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const leftSeam = result.items.find((i) => i.code === "VS1L");
+      const rightSeam = result.items.find((i) => i.code === "VS1D");
+
+      expect(leftSeam?.desc).toBe("Desna stranica elementa A");
+      expect(rightSeam?.desc).toBe("Leva stranica elementa B");
+    });
   });
 
   describe("tall wardrobe (>200cm with module split)", () => {
@@ -139,6 +192,78 @@ describe("calculateCutList", () => {
 
       expect(bottomBackPanel.length).toBe(1);
       expect(topBackPanel.length).toBe(1);
+    });
+
+    it("splits outer side panels by module boundary", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 250,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        columnHeights: { 0: 250 },
+        columnModuleBoundaries: { 0: 1.5 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const leftSidePanels = result.items.filter((i) => i.code.startsWith("SL"));
+      const rightSidePanels = result.items.filter((i) => i.code.startsWith("SD"));
+
+      expect(leftSidePanels.map((i) => i.code).sort()).toEqual(["SLD", "SLG"]);
+      expect(
+        leftSidePanels.map((i) => i.heightCm).sort((a, b) => a - b),
+      ).toEqual([100, 150]);
+      expect(rightSidePanels.map((i) => i.code).sort()).toEqual(["SDD", "SDG"]);
+      expect(
+        rightSidePanels.map((i) => i.heightCm).sort((a, b) => a - b),
+      ).toEqual([100, 150]);
+
+      expect(leftSidePanels.find((i) => i.code === "SLD")?.desc).toBe(
+        "Leva stranica (spoljna) donji modul",
+      );
+      expect(leftSidePanels.find((i) => i.code === "SLG")?.desc).toBe(
+        "Leva stranica (spoljna) gornji modul",
+      );
+    });
+
+    it("uses the same naming template for split seam side panels", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 200,
+        height: 250,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        verticalBoundaries: [0],
+        columnHeights: { 0: 240, 1: 240 },
+        columnModuleBoundaries: { 0: 2, 1: 2 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+
+      expect(result.items.find((i) => i.code === "VS1LD")?.desc).toBe(
+        "Desna stranica elementa A donji modul",
+      );
+      expect(result.items.find((i) => i.code === "VS1LG")?.desc).toBe(
+        "Desna stranica elementa A gornji modul",
+      );
+      expect(result.items.find((i) => i.code === "VS1DD")?.desc).toBe(
+        "Leva stranica elementa B donji modul",
+      );
+      expect(result.items.find((i) => i.code === "VS1DG")?.desc).toBe(
+        "Leva stranica elementa B gornji modul",
+      );
     });
   });
 
@@ -1235,6 +1360,16 @@ describe("calculateCutList", () => {
 
       const codes = result.items.map((i) => i.code).sort();
       expect(codes).toEqual(["A-DON", "A-GOR", "A-Z", "SD", "SL"]);
+
+      expect(result.items.find((i) => i.code === "A-DON")?.desc).toBe(
+        "Donja ploča elementa A",
+      );
+      expect(result.items.find((i) => i.code === "A-GOR")?.desc).toBe(
+        "Gornja ploča elementa A",
+      );
+      expect(result.items.find((i) => i.code === "A-Z")?.desc).toBe(
+        "Zadnja strana elementa A",
+      );
     });
 
     it("totalArea equals sum of all item areas", () => {

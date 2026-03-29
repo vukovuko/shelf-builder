@@ -85,6 +85,7 @@ export type WardrobeSnapshot = {
   // Structural data - MUST be used for accurate calculations
   verticalBoundaries?: number[]; // X positions of vertical seams (in meters from center)
   columnHorizontalBoundaries?: Record<number, number[]>; // Y positions of shelves per column
+  columnHeights?: Record<number, number>; // Column heights in cm
   columnModuleBoundaries?: Record<number, number | null>; // Module split Y position per column
   columnTopModuleShelves?: Record<number, number[]>; // Y positions of shelves in top module per column
   // Door groups with per-door settings
@@ -263,6 +264,7 @@ export function calculateCutList(
     const verticalBoundaries = snapshot.verticalBoundaries ?? [];
     const columnHorizontalBoundaries =
       snapshot.columnHorizontalBoundaries ?? {};
+    const columnHeights = snapshot.columnHeights ?? {};
     // Module boundaries for wardrobes > 200cm (top/bottom module split)
     const columnModuleBoundaries = snapshot.columnModuleBoundaries ?? {};
     const columnTopModuleShelves = snapshot.columnTopModuleShelves ?? {};
@@ -291,6 +293,59 @@ export function calculateCutList(
     // Running counters for accessory pricing
     let totalDrawerCount = 0;
     let totalDoorLeaves = 0;
+
+    const getColumnHeightM = (colIdx: number): number => {
+      const colHeightCm = columnHeights[colIdx] ?? snapshot.height;
+      return colHeightCm / 100;
+    };
+
+    const getVerticalPanelSpans = (
+      totalHeight: number,
+      splitAt: number | null,
+    ): Array<{ suffix: string; height: number; descSuffix: string }> => {
+      if (
+        totalHeight <= 0 ||
+        splitAt === null ||
+        splitAt <= 0 ||
+        splitAt >= totalHeight
+      ) {
+        return [{ suffix: "", height: totalHeight, descSuffix: "" }];
+      }
+
+      return [
+        { suffix: "D", height: splitAt, descSuffix: " donji modul" },
+        {
+          suffix: "G",
+          height: totalHeight - splitAt,
+          descSuffix: " gornji modul",
+        },
+      ].filter((span) => span.height > 0);
+    };
+
+    const getSidePanelDescription = (
+      side: "Leva" | "Desna",
+      scope: string,
+      moduleSuffix: string,
+    ) => `${side} stranica ${scope}${moduleSuffix}`;
+
+    const getElementScope = (elementKey: string) => `elementa ${elementKey}`;
+
+    const getElementPanelDescription = (
+      label: string,
+      elementKey: string,
+      moduleSuffix = "",
+    ) => `${label} ${getElementScope(elementKey)}${moduleSuffix}`;
+
+    const getIndexedElementDescription = (
+      label: string,
+      elementKey: string,
+      index: number,
+      moduleSuffix = "",
+      extraPrefix = "",
+    ) => `${label} ${getElementScope(elementKey)}${moduleSuffix} ${extraPrefix}(${index})`.replace(
+      /\s+/g,
+      " ",
+    );
 
     // Helper to add korpus item
     const addKorpus = (
@@ -421,34 +476,81 @@ export function calculateCutList(
     // ==========================================
     // 1. OUTER SIDE PANELS (2 for entire wardrobe)
     // ==========================================
-    // Side L and Side R - full height, carcass depth
     const firstColumnLetter = String.fromCharCode(65);
     const lastColumnLetter = String.fromCharCode(65 + numColumns - 1);
-    addKorpus("SL", "Leva stranica (spoljna)", carcassD, h, firstColumnLetter);
-    addKorpus("SD", "Desna stranica (spoljna)", carcassD, h, lastColumnLetter);
+    const leftOuterHeight = getColumnHeightM(0);
+    const leftOuterBoundary = columnModuleBoundaries[0] ?? null;
+    getVerticalPanelSpans(
+      leftOuterHeight,
+      leftOuterHeight > TARGET_BOTTOM_HEIGHT ? leftOuterBoundary : null,
+    ).forEach((span) => {
+      addKorpus(
+        `SL${span.suffix}`,
+        getSidePanelDescription("Leva", "(spoljna)", span.descSuffix),
+        carcassD,
+        span.height,
+        firstColumnLetter,
+      );
+    });
+
+    const rightOuterHeight = getColumnHeightM(numColumns - 1);
+    const rightOuterBoundary = columnModuleBoundaries[numColumns - 1] ?? null;
+    getVerticalPanelSpans(
+      rightOuterHeight,
+      rightOuterHeight > TARGET_BOTTOM_HEIGHT ? rightOuterBoundary : null,
+    ).forEach((span) => {
+      addKorpus(
+        `SD${span.suffix}`,
+        getSidePanelDescription("Desna", "(spoljna)", span.descSuffix),
+        carcassD,
+        span.height,
+        lastColumnLetter,
+      );
+    });
 
     // ==========================================
     // 2. VERTICAL SEAM PANELS (2 per seam)
     // ==========================================
-    // At each vertical boundary, there are 2 panels (one from each adjacent column)
-    const seamH = h; // Seams go full height to floor (through base area)
     verticalBoundaries.forEach((_, seamIdx) => {
       const leftColumnLetter = String.fromCharCode(65 + seamIdx);
       const rightColumnLetter = String.fromCharCode(65 + seamIdx + 1);
-      addKorpus(
-        `VS${seamIdx + 1}L`,
-        `Vertikalna pregrada ${seamIdx + 1} (leva)`,
-        carcassD,
-        seamH,
-        leftColumnLetter,
-      );
-      addKorpus(
-        `VS${seamIdx + 1}D`,
-        `Vertikalna pregrada ${seamIdx + 1} (desna)`,
-        carcassD,
-        seamH,
-        rightColumnLetter,
-      );
+      const leftSeamHeight = getColumnHeightM(seamIdx);
+      const leftSeamBoundary = columnModuleBoundaries[seamIdx] ?? null;
+      getVerticalPanelSpans(
+        leftSeamHeight,
+        leftSeamHeight > TARGET_BOTTOM_HEIGHT ? leftSeamBoundary : null,
+      ).forEach((span) => {
+        addKorpus(
+          `VS${seamIdx + 1}L${span.suffix}`,
+          getSidePanelDescription(
+            "Desna",
+            `elementa ${leftColumnLetter}`,
+            span.descSuffix,
+          ),
+          carcassD,
+          span.height,
+          leftColumnLetter,
+        );
+      });
+
+      const rightSeamHeight = getColumnHeightM(seamIdx + 1);
+      const rightSeamBoundary = columnModuleBoundaries[seamIdx + 1] ?? null;
+      getVerticalPanelSpans(
+        rightSeamHeight,
+        rightSeamHeight > TARGET_BOTTOM_HEIGHT ? rightSeamBoundary : null,
+      ).forEach((span) => {
+        addKorpus(
+          `VS${seamIdx + 1}D${span.suffix}`,
+          getSidePanelDescription(
+            "Leva",
+            `elementa ${rightColumnLetter}`,
+            span.descSuffix,
+          ),
+          carcassD,
+          span.height,
+          rightColumnLetter,
+        );
+      });
     });
 
     // ==========================================
@@ -462,7 +564,7 @@ export function calculateCutList(
         // Bottom panel (raised by base if hasBase)
         addKorpus(
           `${colLetter}-DON`,
-          `Donja ploča kolone ${colLetter}`,
+          getElementPanelDescription("Donja ploča", colLetter),
           innerW,
           carcassD,
           colLetter,
@@ -472,7 +574,7 @@ export function calculateCutList(
         if (hasBase && baseH > 0) {
           addKorpus(
             `${colLetter}-SOKL`,
-            `Sokl kolone ${colLetter}`,
+            getElementPanelDescription("Sokl", colLetter),
             innerW,
             baseH,
             colLetter,
@@ -482,7 +584,7 @@ export function calculateCutList(
         // Top panel
         addKorpus(
           `${colLetter}-GOR`,
-          `Gornja ploča kolone ${colLetter}`,
+          getElementPanelDescription("Gornja ploča", colLetter),
           innerW,
           carcassD,
           colLetter,
@@ -492,14 +594,20 @@ export function calculateCutList(
         if (needsModuleSplit) {
           addKorpus(
             `${colLetter}-MB1`,
-            `Granica modula ${colLetter} (donja)`,
+            getElementPanelDescription(
+              "Donja ploča spoja modula",
+              colLetter,
+            ),
             innerW,
             carcassD,
             colLetter,
           );
           addKorpus(
             `${colLetter}-MB2`,
-            `Granica modula ${colLetter} (gornja)`,
+            getElementPanelDescription(
+              "Gornja ploča spoja modula",
+              colLetter,
+            ),
             innerW,
             carcassD,
             colLetter,
@@ -520,7 +628,13 @@ export function calculateCutList(
         if (innerW > 0) {
           addKorpus(
             `${colLetter}-P${shelfIdx + 1}`,
-            `Polica ${colLetter} (glavna ${shelfIdx + 1})`,
+            getIndexedElementDescription(
+              "Polica",
+              colLetter,
+              shelfIdx + 1,
+              "",
+              "glavna ",
+            ),
             innerW,
             carcassD,
             colLetter,
@@ -546,7 +660,12 @@ export function calculateCutList(
         if (innerW > 0) {
           addKorpus(
             `${colLetter}-TP${shelfIdx + 1}`,
-            `Polica ${colLetter} gornji modul (${shelfIdx + 1})`,
+            getIndexedElementDescription(
+              "Polica",
+              colLetter,
+              shelfIdx + 1,
+              " gornji modul",
+            ),
             innerW,
             carcassD,
             colLetter,
@@ -600,7 +719,7 @@ export function calculateCutList(
         for (let shelfNum = 0; shelfNum < shelfCount; shelfNum++) {
           addKorpus(
             `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
-            `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+            `Polica ${getElementScope(compKey)} sekcija ${secIdx + 1} (${shelfNum + 1})`,
             secW,
             carcassD,
             compKey,
@@ -657,7 +776,7 @@ export function calculateCutList(
               innerCols > 1 ? `${compKey}-S${secIdx + 1}PA` : `${compKey}-PA`;
             addKorpus(
               shelfCode,
-              `Polica iznad fioka ${compKey}`,
+              `Polica iznad fioka ${getElementScope(compKey)}`,
               secW,
               carcassD,
               compKey,
@@ -1105,7 +1224,11 @@ export function calculateCutList(
         if (backW > 0 && bottomH > 0) {
           addBack(
             `${colLetter}-ZD`,
-            `Zadnja strana ${colLetter} donji modul`,
+            getElementPanelDescription(
+              "Zadnja strana",
+              colLetter,
+              " donji modul",
+            ),
             backW,
             bottomH,
             colLetter,
@@ -1114,7 +1237,11 @@ export function calculateCutList(
         if (backW > 0 && topH > 0) {
           addBack(
             `${colLetter}-ZG`,
-            `Zadnja strana ${colLetter} gornji modul`,
+            getElementPanelDescription(
+              "Zadnja strana",
+              colLetter,
+              " gornji modul",
+            ),
             backW,
             topH,
             colLetter,
@@ -1126,7 +1253,7 @@ export function calculateCutList(
         if (backW > 0 && backH > 0) {
           addBack(
             `${colLetter}-Z`,
-            `Zadnja strana ${colLetter}`,
+            getElementPanelDescription("Zadnja strana", colLetter),
             backW,
             backH,
             colLetter,

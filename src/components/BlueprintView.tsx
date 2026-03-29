@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import { TARGET_BOTTOM_HEIGHT_CM } from "@/lib/wardrobe-constants";
 import {
   buildBlocksFromBoundaries,
   getCompartmentsForColumn as getCompartments,
@@ -12,9 +13,9 @@ import {
   buildCabinetShellRects,
   buildCabinetShellJointLines,
   buildDoubleSeamCenterLine,
-  buildDoubleSeamRects,
   buildEvenShelfRects,
   buildSectionDividerRects,
+  buildVerticalPanelSpans,
   computeSectionBounds,
 } from "@/lib/technicalDrawingModel";
 import { BlueprintHeader } from "./BlueprintHeader";
@@ -243,7 +244,17 @@ export function BlueprintView() {
             const colW = col.width * scale;
             const yOffset = scaledHeight - scaledColH;
             const colTopY = frontViewY + yOffset;
-            const colBottomY = frontViewY + scaledHeight;
+            const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+            const sideSpans = buildVerticalPanelSpans({
+              totalHeight: colH,
+              splitAt:
+                moduleBoundary !== null && colH > TARGET_BOTTOM_HEIGHT_CM
+                  ? moduleBoundary
+                  : null,
+            });
+            const renderSplitLeft = colIdx === 0 && sideSpans.length > 1;
+            const renderSplitRight =
+              colIdx === columns.length - 1 && sideSpans.length > 1;
             const shellPanels = buildCabinetShellRects({
               x: colX,
               y: colTopY,
@@ -252,8 +263,8 @@ export function BlueprintView() {
               panelThicknessX: panelThicknessPx,
               panelThicknessY: panelThicknessPx,
               baseHeight: scaledBaseHeight,
-              includeLeft: colIdx === 0,
-              includeRight: colIdx === columns.length - 1,
+              includeLeft: colIdx === 0 && !renderSplitLeft,
+              includeRight: colIdx === columns.length - 1 && !renderSplitRight,
             });
             const nodes: React.ReactNode[] = shellPanels
               .map((panel, panelIdx) =>
@@ -268,6 +279,34 @@ export function BlueprintView() {
               )
               .filter(Boolean);
 
+            if (renderSplitLeft) {
+              sideSpans.forEach((span, spanIdx) => {
+                const panel = createPanelRect(
+                  `col-shell-left-${colIdx}-${spanIdx}`,
+                  colX,
+                  frontViewY + scaledHeight - (span.start + span.height) * scale,
+                  panelThicknessPx,
+                  span.height * scale,
+                  panelFill,
+                );
+                if (panel) nodes.push(panel);
+              });
+            }
+
+            if (renderSplitRight) {
+              sideSpans.forEach((span, spanIdx) => {
+                const panel = createPanelRect(
+                  `col-shell-right-${colIdx}-${spanIdx}`,
+                  colX + colW - panelThicknessPx,
+                  frontViewY + scaledHeight - (span.start + span.height) * scale,
+                  panelThicknessPx,
+                  span.height * scale,
+                  panelFill,
+                );
+                if (panel) nodes.push(panel);
+              });
+            }
+
             const shellJointLines = buildCabinetShellJointLines({
               x: colX,
               y: colTopY,
@@ -276,8 +315,8 @@ export function BlueprintView() {
               panelThicknessX: panelThicknessPx,
               panelThicknessY: panelThicknessPx,
               baseHeight: scaledBaseHeight,
-              includeLeft: colIdx === 0,
-              includeRight: colIdx === columns.length - 1,
+              includeLeft: colIdx === 0 && !renderSplitLeft,
+              includeRight: colIdx === columns.length - 1 && !renderSplitRight,
             });
 
             shellJointLines.forEach((line, lineIdx) => {
@@ -294,6 +333,40 @@ export function BlueprintView() {
               );
             });
 
+            if (renderSplitLeft) {
+              sideSpans.slice(0, -1).forEach((span, lineIdx) => {
+                const jointY = frontViewY + scaledHeight - (span.start + span.height) * scale;
+                nodes.push(
+                  <line
+                    key={`col-left-joint-${colIdx}-${lineIdx}`}
+                    x1={colX}
+                    y1={jointY}
+                    x2={colX + panelThicknessPx}
+                    y2={jointY}
+                    stroke="#000"
+                    strokeWidth="1"
+                  />,
+                );
+              });
+            }
+
+            if (renderSplitRight) {
+              sideSpans.slice(0, -1).forEach((span, lineIdx) => {
+                const jointY = frontViewY + scaledHeight - (span.start + span.height) * scale;
+                nodes.push(
+                  <line
+                    key={`col-right-joint-${colIdx}-${lineIdx}`}
+                    x1={colX + colW - panelThicknessPx}
+                    y1={jointY}
+                    x2={colX + colW}
+                    y2={jointY}
+                    stroke="#000"
+                    strokeWidth="1"
+                  />,
+                );
+              });
+            }
+
             return <g key={`col-frame-${colIdx}`}>{nodes}</g>;
           })}
 
@@ -302,28 +375,44 @@ export function BlueprintView() {
             const leftColH = columnHeights[i] ?? height;
             const rightColH = columnHeights[i + 1] ?? height;
             const seamH = Math.min(leftColH, rightColH);
-            const scaledSeamH = seamH * scale;
-            const yOffset = scaledHeight - scaledSeamH;
-            const seamTopY = frontViewY + yOffset;
-            const seamBottomY = frontViewY + scaledHeight;
             const seamX = frontViewX + col.end * scale;
-
-            const seamPanels = buildDoubleSeamRects({
-              x: seamX,
-              y: seamTopY,
-              height: seamBottomY - seamTopY,
-              thickness: panelThicknessPx,
+            const leftBoundary = columnModuleBoundaries[i] ?? null;
+            const rightBoundary = columnModuleBoundaries[i + 1] ?? null;
+            const leftSpans = buildVerticalPanelSpans({
+              totalHeight: leftColH,
+              splitAt:
+                leftBoundary !== null && leftColH > TARGET_BOTTOM_HEIGHT_CM
+                  ? leftBoundary
+                  : null,
             });
+            const rightSpans = buildVerticalPanelSpans({
+              totalHeight: rightColH,
+              splitAt:
+                rightBoundary !== null && rightColH > TARGET_BOTTOM_HEIGHT_CM
+                  ? rightBoundary
+                  : null,
+            });
+            const seamTopY = frontViewY + scaledHeight - seamH * scale;
 
             return (
               <g key={`vdiv-${i}`}>
-                {seamPanels.map((panel, panelIdx) =>
+                {leftSpans.map((span, panelIdx) =>
                   createPanelRect(
-                    `vdiv-${i}-${panelIdx}`,
-                    panel.x,
-                    panel.y,
-                    panel.width,
-                    panel.height,
+                    `vdiv-left-${i}-${panelIdx}`,
+                    seamX - panelThicknessPx,
+                    frontViewY + scaledHeight - (span.start + span.height) * scale,
+                    panelThicknessPx,
+                    span.height * scale,
+                    seamPanelFill,
+                  ),
+                )}
+                {rightSpans.map((span, panelIdx) =>
+                  createPanelRect(
+                    `vdiv-right-${i}-${panelIdx}`,
+                    seamX,
+                    frontViewY + scaledHeight - (span.start + span.height) * scale,
+                    panelThicknessPx,
+                    span.height * scale,
                     seamPanelFill,
                   ),
                 )}
@@ -331,7 +420,7 @@ export function BlueprintView() {
                   const seamCenterLine = buildDoubleSeamCenterLine({
                     x: seamX,
                     y: seamTopY,
-                    height: seamBottomY - seamTopY,
+                    height: seamH * scale,
                   });
                   if (!seamCenterLine) return null;
                   return (
@@ -345,6 +434,36 @@ export function BlueprintView() {
                     />
                   );
                 })()}
+                {leftSpans.slice(0, -1).map((span, lineIdx) => {
+                  const jointY =
+                    frontViewY + scaledHeight - (span.start + span.height) * scale;
+                  return (
+                    <line
+                      key={`vdiv-left-joint-${i}-${lineIdx}`}
+                      x1={seamX - panelThicknessPx}
+                      y1={jointY}
+                      x2={seamX}
+                      y2={jointY}
+                      stroke="#000"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
+                {rightSpans.slice(0, -1).map((span, lineIdx) => {
+                  const jointY =
+                    frontViewY + scaledHeight - (span.start + span.height) * scale;
+                  return (
+                    <line
+                      key={`vdiv-right-joint-${i}-${lineIdx}`}
+                      x1={seamX}
+                      y1={jointY}
+                      x2={seamX + panelThicknessPx}
+                      y2={jointY}
+                      stroke="#000"
+                      strokeWidth="1"
+                    />
+                  );
+                })}
               </g>
             );
           })}
@@ -922,6 +1041,7 @@ export function BlueprintView() {
           hasBase={hasBase}
           columns={columns}
           columnHeights={columnHeights}
+          columnModuleBoundaries={columnModuleBoundaries}
         />
       </svg>
     </div>

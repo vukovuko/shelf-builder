@@ -26,6 +26,31 @@ export interface TechnicalLine {
   y2: number;
 }
 
+export interface VerticalPanelSpan {
+  start: number;
+  height: number;
+}
+
+export function buildVerticalPanelSpans(params: {
+  totalHeight: number;
+  splitAt?: number | null;
+}): VerticalPanelSpan[] {
+  const { totalHeight, splitAt = null } = params;
+
+  if (totalHeight <= 0) {
+    return [];
+  }
+
+  if (splitAt === null || splitAt <= 0 || splitAt >= totalHeight) {
+    return [{ start: 0, height: totalHeight }];
+  }
+
+  return [
+    { start: 0, height: splitAt },
+    { start: splitAt, height: totalHeight - splitAt },
+  ].filter((span) => span.height > 0);
+}
+
 export function buildCabinetShellRects(params: {
   x: number;
   y: number;

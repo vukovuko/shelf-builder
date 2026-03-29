@@ -12,6 +12,7 @@ interface BlueprintSideViewProps {
   hasBase: boolean;
   columns: { start: number; end: number; width: number }[];
   columnHeights: Record<number, number>;
+  columnModuleBoundaries: Record<number, number | null>;
 }
 
 export function BlueprintSideView({
@@ -26,15 +27,22 @@ export function BlueprintSideView({
   hasBase,
   columns,
   columnHeights,
+  columnModuleBoundaries,
 }: BlueprintSideViewProps) {
   // Use max column height for side view
-  const maxColHeight = Math.max(
-    ...columns.map((_, i) => columnHeights[i] ?? height),
-  );
+  const sideColIdx = columns.reduce((bestIdx, _col, idx) => {
+    const bestHeight = columnHeights[bestIdx] ?? height;
+    const currentHeight = columnHeights[idx] ?? height;
+    return currentHeight > bestHeight ? idx : bestIdx;
+  }, 0);
+  const maxColHeight = columnHeights[sideColIdx] ?? height;
   const scaledMaxHeight = maxColHeight * scale;
   const sideYOffset = scaledHeight - scaledMaxHeight; // Align bottom
   const topBottomThickness = 1.8 * scale;
   const backThickness = 0.5 * scale;
+  const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
+  const hasModuleBoundary =
+    moduleBoundary !== null && moduleBoundary > 0 && moduleBoundary < maxColHeight;
   const sideRects = buildSideViewSectionRects({
     x: sideViewX,
     y: sideViewY + sideYOffset,
@@ -81,6 +89,17 @@ export function BlueprintSideView({
           strokeWidth={rect.tone === "outer" ? "1.2" : "0.8"}
         />
       ))}
+
+      {hasModuleBoundary && (
+        <line
+          x1={sideViewX}
+          y1={sideViewY + scaledHeight - moduleBoundary * scale}
+          x2={sideViewX + scaledDepth}
+          y2={sideViewY + scaledHeight - moduleBoundary * scale}
+          stroke="#000"
+          strokeWidth="0.9"
+        />
+      )}
 
       {/* Base */}
       {hasBase && scaledBaseHeight > 0 && (
@@ -177,7 +196,9 @@ export function BlueprintSideView({
         fontFamily="Arial, sans-serif"
         textAnchor="middle"
       >
-        Presek: stranica + gornja/donja + leda
+        {hasModuleBoundary
+          ? "Presek: stranica + spoj modula + gornja/donja + leda"
+          : "Presek: stranica + gornja/donja + leda"}
       </text>
     </g>
   );

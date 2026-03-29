@@ -10,8 +10,6 @@ import {
   getCompartmentsForColumn,
 } from "@/lib/blueprintHelpers";
 import {
-  DRAWER_HEIGHT_CM,
-  DRAWER_GAP_CM,
   TARGET_BOTTOM_HEIGHT_CM,
   MIN_TOP_HEIGHT_CM,
 } from "@/lib/wardrobe-constants";
@@ -22,6 +20,7 @@ import {
   buildEvenShelfRects,
   buildSideViewSectionRects,
   buildSectionDividerRects,
+  buildVerticalPanelSpans,
   computeSectionBounds,
 } from "@/lib/technicalDrawingModel";
 import type { CutList } from "@/lib/calcCutList";
@@ -167,13 +166,6 @@ export function exportElementSpecs(
         baseHeight,
         tCm: Number(materials.find((m) => String(m.id) === String(useShelfStore.getState().selectedMaterialId))?.thickness ?? 18) / 10,
       });
-      const primaryCfg =
-        (elementConfigs as any)[`${letter}1`] ??
-        (elementConfigs as any)[letter] ?? {
-          columns: 1,
-          rowCounts: [0],
-        };
-      const cols = Math.max(1, Number(primaryCfg.columns) || 1);
 
       // ===============================================
       // PROPORTIONAL BOX SIZE CALCULATION
@@ -241,7 +233,19 @@ export function exportElementSpecs(
       };
 
       const innerPanelSpan = Math.max(innerRightMmX - innerLeftMmX, 0);
-      const panelSpanHeight = Math.max(boxH - baseMm, 0);
+      const sectionDimensionRows: Array<{
+        compKey: string;
+        sections: Array<{ x: number; width: number }>;
+      }> = [];
+      const colHMeters = (columnHeights[colIdx] ?? heightCm) / 100;
+      const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
+      const hasModuleBoundary =
+        moduleBoundary !== null && colHMeters > TARGET_BOTTOM_HEIGHT_CM / 100;
+      const sideSpans = buildVerticalPanelSpans({
+        totalHeight: elementHcm,
+        splitAt: hasModuleBoundary ? moduleBoundary : null,
+      });
+      const renderSplitSides = sideSpans.length > 1;
 
       const shellRects = buildCabinetShellRects({
         x: boxX,
@@ -251,10 +255,20 @@ export function exportElementSpecs(
         panelThicknessX: tOffsetXmm,
         panelThicknessY: tOffsetYmm,
         baseHeight: baseMm,
+        includeLeft: !renderSplitSides,
+        includeRight: !renderSplitSides,
       });
       shellRects.forEach((rect) => {
         drawPanel(rect.x, rect.y, rect.width, rect.height, rect.tone === "outer" ? 242 : 245);
       });
+      if (renderSplitSides) {
+        sideSpans.forEach((span) => {
+          const panelY = mapY(span.start + span.height);
+          const panelH = span.height / cmPerMmY;
+          drawPanel(boxX, panelY, tOffsetXmm, panelH, 242);
+          drawPanel(boxX + boxW - tOffsetXmm, panelY, tOffsetXmm, panelH, 242);
+        });
+      }
       buildCabinetShellJointLines({
         x: boxX,
         y: boxY,
@@ -263,9 +277,18 @@ export function exportElementSpecs(
         panelThicknessX: tOffsetXmm,
         panelThicknessY: tOffsetYmm,
         baseHeight: baseMm,
+        includeLeft: !renderSplitSides,
+        includeRight: !renderSplitSides,
       }).forEach((line) => {
         doc.line(line.x1, line.y1, line.x2, line.y2);
       });
+      if (renderSplitSides) {
+        sideSpans.slice(0, -1).forEach((span) => {
+          const jointY = mapY(span.start + span.height);
+          doc.line(boxX, jointY, boxX + tOffsetXmm, jointY);
+          doc.line(boxX + boxW - tOffsetXmm, jointY, boxX + boxW, jointY);
+        });
+      }
 
       // Draw base (hatched rectangle) if applicable
       if (appliesBase && baseMm > 0) {
@@ -280,37 +303,6 @@ export function exportElementSpecs(
           baseline: "middle" as any,
         });
         doc.setFontSize(baseFont);
-      }
-
-      const sections = computeSectionBounds({
-        x: innerLeftMmX,
-        width: innerPanelSpan,
-        sectionCount: cols,
-        dividerThickness: tOffsetXmm,
-      });
-
-      buildSectionDividerRects({
-        x: innerLeftMmX,
-        width: innerPanelSpan,
-        y: boxY,
-        height: panelSpanHeight,
-        sectionCount: cols,
-        dividerThickness: tOffsetXmm,
-      }).forEach((rect) => {
-        drawPanel(rect.x, rect.y, rect.width, rect.height, 233);
-      });
-
-      if (cols > 1) {
-        sections.slice(1).forEach((section) => {
-          const seamLine = buildDoubleSeamCenterLine({
-            x: section.x - tOffsetXmm,
-            y: boxY,
-            height: panelSpanHeight,
-          });
-          if (seamLine) {
-            doc.line(seamLine.x1, seamLine.y1, seamLine.x2, seamLine.y2);
-          }
-        });
       }
 
       const colHForShelves = columnHeights[colIdx] ?? heightCm;
@@ -328,8 +320,6 @@ export function exportElementSpecs(
           );
         });
 
-      const colHMeters = (columnHeights[colIdx] ?? heightCm) / 100;
-      const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
       const innerBottomForBoundary = hasBase ? baseHeight + tCm : tCm;
       const innerTopForBoundary = (columnHeights[colIdx] ?? heightCm) - tCm;
       if (moduleBoundary !== null && colHMeters > TARGET_BOTTOM_HEIGHT_CM / 100) {
@@ -380,6 +370,7 @@ export function exportElementSpecs(
           columns: 1,
           rowCounts: [0],
         };
+        const compExtras = (compartmentExtras as any)[comp.key] ?? {};
         const compInnerCols = Math.max(1, Number(compCfg.columns) || 1);
         const compInnerSpan = innerRightMmX - innerLeftMmX;
         const compSections = computeSectionBounds({
@@ -392,6 +383,13 @@ export function exportElementSpecs(
         const safeTopY = Math.max(0, Math.min(elementHcm, comp.topY));
         if (safeTopY <= safeBottomY) return;
 
+        if (compInnerCols > 1) {
+          sectionDimensionRows.push({
+            compKey: comp.key,
+            sections: compSections,
+          });
+        }
+
         buildSectionDividerRects({
           x: innerLeftMmX,
           width: compInnerSpan,
@@ -403,110 +401,113 @@ export function exportElementSpecs(
           drawPanel(rect.x, rect.y, rect.width, rect.height, 233);
         });
 
+        if (compInnerCols > 1) {
+          compSections.slice(1).forEach((section) => {
+            const seamLine = buildDoubleSeamCenterLine({
+              x: section.x - tOffsetXmm,
+              y: mapY(safeTopY),
+              height: (safeTopY - safeBottomY) / cmPerMmY,
+            });
+            if (seamLine) {
+              doc.line(seamLine.x1, seamLine.y1, seamLine.x2, seamLine.y2);
+            }
+          });
+        }
+
         for (let secIdx = 0; secIdx < compInnerCols; secIdx++) {
           const shelfCount = Math.max(
             0,
             Math.floor(Number(compCfg.rowCounts?.[secIdx] ?? 0)),
           );
-          if (shelfCount <= 0) continue;
           const section = compSections[secIdx];
           if (!section) continue;
-          buildEvenShelfRects({
-            x: section.x,
-            width: section.width,
-            topY: mapY(safeTopY),
-            bottomY: mapY(safeBottomY),
-            shelfCount,
-            shelfThickness: tOffsetYmm,
-          }).forEach((rect) => {
-            drawPanel(rect.x, rect.y, rect.width, rect.height, 250);
-          });
+
+          if (shelfCount > 0) {
+            buildEvenShelfRects({
+              x: section.x,
+              width: section.width,
+              topY: mapY(safeTopY),
+              bottomY: mapY(safeBottomY),
+              shelfCount,
+              shelfThickness: tOffsetYmm,
+            }).forEach((rect) => {
+              drawPanel(rect.x, rect.y, rect.width, rect.height, 250);
+            });
+          }
+
+          const drawerCount = Math.max(
+            0,
+            Math.floor(Number(compCfg.drawerCounts?.[secIdx] ?? 0)),
+          );
+          if (drawerCount > 0) {
+            const drawerInset = 1;
+            const drawerX = section.x + drawerInset;
+            const drawerW = section.width - drawerInset * 2;
+            if (drawerW > 0) {
+              const compHeight = safeTopY - safeBottomY;
+              if (shelfCount <= 0) {
+                const drawerHeight = compHeight / drawerCount;
+                for (let drIdx = 0; drIdx < drawerCount; drIdx++) {
+                  const drawerBottomY = safeBottomY + drIdx * drawerHeight;
+                  const drawerTopY = Math.min(
+                    drawerBottomY + drawerHeight,
+                    safeTopY,
+                  );
+                  const rectY = mapY(drawerTopY);
+                  const rectH = (drawerTopY - drawerBottomY) / cmPerMmY;
+                  if (rectH > 0) {
+                    doc.rect(drawerX, rectY, drawerW, rectH, "S");
+                  }
+                }
+              } else {
+                const gap = compHeight / (shelfCount + 1);
+                const maxDrawers = Math.min(drawerCount, shelfCount + 1);
+                for (let drIdx = 0; drIdx < maxDrawers; drIdx++) {
+                  const drawerBottomY = safeBottomY + drIdx * gap + tCm / 2;
+                  const drawerTopY = Math.min(
+                    safeBottomY + (drIdx + 1) * gap - tCm / 2,
+                    safeTopY,
+                  );
+                  const rectY = mapY(drawerTopY);
+                  const rectH = (drawerTopY - drawerBottomY) / cmPerMmY;
+                  if (rectH > 0) {
+                    doc.rect(drawerX, rectY, drawerW, rectH, "S");
+                  }
+                }
+              }
+            }
+          }
         }
-      });
-      // Drawers region (from elementConfigs.drawerCounts) – match BlueprintView logic
-      const extras = (compartmentExtras as any)[`${letter}1`] ?? {};
-      const totalDrawerCount = ((primaryCfg as any).drawerCounts ?? []).reduce(
-        (sum: number, c: number) => sum + (c ?? 0),
-        0,
-      );
-      if (totalDrawerCount > 0) {
-        const drawerHcm = DRAWER_HEIGHT_CM;
-        const gapCm = DRAWER_GAP_CM;
-        const drawerHMm = drawerHcm / cmPerMmY;
-        const gapMm = gapCm / cmPerMmY;
-        const innerHMm = Math.max(innerBottomMmY - innerTopMmY, 0);
-        const maxAuto = Math.max(
-          0,
-          Math.floor((innerHMm + gapMm) / (drawerHMm + gapMm)),
-        );
-        const used = Math.min(totalDrawerCount, maxAuto);
-        let lastTopOffsetMm = 0;
-        for (let d = 0; d < used; d++) {
-          const bottomOffsetMm = d * (drawerHMm + gapMm);
-          const topOffsetMm = Math.min(
-            bottomOffsetMm + drawerHMm,
-            innerHMm - gapMm,
-          );
-          lastTopOffsetMm = topOffsetMm;
-          const yTop = innerBottomMmY - topOffsetMm;
-          const yBottom = innerBottomMmY - bottomOffsetMm;
-          const hMm = Math.max(0, yBottom - yTop);
-          // Ensure within inner bounds
-          if (yTop < innerTopMmY) break;
-          doc.rect(
-            innerLeftMmX + 1,
-            yTop,
-            innerRightMmX - innerLeftMmX - 2,
-            hMm,
-            "S",
-          );
-          // Drawer height label
-          const hCm = hMm * cmPerMmY;
-          doc.setFontSize(8);
-          doc.text(`${fmt2(hCm)} cm`, boxX + boxW / 2, yTop + hMm / 2, {
+
+        if (compExtras.rod) {
+          const rodY = mapY(Math.max(safeBottomY, safeTopY - 6));
+          const inset = 2;
+          doc.setLineWidth(0.4);
+          doc.line(innerLeftMmX + inset, rodY, innerRightMmX - inset, rodY);
+          doc.setLineWidth(0.2);
+        }
+
+        if (compExtras.led) {
+          const ledY = mapY(safeTopY) + 3;
+          doc.setFontSize(7.5);
+          doc.text("LED", (innerLeftMmX + innerRightMmX) / 2, ledY, {
             align: "center",
-            baseline: "middle" as any,
+            baseline: "top" as any,
           });
           doc.setFontSize(baseFont);
         }
-        // Auto shelf directly above drawers if space remains
-        if (used > 0 && used < maxAuto) {
-          const shelfOffsetMm = lastTopOffsetMm + gapMm + tCm / cmPerMmY;
-          if (shelfOffsetMm < innerHMm) {
-            const shelfY = innerBottomMmY - shelfOffsetMm;
-            drawPanel(
-              innerLeftMmX,
-              shelfY - tOffsetYmm / 2,
-              innerRightMmX - innerLeftMmX,
-              tOffsetYmm,
-              250,
-            );
-          }
+
+        if (compExtras.verticalDivider) {
+          const dividerX = boxX + boxW / 2 - tOffsetXmm / 2;
+          drawPanel(
+            dividerX,
+            mapY(safeTopY),
+            tOffsetXmm,
+            (safeTopY - safeBottomY) / cmPerMmY,
+            233,
+          );
         }
-      }
-      // Rod indicator
-      if (extras.rod) {
-        const yRod = innerTopMmY + 6 / cmPerMmY; // 6cm from top
-        const inset = 2; // mm from inner sides
-        doc.setLineWidth(0.4);
-        doc.line(innerLeftMmX + inset, yRod, innerRightMmX - inset, yRod);
-        doc.setLineWidth(0.2);
-      }
-      // LED label
-      if (extras.led) {
-        const yLabel = innerTopMmY + 3;
-        doc.setFontSize(7.5);
-        doc.text("LED", (innerLeftMmX + innerRightMmX) / 2, yLabel, {
-          align: "center",
-          baseline: "top" as any,
-        });
-        doc.setFontSize(baseFont);
-      }
-      // Optional central divider
-      if (extras.verticalDivider) {
-        const x = boxX + boxW / 2 - tOffsetXmm / 2;
-        drawPanel(x, boxY, tOffsetXmm, panelSpanHeight, 233);
-      }
+      });
       // Dimension lines and labels (outer)
       const dimY = boxY + boxH + 6;
       drawDimH(boxX, dimY, boxX + boxW, `${fmt2(elementWcm)} cm`, {
@@ -520,19 +521,27 @@ export function exportElementSpecs(
         ext: 3,
         font: 9,
       });
-      // Per-compartment width dimensions (evenly divided)
-      if (cols > 1) {
-        const compY = dimY + 6;
-        for (let c = 0; c < cols; c++) {
-          const x0 = boxX + (c * boxW) / cols;
-          const x1 = boxX + ((c + 1) * boxW) / cols;
-          drawDimH(x0, compY, x1, `${fmt2(elementWcm / cols)} cm`, {
-            arrows: true,
-            ext: 2.5,
-            font: 8,
-          });
-        }
-      }
+      sectionDimensionRows.forEach((row, rowIdx) => {
+        const compY = dimY + 6 + rowIdx * 6;
+        doc.setFontSize(7);
+        doc.text(row.compKey, boxX - 2, compY + 0.8, { align: "right" as any });
+        doc.setFontSize(baseFont);
+        row.sections.forEach((section) => {
+          drawDimH(
+            section.x,
+            compY,
+            section.x + section.width,
+            `${fmt2(section.width * cmPerMmX)} cm`,
+            {
+              arrows: true,
+              ext: 2.5,
+              font: 8,
+            },
+          );
+        });
+      });
+
+      const dimensionRowsHeight = sectionDimensionRows.length * 6;
 
       const sideMaxW = 34;
       const sideScale = Math.min(
@@ -542,7 +551,7 @@ export function exportElementSpecs(
       const sideW = depthCm * sideScale;
       const sideH = elementHcm * sideScale;
       const sideX = margin + 2;
-      const sideY = dimY + (cols > 1 ? 14 : 10);
+      const sideY = dimY + 10 + dimensionRowsHeight;
       const sideTopBottomThickness = tCm / (elementHcm / Math.max(sideH, 1));
       const sideBackThickness = 0.5 / (elementHcm / Math.max(sideH, 1));
       const sideBaseMm = appliesBase ? Math.max(0, baseHeight / (elementHcm / Math.max(sideH, 1))) : 0;
@@ -560,6 +569,10 @@ export function exportElementSpecs(
         const toneGray = rect.tone === "back" ? 218 : rect.tone === "outer" ? 242 : 245;
         drawPanel(rect.x, rect.y, rect.width, rect.height, toneGray);
       });
+      if (hasModuleBoundary) {
+        const sideJointY = sideY + sideH - moduleBoundary * sideScale;
+        doc.line(sideX, sideJointY, sideX + sideW, sideJointY);
+      }
       if (appliesBase && sideBaseMm > 0) {
         doc.setFillColor("#e6e6e6");
         doc.rect(sideX, sideY + sideH - sideBaseMm, sideW, sideBaseMm, "FD");
@@ -568,7 +581,10 @@ export function exportElementSpecs(
       doc.text("Pogled sa strane", sideX + sideW / 2, sideY - 2, { align: "center" as any });
       doc.setFontSize(baseFont);
 
-      const contentBottomY = Math.max(sideY + sideH + 10, boxY + boxH + 14);
+      const contentBottomY = Math.max(
+        sideY + sideH + 10,
+        boxY + boxH + 14 + dimensionRowsHeight,
+      );
 
       // ===============================================
       // DOOR TYPE LABEL & HANDLE INFORMATION
@@ -690,7 +706,7 @@ export function exportElementSpecs(
       // Numeric column indices (right-align these)
       const numericCols = [2, 3, 4, 5, 6];
 
-      let y = Math.max(contentBottomY, dimY + (cols > 1 ? 10 : 6));
+      let y = Math.max(contentBottomY, dimY + 6 + dimensionRowsHeight);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       headers.forEach((h, i) => {
