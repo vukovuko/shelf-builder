@@ -62,9 +62,6 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     const columnHorizontalBoundaries = useShelfStore(
       (state: ShelfState) => state.columnHorizontalBoundaries,
     );
-    const setColumnHorizontalBoundaries = useShelfStore(
-      (state: ShelfState) => state.setColumnHorizontalBoundaries,
-    );
     const columnHeights = useShelfStore(
       (state: ShelfState) => state.columnHeights,
     );
@@ -326,49 +323,6 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
         { yStart: boundary, yEnd: colH, height: colH - boundary },
       ];
     };
-
-    // Track which columns we've initialized to avoid re-running
-    const initializedColumnsRef = React.useRef<Set<number>>(new Set());
-
-    // Stable ref for columnHorizontalBoundaries to avoid effect re-runs during drag
-    const columnHorizontalBoundariesRef = React.useRef(
-      columnHorizontalBoundaries,
-    );
-    React.useEffect(() => {
-      columnHorizontalBoundariesRef.current = columnHorizontalBoundaries;
-    });
-
-    // Stable ref for setColumnHorizontalBoundaries
-    const setColumnHorizontalBoundariesRef = React.useRef(
-      setColumnHorizontalBoundaries,
-    );
-    React.useEffect(() => {
-      setColumnHorizontalBoundariesRef.current = setColumnHorizontalBoundaries;
-    });
-
-    // Auto-initialize horizontal splits when column height > 200cm
-    React.useEffect(() => {
-      columns.forEach((_, colIdx) => {
-        const colH = getColumnHeight(colIdx);
-        const canHaveSplit = colH > splitThreshold;
-        const alreadyInitialized = initializedColumnsRef.current.has(colIdx);
-        const existingShelves =
-          columnHorizontalBoundariesRef.current[colIdx] || [];
-
-        if (
-          canHaveSplit &&
-          !alreadyInitialized &&
-          existingShelves.length === 0
-        ) {
-          // Initialize with one shelf at middle of column
-          setColumnHorizontalBoundariesRef.current(colIdx, [colH / 2]);
-          initializedColumnsRef.current.add(colIdx);
-        }
-        // NOTE: We no longer auto-delete shelves when height drops
-        // Instead, we scale them proportionally in setColumnHeight
-      });
-    }, [columns, columnHeights, height, getColumnHeight]);
-    // Removed columnHorizontalBoundaries, setColumnHorizontalBoundaries from deps - using refs instead
 
     React.useImperativeHandle(ref, () => ({
       toggleAllInfo: () => {},
