@@ -156,7 +156,13 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         return;
       }
 
-      // Success will redirect, but just in case:
+      // Safari blocks async navigation — manually redirect if better-auth didn't
+      const url = (result?.data as any)?.url;
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+
       onSuccess?.();
     } catch (err: any) {
       console.error("Google auth error:", err);
