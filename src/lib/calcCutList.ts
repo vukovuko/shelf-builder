@@ -152,6 +152,18 @@ const emptyCutList: CutList = {
   },
 };
 
+export function countBoardsExcludingShelvesAndBacks(
+  items: CutListItem[],
+): number {
+  return items.filter((item) => {
+    if (item.materialType !== "korpus" && item.materialType !== "front") {
+      return false;
+    }
+
+    return !/^polica\b/i.test(item.desc.trim());
+  }).length;
+}
+
 const TOP_MODULE_ELEMENT_SUFFIX = "1";
 
 export function getTopModuleElementKey(columnKey: string): string {

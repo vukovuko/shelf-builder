@@ -119,6 +119,12 @@ export const AVAILABLE_FIELDS: FieldDefinition[] = [
     type: "number",
   },
   {
+    key: "wardrobe.compartmentCount",
+    label: "Broj odeljaka",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
     key: "wardrobe.doorCount",
     label: "Broj vrata",
     category: "wardrobe",
@@ -127,6 +133,12 @@ export const AVAILABLE_FIELDS: FieldDefinition[] = [
   {
     key: "wardrobe.drawerCount",
     label: "Broj fioka",
+    category: "wardrobe",
+    type: "number",
+  },
+  {
+    key: "wardrobe.boardCount",
+    label: "Broj ploča bez polica i leđa",
     category: "wardrobe",
     type: "number",
   },
@@ -151,6 +163,12 @@ export const AVAILABLE_FIELDS: FieldDefinition[] = [
   {
     key: "wardrobe.hasMirror",
     label: "Ima ogledalo",
+    category: "wardrobe",
+    type: "boolean",
+  },
+  {
+    key: "wardrobe.slidingDoors",
+    label: "Izabrana klizna vrata",
     category: "wardrobe",
     type: "boolean",
   },
@@ -395,22 +413,69 @@ export const APPLY_TO_LABELS: Record<ApplyTo, string> = {
 
 // Available fields for quantity formulas (simple: fieldName * number)
 export const FORMULA_FIELDS = [
-  { key: "doorCount", label: "Broj vrata" },
-  { key: "drawerCount", label: "Broj fioka" },
-  { key: "shelfCount", label: "Broj polica" },
-  { key: "columnCount", label: "Broj kolona" },
-  { key: "rodCount", label: "Broj šipki" },
-  { key: "ledCount", label: "Broj LED" },
-  { key: "verticalDividerCount", label: "Broj vert. pregrada" },
-  { key: "handleCount", label: "Ukupno ručki" },
-  { key: "doubleDoorCount", label: "Broj dvokrilnih vrata" },
-  { key: "singleDoorCount", label: "Broj jednokrilnih vrata" },
-  { key: "mirrorDoorCount", label: "Broj ogledalo vrata" },
-  { key: "drawerStyleDoorCount", label: "Broj push-to-open vrata" },
-  { key: "area", label: "Površina (m²)" },
-  { key: "width", label: "Širina (cm)" },
-  { key: "height", label: "Visina (cm)" },
-  { key: "depth", label: "Dubina (cm)" },
+  { key: "doorCount", path: "wardrobe.doorCount", label: "Broj vrata" },
+  { key: "drawerCount", path: "wardrobe.drawerCount", label: "Broj fioka" },
+  {
+    key: "boardCount",
+    path: "wardrobe.boardCount",
+    label: "Broj ploča bez polica i leđa",
+  },
+  { key: "shelfCount", path: "wardrobe.shelfCount", label: "Broj polica" },
+  {
+    key: "compartmentCount",
+    path: "wardrobe.compartmentCount",
+    label: "Broj odeljaka",
+  },
+  { key: "columnCount", path: "wardrobe.columnCount", label: "Broj kolona" },
+  { key: "rodCount", path: "wardrobe.rodCount", label: "Broj šipki" },
+  { key: "ledCount", path: "wardrobe.ledCount", label: "Broj LED" },
+  {
+    key: "verticalDividerCount",
+    path: "wardrobe.verticalDividerCount",
+    label: "Broj vert. pregrada",
+  },
+  { key: "handleCount", path: "wardrobe.handleCount", label: "Ukupno ručki" },
+  {
+    key: "doubleDoorCount",
+    path: "wardrobe.doubleDoorCount",
+    label: "Broj dvokrilnih vrata",
+  },
+  {
+    key: "singleDoorCount",
+    path: "wardrobe.singleDoorCount",
+    label: "Broj jednokrilnih vrata",
+  },
+  {
+    key: "mirrorDoorCount",
+    path: "wardrobe.mirrorDoorCount",
+    label: "Broj ogledalo vrata",
+  },
+  {
+    key: "drawerStyleDoorCount",
+    path: "wardrobe.drawerStyleDoorCount",
+    label: "Broj push-to-open vrata",
+  },
+  { key: "area", path: "wardrobe.area", label: "Površina (m²)" },
+  { key: "width", path: "wardrobe.width", label: "Širina (cm)" },
+  { key: "height", path: "wardrobe.height", label: "Visina (cm)" },
+  { key: "depth", path: "wardrobe.depth", label: "Dubina (cm)" },
+  { key: "baseHeight", path: "wardrobe.baseHeight", label: "Visina baze (cm)" },
+  {
+    key: "maxDoorHeight",
+    path: "wardrobe.maxDoorHeight",
+    label: "Maks. visina vrata (cm)",
+  },
+  {
+    key: "minDoorHeight",
+    path: "wardrobe.minDoorHeight",
+    label: "Min. visina vrata (cm)",
+  },
+  {
+    key: "customer.orderCount",
+    path: "customer.orderCount",
+    label: "Broj prethodnih porudžbina",
+  },
+  { key: "order.total", path: "order.total", label: "Ukupna cena (RSD)" },
 ] as const;
 
 export interface RuleActionConfig {
@@ -460,12 +525,15 @@ export interface RuleContextWardrobe {
   area: number; // m²
   columnCount: number;
   shelfCount: number;
+  compartmentCount: number;
   doorCount: number;
   drawerCount: number;
+  boardCount: number;
   hasBase: boolean;
   hasDoors: boolean;
   hasDrawers: boolean;
   hasMirror: boolean;
+  slidingDoors: boolean;
   hasRod: boolean;
   hasLed: boolean;
   hasVerticalDivider: boolean;

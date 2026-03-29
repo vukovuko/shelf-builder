@@ -51,3 +51,11 @@ export { evaluateOperator } from "./operators";
 // Door metrics
 export { computeDoorMetrics } from "./computeDoorMetrics";
 export type { DoorMetrics, HandleLookupEntry } from "./computeDoorMetrics";
+export { computeCompartmentCount } from "./computeCompartmentCount";
+export { computeShelfCount } from "./computeShelfCount";
+
+// Cut-list-derived helpers used by rule context builders
+export {
+  calculateCutList,
+  countBoardsExcludingShelvesAndBacks,
+} from "../calcCutList";

@@ -12,14 +12,21 @@ import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
+  calculateCutList,
+  countBoardsExcludingShelvesAndBacks,
+} from "@/lib/calcCutList";
+import {
   applyRules,
   calculateFinalPrice,
+  computeCompartmentCount,
+  computeShelfCount,
   getVisibleAdjustments,
   computeDoorMetrics,
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
 
+// Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -41,9 +48,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    // Look up material names
+    // Look up material names and pricing data needed for derived board counts
     const allMaterials = await db
-      .select({ id: materials.id, name: materials.name })
+      .select({
+        id: materials.id,
+        name: materials.name,
+        price: materials.price,
+        thickness: materials.thickness,
+        categories: materials.categories,
+      })
       .from(materials);
     const matMap = new Map(allMaterials.map((m) => [Number(m.id), m.name]));
 
@@ -71,7 +84,6 @@ export async function POST(req: Request) {
 
     // Count wardrobe features from snapshot
     const doorGroups = snapshot?.doorGroups ?? [];
-    const doorCount = doorGroups.length;
     const compartmentExtrasValues = Object.values(
       snapshot?.compartmentExtras ?? {},
     );
@@ -101,19 +113,7 @@ export async function POST(req: Request) {
     const verticalDividerCount = elementConfigValues.filter(
       (cfg: any) => (cfg?.columns ?? 1) > 1,
     ).length;
-    const bottomShelves = Object.values(
-      snapshot?.columnHorizontalBoundaries ?? {},
-    ).reduce(
-      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
-      0,
-    );
-    const topShelves = Object.values(
-      snapshot?.columnTopModuleShelves ?? {},
-    ).reduce(
-      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
-      0,
-    );
-    const shelfCount = bottomShelves + topShelves;
+    const shelfCount = computeShelfCount(snapshot);
     const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
     const hasMirror = doorGroups.some(
       (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
@@ -135,6 +135,46 @@ export async function POST(req: Request) {
 
     // Compute door metrics (heights, type counts, handle info)
     const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
+    const doorCount =
+      doorMetrics.singleDoorCount +
+      doorMetrics.drawerStyleDoorCount +
+      doorMetrics.doubleDoorCount * 2;
+    const pricingSnapshot = {
+      width: Number(snapshot?.width ?? 0),
+      height: Number(snapshot?.height ?? 0),
+      depth: Number(snapshot?.depth ?? 0),
+      selectedMaterialId: Number(snapshot?.selectedMaterialId ?? materialId),
+      selectedFrontMaterialId: Number(
+        snapshot?.selectedFrontMaterialId ?? frontMaterialId,
+      ),
+      selectedBackMaterialId:
+        snapshot?.selectedBackMaterialId ?? backMaterialId ?? null,
+      elementConfigs: snapshot?.elementConfigs ?? {},
+      compartmentExtras: snapshot?.compartmentExtras ?? {},
+      doorSelections: snapshot?.doorSelections ?? {},
+      hasBase: Boolean(snapshot?.hasBase),
+      baseHeight: Number(snapshot?.baseHeight ?? 0),
+      verticalBoundaries: snapshot?.verticalBoundaries,
+      columnHorizontalBoundaries: snapshot?.columnHorizontalBoundaries,
+      columnHeights: snapshot?.columnHeights,
+      columnModuleBoundaries: snapshot?.columnModuleBoundaries,
+      columnTopModuleShelves: snapshot?.columnTopModuleShelves,
+      doorGroups: snapshot?.doorGroups,
+      globalHandleId: snapshot?.globalHandleId,
+      globalHandleFinish: snapshot?.globalHandleFinish,
+      doorSettingsMode: snapshot?.doorSettingsMode,
+      selectedAccessories: snapshot?.selectedAccessories ?? {},
+      slidingDoors: Boolean(snapshot?.slidingDoors),
+    };
+    const derivedCutList = calculateCutList(
+      pricingSnapshot,
+      allMaterials,
+      handlesWithFinishes,
+    );
+    const boardCount = countBoardsExcludingShelvesAndBacks(
+      derivedCutList.items,
+    );
+    const compartmentCount = computeCompartmentCount(snapshot);
 
     // Build rule context
     const areaM2 = (totalArea ?? 0) / 10000;
@@ -146,12 +186,15 @@ export async function POST(req: Request) {
         area: areaM2,
         columnCount,
         shelfCount,
+        compartmentCount,
         doorCount,
         drawerCount,
+        boardCount,
         hasBase: Boolean(snapshot?.hasBase),
         hasDoors: doorCount > 0,
         hasDrawers: drawerCount > 0,
         hasMirror,
+        slidingDoors: Boolean(snapshot?.slidingDoors),
         hasRod: rodCount > 0,
         hasLed: ledCount > 0,
         hasVerticalDivider: verticalDividerCount > 0,

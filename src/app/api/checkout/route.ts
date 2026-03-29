@@ -19,10 +19,15 @@ import {
   sendOrderConfirmationEmail,
   sendAdminNewOrderEmail,
 } from "@/lib/email";
-import { calculateCutList } from "@/lib/calcCutList";
+import {
+  calculateCutList,
+  countBoardsExcludingShelvesAndBacks,
+} from "@/lib/calcCutList";
 import {
   applyRules,
   calculateFinalPrice,
+  computeCompartmentCount,
+  computeShelfCount,
   computeDoorMetrics,
   type RuleContext,
   type Rule,
@@ -302,6 +307,8 @@ export async function POST(request: Request) {
       handlesWithFinishes,
       accessoriesWithVariants,
     );
+    const boardCount = countBoardsExcludingShelvesAndBacks(pricing.items);
+    const compartmentCount = computeCompartmentCount(snapshot);
     const totalPrice = Math.round(pricing.totalCost);
     const area = Math.round(pricing.totalArea * 10000);
 
@@ -383,7 +390,6 @@ export async function POST(request: Request) {
     // =========================================================================
 
     const doorGroups = snapshot?.doorGroups ?? [];
-    const doorCount = doorGroups.length;
     const compartmentExtrasValues = Object.values(
       snapshot?.compartmentExtras ?? {},
     );
@@ -413,19 +419,7 @@ export async function POST(request: Request) {
     const verticalDividerCount = elementConfigValues.filter(
       (cfg: any) => (cfg?.columns ?? 1) > 1,
     ).length;
-    const bottomShelves = Object.values(
-      snapshot?.columnHorizontalBoundaries ?? {},
-    ).reduce(
-      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
-      0,
-    );
-    const topShelves = Object.values(
-      snapshot?.columnTopModuleShelves ?? {},
-    ).reduce(
-      (sum: number, arr: any) => sum + (Array.isArray(arr) ? arr.length : 0),
-      0,
-    );
-    const shelfCount = bottomShelves + topShelves;
+    const shelfCount = computeShelfCount(snapshot);
     const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
 
     const hasMirror = doorGroups.some(
@@ -433,6 +427,10 @@ export async function POST(request: Request) {
     );
 
     const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
+    const doorCount =
+      doorMetrics.singleDoorCount +
+      doorMetrics.drawerStyleDoorCount +
+      doorMetrics.doubleDoorCount * 2;
 
     // =========================================================================
     // PHASE B: Transaction (all DB writes are atomic)
@@ -535,12 +533,15 @@ export async function POST(request: Request) {
           area: pricing.totalArea,
           columnCount,
           shelfCount,
+          compartmentCount,
           doorCount,
           drawerCount,
+          boardCount,
           hasBase: pricingSnapshot.hasBase,
           hasDoors: doorCount > 0,
           hasDrawers: drawerCount > 0,
           hasMirror,
+          slidingDoors: pricingSnapshot.slidingDoors,
           hasRod: rodCount > 0,
           hasLed: ledCount > 0,
           hasVerticalDivider: verticalDividerCount > 0,

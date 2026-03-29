@@ -115,7 +115,7 @@ function executeAction(
 
   switch (type) {
     case "add_item": {
-      const quantity = evaluateFormula(config.quantity ?? 1, context.wardrobe);
+      const quantity = evaluateFormula(config.quantity ?? 1, context);
       if (quantity === null || quantity <= 0) return null;
 
       const unitPrice = config.itemPrice ?? 0;

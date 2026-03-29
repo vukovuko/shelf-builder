@@ -4,7 +4,7 @@
  * Functions to extract field values from rule context.
  */
 
-import type { RuleContext, RuleContextWardrobe } from "./types";
+import { FORMULA_FIELDS, type RuleContext } from "./types";
 
 /**
  * Get field value from rule context using dot notation
@@ -40,7 +40,7 @@ export function getFieldValue(
  */
 export function evaluateFormula(
   formula: string | number,
-  wardrobe: RuleContextWardrobe,
+  context: RuleContext,
 ): number | null {
   // If already a number, return it
   if (typeof formula === "number") {
@@ -51,11 +51,11 @@ export function evaluateFormula(
   const trimmed = formula.trim();
 
   // Check for multiplication pattern
-  const multiplyMatch = trimmed.match(/^(\w+)\s*\*\s*(\d+(?:\.\d+)?)$/);
+  const multiplyMatch = trimmed.match(/^([\w.]+)\s*\*\s*(\d+(?:\.\d+)?)$/);
   if (multiplyMatch) {
     const [, fieldName, multiplierStr] = multiplyMatch;
     const multiplier = parseFloat(multiplierStr);
-    const fieldValue = getFormulaFieldValue(fieldName, wardrobe);
+    const fieldValue = getFormulaFieldValue(fieldName, context);
 
     if (fieldValue !== null && !isNaN(multiplier)) {
       return Math.round(fieldValue * multiplier);
@@ -69,7 +69,7 @@ export function evaluateFormula(
   }
 
   // Check for just a field name
-  const fieldValue = getFormulaFieldValue(trimmed, wardrobe);
+  const fieldValue = getFormulaFieldValue(trimmed, context);
   if (fieldValue !== null) {
     return fieldValue;
   }
@@ -83,42 +83,13 @@ export function evaluateFormula(
  */
 function getFormulaFieldValue(
   fieldName: string,
-  wardrobe: RuleContextWardrobe,
+  context: RuleContext,
 ): number | null {
-  switch (fieldName) {
-    case "doorCount":
-      return wardrobe.doorCount;
-    case "drawerCount":
-      return wardrobe.drawerCount;
-    case "shelfCount":
-      return wardrobe.shelfCount;
-    case "columnCount":
-      return wardrobe.columnCount;
-    case "area":
-      return wardrobe.area;
-    case "width":
-      return wardrobe.width;
-    case "height":
-      return wardrobe.height;
-    case "depth":
-      return wardrobe.depth;
-    case "rodCount":
-      return wardrobe.rodCount;
-    case "ledCount":
-      return wardrobe.ledCount;
-    case "verticalDividerCount":
-      return wardrobe.verticalDividerCount;
-    case "handleCount":
-      return wardrobe.handleCount;
-    case "doubleDoorCount":
-      return wardrobe.doubleDoorCount;
-    case "singleDoorCount":
-      return wardrobe.singleDoorCount;
-    case "mirrorDoorCount":
-      return wardrobe.mirrorDoorCount;
-    case "drawerStyleDoorCount":
-      return wardrobe.drawerStyleDoorCount;
-    default:
-      return null;
-  }
+  const matchingField = FORMULA_FIELDS.find((field) => field.key === fieldName);
+  const fieldPath = matchingField?.path ?? fieldName;
+  const fieldValue = getFieldValue(context, fieldPath);
+
+  return typeof fieldValue === "number" && Number.isFinite(fieldValue)
+    ? fieldValue
+    : null;
 }
