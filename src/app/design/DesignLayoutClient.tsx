@@ -310,6 +310,16 @@ export function DesignLayoutClient({
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-2 justify-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowDimensions(!showDimensions)}
+            title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
+          >
+            <Ruler
+              className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+            />
+          </Button>
           {hasDoors && (
             <Button
               variant="ghost"

@@ -35,6 +35,7 @@ interface DoorOptionsPanelProps {
   slidingDoors?: boolean;
   setSlidingDoors?: (enabled: boolean) => void;
   numColumns?: number;
+  compact?: boolean;
 }
 
 export function DoorOptionsPanel({
@@ -44,6 +45,7 @@ export function DoorOptionsPanel({
   slidingDoors,
   setSlidingDoors,
   numColumns,
+  compact,
 }: DoorOptionsPanelProps) {
   const setDoorForSelection = useShelfStore(
     (s: ShelfState) => s.setDoorForSelection,
@@ -281,8 +283,8 @@ export function DoorOptionsPanel({
   // When sliding doors are active, show simplified view
   if (slidingDoors) {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
+      <div className={compact ? "space-y-2" : "space-y-4"}>
+        <div className={compact ? "space-y-1.5" : "space-y-2"}>
           <p className="text-sm font-medium">Izaberite tip vrata:</p>
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -309,11 +311,15 @@ export function DoorOptionsPanel({
   }
 
   return (
-    <div className="space-y-4">
+    <div className={compact ? "space-y-2" : "space-y-4"}>
       {/* Header with selection info */}
-      <div className="flex items-center justify-between pb-2 border-b">
+      <div className="flex items-center justify-between pb-1 border-b">
         <div>
-          <span className="font-semibold text-lg">
+          <span
+            className={
+              compact ? "font-semibold text-sm" : "font-semibold text-lg"
+            }
+          >
             {isEditingExistingGroup
               ? "Vrata"
               : selectedKeys.length > 1
@@ -411,7 +417,7 @@ export function DoorOptionsPanel({
       {isEditingExistingGroup && existingGroup.type !== "none" && (
         <>
           {/* Material selector - Grid preview + popup like Step 3 */}
-          <div className="space-y-3">
+          <div className={compact ? "space-y-2" : "space-y-3"}>
             <h4 className="text-sm font-semibold">Materijal za lica</h4>
             <div className="grid grid-cols-3 gap-2">
               {previewMaterials.map((material) => (
@@ -422,7 +428,7 @@ export function DoorOptionsPanel({
                       currentMaterialId === material.id
                         ? "border-primary"
                         : "border-transparent"
-                    } hover:border-primary h-16 w-full bg-cover bg-center bg-muted`}
+                    } hover:border-primary ${compact ? "h-12" : "h-16"} w-full bg-cover bg-center bg-muted`}
                     style={{
                       backgroundImage: material.img
                         ? `url(${material.img})`
@@ -467,7 +473,7 @@ export function DoorOptionsPanel({
           </div>
 
           {/* Handle selector - Preview + modal */}
-          <div className="space-y-3">
+          <div className={compact ? "space-y-2" : "space-y-3"}>
             <h4 className="text-sm font-semibold">Ručke</h4>
             {/* Global mode toggle */}
             <div className="flex items-center justify-center space-x-2 py-2 px-3 bg-muted/50 rounded-md">
@@ -483,20 +489,26 @@ export function DoorOptionsPanel({
               </Label>
             </div>
             {/* Preview of selected handle */}
-            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+            <div
+              className={`flex items-center gap-3 ${compact ? "p-2" : "p-3"} border rounded-lg bg-muted/30`}
+            >
               {currentHandleId === "none" ? (
-                <div className="w-16 h-16 rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs">
+                <div
+                  className={`${compact ? "w-12 h-12" : "w-16 h-16"} rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs`}
+                >
                   /
                 </div>
               ) : selectedFinishData?.image ? (
                 <div
-                  className="w-16 h-16 rounded-md bg-cover bg-center bg-muted border"
+                  className={`${compact ? "w-12 h-12" : "w-16 h-16"} rounded-md bg-cover bg-center bg-muted border`}
                   style={{
                     backgroundImage: `url(${selectedFinishData.image})`,
                   }}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs">
+                <div
+                  className={`${compact ? "w-12 h-12" : "w-16 h-16"} rounded-md bg-muted border flex items-center justify-center text-muted-foreground text-xs`}
+                >
                   Ručka
                 </div>
               )}

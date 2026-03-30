@@ -55,6 +55,75 @@ export function MobileBottomTabs({
   const selectedBackMaterialId = useShelfStore(
     (s: ShelfState) => s.selectedBackMaterialId,
   );
+  const setSelectedMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedMaterialId,
+  );
+  const setSelectedFrontMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedFrontMaterialId,
+  );
+  const setSelectedBackMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedBackMaterialId,
+  );
+
+  // Auto-select first material for each category type if current selection is invalid
+  // (Same logic as ConfiguratorControls - ensures materials are set even without opening drawer)
+  React.useEffect(() => {
+    const korpusMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) =>
+          !c.toLowerCase().includes("leđa") &&
+          !c.toLowerCase().includes("ledja") &&
+          !c.toLowerCase().includes("lica") &&
+          !c.toLowerCase().includes("vrata"),
+      ),
+    );
+    const frontMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) =>
+          c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
+      ),
+    );
+    const backMaterials = materials.filter((m) =>
+      m.categories.some(
+        (c) =>
+          c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
+      ),
+    );
+
+    if (
+      !selectedMaterialId ||
+      !korpusMaterials.some((m) => m.id === selectedMaterialId)
+    ) {
+      if (korpusMaterials.length > 0) {
+        setSelectedMaterialId(korpusMaterials[0].id);
+      }
+    }
+    if (
+      !selectedFrontMaterialId ||
+      !frontMaterials.some((m) => m.id === selectedFrontMaterialId)
+    ) {
+      if (frontMaterials.length > 0) {
+        setSelectedFrontMaterialId(frontMaterials[0].id);
+      }
+    }
+    if (
+      !selectedBackMaterialId ||
+      !backMaterials.some((m) => m.id === selectedBackMaterialId)
+    ) {
+      if (backMaterials.length > 0) {
+        setSelectedBackMaterialId(backMaterials[0].id);
+      }
+    }
+  }, [
+    materials,
+    selectedMaterialId,
+    selectedFrontMaterialId,
+    selectedBackMaterialId,
+    setSelectedMaterialId,
+    setSelectedFrontMaterialId,
+    setSelectedBackMaterialId,
+  ]);
+
   const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
   const compartmentExtras = useShelfStore(
     (s: ShelfState) => s.compartmentExtras,
@@ -276,7 +345,7 @@ export function MobileBottomTabs({
           )}
           {activeTab === "item-4" && <StepBase compact />}
           {activeTab === "item-5" && <StepDoors compact />}
-          {activeTab === "item-6" && <StepAccessories />}
+          {activeTab === "item-6" && <StepAccessories compact />}
         </div>
       )}
 

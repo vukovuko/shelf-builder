@@ -383,7 +383,7 @@ export function CheckoutDialog({
       const finalPrice =
         typeof data.finalTotal === "number"
           ? data.finalTotal
-          : data.adjustedTotal ?? baseTotal;
+          : (data.adjustedTotal ?? baseTotal);
 
       posthog.capture("order_completed", {
         order_number: data.orderNumber,

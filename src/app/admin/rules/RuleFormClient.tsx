@@ -835,11 +835,18 @@ function ActionRow({
               </div>
               <p className="mt-1.5">
                 Možeš koristiti skraćene wardrobe promenljive kao
-                <code className="mx-1 px-1 py-0.5 bg-muted rounded">doorCount</code>
+                <code className="mx-1 px-1 py-0.5 bg-muted rounded">
+                  doorCount
+                </code>
                 ili pune putanje kao
-                <code className="mx-1 px-1 py-0.5 bg-muted rounded">customer.orderCount</code>
+                <code className="mx-1 px-1 py-0.5 bg-muted rounded">
+                  customer.orderCount
+                </code>
                 i
-                <code className="mx-1 px-1 py-0.5 bg-muted rounded">order.total</code>.
+                <code className="mx-1 px-1 py-0.5 bg-muted rounded">
+                  order.total
+                </code>
+                .
               </p>
               <p className="mt-1.5">
                 Primer:{" "}

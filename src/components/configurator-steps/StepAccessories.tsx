@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
 
-export function StepAccessories() {
+export function StepAccessories({ compact }: { compact?: boolean } = {}) {
   const accessories = useShelfStore((s: ShelfState) => s.accessories);
   const selectedAccessories = useShelfStore(
     (s: ShelfState) => s.selectedAccessories,
@@ -114,7 +114,7 @@ export function StepAccessories() {
 
   if (visibleAccessories.length === 0) {
     return (
-      <div className="py-8 text-center">
+      <div className={compact ? "py-4 text-center" : "py-8 text-center"}>
         <p className="text-sm text-muted-foreground">
           Nema potrebnih dodataka za trenutnu konfiguraciju
         </p>
@@ -123,12 +123,15 @@ export function StepAccessories() {
   }
 
   return (
-    <div className="space-y-5 pt-3">
+    <div className={compact ? "space-y-3 pt-2" : "space-y-5 pt-3"}>
       {visibleAccessories.map((accessory) => {
         const selectedVariantId = selectedAccessories[accessory.id] ?? null;
 
         return (
-          <div key={accessory.id} className="space-y-2.5">
+          <div
+            key={accessory.id}
+            className={compact ? "space-y-1.5" : "space-y-2.5"}
+          >
             {/* Accessory header */}
             <div>
               <h3 className="text-sm font-semibold">{accessory.name}</h3>
@@ -162,7 +165,7 @@ export function StepAccessories() {
                     onClick={() =>
                       setSelectedAccessory(accessory.id, variant.id)
                     }
-                    className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all ${
+                    className={`flex items-center gap-2 rounded-lg border ${compact ? "p-1.5" : "p-2.5"} text-left transition-all ${
                       isSelected
                         ? "border-primary bg-primary/10 ring-1 ring-primary"
                         : "border-border hover:border-muted-foreground/40 hover:bg-muted/50"

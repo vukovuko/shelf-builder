@@ -246,7 +246,8 @@ export function BlueprintView() {
             const yOffset = scaledHeight - scaledColH;
             const colTopY = frontViewY + yOffset;
             const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-            const moduleBoundaryCm = moduleBoundary !== null ? moduleBoundary * 100 : null;
+            const moduleBoundaryCm =
+              moduleBoundary !== null ? moduleBoundary * 100 : null;
             const sideSpans = buildVerticalPanelSpans({
               totalHeight: colH,
               splitAt:
@@ -390,8 +391,10 @@ export function BlueprintView() {
             const seamX = frontViewX + col.end * scale;
             const leftBoundary = columnModuleBoundaries[i] ?? null;
             const rightBoundary = columnModuleBoundaries[i + 1] ?? null;
-            const leftBoundaryCm = leftBoundary !== null ? leftBoundary * 100 : null;
-            const rightBoundaryCm = rightBoundary !== null ? rightBoundary * 100 : null;
+            const leftBoundaryCm =
+              leftBoundary !== null ? leftBoundary * 100 : null;
+            const rightBoundaryCm =
+              rightBoundary !== null ? rightBoundary * 100 : null;
             const leftSpans = buildVerticalPanelSpans({
               totalHeight: leftColH,
               splitAt:
