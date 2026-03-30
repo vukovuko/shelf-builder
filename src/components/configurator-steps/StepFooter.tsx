@@ -3,6 +3,7 @@
 interface StepFooterProps {
   totalArea: number;
   totalCost: number;
+  isCalculating?: boolean;
   onOrderClick: () => void;
   fmt2: (n: number) => string;
 }
@@ -10,6 +11,7 @@ interface StepFooterProps {
 export function StepFooter({
   totalArea,
   totalCost,
+  isCalculating = false,
   onOrderClick,
   fmt2,
 }: StepFooterProps) {
@@ -29,7 +31,12 @@ export function StepFooter({
         className="w-full flex items-center justify-between px-3 py-2.5 bg-accent text-accent-foreground rounded-lg hover:bg-accent/80 transition-colors cursor-pointer"
       >
         <span className="text-base font-bold uppercase">Poruči</span>
-        <span className="text-xl font-bold">{fmt2(totalCost)} RSD</span>
+        <span className="flex items-center gap-2">
+          {isCalculating && (
+            <span className="text-xs font-medium opacity-80">Računam...</span>
+          )}
+          <span className="text-xl font-bold">{fmt2(totalCost)} RSD</span>
+        </span>
       </button>
     </div>
   );

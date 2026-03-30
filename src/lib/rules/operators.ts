@@ -66,6 +66,18 @@ export function evaluateOperator(
  * Handles strings case-insensitively
  */
 function equals(a: unknown, b: unknown): boolean {
+  const normalizedBooleanA = toBoolean(a);
+  const normalizedBooleanB = toBoolean(b);
+  if (normalizedBooleanA !== null && normalizedBooleanB !== null) {
+    return normalizedBooleanA === normalizedBooleanB;
+  }
+
+  const normalizedNumberA = toNumber(a);
+  const normalizedNumberB = toNumber(b);
+  if (normalizedNumberA !== null && normalizedNumberB !== null) {
+    return normalizedNumberA === normalizedNumberB;
+  }
+
   if (typeof a === "string" && typeof b === "string") {
     return a.toLowerCase() === b.toLowerCase();
   }
@@ -186,5 +198,23 @@ function toNumber(value: unknown): number | null {
     const parsed = parseFloat(value);
     if (!isNaN(parsed)) return parsed;
   }
+  return null;
+}
+
+function toBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") {
+      return true;
+    }
+    if (normalized === "false") {
+      return false;
+    }
+  }
+
   return null;
 }

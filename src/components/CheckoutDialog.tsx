@@ -111,10 +111,12 @@ export function CheckoutDialog({
     adjustedTotal: number | null;
     visibleAdjustments: { description: string; amount: number }[] | null;
   } | null>(null);
+  const [rulePreviewLoading, setRulePreviewLoading] = useState(false);
 
   // Turnstile CAPTCHA state
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const previewAbortRef = useRef<AbortController | null>(null);
 
   // Track if logged-in user is already subscribed (hide checkbox)
   const [alreadySubscribed, setAlreadySubscribed] = useState(false);
@@ -133,24 +135,6 @@ export function CheckoutDialog({
         value: orderData.totalPrice,
         currency: "RSD",
       });
-      // Fetch rule preview
-      fetch("/api/rules/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wardrobeSnapshot: orderData.wardrobeSnapshot,
-          materialId: orderData.materialId,
-          frontMaterialId: orderData.frontMaterialId,
-          backMaterialId: orderData.backMaterialId,
-          totalPrice: Math.round(orderData.totalPrice),
-          totalArea: orderData.totalArea,
-        }),
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) setRulePreview(data);
-        })
-        .catch(() => {});
       fetch("/api/user/profile")
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -178,6 +162,67 @@ export function CheckoutDialog({
         });
     }
   }, [open, orderSuccess]);
+
+  // Refresh rule preview as soon as checkout-relevant data changes.
+  useEffect(() => {
+    if (!open || orderSuccess) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRulePreviewLoading(true);
+      previewAbortRef.current?.abort();
+      const controller = new AbortController();
+      previewAbortRef.current = controller;
+
+      fetch("/api/rules/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          wardrobeSnapshot: orderData.wardrobeSnapshot,
+          materialId: orderData.materialId,
+          frontMaterialId: orderData.frontMaterialId,
+          backMaterialId: orderData.backMaterialId,
+          totalPrice: Math.round(orderData.totalPrice),
+          totalArea: orderData.totalArea,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          shippingCity: formData.shippingCity,
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) {
+            setRulePreview(data);
+          }
+          setRulePreviewLoading(false);
+        })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+          setRulePreviewLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      previewAbortRef.current?.abort();
+    };
+  }, [
+    open,
+    orderSuccess,
+    orderData.wardrobeSnapshot,
+    orderData.materialId,
+    orderData.frontMaterialId,
+    orderData.backMaterialId,
+    orderData.totalPrice,
+    orderData.totalArea,
+    formData.customerEmail,
+    formData.customerPhone,
+    formData.shippingCity,
+  ]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -393,7 +438,9 @@ export function CheckoutDialog({
     setAlreadySubscribed(false);
     setOrderSuccess(null);
     setRulePreview(null);
+    setRulePreviewLoading(false);
     setTurnstileToken(null);
+    previewAbortRef.current?.abort();
     turnstileRef.current?.reset();
     onOpenChange(false);
   };
@@ -439,6 +486,7 @@ export function CheckoutDialog({
                 orderData={orderData}
                 visibleAdjustments={rulePreview?.visibleAdjustments}
                 adjustedTotal={rulePreview?.adjustedTotal}
+                isCalculating={rulePreviewLoading}
                 formatPrice={formatPrice}
               />
 

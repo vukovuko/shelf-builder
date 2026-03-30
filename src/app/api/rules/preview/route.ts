@@ -7,6 +7,8 @@ import {
   rules,
   handles,
   handleFinishes,
+  accessories,
+  accessoryVariants,
 } from "@/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -30,9 +32,6 @@ import {
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const body = await req.json();
     const {
@@ -42,14 +41,17 @@ export async function POST(req: Request) {
       backMaterialId,
       totalPrice,
       totalArea,
+      customerEmail,
+      customerPhone,
+      shippingCity,
     } = body;
 
     if (!snapshot || !materialId || !totalPrice) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    // Look up material names and pricing data needed for derived board counts
-    const allMaterials = await db
+    // Look up material names and pricing data needed for derived pricing and board counts
+    const pricingMaterials = await db
       .select({
         id: materials.id,
         name: materials.name,
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
         categories: materials.categories,
       })
       .from(materials);
-    const matMap = new Map(allMaterials.map((m) => [Number(m.id), m.name]));
+    const matMap = new Map(pricingMaterials.map((m) => [Number(m.id), m.name]));
 
     // Fetch handles for door metrics
     const pricingHandles = await db
@@ -75,11 +77,35 @@ export async function POST(req: Request) {
         handleId: handleFinishes.handleId,
         legacyId: handleFinishes.legacyId,
         name: handleFinishes.name,
+        price: handleFinishes.price,
       })
       .from(handleFinishes);
+    const pricingAccessories = await db
+      .select({
+        id: accessories.id,
+        name: accessories.name,
+        pricingRule: accessories.pricingRule,
+        qtyPerUnit: accessories.qtyPerUnit,
+      })
+      .from(accessories)
+      .where(eq(accessories.published, true));
+    const allAccessoryVariants = await db
+      .select({
+        id: accessoryVariants.id,
+        accessoryId: accessoryVariants.accessoryId,
+        name: accessoryVariants.name,
+        price: accessoryVariants.price,
+      })
+      .from(accessoryVariants);
     const handlesWithFinishes = pricingHandles.map((h) => ({
       ...h,
       finishes: allFinishes.filter((f) => f.handleId === h.id),
+    }));
+    const accessoriesWithVariants = pricingAccessories.map((accessory) => ({
+      ...accessory,
+      variants: allAccessoryVariants.filter(
+        (variant) => variant.accessoryId === accessory.id,
+      ),
     }));
 
     // Count wardrobe features from snapshot
@@ -119,19 +145,57 @@ export async function POST(req: Request) {
       (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
     );
 
-    // Get user data for customer context
-    const userId = session.user.id;
-    const [orderCountResult] = await db
-      .select({ count: count() })
-      .from(orders)
-      .where(eq(orders.userId, userId));
-    const previousOrderCount = Number(orderCountResult?.count ?? 0);
+    // Resolve customer context the same way checkout does, but read-only.
+    let previewUserId: string | null = session?.user?.id ?? null;
 
-    const [userData] = await db
-      .select({ tags: user.tags })
-      .from(user)
-      .where(eq(user.id, userId));
-    const userTags: string[] = userData?.tags ? JSON.parse(userData.tags) : [];
+    if (!previewUserId) {
+      const hasRealEmail =
+        typeof customerEmail === "string" && customerEmail.length > 0;
+      const hasPhone =
+        typeof customerPhone === "string" && customerPhone.length > 0;
+
+      if (hasRealEmail) {
+        const [existing] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.email, customerEmail));
+        previewUserId = existing?.id ?? null;
+      } else if (hasPhone) {
+        const [existingByPhone] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.phone, customerPhone));
+
+        if (existingByPhone) {
+          previewUserId = existingByPhone.id;
+        } else {
+          const sanitizedPhone = customerPhone.replace(/[^0-9]/g, "");
+          const internalEmail = `phone.${sanitizedPhone}@internal.local`;
+          const [existingByEmail] = await db
+            .select({ id: user.id })
+            .from(user)
+            .where(eq(user.email, internalEmail));
+          previewUserId = existingByEmail?.id ?? null;
+        }
+      }
+    }
+
+    let previousOrderCount = 0;
+    let userTags: string[] = [];
+
+    if (previewUserId) {
+      const [orderCountResult] = await db
+        .select({ count: count() })
+        .from(orders)
+        .where(eq(orders.userId, previewUserId));
+      previousOrderCount = Number(orderCountResult?.count ?? 0);
+
+      const [userData] = await db
+        .select({ tags: user.tags })
+        .from(user)
+        .where(eq(user.id, previewUserId));
+      userTags = userData?.tags ? JSON.parse(userData.tags) : [];
+    }
 
     // Compute door metrics (heights, type counts, handle info)
     const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
@@ -139,16 +203,23 @@ export async function POST(req: Request) {
       doorMetrics.singleDoorCount +
       doorMetrics.drawerStyleDoorCount +
       doorMetrics.doubleDoorCount * 2;
+    const resolvedMaterialId = Number(snapshot?.selectedMaterialId ?? materialId);
+    const resolvedFrontMaterialId = Number(
+      snapshot?.selectedFrontMaterialId ?? frontMaterialId,
+    );
+    const resolvedBackMaterialIdRaw =
+      snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
+    const resolvedBackMaterialId =
+      resolvedBackMaterialIdRaw != null
+        ? Number(resolvedBackMaterialIdRaw)
+        : null;
     const pricingSnapshot = {
       width: Number(snapshot?.width ?? 0),
       height: Number(snapshot?.height ?? 0),
       depth: Number(snapshot?.depth ?? 0),
-      selectedMaterialId: Number(snapshot?.selectedMaterialId ?? materialId),
-      selectedFrontMaterialId: Number(
-        snapshot?.selectedFrontMaterialId ?? frontMaterialId,
-      ),
-      selectedBackMaterialId:
-        snapshot?.selectedBackMaterialId ?? backMaterialId ?? null,
+      selectedMaterialId: resolvedMaterialId,
+      selectedFrontMaterialId: resolvedFrontMaterialId,
+      selectedBackMaterialId: resolvedBackMaterialId,
       elementConfigs: snapshot?.elementConfigs ?? {},
       compartmentExtras: snapshot?.compartmentExtras ?? {},
       doorSelections: snapshot?.doorSelections ?? {},
@@ -166,24 +237,24 @@ export async function POST(req: Request) {
       selectedAccessories: snapshot?.selectedAccessories ?? {},
       slidingDoors: Boolean(snapshot?.slidingDoors),
     };
-    const derivedCutList = calculateCutList(
+    const pricing = calculateCutList(
       pricingSnapshot,
-      allMaterials,
+      pricingMaterials,
       handlesWithFinishes,
+      accessoriesWithVariants,
     );
-    const boardCount = countBoardsExcludingShelvesAndBacks(
-      derivedCutList.items,
-    );
+    const previewBaseTotal = Math.round(pricing.totalCost);
+    const previewAreaM2 = pricing.totalArea;
+    const boardCount = countBoardsExcludingShelvesAndBacks(pricing.items);
     const compartmentCount = computeCompartmentCount(snapshot);
 
     // Build rule context
-    const areaM2 = (totalArea ?? 0) / 10000;
     const ruleContext: RuleContext = {
       wardrobe: {
         width: Number(snapshot?.width ?? 0),
         height: Number(snapshot?.height ?? 0),
         depth: Number(snapshot?.depth ?? 0),
-        area: areaM2,
+        area: previewAreaM2,
         columnCount,
         shelfCount,
         compartmentCount,
@@ -204,28 +275,34 @@ export async function POST(req: Request) {
         baseHeight: snapshot?.hasBase ? Number(snapshot?.baseHeight ?? 0) : 0,
         ...doorMetrics,
         material: {
-          id: Number(materialId),
-          name: matMap.get(Number(materialId)) ?? "",
+          id: resolvedMaterialId,
+          name: matMap.get(resolvedMaterialId) ?? "",
         },
         frontMaterial: {
-          id: Number(frontMaterialId),
-          name: matMap.get(Number(frontMaterialId)) ?? "",
+          id: resolvedFrontMaterialId,
+          name: matMap.get(resolvedFrontMaterialId) ?? "",
         },
-        backMaterial: backMaterialId
+        backMaterial: resolvedBackMaterialId
           ? {
-              id: Number(backMaterialId),
-              name: matMap.get(Number(backMaterialId)) ?? "",
+              id: resolvedBackMaterialId,
+              name: matMap.get(resolvedBackMaterialId) ?? "",
             }
           : undefined,
       },
       customer: {
         tags: userTags,
-        email: session.user.email ?? undefined,
+        email:
+          (typeof customerEmail === "string" && customerEmail) ||
+          session?.user?.email ||
+          undefined,
         orderCount: previousOrderCount,
       },
       order: {
-        total: Math.round(totalPrice),
-        city: undefined, // Not known yet at preview time
+        total: previewBaseTotal,
+        city:
+          typeof shippingCity === "string" && shippingCity.length > 0
+            ? shippingCity
+            : undefined,
       },
     };
 
@@ -239,11 +316,11 @@ export async function POST(req: Request) {
     const adjustments = applyRules(
       enabledRules as Rule[],
       ruleContext,
-      Math.round(totalPrice),
+      previewBaseTotal,
     );
     const visibleAdjustments = getVisibleAdjustments(adjustments);
     const adjustedTotal = calculateFinalPrice(
-      Math.round(totalPrice),
+      previewBaseTotal,
       adjustments,
     );
 

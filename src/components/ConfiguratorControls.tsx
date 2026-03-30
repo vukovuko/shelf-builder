@@ -62,6 +62,7 @@ import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import { useRulePreview } from "@/hooks/use-rule-preview";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
 import { exportCutListPDF } from "@/lib/pdf/exportCutListPDF";
 import { AuthForms } from "./AuthForms";
@@ -748,6 +749,43 @@ export function ConfiguratorControls({
     [],
   );
 
+  const wardrobeSnapshot = React.useMemo(() => getWardrobeSnapshot(), [
+    width,
+    height,
+    depth,
+    selectedMaterialId,
+    selectedFrontMaterialId,
+    selectedBackMaterialId,
+    elementConfigs,
+    compartmentExtras,
+    doorSelections,
+    hasBase,
+    baseHeight,
+    verticalBoundaries,
+    columnHorizontalBoundaries,
+    columnModuleBoundaries,
+    columnTopModuleShelves,
+    slidingDoors,
+    doorGroups,
+    globalHandleId,
+    globalHandleFinish,
+    doorSettingsMode,
+    selectedAccessories,
+  ]);
+
+  const { preview: pricePreview, loading: pricePreviewLoading } = useRulePreview(
+    {
+      wardrobeSnapshot,
+      materialId: selectedMaterialId,
+      frontMaterialId: selectedFrontMaterialId!,
+      backMaterialId: selectedBackMaterialId ?? null,
+      totalPrice: cutList.totalCost,
+      totalArea: Math.round(cutList.totalArea * 10000),
+    },
+    { enabled: Boolean(selectedMaterialId && selectedFrontMaterialId) },
+  );
+  const displayTotalCost = pricePreview?.adjustedTotal ?? cutList.totalCost;
+
   // Export per-element specification to PDF
   const handleExportElementSpecs = React.useCallback(() => {
     exportElementSpecs(cutList, fmt2, materials, storeHandles);
@@ -963,7 +1001,8 @@ export function ConfiguratorControls({
 
       <StepFooter
         totalArea={cutList.totalArea}
-        totalCost={cutList.totalCost}
+        totalCost={displayTotalCost}
+        isCalculating={pricePreviewLoading}
         onOrderClick={handleOrderClick}
         fmt2={fmt2}
       />

@@ -1,5 +1,7 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+
 interface OrderSummaryTableProps {
   orderData: {
     materialName: string;
@@ -26,6 +28,7 @@ interface OrderSummaryTableProps {
   };
   visibleAdjustments?: { description: string; amount: number }[] | null;
   adjustedTotal?: number | null;
+  isCalculating?: boolean;
   formatPrice: (n: number) => string;
 }
 
@@ -33,6 +36,7 @@ export function OrderSummaryTable({
   orderData,
   visibleAdjustments,
   adjustedTotal,
+  isCalculating = false,
   formatPrice,
 }: OrderSummaryTableProps) {
   const areaM2 = orderData.totalArea / 10000;
@@ -45,7 +49,15 @@ export function OrderSummaryTable({
   return (
     <div className="rounded-lg border bg-muted/30 p-4 space-y-4 min-w-0">
       <div className="flex items-center justify-between">
-        <h3 className="font-medium text-sm">Rezime porudžbine</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="font-medium text-sm">Rezime porudžbine</h3>
+          {isCalculating && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-1 text-[11px] font-medium text-sky-700">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Računam cenu...
+            </span>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
           {orderData.dimensions.width} × {orderData.dimensions.height} ×{" "}
           {orderData.dimensions.depth} cm

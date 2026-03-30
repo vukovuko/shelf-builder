@@ -7,6 +7,7 @@ import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { calculateCutList } from "@/lib/calcCutList";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { useRulePreview } from "@/hooks/use-rule-preview";
 import { CheckoutDialog } from "./CheckoutDialog";
 import {
   StepDimensions,
@@ -211,6 +212,43 @@ export function MobileBottomTabs({
     [],
   );
 
+  const wardrobeSnapshot = React.useMemo(() => getWardrobeSnapshot(), [
+    width,
+    height,
+    depth,
+    selectedMaterialId,
+    selectedFrontMaterialId,
+    selectedBackMaterialId,
+    elementConfigs,
+    compartmentExtras,
+    doorSelections,
+    hasBase,
+    baseHeight,
+    verticalBoundaries,
+    columnHorizontalBoundaries,
+    columnModuleBoundaries,
+    columnTopModuleShelves,
+    slidingDoors,
+    doorGroups,
+    globalHandleId,
+    globalHandleFinish,
+    doorSettingsMode,
+    selectedAccessories,
+  ]);
+
+  const { preview: pricePreview, loading: pricePreviewLoading } = useRulePreview(
+    {
+      wardrobeSnapshot,
+      materialId: selectedMaterialId,
+      frontMaterialId: selectedFrontMaterialId!,
+      backMaterialId: selectedBackMaterialId ?? null,
+      totalPrice: cutList.totalCost,
+      totalArea: Math.round(cutList.totalArea * 10000),
+    },
+    { enabled: Boolean(selectedMaterialId && selectedFrontMaterialId) },
+  );
+  const displayTotalCost = pricePreview?.adjustedTotal ?? cutList.totalCost;
+
   const handleTabClick = (key: string) => {
     if (key === "menu") {
       // Close any open tab panel, open the full drawer
@@ -268,10 +306,10 @@ export function MobileBottomTabs({
       <div className="bg-sidebar border-t border-sidebar-border grid grid-cols-2 safe-area-bottom">
         <div className="flex flex-col justify-center px-3 py-1.5">
           <span className="text-sm font-bold">
-            {fmt2(cutList.totalCost)} RSD
+            {fmt2(displayTotalCost)} RSD
           </span>
           <span className="text-[10px] text-muted-foreground">
-            {fmt2(cutList.totalArea)} m²
+            {pricePreviewLoading ? "Računam cenu..." : `${fmt2(cutList.totalArea)} m²`}
           </span>
         </div>
         <button
