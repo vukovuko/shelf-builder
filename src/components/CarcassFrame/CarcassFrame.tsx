@@ -1181,10 +1181,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       const compLeftX = colCenterX - colInnerW / 2;
 
                       // Vertical dividers (verticalZ to prevent edge bleeding)
-                      // Bottom compartment dividers extend to floor through base
+                      // Inner dividers should follow the compartment bottom above the base.
                       const dividerPanels = [];
-                      const dividerBottomY =
-                        compIdx === 0 && baseH > 0 ? 0 : compBottomY;
+                      const dividerBottomY = compBottomY;
                       const dividerH = compTopY - dividerBottomY;
                       for (let divIdx = 1; divIdx < innerCols; divIdx++) {
                         const divX =
