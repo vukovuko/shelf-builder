@@ -1,6 +1,7 @@
 import { asc, count, ilike } from "drizzle-orm";
 import { db } from "@/db/db";
 import { accessoryRules } from "@/db/schema";
+import { serializeRule } from "@/lib/accessory-rules/server";
 import { RulesClient } from "./RulesClient";
 
 const PAGE_SIZE = 20;
@@ -41,11 +42,7 @@ export default async function AccessoryRulesPage({
   ]);
 
   const totalCount = Number(totalResult[0]?.count ?? 0);
-  const serializedRules = allRules.map((rule) => ({
-    ...rule,
-    createdAt: rule.createdAt.toISOString(),
-    updatedAt: rule.updatedAt.toISOString(),
-  }));
+  const serializedRules = allRules.map(serializeRule);
 
   return (
     <RulesClient

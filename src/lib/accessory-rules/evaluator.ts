@@ -67,10 +67,11 @@ export function evaluateNumericFormula(
     return null;
   }
 
-  const tokens = tokenize(trimmed);
-  if (!tokens) {
+  const maybeTokens = tokenize(trimmed);
+  if (!maybeTokens) {
     return null;
   }
+  const tokens = maybeTokens;
 
   let index = 0;
 

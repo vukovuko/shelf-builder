@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import { orders, materials, wardrobes, accessoryRules } from "@/db/schema";
+import { serializeRule } from "@/lib/accessory-rules/server";
 import { OrderDetailClient } from "./OrderDetailClient";
 
 // Disable caching to always show fresh wardrobe data
@@ -121,11 +122,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
       }}
       wardrobeData={wardrobeData}
       materials={serializedMaterials}
-      accessoryRules={enabledAccessoryRules.map((rule) => ({
-        ...rule,
-        createdAt: rule.createdAt.toISOString(),
-        updatedAt: rule.updatedAt.toISOString(),
-      }))}
+      accessoryRules={enabledAccessoryRules.map(serializeRule)}
     />
   );
 }

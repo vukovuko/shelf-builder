@@ -117,7 +117,9 @@ export const columns: ColumnDef<AccessoryRuleRow>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+    cell: ({ row }) => (
+      <div className="font-medium">{row.getValue("name")}</div>
+    ),
   },
   {
     accessorKey: "target",
@@ -138,13 +140,17 @@ export const columns: ColumnDef<AccessoryRuleRow>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="text-center">{row.getValue("priority")}</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue("priority")}</div>
+    ),
   },
   {
     accessorKey: "conditions",
     header: "Uslovi",
     cell: ({ row }) => {
-      const conditions = row.getValue("conditions") as AccessoryRuleRow["conditions"];
+      const conditions = row.getValue(
+        "conditions",
+      ) as AccessoryRuleRow["conditions"];
       return (
         <div className="text-sm text-muted-foreground">
           {conditions.length} uslov{conditions.length === 1 ? "" : "a"}

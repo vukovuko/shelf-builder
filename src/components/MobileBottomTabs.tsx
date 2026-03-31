@@ -286,41 +286,45 @@ export function MobileBottomTabs({
     [],
   );
 
-  const wardrobeSnapshot = React.useMemo(() => getWardrobeSnapshot(), [
-    width,
-    height,
-    depth,
-    selectedMaterialId,
-    selectedFrontMaterialId,
-    selectedBackMaterialId,
-    elementConfigs,
-    compartmentExtras,
-    doorSelections,
-    hasBase,
-    baseHeight,
-    verticalBoundaries,
-    columnHorizontalBoundaries,
-    columnModuleBoundaries,
-    columnTopModuleShelves,
-    slidingDoors,
-    doorGroups,
-    globalHandleId,
-    globalHandleFinish,
-    doorSettingsMode,
-    selectedAccessories,
-  ]);
-
-  const { preview: pricePreview, loading: pricePreviewLoading } = useRulePreview(
-    {
-      wardrobeSnapshot,
-      materialId: selectedMaterialId,
-      frontMaterialId: selectedFrontMaterialId!,
-      backMaterialId: selectedBackMaterialId ?? null,
-      totalPrice: cutList.totalCost,
-      totalArea: Math.round(cutList.totalArea * 10000),
-    },
-    { enabled: Boolean(selectedMaterialId && selectedFrontMaterialId) },
+  const wardrobeSnapshot = React.useMemo(
+    () => getWardrobeSnapshot(),
+    [
+      width,
+      height,
+      depth,
+      selectedMaterialId,
+      selectedFrontMaterialId,
+      selectedBackMaterialId,
+      elementConfigs,
+      compartmentExtras,
+      doorSelections,
+      hasBase,
+      baseHeight,
+      verticalBoundaries,
+      columnHorizontalBoundaries,
+      columnModuleBoundaries,
+      columnTopModuleShelves,
+      slidingDoors,
+      doorGroups,
+      globalHandleId,
+      globalHandleFinish,
+      doorSettingsMode,
+      selectedAccessories,
+    ],
   );
+
+  const { preview: pricePreview, loading: pricePreviewLoading } =
+    useRulePreview(
+      {
+        wardrobeSnapshot,
+        materialId: selectedMaterialId,
+        frontMaterialId: selectedFrontMaterialId!,
+        backMaterialId: selectedBackMaterialId ?? null,
+        totalPrice: cutList.totalCost,
+        totalArea: Math.round(cutList.totalArea * 10000),
+      },
+      { enabled: Boolean(selectedMaterialId && selectedFrontMaterialId) },
+    );
   const displayTotalCost = pricePreview?.adjustedTotal ?? cutList.totalCost;
 
   const handleTabClick = (key: string) => {
@@ -383,7 +387,9 @@ export function MobileBottomTabs({
             {fmt2(displayTotalCost)} RSD
           </span>
           <span className="text-[10px] text-muted-foreground">
-            {pricePreviewLoading ? "Računam cenu..." : `${fmt2(cutList.totalArea)} m²`}
+            {pricePreviewLoading
+              ? "Računam cenu..."
+              : `${fmt2(cutList.totalArea)} m²`}
           </span>
         </div>
         <button

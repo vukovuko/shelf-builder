@@ -235,7 +235,6 @@ export function WardrobePreviewClient({
     const newLocked = !isLocked;
     try {
       const res = await fetch(`/api/admin/wardrobes/${wardrobe.id}`, {
-    accessoryRules,
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isLocked: newLocked }),

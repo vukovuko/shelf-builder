@@ -922,9 +922,8 @@ export function calculateCutList(
           Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
         );
 
-        const usedCount = shelfCount > 0
-          ? Math.min(drawerCount, shelfCount + 1)
-          : drawerCount;
+        const usedCount =
+          shelfCount > 0 ? Math.min(drawerCount, shelfCount + 1) : drawerCount;
 
         let actualDrawerH = 0;
         if (usedCount > 0) {
@@ -974,9 +973,10 @@ export function calculateCutList(
         // Auto-shelf above drawers if space remains
         const maxDrawers = Math.max(0, Math.floor(compH / minDrawerFrontSize));
         if (usedCount > 0 && usedCount < maxDrawers) {
-          const drawersTopY = shelfCount > 0
-            ? (usedCount * compH) / (shelfCount + 1)
-            : (usedCount * compH) / usedCount;
+          const drawersTopY =
+            shelfCount > 0
+              ? (usedCount * compH) / (shelfCount + 1)
+              : (usedCount * compH) / usedCount;
           const remaining = compH - drawersTopY;
           if (remaining >= t) {
             const shelfCode =
@@ -1745,9 +1745,12 @@ export function calculateCutList(
         }
 
         if (
-          !matchesAccessoryRuleConditions(rule.conditions as AccessoryRule["conditions"], {
-            wardrobe: wardrobeContext,
-          })
+          !matchesAccessoryRuleConditions(
+            rule.conditions as AccessoryRule["conditions"],
+            {
+              wardrobe: wardrobeContext,
+            },
+          )
         ) {
           return;
         }
@@ -1795,8 +1798,10 @@ export function calculateCutList(
             formulaContext,
           );
           const thicknessMm =
-            evaluateNumericFormula(rule.config.thicknessFormula, formulaContext) ??
-            defaults.thicknessMm;
+            evaluateNumericFormula(
+              rule.config.thicknessFormula,
+              formulaContext,
+            ) ?? defaults.thicknessMm;
 
           if (
             widthCm === null ||

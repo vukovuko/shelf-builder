@@ -1,8 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
-import { wardrobes, user, materials, orders, accessoryRules } from "@/db/schema";
+import {
+  wardrobes,
+  user,
+  materials,
+  orders,
+  accessoryRules,
+} from "@/db/schema";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
+import { serializeRule } from "@/lib/accessory-rules/server";
 import { WardrobePreviewClient } from "./WardrobePreviewClient";
 
 interface PageProps {
@@ -104,11 +111,7 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
         isLocked: wardrobe.isLocked,
       }}
       materials={serializedMaterials}
-      accessoryRules={enabledAccessoryRules.map((rule) => ({
-        ...rule,
-        createdAt: rule.createdAt.toISOString(),
-        updatedAt: rule.updatedAt.toISOString(),
-      }))}
+      accessoryRules={enabledAccessoryRules.map(serializeRule)}
       linkedOrders={linkedOrders}
     />
   );

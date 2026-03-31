@@ -207,7 +207,9 @@ export async function POST(req: Request) {
       doorMetrics.singleDoorCount +
       doorMetrics.drawerStyleDoorCount +
       doorMetrics.doubleDoorCount * 2;
-    const resolvedMaterialId = Number(snapshot?.selectedMaterialId ?? materialId);
+    const resolvedMaterialId = Number(
+      snapshot?.selectedMaterialId ?? materialId,
+    );
     const resolvedFrontMaterialId = Number(
       snapshot?.selectedFrontMaterialId ?? frontMaterialId,
     );
@@ -324,10 +326,7 @@ export async function POST(req: Request) {
       previewBaseTotal,
     );
     const visibleAdjustments = getVisibleAdjustments(adjustments);
-    const adjustedTotal = calculateFinalPrice(
-      previewBaseTotal,
-      adjustments,
-    );
+    const adjustedTotal = calculateFinalPrice(previewBaseTotal, adjustments);
 
     return NextResponse.json({
       adjustedTotal: adjustments.length > 0 ? adjustedTotal : null,

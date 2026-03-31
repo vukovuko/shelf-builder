@@ -293,9 +293,8 @@ export function DimensionLines3D({
 
         const centerX = (column.start + column.end) / 2;
         const edgeInset = Math.min(Math.max(column.width * 0.22, 0.06), 0.12);
-        const measureX = centerX <= 0
-          ? column.start + edgeInset
-          : column.end - edgeInset;
+        const measureX =
+          centerX <= 0 ? column.start + edgeInset : column.end - edgeInset;
         const bottomModuleHeight = boundary;
         const topModuleHeight = colHeight - boundary;
 

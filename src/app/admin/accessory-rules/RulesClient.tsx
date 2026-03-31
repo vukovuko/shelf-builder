@@ -117,7 +117,10 @@ export function RulesClient({
     }
   }
 
-  async function handleBulkEnabled(selected: AccessoryRuleRow[], enabled: boolean) {
+  async function handleBulkEnabled(
+    selected: AccessoryRuleRow[],
+    enabled: boolean,
+  ) {
     const toUpdate = selected.filter((rule) => rule.enabled !== enabled);
     if (toUpdate.length === 0) {
       toast.info(

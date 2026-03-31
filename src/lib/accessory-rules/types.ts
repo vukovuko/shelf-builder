@@ -16,16 +16,14 @@ export type AccessoryRuleTarget =
   | "shelves"
   | "sliding_doors";
 
-export const ACCESSORY_RULE_TARGET_LABELS: Record<
-  AccessoryRuleTarget,
-  string
-> = {
-  elements: "Svi elementi",
-  doors: "Sva vrata",
-  drawers: "Sve fioke",
-  shelves: "Sve police",
-  sliding_doors: "Sva klizna vrata",
-};
+export const ACCESSORY_RULE_TARGET_LABELS: Record<AccessoryRuleTarget, string> =
+  {
+    elements: "Svi elementi",
+    doors: "Sva vrata",
+    drawers: "Sve fioke",
+    shelves: "Sve police",
+    sliding_doors: "Sva klizna vrata",
+  };
 
 export type AccessoryRuleMaterialType = "korpus" | "front" | "back";
 
@@ -51,7 +49,7 @@ export interface AccessoryRuleConfig {
 export interface AccessoryRule {
   id: string;
   name: string;
-  description?: string | null;
+  description: string | null;
   enabled: boolean;
   priority: number;
   target: AccessoryRuleTarget;

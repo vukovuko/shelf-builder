@@ -1153,11 +1153,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                     {/* Height label - only show if compartment is large enough AND Step 2/5 not active */}
                     {showLabel && (
                       <Html
-                        position={[
-                          colCenterX,
-                          compartmentLabelY,
-                          d / 2 + 0.01,
-                        ]}
+                        position={[colCenterX, compartmentLabelY, d / 2 + 0.01]}
                         center
                         zIndexRange={[1, 10]}
                         style={{ pointerEvents: "none" }}

@@ -54,12 +54,15 @@ function sanitizeConditions(conditions: z.infer<typeof conditionSchema>[]) {
 function sanitizeConfig(
   config: NonNullable<z.infer<typeof updateAccessoryRuleSchema>["config"]>,
 ) {
-  return Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [
-      key,
-      value === null ? undefined : value,
-    ]),
-  );
+  return {
+    itemName: config.itemName,
+    codePrefix: config.codePrefix ?? undefined,
+    materialType: config.materialType,
+    widthFormula: config.widthFormula,
+    heightFormula: config.heightFormula,
+    thicknessFormula: config.thicknessFormula ?? undefined,
+    quantity: config.quantity ?? undefined,
+  };
 }
 
 export async function GET(

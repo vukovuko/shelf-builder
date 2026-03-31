@@ -80,7 +80,9 @@ export function AccessoryRuleFormClient({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [name, setName] = useState(initialRule?.name ?? "");
-  const [description, setDescription] = useState(initialRule?.description ?? "");
+  const [description, setDescription] = useState(
+    initialRule?.description ?? "",
+  );
   const [enabled, setEnabled] = useState(initialRule?.enabled ?? true);
   const [priority, setPriority] = useState(initialRule?.priority ?? 100);
   const [target, setTarget] = useState(initialRule?.target ?? "elements");
@@ -88,7 +90,9 @@ export function AccessoryRuleFormClient({
     initialRule?.conditions ?? [],
   );
   const [itemName, setItemName] = useState(initialRule?.config.itemName ?? "");
-  const [codePrefix, setCodePrefix] = useState(initialRule?.config.codePrefix ?? "");
+  const [codePrefix, setCodePrefix] = useState(
+    initialRule?.config.codePrefix ?? "",
+  );
   const [materialType, setMaterialType] = useState(
     initialRule?.config.materialType ?? "korpus",
   );
@@ -175,7 +179,9 @@ export function AccessoryRuleFormClient({
   }
 
   function removeCondition(id: string) {
-    setConditions((current) => current.filter((condition) => condition.id !== id));
+    setConditions((current) =>
+      current.filter((condition) => condition.id !== id),
+    );
   }
 
   function validateForm() {
@@ -183,8 +189,10 @@ export function AccessoryRuleFormClient({
 
     if (!name.trim()) nextErrors.name = "Naziv je obavezan";
     if (!itemName.trim()) nextErrors.itemName = "Naziv stavke je obavezan";
-    if (!widthFormula.trim()) nextErrors.widthFormula = "Unesite formulu za širinu";
-    if (!heightFormula.trim()) nextErrors.heightFormula = "Unesite formulu za visinu";
+    if (!widthFormula.trim())
+      nextErrors.widthFormula = "Unesite formulu za širinu";
+    if (!heightFormula.trim())
+      nextErrors.heightFormula = "Unesite formulu za visinu";
     if (!quantity.trim()) nextErrors.quantity = "Unesite količinu ili formulu";
 
     setErrors(nextErrors);
@@ -257,9 +265,12 @@ export function AccessoryRuleFormClient({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/accessory-rules/${initialRule.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/accessory-rules/${initialRule.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
         toast.error("Greška pri brisanju pravila");
@@ -317,8 +328,8 @@ export function AccessoryRuleFormClient({
               <AlertDialogHeader>
                 <AlertDialogTitle>Da li ste sigurni?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Obrisaćete pravilo &quot;{initialRule.name}&quot;. Ova akcija se
-                  ne može poništiti.
+                  Obrisaćete pravilo &quot;{initialRule.name}&quot;. Ova akcija
+                  se ne može poništiti.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -403,7 +414,11 @@ export function AccessoryRuleFormClient({
               </div>
 
               <div className="flex items-center gap-2 pt-8">
-                <Switch checked={enabled} onCheckedChange={setEnabled} id="enabled" />
+                <Switch
+                  checked={enabled}
+                  onCheckedChange={setEnabled}
+                  id="enabled"
+                />
                 <Label htmlFor="enabled">Aktivno</Label>
               </div>
             </div>
@@ -413,7 +428,12 @@ export function AccessoryRuleFormClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Uslovi</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addCondition}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addCondition}
+            >
               Dodaj uslov
             </Button>
           </CardHeader>
@@ -521,7 +541,9 @@ export function AccessoryRuleFormClient({
                   placeholder="target.width"
                 />
                 {errors.widthFormula && (
-                  <p className="text-xs text-destructive">{errors.widthFormula}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.widthFormula}
+                  </p>
                 )}
               </div>
 
@@ -537,7 +559,9 @@ export function AccessoryRuleFormClient({
                   placeholder="target.height"
                 />
                 {errors.heightFormula && (
-                  <p className="text-xs text-destructive">{errors.heightFormula}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.heightFormula}
+                  </p>
                 )}
               </div>
             </div>
@@ -599,7 +623,12 @@ interface ConditionRowProps {
   onRemove: () => void;
 }
 
-function ConditionRow({ condition, isLast, onUpdate, onRemove }: ConditionRowProps) {
+function ConditionRow({
+  condition,
+  isLast,
+  onUpdate,
+  onRemove,
+}: ConditionRowProps) {
   const selectedField = ACCESSORY_RULE_FIELDS.find(
     (field) => field.key === condition.field,
   );
@@ -613,7 +642,9 @@ function ConditionRow({ condition, isLast, onUpdate, onRemove }: ConditionRowPro
         <Select
           value={condition.field}
           onValueChange={(value) => {
-            const newField = ACCESSORY_RULE_FIELDS.find((field) => field.key === value);
+            const newField = ACCESSORY_RULE_FIELDS.find(
+              (field) => field.key === value,
+            );
             const newOperators = newField
               ? OPERATORS_BY_TYPE[newField.type] || []
               : [];
@@ -710,7 +741,11 @@ interface ConditionValueInputProps {
   onChange: (value: unknown) => void;
 }
 
-function ConditionValueInput({ field, value, onChange }: ConditionValueInputProps) {
+function ConditionValueInput({
+  field,
+  value,
+  onChange,
+}: ConditionValueInputProps) {
   if (!field) {
     return (
       <Input
@@ -723,7 +758,10 @@ function ConditionValueInput({ field, value, onChange }: ConditionValueInputProp
 
   if (field.type === "boolean") {
     return (
-      <Select value={String(value)} onValueChange={(v) => onChange(v === "true")}>
+      <Select
+        value={String(value)}
+        onValueChange={(v) => onChange(v === "true")}
+      >
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
@@ -744,7 +782,9 @@ function ConditionValueInput({ field, value, onChange }: ConditionValueInputProp
           onChange={(event) => onChange(Number(event.target.value))}
           placeholder="Vrednost"
         />
-        {field.unit && <span className="text-sm text-muted-foreground">{field.unit}</span>}
+        {field.unit && (
+          <span className="text-sm text-muted-foreground">{field.unit}</span>
+        )}
       </div>
     );
   }
