@@ -1843,5 +1843,58 @@ describe("calculateCutList", () => {
       );
       expect(generated[0]?.heightCm).toBeCloseTo(220, 5);
     });
+
+    it("exposes parent element inner width for drawer targets", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: {
+            columns: 1,
+            rowCounts: [0],
+            drawerCounts: [1],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(
+        snapshot,
+        mockMaterials,
+        [],
+        [],
+        [
+          {
+            id: "drawer-inner-width-rule",
+            name: "Drawer parent inner width",
+            enabled: true,
+            target: "drawers",
+            conditions: [],
+            config: {
+              itemName: "Nosač fioke",
+              codePrefix: "NFI",
+              widthFormula: "target.elementInnerWidth",
+              heightFormula: "5",
+              quantity: 1,
+            },
+          },
+        ],
+      );
+
+      const generated = result.items.filter((item) =>
+        item.code.startsWith("NFI-"),
+      );
+
+      expect(generated).toHaveLength(1);
+      expect(generated[0]?.widthCm).toBeCloseTo(96.4, 2);
+      expect(generated[0]?.heightCm).toBeCloseTo(5, 5);
+    });
   });
 });

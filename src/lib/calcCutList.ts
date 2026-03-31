@@ -47,6 +47,7 @@ type AccessoryRuleTargetContext = {
   area: number;
   index: number;
   columnIndex: number;
+  elementInnerWidth?: number;
   outerWidth?: number;
   outerHeight?: number;
 };
@@ -770,6 +771,7 @@ export function calculateCutList(
             area: toCm(innerW) * toCm(carcassD),
             index: shelfTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(innerW),
             outerWidth: toCm(col.width),
           });
         }
@@ -814,6 +816,7 @@ export function calculateCutList(
             area: toCm(innerW) * toCm(carcassD),
             index: shelfTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(innerW),
             outerWidth: toCm(col.width),
           });
         }
@@ -890,6 +893,7 @@ export function calculateCutList(
             area: toCm(secW) * toCm(carcassD),
             index: shelfTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(secW),
             outerWidth: toCm(col.width),
           });
         }
@@ -966,6 +970,7 @@ export function calculateCutList(
             area: toCm(drawerW) * toCm(actualDrawerH),
             index: drawerTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(secW),
             outerWidth: toCm(col.width),
           });
         }
@@ -998,6 +1003,7 @@ export function calculateCutList(
               area: toCm(secW) * toCm(carcassD),
               index: shelfTargets.length,
               columnIndex: colIdx,
+              elementInnerWidth: toCm(secW),
               outerWidth: toCm(col.width),
             });
           }
@@ -1152,6 +1158,7 @@ export function calculateCutList(
                   area: toCm(leafW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
+                  elementInnerWidth: toCm(innerW),
                   outerWidth: toCm(col.width),
                 });
                 addFrontWithMaterial(
@@ -1172,6 +1179,7 @@ export function calculateCutList(
                   area: toCm(leafW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
+                  elementInnerWidth: toCm(innerW),
                   outerWidth: toCm(col.width),
                 });
                 // Add 2 handles for double doors
@@ -1209,6 +1217,7 @@ export function calculateCutList(
                   area: toCm(doorW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
+                  elementInnerWidth: toCm(innerW),
                   outerWidth: toCm(col.width),
                 });
               } else {
@@ -1234,6 +1243,7 @@ export function calculateCutList(
                   area: toCm(doorW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
+                  elementInnerWidth: toCm(innerW),
                   outerWidth: toCm(col.width),
                 });
                 // Add 1 handle for single door
@@ -1310,6 +1320,7 @@ export function calculateCutList(
                 area: toCm(leafW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
+                elementInnerWidth: toCm(innerW),
                 outerWidth: toCm(col.width),
               });
               addFront(
@@ -1329,6 +1340,7 @@ export function calculateCutList(
                 area: toCm(leafW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
+                elementInnerWidth: toCm(innerW),
                 outerWidth: toCm(col.width),
               });
               // Add 2 handles for double doors
@@ -1361,6 +1373,7 @@ export function calculateCutList(
                 area: toCm(doorW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
+                elementInnerWidth: toCm(innerW),
                 outerWidth: toCm(col.width),
               });
             } else {
@@ -1382,6 +1395,7 @@ export function calculateCutList(
                 area: toCm(doorW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
+                elementInnerWidth: toCm(innerW),
                 outerWidth: toCm(col.width),
               });
               // Add 1 handle for single door
@@ -1447,6 +1461,7 @@ export function calculateCutList(
           area: toCm(innerW) * toCm(bottomYEnd - bottomYStart),
           index: elementTargets.length,
           columnIndex: colIdx,
+          elementInnerWidth: toCm(innerW),
           outerWidth: toCm(col.width),
           outerHeight: toCm(bottomYEnd - bottomYStart + 2 * t),
         });
@@ -1508,6 +1523,7 @@ export function calculateCutList(
             area: toCm(innerW) * toCm(topYEnd - topYStart),
             index: elementTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(innerW),
             outerWidth: toCm(col.width),
             outerHeight: toCm(topYEnd - topYStart + 2 * t),
           });
@@ -1639,6 +1655,7 @@ export function calculateCutList(
             area: toCm(panelW) * toCm(panelH),
             index: slidingDoorTargets.length,
             columnIndex: colIdx,
+            elementInnerWidth: toCm(Math.max(col.width - 2 * t, 0)),
             outerWidth: toCm(col.width),
           });
         }

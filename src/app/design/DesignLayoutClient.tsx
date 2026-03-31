@@ -68,8 +68,13 @@ export function DesignLayoutClient({
   isAdmin = false,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
+  const [hasHydrated, setHasHydrated] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   useLockBodyScroll(drawerOpen);
+
+  React.useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   // Set materials and handles in store on mount
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
@@ -270,6 +275,10 @@ export function DesignLayoutClient({
     }
     return child;
   });
+
+  if (!hasHydrated) {
+    return <div className="h-screen bg-background" />;
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">

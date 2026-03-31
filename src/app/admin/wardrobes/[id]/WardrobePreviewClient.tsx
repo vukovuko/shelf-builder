@@ -43,7 +43,6 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
-import {} from "@/lib/wardrobe-constants";
 
 interface CutListItem {
   code: string;

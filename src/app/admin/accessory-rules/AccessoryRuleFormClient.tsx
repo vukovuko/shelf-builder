@@ -56,6 +56,7 @@ const FORMULA_EXAMPLES = [
   "target.width",
   "target.height",
   "target.depth",
+  "target.elementInnerWidth",
   "target.outerWidth",
   "target.outerHeight",
   "wardrobe.width",
