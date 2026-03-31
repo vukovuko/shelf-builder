@@ -1,4 +1,5 @@
 import { buildSideViewSectionRects } from "@/lib/technicalDrawingModel";
+import { TARGET_BOTTOM_HEIGHT_CM } from "@/lib/wardrobe-constants";
 
 interface BlueprintSideViewProps {
   sideViewX: number;
@@ -46,10 +47,16 @@ export function BlueprintSideView({
   const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
   const moduleBoundaryCm =
     moduleBoundary !== null ? moduleBoundary * 100 : null;
+  const panelThicknessCm = 1.8;
+  const innerBottom = hasBase
+    ? panelThicknessCm + scaledBaseHeight / scale
+    : panelThicknessCm;
+  const innerTop = maxColHeight - panelThicknessCm;
   const hasModuleBoundary =
+    maxColHeight > TARGET_BOTTOM_HEIGHT_CM &&
     moduleBoundaryCm !== null &&
-    moduleBoundaryCm > 0 &&
-    moduleBoundaryCm < maxColHeight;
+    moduleBoundaryCm > innerBottom + panelThicknessCm &&
+    moduleBoundaryCm < innerTop - panelThicknessCm;
   const sideRects = buildSideViewSectionRects({
     x: sideViewX,
     y: shellTopY,

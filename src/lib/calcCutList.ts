@@ -2,8 +2,6 @@ import { parseSubCompKey, type DoorOption } from "@/lib/store";
 import {
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
-  DRAWER_HEIGHT,
-  DRAWER_GAP,
   SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
 import { buildBlocksX } from "./wardrobe-utils";
@@ -754,9 +752,18 @@ export function calculateCutList(
       // Get element config for this compartment
       const cfg = elementConfigs[compKey] ?? { columns: 1, rowCounts: [0] };
       const innerCols = Math.max(1, (cfg.columns as number) | 0);
+      const drawerFrontClearance = 3 / 1000; // 3mm total visible gap
+      const minDrawerFrontSize = 0.1; // 10cm minimum size, matches 3D guard
 
       // Calculate inner section widths
       const sectionW = innerW / innerCols;
+      const getSectionOpeningWidth = (sectionIndex: number) =>
+        Math.max(
+          sectionW -
+            (sectionIndex > 0 ? t / 2 : 0) -
+            (sectionIndex < innerCols - 1 ? t / 2 : 0),
+          0,
+        );
 
       // Inner vertical dividers (from elementConfigs)
       if (innerCols > 1) {
@@ -810,12 +817,36 @@ export function calculateCutList(
         );
         if (drawerCount <= 0) continue;
 
-        const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
-        const drawerH = DRAWER_HEIGHT;
-        const gap = DRAWER_GAP;
-        const per = drawerH + gap;
-        const maxDrawers = Math.max(0, Math.floor((compH + gap) / per));
-        const usedCount = Math.min(drawerCount, maxDrawers);
+        const secW = getSectionOpeningWidth(secIdx);
+        const drawerW = Math.max(secW - drawerFrontClearance, 0);
+        const shelfCount = Math.max(
+          0,
+          Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
+        );
+
+        const usedCount = shelfCount > 0
+          ? Math.min(drawerCount, shelfCount + 1)
+          : drawerCount;
+
+        let actualDrawerH = 0;
+        if (usedCount > 0) {
+          if (shelfCount > 0) {
+            const slotH = compH / (shelfCount + 1);
+            actualDrawerH = Math.max(slotH - t - drawerFrontClearance, 0);
+          } else {
+            const slotH = compH / usedCount;
+            actualDrawerH = Math.max(slotH - drawerFrontClearance, 0);
+          }
+        }
+
+        if (
+          usedCount <= 0 ||
+          drawerW < minDrawerFrontSize ||
+          actualDrawerH < minDrawerFrontSize
+        ) {
+          continue;
+        }
+
         totalDrawerCount += usedCount;
 
         for (let drwIdx = 0; drwIdx < usedCount; drwIdx++) {
@@ -827,12 +858,15 @@ export function calculateCutList(
             innerCols > 1
               ? `Fioka ${compKey} sek.${secIdx + 1} (${drwIdx + 1})`
               : `Fioka ${compKey} (${drwIdx + 1})`;
-          addFront(code, desc, secW, drawerH, elementKey);
+          addFront(code, desc, drawerW, actualDrawerH, elementKey);
         }
 
         // Auto-shelf above drawers if space remains
+        const maxDrawers = Math.max(0, Math.floor(compH / minDrawerFrontSize));
         if (usedCount > 0 && usedCount < maxDrawers) {
-          const drawersTopY = usedCount * per;
+          const drawersTopY = shelfCount > 0
+            ? (usedCount * compH) / (shelfCount + 1)
+            : (usedCount * compH) / usedCount;
           const remaining = compH - drawersTopY;
           if (remaining >= t) {
             const shelfCode =

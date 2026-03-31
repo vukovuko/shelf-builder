@@ -494,6 +494,56 @@ describe("calculateCutList", () => {
       expect(result.items.length).toBeGreaterThan(0);
     });
 
+    it("calculates drawer front dimensions from the real opening, not fixed 10cm", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: { columns: 1, rowCounts: [0], drawerCounts: [3] },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const drawerFronts = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
+
+      expect(drawerFronts).toHaveLength(3);
+      expect(drawerFronts[0]?.widthCm).toBeCloseTo(96.1, 1);
+      expect(drawerFronts[0]?.heightCm).toBeCloseTo(65.17, 1);
+    });
+
+    it("uses actual section opening width for drawer fronts in subdivided compartments", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: { columns: 2, rowCounts: [0, 0], drawerCounts: [1, 1] },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const leftDrawer = result.items.find((i) => i.code === "A1-S1F1");
+      const rightDrawer = result.items.find((i) => i.code === "A1-S2F1");
+
+      expect(leftDrawer?.widthCm).toBeCloseTo(47.0, 1);
+      expect(rightDrawer?.widthCm).toBeCloseTo(47.0, 1);
+    });
+
     it("handles shelves via columnHorizontalBoundaries", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
