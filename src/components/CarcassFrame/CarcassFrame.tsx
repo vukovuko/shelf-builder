@@ -716,6 +716,20 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                 const bounds = getCompartmentBounds(compIdx);
                 const compHeightCm = getCompartmentHeightCm(compIdx);
                 const compKey = `${colLetter}${compIdx + 1}`;
+                const labelOffset = Math.max(
+                  0.015,
+                  Math.min(bounds.height * 0.18, 0.05),
+                );
+                const labelDirection =
+                  compIdx === numCompartments - 1
+                    ? -1
+                    : compIdx === 0
+                      ? 1
+                      : compIdx % 2 === 0
+                        ? 1
+                        : -1;
+                const compartmentLabelY =
+                  bounds.centerY + labelDirection * labelOffset;
                 // HIDE labels when Step 2 or 5 is active (show circles instead)
                 // Always show labels regardless of compartment height (user requirement)
                 // MIN_DRAG_GAP = 10cm is the minimum compartment height
@@ -1141,7 +1155,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       <Html
                         position={[
                           colCenterX,
-                          getCompartmentCenterY(compIdx),
+                          compartmentLabelY,
                           d / 2 + 0.01,
                         ]}
                         center

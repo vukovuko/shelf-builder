@@ -292,13 +292,17 @@ export function DimensionLines3D({
         }
 
         const centerX = (column.start + column.end) / 2;
+        const edgeInset = Math.min(Math.max(column.width * 0.22, 0.06), 0.12);
+        const measureX = centerX <= 0
+          ? column.start + edgeInset
+          : column.end - edgeInset;
         const bottomModuleHeight = boundary;
         const topModuleHeight = colHeight - boundary;
 
         return (
           <group key={`module-height-${index}`}>
             <Html
-              position={[centerX, bottomModuleHeight / 2, zFront + 0.01]}
+              position={[measureX, bottomModuleHeight / 2, zFront + 0.01]}
               center
               zIndexRange={[0, 0]}
               style={{ pointerEvents: "none" }}
@@ -319,7 +323,7 @@ export function DimensionLines3D({
             </Html>
             <Html
               position={[
-                centerX,
+                measureX,
                 boundary + topModuleHeight / 2,
                 zFront + 0.01,
               ]}
