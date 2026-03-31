@@ -1733,4 +1733,97 @@ describe("calculateCutList", () => {
       expect(result.priceBreakdown.handles.price).toBe(0);
     });
   });
+
+  describe("accessory rules", () => {
+    it("generates additional boards for door targets and increases total cost", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: { A1: "left" },
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const withoutRules = calculateCutList(snapshot, mockMaterials);
+      const withRules = calculateCutList(snapshot, mockMaterials, [], [], [
+        {
+          id: "door-brace-rule",
+          name: "Door brace rule",
+          enabled: true,
+          target: "doors",
+          conditions: [
+            {
+              id: "c1",
+              field: "wardrobe.hasDoors",
+              operator: "equals",
+              value: true,
+            },
+          ],
+          config: {
+            itemName: "Ojačanje vrata",
+            codePrefix: "OJ",
+            widthFormula: "target.width / 2",
+            heightFormula: "10",
+            quantity: 2,
+          },
+        },
+      ]);
+
+      const generated = withRules.items.filter((item) => item.code.startsWith("OJ-"));
+
+      expect(generated).toHaveLength(2);
+      expect(generated[0]?.materialType).toBe("korpus");
+      expect(generated[0]?.thicknessMm).toBe(18);
+      expect(generated[0]?.widthCm).toBeCloseTo(49.95, 2);
+      expect(generated[0]?.heightCm).toBeCloseTo(10, 5);
+      expect(withRules.totalCost).toBeGreaterThan(withoutRules.totalCost);
+    });
+
+    it("generates additional boards for each sliding door target", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 200,
+        height: 220,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+        verticalBoundaries: [0],
+        slidingDoors: true,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials, [], [], [
+        {
+          id: "sliding-rule",
+          name: "Sliding backing",
+          enabled: true,
+          target: "sliding_doors",
+          conditions: [],
+          config: {
+            itemName: "Podloška kliznih vrata",
+            codePrefix: "KVP",
+            widthFormula: "target.width - 5",
+            heightFormula: "target.height",
+            quantity: 1,
+          },
+        },
+      ]);
+
+      const generated = result.items.filter((item) => item.code.startsWith("KVP-"));
+
+      expect(generated).toHaveLength(2);
+      expect(generated.every((item) => item.element.startsWith("KV-"))).toBe(true);
+      expect(generated[0]?.heightCm).toBeCloseTo(220, 5);
+    });
+  });
 });

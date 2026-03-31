@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { createWardrobeSchema } from "@/lib/validation";
 import { calculateCutList, type WardrobeSnapshot } from "@/lib/calcCutList";
 import { isCurrentUserAdmin } from "@/lib/roles";
+import { accessoryRules } from "@/db/schema";
 import {
   standardRateLimit,
   getIdentifier,
@@ -29,14 +30,10 @@ export async function GET() {
         isLocked: wardrobes.isLocked,
         createdAt: wardrobes.createdAt,
         updatedAt: wardrobes.updatedAt,
-      })
-      .from(wardrobes)
-      .where(
-        and(
-          eq(wardrobes.userId, session.user.id),
-          eq(wardrobes.isModel, false),
-        ),
-      )
+    const [allMaterials, enabledAccessoryRules] = await Promise.all([
+      db.select().from(materials),
+      db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+    ]);
       .orderBy(desc(wardrobes.updatedAt));
 
     return NextResponse.json(list);
@@ -78,7 +75,13 @@ export async function POST(req: Request) {
         },
         { status: 400 },
       );
-    }
+    const pricing = calculateCutList(
+      snapshot,
+      allMaterials,
+      [],
+      [],
+      enabledAccessoryRules,
+    );
 
     const { name, data, thumbnail, isModel } = validationResult.data;
 

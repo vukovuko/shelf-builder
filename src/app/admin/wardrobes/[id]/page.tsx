@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
-import { wardrobes, user, materials, orders } from "@/db/schema";
+import { wardrobes, user, materials, orders, accessoryRules } from "@/db/schema";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
 import { WardrobePreviewClient } from "./WardrobePreviewClient";
 
@@ -43,7 +43,10 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
   }
 
   // Fetch all materials
-  const dbMaterials = await db.select().from(materials);
+  const [dbMaterials, enabledAccessoryRules] = await Promise.all([
+    db.select().from(materials),
+    db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+  ]);
 
   // Query linked orders (orders that use this wardrobe)
   const linkedOrders = await db
@@ -101,6 +104,11 @@ export default async function AdminWardrobePreviewPage({ params }: PageProps) {
         isLocked: wardrobe.isLocked,
       }}
       materials={serializedMaterials}
+      accessoryRules={enabledAccessoryRules.map((rule) => ({
+        ...rule,
+        createdAt: rule.createdAt.toISOString(),
+        updatedAt: rule.updatedAt.toISOString(),
+      }))}
       linkedOrders={linkedOrders}
     />
   );

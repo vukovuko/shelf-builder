@@ -1,10 +1,18 @@
 import { parseSubCompKey, type DoorOption } from "@/lib/store";
 import {
+  evaluateNumericFormula,
+  matchesAccessoryRuleConditions,
+  type AccessoryRule,
+} from "@/lib/accessory-rules";
+import {
   TARGET_BOTTOM_HEIGHT,
   MIN_TOP_HEIGHT,
   SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
 import { buildBlocksX } from "./wardrobe-utils";
+import { computeCompartmentCount } from "./rules/computeCompartmentCount";
+import { computeDoorMetrics } from "./rules/computeDoorMetrics";
+import { computeShelfCount } from "./rules/computeShelfCount";
 
 // Handle types for pricing (from database)
 type PricingHandleFinish = {
@@ -23,9 +31,47 @@ type PricingHandle = {
 
 type PricingMaterial = {
   id: number;
+  name?: string;
   price: number;
   thickness: number | null;
   categories: string[];
+};
+
+type AccessoryRuleTargetContext = {
+  id: string;
+  element: string;
+  label: string;
+  width: number;
+  height: number;
+  depth: number;
+  area: number;
+  index: number;
+  columnIndex: number;
+  outerWidth?: number;
+  outerHeight?: number;
+};
+
+type AccessoryRuleInput = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  target: string;
+  conditions: Array<{
+    id: string;
+    field: string;
+    operator: string;
+    value: string | number | boolean | string[] | number[];
+    logicOperator?: "AND" | "OR";
+  }>;
+  config: {
+    itemName: string;
+    codePrefix?: string;
+    materialType?: "korpus" | "front" | "back";
+    widthFormula: string;
+    heightFormula: string;
+    thicknessFormula?: string;
+    quantity?: number | string;
+  };
 };
 
 // Accessory types for pricing
@@ -225,6 +271,7 @@ export function calculateCutList(
   materials: PricingMaterial[],
   handles: PricingHandle[] = [],
   accessories: PricingAccessory[] = [],
+  accessoryRules: AccessoryRuleInput[] = [],
 ): CutList {
   try {
     if (!snapshot || materials.length === 0) {
@@ -327,6 +374,11 @@ export function calculateCutList(
     }
 
     const items: CutListItem[] = [];
+    const elementTargets: AccessoryRuleTargetContext[] = [];
+    const doorTargets: AccessoryRuleTargetContext[] = [];
+    const drawerTargets: AccessoryRuleTargetContext[] = [];
+    const shelfTargets: AccessoryRuleTargetContext[] = [];
+    const slidingDoorTargets: AccessoryRuleTargetContext[] = [];
 
     // Running counters for accessory pricing
     let totalDrawerCount = 0;
@@ -388,6 +440,16 @@ export function calculateCutList(
         /\s+/g,
         " ",
       );
+
+    const toCm = (valueM: number) => valueM * 100;
+    const toMm = (valueM: number) => valueM * 1000;
+    const sanitizeCodePart = (value: string) => {
+      const sanitized = value
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return sanitized || "X";
+    };
 
     // Helper to add korpus item
     const addKorpus = (
@@ -698,6 +760,18 @@ export function calculateCutList(
             carcassD,
             colLetter,
           );
+          shelfTargets.push({
+            id: `${colLetter}-P${shelfIdx + 1}`,
+            element: colLetter,
+            label: `Polica ${colLetter} (${shelfIdx + 1})`,
+            width: toCm(innerW),
+            height: toCm(carcassD),
+            depth: toCm(carcassD),
+            area: toCm(innerW) * toCm(carcassD),
+            index: shelfTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+          });
         }
       });
     });
@@ -730,6 +804,18 @@ export function calculateCutList(
             carcassD,
             topElementKey,
           );
+          shelfTargets.push({
+            id: `${colLetter}-TP${shelfIdx + 1}`,
+            element: topElementKey,
+            label: `Polica ${topElementKey} (${shelfIdx + 1})`,
+            width: toCm(innerW),
+            height: toCm(carcassD),
+            depth: toCm(carcassD),
+            area: toCm(innerW) * toCm(carcassD),
+            index: shelfTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+          });
         }
       });
     });
@@ -794,6 +880,18 @@ export function calculateCutList(
             carcassD,
             elementKey,
           );
+          shelfTargets.push({
+            id: `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
+            element: elementKey,
+            label: `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+            width: toCm(secW),
+            height: toCm(carcassD),
+            depth: toCm(carcassD),
+            area: toCm(secW) * toCm(carcassD),
+            index: shelfTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+          });
         }
       }
 
@@ -859,6 +957,18 @@ export function calculateCutList(
               ? `Fioka ${compKey} sek.${secIdx + 1} (${drwIdx + 1})`
               : `Fioka ${compKey} (${drwIdx + 1})`;
           addFront(code, desc, drawerW, actualDrawerH, elementKey);
+          drawerTargets.push({
+            id: code,
+            element: elementKey,
+            label: desc,
+            width: toCm(drawerW),
+            height: toCm(actualDrawerH),
+            depth: toCm(carcassD),
+            area: toCm(drawerW) * toCm(actualDrawerH),
+            index: drawerTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+          });
         }
 
         // Auto-shelf above drawers if space remains
@@ -878,6 +988,18 @@ export function calculateCutList(
               carcassD,
               elementKey,
             );
+            shelfTargets.push({
+              id: shelfCode,
+              element: elementKey,
+              label: `Polica iznad fioka ${compKey}`,
+              width: toCm(secW),
+              height: toCm(carcassD),
+              depth: toCm(carcassD),
+              area: toCm(secW) * toCm(carcassD),
+              index: shelfTargets.length,
+              columnIndex: colIdx,
+              outerWidth: toCm(col.width),
+            });
           }
         }
       }
@@ -1020,6 +1142,18 @@ export function calculateCutList(
                   elementKey,
                   doorMaterialId,
                 );
+                doorTargets.push({
+                  id: `${compKey}-VL`,
+                  element: elementKey,
+                  label: `Vrata ${compartmentLabel} levo krilo${isMirror ? " (ogledalo)" : ""}`,
+                  width: toCm(leafW),
+                  height: toCm(totalDoorH),
+                  depth: toCm(d),
+                  area: toCm(leafW) * toCm(totalDoorH),
+                  index: doorTargets.length,
+                  columnIndex: colIdx,
+                  outerWidth: toCm(col.width),
+                });
                 addFrontWithMaterial(
                   `${compKey}-VD`,
                   `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
@@ -1028,6 +1162,18 @@ export function calculateCutList(
                   elementKey,
                   doorMaterialId,
                 );
+                doorTargets.push({
+                  id: `${compKey}-VD`,
+                  element: elementKey,
+                  label: `Vrata ${compartmentLabel} desno krilo${isMirror ? " (ogledalo)" : ""}`,
+                  width: toCm(leafW),
+                  height: toCm(totalDoorH),
+                  depth: toCm(d),
+                  area: toCm(leafW) * toCm(totalDoorH),
+                  index: doorTargets.length,
+                  columnIndex: colIdx,
+                  outerWidth: toCm(col.width),
+                });
                 // Add 2 handles for double doors
                 const handlePrice = getHandlePrice(
                   doorHandleId,
@@ -1053,6 +1199,18 @@ export function calculateCutList(
                   elementKey,
                   doorMaterialId,
                 );
+                doorTargets.push({
+                  id: `${compKey}-V`,
+                  element: elementKey,
+                  label: `Vrata ${compartmentLabel} (${doorTypeLabel})`,
+                  width: toCm(doorW),
+                  height: toCm(totalDoorH),
+                  depth: toCm(d),
+                  area: toCm(doorW) * toCm(totalDoorH),
+                  index: doorTargets.length,
+                  columnIndex: colIdx,
+                  outerWidth: toCm(col.width),
+                });
               } else {
                 totalDoorLeaves += 1;
                 // Single door (left, right, leftMirror, rightMirror)
@@ -1066,6 +1224,18 @@ export function calculateCutList(
                   elementKey,
                   doorMaterialId,
                 );
+                doorTargets.push({
+                  id: `${compKey}-V`,
+                  element: elementKey,
+                  label: `Vrata ${compartmentLabel} (${doorTypeLabel})${isMirror ? " (ogledalo)" : ""}`,
+                  width: toCm(doorW),
+                  height: toCm(totalDoorH),
+                  depth: toCm(d),
+                  area: toCm(doorW) * toCm(totalDoorH),
+                  index: doorTargets.length,
+                  columnIndex: colIdx,
+                  outerWidth: toCm(col.width),
+                });
                 // Add 1 handle for single door
                 const handlePrice = getHandlePrice(
                   doorHandleId,
@@ -1120,6 +1290,7 @@ export function calculateCutList(
             };
 
             if (doorSel === "double" || doorSel === "doubleMirror") {
+              totalDoorLeaves += 2;
               const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
               const isMirror = doorSel === "doubleMirror";
               addFront(
@@ -1129,6 +1300,18 @@ export function calculateCutList(
                 doorH,
                 elementKey,
               );
+              doorTargets.push({
+                id: `${compKey}-VL`,
+                element: elementKey,
+                label: `Vrata ${compKey} levo krilo${isMirror ? " (ogledalo)" : ""}`,
+                width: toCm(leafW),
+                height: toCm(doorH),
+                depth: toCm(d),
+                area: toCm(leafW) * toCm(doorH),
+                index: doorTargets.length,
+                columnIndex: colIdx,
+                outerWidth: toCm(col.width),
+              });
               addFront(
                 `${compKey}-VD`,
                 `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
@@ -1136,6 +1319,18 @@ export function calculateCutList(
                 doorH,
                 elementKey,
               );
+              doorTargets.push({
+                id: `${compKey}-VD`,
+                element: elementKey,
+                label: `Vrata ${compKey} desno krilo${isMirror ? " (ogledalo)" : ""}`,
+                width: toCm(leafW),
+                height: toCm(doorH),
+                depth: toCm(d),
+                area: toCm(leafW) * toCm(doorH),
+                index: doorTargets.length,
+                columnIndex: colIdx,
+                outerWidth: toCm(col.width),
+              });
               // Add 2 handles for double doors
               if (handlePrice > 0) {
                 handleItems.push({
@@ -1147,6 +1342,7 @@ export function calculateCutList(
                 });
               }
             } else if (doorSel === "drawerStyle") {
+              totalDoorLeaves += 1;
               // Drawer-style door - no handle
               addFront(
                 `${compKey}-V`,
@@ -1155,7 +1351,20 @@ export function calculateCutList(
                 doorH,
                 elementKey,
               );
+              doorTargets.push({
+                id: `${compKey}-V`,
+                element: elementKey,
+                label: `Vrata ${compKey} (fioka stil)`,
+                width: toCm(doorW),
+                height: toCm(doorH),
+                depth: toCm(d),
+                area: toCm(doorW) * toCm(doorH),
+                index: doorTargets.length,
+                columnIndex: colIdx,
+                outerWidth: toCm(col.width),
+              });
             } else {
+              totalDoorLeaves += 1;
               addFront(
                 `${compKey}-V`,
                 `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
@@ -1163,6 +1372,18 @@ export function calculateCutList(
                 doorH,
                 elementKey,
               );
+              doorTargets.push({
+                id: `${compKey}-V`,
+                element: elementKey,
+                label: `Vrata ${compKey} (${getLegacyDoorTypeLabel(doorSel)})`,
+                width: toCm(doorW),
+                height: toCm(doorH),
+                depth: toCm(d),
+                area: toCm(doorW) * toCm(doorH),
+                index: doorTargets.length,
+                columnIndex: colIdx,
+                outerWidth: toCm(col.width),
+              });
               // Add 1 handle for single door
               if (handlePrice > 0) {
                 handleItems.push({
@@ -1215,6 +1436,22 @@ export function calculateCutList(
         ? moduleBoundary - t // Module boundary minus panel thickness
         : h - t; // Full height if no split (floor-origin)
 
+      if (innerW > 0 && bottomYEnd > bottomYStart) {
+        elementTargets.push({
+          id: `${colLetter}-ELEMENT`,
+          element: colLetter,
+          label: `Element ${colLetter}`,
+          width: toCm(innerW),
+          height: toCm(bottomYEnd - bottomYStart),
+          depth: toCm(carcassD),
+          area: toCm(innerW) * toCm(bottomYEnd - bottomYStart),
+          index: elementTargets.length,
+          columnIndex: colIdx,
+          outerWidth: toCm(col.width),
+          outerHeight: toCm(bottomYEnd - bottomYStart + 2 * t),
+        });
+      }
+
       // Filter shelves to valid range (stale positions can be outside bounds)
       const bottomSortedYs = [...bottomShelfYs]
         .filter((y) => y > bottomYStart && y < bottomYEnd)
@@ -1258,6 +1495,23 @@ export function calculateCutList(
         // Top module bounds
         const topYStart = moduleBoundary + t; // After module boundary panel
         const topYEnd = h - t; // Wardrobe top (floor-origin)
+
+        if (innerW > 0 && topYEnd > topYStart) {
+          const topElementKey = getTopModuleElementKey(colLetter);
+          elementTargets.push({
+            id: `${topElementKey}-ELEMENT`,
+            element: topElementKey,
+            label: `Element ${topElementKey}`,
+            width: toCm(innerW),
+            height: toCm(topYEnd - topYStart),
+            depth: toCm(carcassD),
+            area: toCm(innerW) * toCm(topYEnd - topYStart),
+            index: elementTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+            outerHeight: toCm(topYEnd - topYStart + 2 * t),
+          });
+        }
 
         // Filter shelves to valid range (stale positions can be outside bounds)
         const topSortedYs = [...topShelfYs]
@@ -1375,7 +1629,208 @@ export function calculateCutList(
             `KV-${colLetter}`,
           );
           totalDoorLeaves += 1;
+          slidingDoorTargets.push({
+            id: `KV-${colLetter}`,
+            element: `KV-${colLetter}`,
+            label: `Klizeća vrata ${colLetter}`,
+            width: toCm(panelW),
+            height: toCm(panelH),
+            depth: toCm(d),
+            area: toCm(panelW) * toCm(panelH),
+            index: slidingDoorTargets.length,
+            columnIndex: colIdx,
+            outerWidth: toCm(col.width),
+          });
         }
+      });
+    }
+
+    const baseTotalArea = items.reduce((sum, item) => sum + item.areaM2, 0);
+
+    if (accessoryRules.length > 0) {
+      const elementConfigValues = Object.values(elementConfigs);
+      const doorMetrics = computeDoorMetrics(
+        snapshot as Record<string, unknown>,
+        handles,
+      );
+      const shelfCount = computeShelfCount({
+        ...snapshot,
+        panelThickness: Number(mat?.thickness ?? 18),
+      });
+      const compartmentCount = computeCompartmentCount({
+        ...snapshot,
+        panelThickness: Number(mat?.thickness ?? 18),
+      });
+      const verticalDividerCount = elementConfigValues.filter(
+        (cfg) => (cfg?.columns ?? 1) > 1,
+      ).length;
+      const boardCount = countBoardsExcludingShelvesAndBacks(items);
+      const hasMirror =
+        doorMetrics.mirrorDoorCount > 0 ||
+        Object.values(doorSelections).some((door) =>
+          String(door).toLowerCase().includes("mirror"),
+        );
+      const resolvedDoorCount = Math.max(
+        totalDoorLeaves,
+        doorMetrics.singleDoorCount +
+          doorMetrics.drawerStyleDoorCount +
+          doorMetrics.doubleDoorCount * 2,
+      );
+      const wardrobeContext = {
+        width: snapshot.width,
+        height: snapshot.height,
+        depth: snapshot.depth,
+        area: baseTotalArea,
+        columnCount: numColumns,
+        shelfCount,
+        compartmentCount,
+        doorCount: resolvedDoorCount,
+        drawerCount: totalDrawerCount,
+        boardCount,
+        hasBase,
+        hasDoors: totalDoorLeaves > 0,
+        hasDrawers: totalDrawerCount > 0,
+        hasMirror,
+        slidingDoors,
+        hasRod: Object.values(compartmentExtras).some((extra) => extra?.rod),
+        hasLed: Object.values(compartmentExtras).some((extra) => extra?.led),
+        hasVerticalDivider: verticalDividerCount > 0,
+        rodCount: Object.values(compartmentExtras).filter((extra) => extra?.rod)
+          .length,
+        ledCount: Object.values(compartmentExtras).filter((extra) => extra?.led)
+          .length,
+        verticalDividerCount,
+        baseHeight: hasBase ? baseHeight : 0,
+        ...doorMetrics,
+        material: {
+          id: snapshot.selectedMaterialId,
+          name: mat?.name ?? "",
+        },
+        frontMaterial: {
+          id: snapshot.selectedFrontMaterialId ?? null,
+          name: frontMat?.name ?? "",
+        },
+        backMaterial: {
+          id: snapshot.selectedBackMaterialId ?? null,
+          name: backMat?.name ?? "",
+        },
+      };
+
+      const targetsByType = {
+        elements: elementTargets,
+        doors: doorTargets,
+        drawers: drawerTargets,
+        shelves: shelfTargets,
+        sliding_doors: slidingDoorTargets,
+      } as const;
+
+      const materialDefaults = {
+        korpus: {
+          thicknessMm: toMm(t),
+          pricePerM2,
+        },
+        front: {
+          thicknessMm: toMm(frontT),
+          pricePerM2: frontPricePerM2,
+        },
+        back: {
+          thicknessMm: toMm(actualBackT),
+          pricePerM2: backPricePerM2,
+        },
+      };
+
+      accessoryRules.forEach((rule) => {
+        if (!rule.enabled) {
+          return;
+        }
+
+        if (
+          !matchesAccessoryRuleConditions(rule.conditions as AccessoryRule["conditions"], {
+            wardrobe: wardrobeContext,
+          })
+        ) {
+          return;
+        }
+
+        if (!(rule.target in targetsByType)) {
+          return;
+        }
+
+        const targets =
+          targetsByType[rule.target as keyof typeof targetsByType] ?? [];
+        targets.forEach((target) => {
+          const materialType = rule.config.materialType ?? "korpus";
+          const defaults = materialDefaults[materialType];
+          const formulaContext = {
+            wardrobe: {
+              ...wardrobeContext,
+              materialThickness: toMm(t),
+              frontThickness: toMm(frontT),
+              backThickness: toMm(actualBackT),
+            },
+            target,
+            material: {
+              selectedThickness: defaults.thicknessMm,
+              korpusThickness: toMm(t),
+              frontThickness: toMm(frontT),
+              backThickness: toMm(actualBackT),
+            },
+          };
+
+          const quantityValue = evaluateNumericFormula(
+            rule.config.quantity ?? 1,
+            formulaContext,
+          );
+          const quantity = Math.max(0, Math.round(quantityValue ?? 0));
+          if (quantity <= 0) {
+            return;
+          }
+
+          const widthCm = evaluateNumericFormula(
+            rule.config.widthFormula,
+            formulaContext,
+          );
+          const heightCm = evaluateNumericFormula(
+            rule.config.heightFormula,
+            formulaContext,
+          );
+          const thicknessMm =
+            evaluateNumericFormula(rule.config.thicknessFormula, formulaContext) ??
+            defaults.thicknessMm;
+
+          if (
+            widthCm === null ||
+            heightCm === null ||
+            !Number.isFinite(widthCm) ||
+            !Number.isFinite(heightCm) ||
+            !Number.isFinite(thicknessMm) ||
+            widthCm <= 0 ||
+            heightCm <= 0 ||
+            thicknessMm <= 0
+          ) {
+            return;
+          }
+
+          const areaM2 = (widthCm / 100) * (heightCm / 100);
+          const itemName = rule.config.itemName.trim() || rule.name;
+
+          for (let itemIndex = 0; itemIndex < quantity; itemIndex++) {
+            items.push({
+              code: `${sanitizeCodePart(rule.config.codePrefix || "DOD")}-${sanitizeCodePart(rule.id.slice(0, 8))}-${sanitizeCodePart(target.id)}-${itemIndex + 1}`,
+              desc:
+                quantity > 1
+                  ? `${itemName} - ${target.label} (${itemIndex + 1}/${quantity})`
+                  : `${itemName} - ${target.label}`,
+              widthCm,
+              heightCm,
+              thicknessMm,
+              areaM2,
+              cost: areaM2 * defaults.pricePerM2,
+              element: target.element,
+              materialType,
+            });
+          }
+        });
       });
     }
 

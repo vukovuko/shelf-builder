@@ -7,6 +7,7 @@ import {
   orders,
   materials,
   rules,
+  accessoryRules,
   handles,
   handleFinishes,
   accessories,
@@ -154,15 +155,18 @@ export async function POST(request: Request) {
     // PHASE A: Read-only data fetching + pricing (outside transaction)
     // =========================================================================
 
-    const pricingMaterials = await db
-      .select({
-        id: materials.id,
-        name: materials.name,
-        price: materials.price,
-        thickness: materials.thickness,
-        categories: materials.categories,
-      })
-      .from(materials);
+    const [pricingMaterials, enabledAccessoryRules] = await Promise.all([
+      db
+        .select({
+          id: materials.id,
+          name: materials.name,
+          price: materials.price,
+          thickness: materials.thickness,
+          categories: materials.categories,
+        })
+        .from(materials),
+      db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+    ]);
 
     // Fetch handles with finishes for pricing
     const pricingHandles = await db
@@ -306,6 +310,7 @@ export async function POST(request: Request) {
       pricingMaterials,
       handlesWithFinishes,
       accessoriesWithVariants,
+      enabledAccessoryRules,
     );
     const boardCount = countBoardsExcludingShelvesAndBacks(pricing.items);
     const compartmentCount = computeCompartmentCount(snapshot);

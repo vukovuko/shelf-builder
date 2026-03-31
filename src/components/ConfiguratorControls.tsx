@@ -60,6 +60,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { useRulePreview } from "@/hooks/use-rule-preview";
@@ -104,11 +105,13 @@ export function ConfiguratorControls({
   wardrobeRef,
   initialSession,
   materials,
+  accessoryRules,
   isAdmin = false,
 }: {
   wardrobeRef: React.RefObject<any>;
   initialSession?: InitialSession | null;
   materials: Material[];
+  accessoryRules: SerializedAccessoryRule[];
   isAdmin?: boolean;
 }) {
   // Auth state - use initialSession from server, useSession for reactivity after login/logout
@@ -708,6 +711,7 @@ export function ConfiguratorControls({
         materials,
         storeHandles,
         storeAccessories,
+        accessoryRules,
       ),
     [
       width,
@@ -724,6 +728,7 @@ export function ConfiguratorControls({
       materials,
       storeHandles,
       storeAccessories,
+      accessoryRules,
       selectedAccessories,
       // Structural boundaries
       verticalBoundaries,

@@ -5,6 +5,7 @@ import {
   orders,
   materials,
   rules,
+  accessoryRules,
   handles,
   handleFinishes,
   accessories,
@@ -51,15 +52,18 @@ export async function POST(req: Request) {
     }
 
     // Look up material names and pricing data needed for derived pricing and board counts
-    const pricingMaterials = await db
-      .select({
-        id: materials.id,
-        name: materials.name,
-        price: materials.price,
-        thickness: materials.thickness,
-        categories: materials.categories,
-      })
-      .from(materials);
+    const [pricingMaterials, enabledAccessoryRules] = await Promise.all([
+      db
+        .select({
+          id: materials.id,
+          name: materials.name,
+          price: materials.price,
+          thickness: materials.thickness,
+          categories: materials.categories,
+        })
+        .from(materials),
+      db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+    ]);
     const matMap = new Map(pricingMaterials.map((m) => [Number(m.id), m.name]));
 
     // Fetch handles for door metrics
@@ -242,6 +246,7 @@ export async function POST(req: Request) {
       pricingMaterials,
       handlesWithFinishes,
       accessoriesWithVariants,
+      enabledAccessoryRules,
     );
     const previewBaseTotal = Math.round(pricing.totalCost);
     const previewAreaM2 = pricing.totalArea;

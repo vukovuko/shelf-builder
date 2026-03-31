@@ -18,6 +18,7 @@ import {
   type Accessory,
   type ShelfState,
 } from "@/lib/store";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 
 // Helper to capture thumbnail from canvas
@@ -53,6 +54,7 @@ interface DesignLayoutClientProps {
   initialMaterials: Material[];
   initialHandles: Handle[];
   initialAccessories: Accessory[];
+  initialAccessoryRules: SerializedAccessoryRule[];
   isAdmin?: boolean;
 }
 
@@ -62,6 +64,7 @@ export function DesignLayoutClient({
   initialMaterials,
   initialHandles,
   initialAccessories,
+  initialAccessoryRules,
   isAdmin = false,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
@@ -277,6 +280,7 @@ export function DesignLayoutClient({
             wardrobeRef={wardrobeRef}
             initialSession={initialSession}
             materials={initialMaterials}
+            accessoryRules={initialAccessoryRules}
             isAdmin={isAdmin}
           />
         </aside>
@@ -342,6 +346,7 @@ export function DesignLayoutClient({
       {!isPreviewMode && (
         <MobileBottomTabs
           materials={initialMaterials}
+          accessoryRules={initialAccessoryRules}
           onOpenDrawer={() => setDrawerOpen(true)}
         />
       )}
@@ -359,6 +364,7 @@ export function DesignLayoutClient({
               wardrobeRef={wardrobeRef}
               initialSession={initialSession}
               materials={initialMaterials}
+              accessoryRules={initialAccessoryRules}
               isAdmin={isAdmin}
             />
           </div>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
-import { orders, materials, wardrobes } from "@/db/schema";
+import { orders, materials, wardrobes, accessoryRules } from "@/db/schema";
 import { OrderDetailClient } from "./OrderDetailClient";
 
 // Disable caching to always show fresh wardrobe data
@@ -93,7 +93,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
   }
 
   // Fetch all materials for 3D scene
-  const dbMaterials = await db.select().from(materials);
+  const [dbMaterials, enabledAccessoryRules] = await Promise.all([
+    db.select().from(materials),
+    db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+  ]);
   const serializedMaterials = dbMaterials.map((m) => ({
     id: m.id,
     name: m.name,
@@ -118,6 +121,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
       }}
       wardrobeData={wardrobeData}
       materials={serializedMaterials}
+      accessoryRules={enabledAccessoryRules.map((rule) => ({
+        ...rule,
+        createdAt: rule.createdAt.toISOString(),
+        updatedAt: rule.updatedAt.toISOString(),
+      }))}
     />
   );
 }

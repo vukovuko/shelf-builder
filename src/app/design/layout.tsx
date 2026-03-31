@@ -9,8 +9,10 @@ import {
   handleFinishes,
   accessories,
   accessoryVariants,
+  accessoryRules,
   user,
 } from "@/db/schema";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { DesignLayoutClient } from "./DesignLayoutClient";
 
 export const metadata: Metadata = {
@@ -25,14 +27,16 @@ export default async function DesignLayout({
   children: React.ReactNode;
 }) {
   // Fetch session, materials, and handles in parallel (only published for design page)
-  const [session, dbMaterials, dbHandles, dbAccessories] = await Promise.all([
+  const [session, dbMaterials, dbHandles, dbAccessories, dbAccessoryRules] =
+    await Promise.all([
     auth.api.getSession({
       headers: await headers(),
     }),
     db.select().from(materials).where(eq(materials.published, true)),
     db.select().from(handles).where(eq(handles.published, true)),
     db.select().from(accessories).where(eq(accessories.published, true)),
-  ]);
+      db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+    ]);
 
   // Serialize session for client (only pass what's needed)
   const initialSession = session
@@ -116,6 +120,19 @@ export default async function DesignLayout({
     }),
   );
 
+  const serializedAccessoryRules: SerializedAccessoryRule[] = dbAccessoryRules
+    .sort((left, right) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+      return left.createdAt.getTime() - right.createdAt.getTime();
+    })
+    .map((rule) => ({
+      ...rule,
+      createdAt: rule.createdAt.toISOString(),
+      updatedAt: rule.updatedAt.toISOString(),
+    }));
+
   // Check if user is admin
   let isAdmin = false;
   if (session?.user?.id) {
@@ -133,6 +150,7 @@ export default async function DesignLayout({
       initialMaterials={serializedMaterials}
       initialHandles={serializedHandles}
       initialAccessories={serializedAccessories}
+      initialAccessoryRules={serializedAccessoryRules}
       isAdmin={isAdmin}
     >
       {children}

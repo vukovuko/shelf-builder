@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { calculateCutList } from "@/lib/calcCutList";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
 import {
   Popover,
@@ -86,6 +87,7 @@ interface WardrobePreviewClientProps {
     isLocked: boolean | null;
   };
   materials: Material[];
+  accessoryRules: SerializedAccessoryRule[];
   linkedOrders: LinkedOrder[];
 }
 
@@ -222,6 +224,7 @@ function CutListDisplay({ cutList }: { cutList: CutList }) {
 export function WardrobePreviewClient({
   wardrobe,
   materials,
+  accessoryRules,
   linkedOrders,
 }: WardrobePreviewClientProps) {
   const wardrobeRef = useRef<any>(null);
@@ -232,6 +235,7 @@ export function WardrobePreviewClient({
     const newLocked = !isLocked;
     try {
       const res = await fetch(`/api/admin/wardrobes/${wardrobe.id}`, {
+    accessoryRules,
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isLocked: newLocked }),
@@ -332,6 +336,9 @@ export function WardrobePreviewClient({
           doorSettingsMode,
         },
         materials,
+        [],
+        [],
+        accessoryRules,
       ),
     [
       width,
@@ -354,6 +361,7 @@ export function WardrobePreviewClient({
       globalHandleFinish,
       doorSettingsMode,
       materials,
+      accessoryRules,
     ],
   );
 

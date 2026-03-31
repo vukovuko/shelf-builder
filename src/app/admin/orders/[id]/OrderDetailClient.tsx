@@ -31,6 +31,7 @@ import {
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
 import { calculateCutList, getCutListGroupKey } from "@/lib/calcCutList";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
 import {
   Select,
@@ -141,6 +142,7 @@ interface OrderDetailClientProps {
   order: Order;
   wardrobeData: Record<string, unknown> | null;
   materials: Material[];
+  accessoryRules: SerializedAccessoryRule[];
 }
 
 const statusLabels: Record<Order["status"], string> = {
@@ -240,6 +242,7 @@ export function OrderDetailClient({
   order,
   wardrobeData,
   materials,
+  accessoryRules,
 }: OrderDetailClientProps) {
   const router = useRouter();
   const wardrobeRef = useRef<any>(null);
@@ -362,6 +365,9 @@ export function OrderDetailClient({
           doorSettingsMode,
         },
         materials,
+        [],
+        [],
+        accessoryRules,
       ),
     [
       width,
@@ -384,6 +390,7 @@ export function OrderDetailClient({
       globalHandleFinish,
       doorSettingsMode,
       materials,
+      accessoryRules,
     ],
   );
 

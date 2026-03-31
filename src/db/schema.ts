@@ -499,6 +499,47 @@ export const rules = pgTable(
   }),
 );
 
+// Accessory rules table (for generated additional boards/panels)
+export const accessoryRules = pgTable(
+  "accessory_rule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    description: text("description"),
+    enabled: boolean("enabled").notNull().default(true),
+    priority: integer("priority").notNull().default(100),
+    target: text("target").notNull(),
+    conditions: json("conditions").notNull().$type<
+      Array<{
+        id: string;
+        field: string;
+        operator: string;
+        value: string | number | boolean | string[] | number[];
+        logicOperator?: "AND" | "OR";
+      }>
+    >(),
+    config: json("config").notNull().$type<{
+      itemName: string;
+      codePrefix?: string;
+      materialType?: "korpus" | "front" | "back";
+      widthFormula: string;
+      heightFormula: string;
+      thicknessFormula?: string;
+      quantity?: number | string;
+    }>(),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    enabledPriorityIdx: index("accessory_rule_enabled_priority_idx").on(
+      table.enabled,
+      table.priority,
+    ),
+  }),
+);
+
 // Contact messages table
 export const contactMessages = pgTable(
   "contact_message",

@@ -10,6 +10,7 @@ import {
   BookOpen,
   DoorOpen,
   Scale,
+  PanelsTopLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
@@ -359,6 +360,28 @@ export function AdminDashboard({
                   </p>
                   <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
                     Upravljanje pravilima
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/admin/accessory-rules">
+          <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <PanelsTopLeft
+                  className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
+                  strokeWidth={1}
+                />
+                <div>
+                  <p className="font-medium group-hover:text-foreground">
+                    Pravila za dodatke
+                  </p>
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
+                    Generisanje dodatnih ploča i stavki
                   </p>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { toast } from "sonner";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { calculateCutList } from "@/lib/calcCutList";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useRulePreview } from "@/hooks/use-rule-preview";
@@ -20,6 +21,7 @@ import {
 
 interface MobileBottomTabsProps {
   materials: Material[];
+  accessoryRules: SerializedAccessoryRule[];
   onOpenDrawer: () => void;
 }
 
@@ -35,6 +37,7 @@ const TABS = [
 
 export function MobileBottomTabs({
   materials,
+  accessoryRules,
   onOpenDrawer,
 }: MobileBottomTabsProps) {
   const activeTab = useShelfStore((s: ShelfState) => s.activeAccordionStep);
@@ -185,6 +188,7 @@ export function MobileBottomTabs({
         materials,
         storeHandles,
         storeAccessories,
+        accessoryRules,
       ),
     [
       width,
@@ -199,6 +203,7 @@ export function MobileBottomTabs({
       hasBase,
       baseHeight,
       materials,
+      accessoryRules,
       storeHandles,
       storeAccessories,
       selectedAccessories,
