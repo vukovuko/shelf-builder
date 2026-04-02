@@ -1919,24 +1919,32 @@ describe("calculateCutList", () => {
         baseHeight: 0,
       };
 
-      const result = calculateCutList(snapshot, mockMaterials, [], [], [
-        {
-          id: "external-drawer-rule",
-          name: "External drawer helper",
-          enabled: true,
-          target: "drawers",
-          conditions: [],
-          config: {
-            itemName: "Spoljna fioka dodatak",
-            codePrefix: "SFD",
-            widthFormula: "10",
-            heightFormula: "5",
-            quantity: "target.isExternalDrawer",
+      const result = calculateCutList(
+        snapshot,
+        mockMaterials,
+        [],
+        [],
+        [
+          {
+            id: "external-drawer-rule",
+            name: "External drawer helper",
+            enabled: true,
+            target: "drawers",
+            conditions: [],
+            config: {
+              itemName: "Spoljna fioka dodatak",
+              codePrefix: "SFD",
+              widthFormula: "10",
+              heightFormula: "5",
+              quantity: "target.isExternalDrawer",
+            },
           },
-        },
-      ]);
+        ],
+      );
 
-      const generated = result.items.filter((item) => item.code.startsWith("SFD-"));
+      const generated = result.items.filter((item) =>
+        item.code.startsWith("SFD-"),
+      );
 
       expect(generated).toHaveLength(1);
       expect(generated[0]?.element).toBe("A");

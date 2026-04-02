@@ -67,6 +67,12 @@ export interface AccessoryVariant {
 // Pricing rule determines how accessory quantity is calculated
 export type PricingRule = "none" | "perDrawer" | "perDoor" | "fixed";
 
+export type AccessoryCategory =
+  | "general"
+  | "hinge"
+  | "drawer_slide"
+  | "sliding_door_track";
+
 // Accessory type for database accessories (klizači, šarke, etc.)
 export interface Accessory {
   id: number;
@@ -74,6 +80,7 @@ export interface Accessory {
   description: string | null;
   mainImage: string | null;
   published: boolean;
+  category: AccessoryCategory;
   pricingRule: PricingRule;
   qtyPerUnit: number;
   variants: AccessoryVariant[];

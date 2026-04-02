@@ -9,7 +9,6 @@ import {
   FolderOpen,
   Package,
   LayoutTemplate,
-  DoorOpen,
   Wrench,
   Settings2,
   PanelsTopLeft,
@@ -59,12 +58,7 @@ const navItems = [
     icon: Package,
   },
   {
-    title: "Ručke",
-    href: "/admin/handles",
-    icon: DoorOpen,
-  },
-  {
-    title: "Dodaci",
+    title: "Okov",
     href: "/admin/accessories",
     icon: Wrench,
   },

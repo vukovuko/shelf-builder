@@ -15,6 +15,9 @@ const updateAccessorySchema = z.object({
   description: z.string().nullable().optional(),
   mainImage: z.string().nullable().optional(),
   published: z.boolean().optional(),
+  category: z
+    .enum(["general", "hinge", "drawer_slide", "sliding_door_track"])
+    .optional(),
   pricingRule: z.enum(["none", "perDrawer", "perDoor", "fixed"]).optional(),
   qtyPerUnit: z.number().int().min(1).optional(),
 });

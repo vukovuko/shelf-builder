@@ -10,12 +10,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type AccessoryCategory =
+  | "general"
+  | "hinge"
+  | "drawer_slide"
+  | "sliding_door_track";
+
+const categoryOptions: Array<{ value: AccessoryCategory; label: string }> = [
+  { value: "general", label: "Opšti okov" },
+  { value: "hinge", label: "Šarke" },
+  { value: "drawer_slide", label: "Klizači za fioke" },
+  { value: "sliding_door_track", label: "Šine za klizna vrata" },
+];
 
 export default function NewAccessoryPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
+  const [category, setCategory] = useState<AccessoryCategory>("general");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +49,7 @@ export default function NewAccessoryPage() {
       description: (formData.get("description") as string) || undefined,
       mainImage: (formData.get("mainImage") as string) || undefined,
       published,
+      category,
     };
 
     try {
@@ -43,7 +65,7 @@ export default function NewAccessoryPage() {
       }
 
       const created = await res.json();
-      toast.success("Dodatak dodat");
+      toast.success("Okov dodat");
       router.push(`/admin/accessories/${created.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška pri čuvanju");
@@ -61,9 +83,9 @@ export default function NewAccessoryPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Novi dodatak</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Novi okov</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Dodaj novi dodatak (klizač, šarka, itd.)
+            Dodaj novi okov za sekciju 6 i obračun cene
           </p>
         </div>
       </div>
@@ -81,8 +103,27 @@ export default function NewAccessoryPage() {
               <Input
                 id="description"
                 name="description"
-                placeholder="npr. Klizač za fioke"
+                placeholder="npr. Šarka sa usporivačem"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategorija</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as AccessoryCategory)}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Izaberi kategoriju" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -105,8 +146,8 @@ export default function NewAccessoryPage() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Nakon kreiranja dodatka, možete dodati varijante (npr. Obični,
-            Slow-mo) sa njihovim cenama.
+            Nakon kreiranja okova, možete dodati varijante sa njihovim cenama,
+            na primer obična i slow motion šarka.
           </p>
 
           {error && (
@@ -118,7 +159,7 @@ export default function NewAccessoryPage() {
               <Link href="/admin/accessories">Odustani</Link>
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Čuvanje..." : "Dodaj dodatak"}
+              {saving ? "Čuvanje..." : "Dodaj okov"}
             </Button>
           </div>
         </form>

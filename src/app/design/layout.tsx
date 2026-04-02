@@ -106,6 +106,7 @@ export default async function DesignLayout({
         description: a.description,
         mainImage: a.mainImage,
         published: a.published,
+        category: a.category,
         pricingRule: a.pricingRule,
         qtyPerUnit: a.qtyPerUnit,
         variants: variants.map((v) => ({

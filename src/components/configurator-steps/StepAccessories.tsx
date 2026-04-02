@@ -50,41 +50,26 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
   // Hide entire accessories when irrelevant
   const visibleAccessories = useMemo(() => {
     return accessories.filter((acc) => {
-      const nameLower = acc.name.toLowerCase();
-      const isSarke = nameLower.includes("šark") || nameLower.includes("sark");
-      const isKlizaci =
-        nameLower.includes("klizač") || nameLower.includes("klizac");
+      if (acc.category === "hinge") {
+        return !slidingDoors && totalDoorLeaves > 0;
+      }
 
-      // Šarke: need regular doors (not sliding)
-      if (isSarke && (slidingDoors || totalDoorLeaves === 0)) return false;
+      if (acc.category === "drawer_slide") {
+        return totalDrawers > 0;
+      }
 
-      // Klizači: need drawers OR sliding doors
-      if (isKlizaci && totalDrawers === 0 && !slidingDoors) return false;
+      if (acc.category === "sliding_door_track") {
+        return slidingDoors;
+      }
 
       // Generic fallback for any future accessories with pricing rules
       if (acc.pricingRule === "perDoor" && totalDoorLeaves === 0) return false;
-      if (
-        acc.pricingRule === "perDrawer" &&
-        totalDrawers === 0 &&
-        !slidingDoors
-      )
+      if (acc.pricingRule === "perDrawer" && totalDrawers === 0)
         return false;
 
       return true;
     });
   }, [accessories, totalDoorLeaves, totalDrawers, slidingDoors]);
-
-  // Filter variants: sliding door variants only when slidingDoors is on, hide them otherwise
-  const filterVariants = (variants: (typeof accessories)[0]["variants"]) => {
-    const hasSlidingVariant = variants.some((v) =>
-      v.name.toLowerCase().includes("klizna vrata"),
-    );
-    if (!hasSlidingVariant) return variants;
-    return variants.filter((v) => {
-      const isSliding = v.name.toLowerCase().includes("klizna vrata");
-      return slidingDoors ? isSliding : !isSliding;
-    });
-  };
 
   // Auto-select first visible variant for visible accessories, clear hidden ones
   useEffect(() => {
@@ -96,12 +81,11 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
         }
         continue;
       }
-      const visible = filterVariants(acc.variants);
-      if (visible.length === 0) continue;
+      if (acc.variants.length === 0) continue;
       const currentSelection = selectedAccessories[acc.id];
-      const isCurrentVisible = visible.some((v) => v.id === currentSelection);
+      const isCurrentVisible = acc.variants.some((v) => v.id === currentSelection);
       if (currentSelection == null || !isCurrentVisible) {
-        setSelectedAccessory(acc.id, visible[0].id);
+        setSelectedAccessory(acc.id, acc.variants[0].id);
       }
     }
   }, [
@@ -109,7 +93,6 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
     visibleAccessories,
     selectedAccessories,
     setSelectedAccessory,
-    slidingDoors,
   ]);
 
   if (visibleAccessories.length === 0) {
@@ -140,6 +123,21 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
                   {accessory.description}
                 </p>
               )}
+              {accessory.category === "hinge" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Prikazuje se samo za klasična vrata
+                </p>
+              )}
+              {accessory.category === "drawer_slide" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Prikazuje se samo kada postoje fioke
+                </p>
+              )}
+              {accessory.category === "sliding_door_track" && (
+                <p className="text-xs text-muted-foreground italic">
+                  Prikazuje se samo za klizna vrata
+                </p>
+              )}
               {accessory.pricingRule === "perDrawer" && (
                 <p className="text-xs text-muted-foreground italic">
                   Dodaje se na svaku fioku
@@ -154,8 +152,7 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
 
             {/* Variant selection grid */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Variant options (filtered by sliding doors state) */}
-              {filterVariants(accessory.variants).map((variant) => {
+              {accessory.variants.map((variant) => {
                 const isSelected = selectedVariantId === variant.id;
 
                 return (

@@ -88,6 +88,7 @@ export async function POST(req: Request) {
       .select({
         id: accessories.id,
         name: accessories.name,
+        category: accessories.category,
         pricingRule: accessories.pricingRule,
         qtyPerUnit: accessories.qtyPerUnit,
       })

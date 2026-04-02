@@ -191,7 +191,7 @@ export function HandleDetailClient({
       }
 
       toast.success("Ručka obrisana");
-      router.push("/admin/handles");
+      router.push("/admin/accessories?tab=handles");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Greška pri brisanju");
       setDeleting(false);
@@ -296,7 +296,7 @@ export function HandleDetailClient({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/admin/handles">
+            <Link href="/admin/accessories?tab=handles">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

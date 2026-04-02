@@ -8,7 +8,7 @@ import {
   ShoppingCart,
   Layers,
   BookOpen,
-  DoorOpen,
+  Wrench,
   Scale,
   PanelsTopLeft,
 } from "lucide-react";
@@ -324,20 +324,20 @@ export function AdminDashboard({
           </Card>
         </Link>
 
-        <Link href="/admin/handles">
+        <Link href="/admin/accessories">
           <Card className="group p-6 transition-colors cursor-pointer hover:bg-muted/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <DoorOpen
+                <Wrench
                   className="h-6 w-6 text-muted-foreground group-hover:text-foreground"
                   strokeWidth={1}
                 />
                 <div>
                   <p className="font-medium group-hover:text-foreground">
-                    Ručke
+                    Okov
                   </p>
                   <p className="text-sm text-muted-foreground group-hover:text-foreground/80">
-                    Upravljanje ručkama
+                    Ručke, šarke, klizači i šine
                   </p>
                 </div>
               </div>

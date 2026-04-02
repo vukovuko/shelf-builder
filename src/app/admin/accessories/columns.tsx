@@ -23,9 +23,17 @@ export type Accessory = {
   description: string | null;
   mainImage: string | null;
   published: boolean;
+  category: "general" | "hinge" | "drawer_slide" | "sliding_door_track";
   createdAt: string;
   updatedAt: string;
   variants: AccessoryVariant[];
+};
+
+const categoryLabels: Record<Accessory["category"], string> = {
+  general: "Opšti okov",
+  hinge: "Šarke",
+  drawer_slide: "Klizači za fioke",
+  sliding_door_track: "Šine za klizna vrata",
 };
 
 export const columns: ColumnDef<Accessory>[] = [
@@ -121,6 +129,14 @@ export const columns: ColumnDef<Accessory>[] = [
     accessorKey: "description",
     header: "Opis",
     cell: ({ row }) => row.getValue("description") || "-",
+  },
+  {
+    accessorKey: "category",
+    header: "Kategorija",
+    cell: ({ row }) => {
+      const category = row.getValue("category") as Accessory["category"];
+      return categoryLabels[category] ?? "-";
+    },
   },
   {
     accessorKey: "variants",

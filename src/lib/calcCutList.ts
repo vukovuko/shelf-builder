@@ -85,6 +85,7 @@ type PricingAccessoryVariant = {
 type PricingAccessory = {
   id: number;
   name: string;
+  category?: "general" | "hinge" | "drawer_slide" | "sliding_door_track";
   pricingRule: "none" | "perDrawer" | "perDoor" | "fixed";
   qtyPerUnit: number;
   variants: PricingAccessoryVariant[];

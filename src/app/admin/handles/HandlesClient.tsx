@@ -32,6 +32,7 @@ interface HandlesClientProps {
   pageSize: number;
   totalCount: number;
   search: string;
+  showHeader?: boolean;
 }
 
 export function HandlesClient({
@@ -40,6 +41,7 @@ export function HandlesClient({
   pageSize,
   totalCount,
   search,
+  showHeader = true,
 }: HandlesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -190,17 +192,19 @@ export function HandlesClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Ručke</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Upravljanje ručkama za vrata
-          </p>
+      {showHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold">Ručke vrata</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Upravljanje ručkama za vrata
+            </p>
+          </div>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/admin/handles/new">Dodaj ručku</Link>
+          </Button>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/handles/new">Dodaj ručku</Link>
-        </Button>
-      </div>
+      )}
 
       <DataTable
         columns={columns}

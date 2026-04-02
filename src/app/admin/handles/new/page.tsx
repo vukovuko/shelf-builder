@@ -57,7 +57,7 @@ export default function NewHandlePage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/handles">
+          <Link href="/admin/accessories?tab=handles">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
@@ -123,7 +123,7 @@ export default function NewHandlePage() {
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" asChild>
-              <Link href="/admin/handles">Odustani</Link>
+              <Link href="/admin/accessories?tab=handles">Odustani</Link>
             </Button>
             <Button type="submit" disabled={saving}>
               {saving ? "Čuvanje..." : "Dodaj ručku"}

@@ -32,6 +32,7 @@ interface AccessoriesClientProps {
   pageSize: number;
   totalCount: number;
   search: string;
+  showHeader?: boolean;
 }
 
 export function AccessoriesClient({
@@ -40,6 +41,7 @@ export function AccessoriesClient({
   pageSize,
   totalCount,
   search,
+  showHeader = true,
 }: AccessoriesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -105,14 +107,14 @@ export function AccessoriesClient({
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${selectedAccessories.length} dodataka obrisano`);
+        toast.success(`${selectedAccessories.length} stavki okova obrisano`);
         router.refresh();
       } else {
-        toast.error("Greška pri brisanju nekih dodataka");
+        toast.error("Greška pri brisanju nekih stavki okova");
       }
     } catch (error) {
       console.error("Failed to delete accessories:", error);
-      toast.error("Greška pri brisanju dodataka");
+      toast.error("Greška pri brisanju okova");
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -123,7 +125,7 @@ export function AccessoriesClient({
   async function handleBulkPublish(selected: Accessory[]) {
     const toPublish = selected.filter((a) => !a.published);
     if (toPublish.length === 0) {
-      toast.info("Svi izabrani dodaci su već objavljeni");
+      toast.info("Sav izabrani okov je već objavljen");
       return;
     }
 
@@ -141,15 +143,15 @@ export function AccessoriesClient({
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${toPublish.length} dodataka objavljeno`);
+        toast.success(`${toPublish.length} stavki okova objavljeno`);
         setSelectedAccessories([]);
         router.refresh();
       } else {
-        toast.error("Greška pri objavljivanju nekih dodataka");
+        toast.error("Greška pri objavljivanju nekih stavki okova");
       }
     } catch (error) {
       console.error("Failed to publish accessories:", error);
-      toast.error("Greška pri objavljivanju dodataka");
+      toast.error("Greška pri objavljivanju okova");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -158,7 +160,7 @@ export function AccessoriesClient({
   async function handleBulkDraft(selected: Accessory[]) {
     const toDraft = selected.filter((a) => a.published);
     if (toDraft.length === 0) {
-      toast.info("Svi izabrani dodaci su već u draft-u");
+      toast.info("Sav izabrani okov je već u draft-u");
       return;
     }
 
@@ -176,15 +178,15 @@ export function AccessoriesClient({
 
       const allSuccessful = results.every((r) => r.ok);
       if (allSuccessful) {
-        toast.success(`${toDraft.length} dodataka vraćeno u draft`);
+        toast.success(`${toDraft.length} stavki okova vraćeno u draft`);
         setSelectedAccessories([]);
         router.refresh();
       } else {
-        toast.error("Greška pri vraćanju nekih dodataka u draft");
+        toast.error("Greška pri vraćanju nekih stavki okova u draft");
       }
     } catch (error) {
       console.error("Failed to draft accessories:", error);
-      toast.error("Greška pri vraćanju dodataka u draft");
+      toast.error("Greška pri vraćanju okova u draft");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -192,22 +194,24 @@ export function AccessoriesClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Dodaci</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Upravljanje dodacima (klizači, šarke, itd.)
-          </p>
+      {showHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold">Okov</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Upravljanje okovom za fioke, vrata i klizne sisteme
+            </p>
+          </div>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/admin/accessories/new">Dodaj okov</Link>
+          </Button>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/accessories/new">Dodaj dodatak</Link>
-        </Button>
-      </div>
+      )}
 
       <DataTable
         columns={columns}
         data={accessories}
-        searchPlaceholder="Pretraži po nazivu..."
+        searchPlaceholder="Pretraži okov po nazivu..."
         searchValue={searchInput}
         onSearchChange={setSearchInput}
         pageIndex={Math.max(page - 1, 0)}
@@ -271,9 +275,9 @@ export function AccessoriesClient({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Obrisati dodatke?</AlertDialogTitle>
+            <AlertDialogTitle>Obrisati okov?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ova akcija je nepovratna. {selectedAccessories.length} dodataka će
+              Ova akcija je nepovratna. {selectedAccessories.length} stavki okova će
               biti trajno obrisano zajedno sa svim varijantama.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -268,6 +268,13 @@ export const pricingRuleEnum = pgEnum("pricing_rule", [
   "fixed", // qty = qtyPerUnit (flat per wardrobe)
 ]);
 
+export const accessoryCategoryEnum = pgEnum("accessory_category", [
+  "general",
+  "hinge",
+  "drawer_slide",
+  "sliding_door_track",
+]);
+
 // Accessories table (dodaci - drawer slides, hinges, etc.)
 export const accessories = pgTable("accessory", {
   id: serial("id").primaryKey(),
@@ -275,6 +282,7 @@ export const accessories = pgTable("accessory", {
   description: text("description"),
   mainImage: text("mainImage"),
   published: boolean("published").notNull().default(false),
+  category: accessoryCategoryEnum("category").notNull().default("general"),
   pricingRule: pricingRuleEnum("pricingRule").notNull().default("none"),
   qtyPerUnit: integer("qtyPerUnit").notNull().default(1),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),

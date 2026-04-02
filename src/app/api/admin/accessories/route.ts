@@ -10,6 +10,9 @@ const createAccessorySchema = z.object({
   description: z.string().optional(),
   mainImage: z.string().optional(),
   published: z.boolean().optional(),
+  category: z
+    .enum(["general", "hinge", "drawer_slide", "sliding_door_track"])
+    .optional(),
   pricingRule: z.enum(["none", "perDrawer", "perDoor", "fixed"]).optional(),
   qtyPerUnit: z.number().int().min(1).optional(),
 });
@@ -65,8 +68,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, description, mainImage, published, pricingRule, qtyPerUnit } =
-      validation.data;
+    const {
+      name,
+      description,
+      mainImage,
+      published,
+      category,
+      pricingRule,
+      qtyPerUnit,
+    } = validation.data;
 
     const [created] = await db
       .insert(accessories)
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
         description: description || null,
         mainImage: mainImage || null,
         published: published ?? false,
+        category: category ?? "general",
         pricingRule: pricingRule ?? "none",
         qtyPerUnit: qtyPerUnit ?? 1,
       })

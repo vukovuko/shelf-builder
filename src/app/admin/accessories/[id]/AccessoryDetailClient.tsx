@@ -62,6 +62,18 @@ interface AccessoryVariant {
 }
 
 type PricingRule = "none" | "perDrawer" | "perDoor" | "fixed";
+type AccessoryCategory =
+  | "general"
+  | "hinge"
+  | "drawer_slide"
+  | "sliding_door_track";
+
+const categoryOptions: Array<{ value: AccessoryCategory; label: string }> = [
+  { value: "general", label: "Opšti okov" },
+  { value: "hinge", label: "Šarke" },
+  { value: "drawer_slide", label: "Klizači za fioke" },
+  { value: "sliding_door_track", label: "Šine za klizna vrata" },
+];
 
 interface Accessory {
   id: number;
@@ -69,6 +81,7 @@ interface Accessory {
   description: string | null;
   mainImage: string | null;
   published: boolean;
+  category: AccessoryCategory;
   pricingRule: PricingRule;
   qtyPerUnit: number;
   createdAt: string;
@@ -96,6 +109,9 @@ export function AccessoryDetailClient({
   );
   const [mainImage, setMainImage] = useState(initialAccessory.mainImage ?? "");
   const [published, setPublished] = useState(initialAccessory.published);
+  const [category, setCategory] = useState<AccessoryCategory>(
+    initialAccessory.category,
+  );
   const [pricingRule, setPricingRule] = useState<PricingRule>(
     initialAccessory.pricingRule ?? "none",
   );
@@ -155,6 +171,7 @@ export function AccessoryDetailClient({
     if ((description || null) !== accessory.description) return true;
     if ((mainImage || null) !== accessory.mainImage) return true;
     if (published !== accessory.published) return true;
+    if (category !== accessory.category) return true;
     if (pricingRule !== (accessory.pricingRule ?? "none")) return true;
     if (Number(qtyPerUnit) !== (accessory.qtyPerUnit ?? 1)) return true;
     return false;
@@ -163,6 +180,7 @@ export function AccessoryDetailClient({
     description,
     mainImage,
     published,
+    category,
     pricingRule,
     qtyPerUnit,
     accessory,
@@ -178,6 +196,7 @@ export function AccessoryDetailClient({
       description: description || null,
       mainImage: mainImage || null,
       published,
+      category,
       pricingRule,
       qtyPerUnit: Number(qtyPerUnit) || 1,
     };
@@ -200,9 +219,10 @@ export function AccessoryDetailClient({
       setDescription(updated.description ?? "");
       setMainImage(updated.mainImage ?? "");
       setPublished(updated.published);
+      setCategory(updated.category);
       setPricingRule(updated.pricingRule ?? "none");
       setQtyPerUnit(String(updated.qtyPerUnit ?? 1));
-      toast.success("Dodatak sačuvan");
+      toast.success("Okov sačuvan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška pri čuvanju");
       toast.error(err instanceof Error ? err.message : "Greška pri čuvanju");
@@ -223,7 +243,7 @@ export function AccessoryDetailClient({
         throw new Error(json.error || "Greška pri brisanju");
       }
 
-      toast.success("Dodatak obrisan");
+      toast.success("Okov obrisan");
       router.push("/admin/accessories");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Greška pri brisanju");
@@ -358,6 +378,10 @@ export function AccessoryDetailClient({
             >
               {accessory.published ? "Objavljeno" : "Draft"}
             </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {categoryOptions.find((option) => option.value === accessory.category)
+                ?.label ?? "Opšti okov"}
+            </p>
           </div>
         </div>
 
@@ -376,9 +400,9 @@ export function AccessoryDetailClient({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Obrisati dodatak?</AlertDialogTitle>
+              <AlertDialogTitle>Obrisati okov?</AlertDialogTitle>
               <AlertDialogDescription>
-                Ova akcija je nepovratna. Dodatak &quot;{accessory.name}&quot;
+                Ova akcija je nepovratna. Okov &quot;{accessory.name}&quot;
                 će biti trajno obrisan zajedno sa svim varijantama.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -416,8 +440,27 @@ export function AccessoryDetailClient({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="npr. Klizač za fioke"
+                placeholder="npr. Šarka sa usporivačem"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategorija</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as AccessoryCategory)}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Izaberi kategoriju" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -652,7 +695,7 @@ export function AccessoryDetailClient({
             <DialogDescription>
               {editingVariant
                 ? "Izmeni podatke varijante"
-                : "Dodaj novu varijantu za ovaj dodatak"}
+                : "Dodaj novu varijantu za ovaj okov"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
