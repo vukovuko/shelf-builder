@@ -1896,5 +1896,51 @@ describe("calculateCutList", () => {
       expect(generated[0]?.widthCm).toBeCloseTo(96.4, 2);
       expect(generated[0]?.heightCm).toBeCloseTo(5, 5);
     });
+
+    it("exposes external drawer selection as 1 or 0 for drawer targets", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: {
+            columns: 2,
+            rowCounts: [0, 0],
+            drawerCounts: [1, 1],
+            drawersExternal: [true, false],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials, [], [], [
+        {
+          id: "external-drawer-rule",
+          name: "External drawer helper",
+          enabled: true,
+          target: "drawers",
+          conditions: [],
+          config: {
+            itemName: "Spoljna fioka dodatak",
+            codePrefix: "SFD",
+            widthFormula: "10",
+            heightFormula: "5",
+            quantity: "target.isExternalDrawer",
+          },
+        },
+      ]);
+
+      const generated = result.items.filter((item) => item.code.startsWith("SFD-"));
+
+      expect(generated).toHaveLength(1);
+      expect(generated[0]?.element).toBe("A");
+      expect(generated[0]?.widthCm).toBeCloseTo(10, 5);
+    });
   });
 });

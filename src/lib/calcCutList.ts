@@ -48,6 +48,7 @@ type AccessoryRuleTargetContext = {
   index: number;
   columnIndex: number;
   elementInnerWidth?: number;
+  isExternalDrawer?: number;
   outerWidth?: number;
   outerHeight?: number;
 };
@@ -921,6 +922,7 @@ export function calculateCutList(
 
         const secW = getSectionOpeningWidth(secIdx);
         const drawerW = Math.max(secW - drawerFrontClearance, 0);
+        const isExternalDrawer = cfg.drawersExternal?.[secIdx] ? 1 : 0;
         const shelfCount = Math.max(
           0,
           Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
@@ -971,6 +973,7 @@ export function calculateCutList(
             index: drawerTargets.length,
             columnIndex: colIdx,
             elementInnerWidth: toCm(secW),
+            isExternalDrawer,
             outerWidth: toCm(col.width),
           });
         }
