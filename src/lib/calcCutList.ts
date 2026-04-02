@@ -124,6 +124,8 @@ export type WardrobeSnapshot = {
   selectedMaterialId: number;
   selectedFrontMaterialId?: number | null;
   selectedBackMaterialId?: number | null;
+  selectedEdgeMaterialId?: number | null;
+  selectedFrontEdgeMaterialId?: number | null;
   elementConfigs?: Record<string, ElementConfig>;
   compartmentExtras?: Record<string, CompartmentExtras>;
   doorSelections?: Record<string, DoorOption>;
@@ -171,6 +173,24 @@ export type PriceBreakdown = {
   korpus: { areaM2: number; price: number };
   front: { areaM2: number; price: number };
   back: { areaM2: number; price: number };
+  edge: {
+    lengthCm: number;
+    lengthM: number;
+    price: number;
+    materialName?: string;
+    carcass?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+    front?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+  };
   handles: { count: number; price: number };
   accessories: { count: number; price: number };
 };
@@ -194,6 +214,7 @@ const emptyCutList: CutList = {
     korpus: { areaM2: 0, price: 0 },
     front: { areaM2: 0, price: 0 },
     back: { areaM2: 0, price: 0 },
+    edge: { lengthCm: 0, lengthM: 0, price: 0 },
     handles: { count: 0, price: 0 },
     accessories: { count: 0, price: 0 },
   },
@@ -329,6 +350,18 @@ export function calculateCutList(
     const backPricePerM2 = Number(backMat?.price ?? 0);
     const actualBackT = (Number(backMat?.thickness ?? 5) / 1000) as number;
 
+    const edgeId = snapshot.selectedEdgeMaterialId ?? null;
+    const edgeMat = edgeId
+      ? materials.find((m) => String(m.id) === String(edgeId))
+      : null;
+    const edgePricePerMeter = Number(edgeMat?.price ?? 0);
+
+    const frontEdgeId = snapshot.selectedFrontEdgeMaterialId ?? edgeId ?? null;
+    const frontEdgeMat = frontEdgeId
+      ? materials.find((m) => String(m.id) === String(frontEdgeId))
+      : null;
+    const frontEdgePricePerMeter = Number(frontEdgeMat?.price ?? 0);
+
     // Convert dimensions to meters
     const w = snapshot.width / 100;
     const h = snapshot.height / 100;
@@ -386,6 +419,8 @@ export function calculateCutList(
     // Running counters for accessory pricing
     let totalDrawerCount = 0;
     let totalDoorLeaves = 0;
+    let totalCarcassEdgeLengthCm = 0;
+    let totalFrontEdgeLengthCm = 0;
 
     const getColumnHeightM = (colIdx: number): number => {
       const colHeightCm = columnHeights[colIdx] ?? snapshot.height;
@@ -454,6 +489,26 @@ export function calculateCutList(
       return sanitized || "X";
     };
 
+    const addCarcassEdgeLengthCm = (edgeLengthCm: number) => {
+      if (!edgeMat || !Number.isFinite(edgeLengthCm) || edgeLengthCm <= 0) {
+        return;
+      }
+
+      totalCarcassEdgeLengthCm += edgeLengthCm;
+    };
+
+    const addFrontEdgeLengthCm = (edgeLengthCm: number) => {
+      if (
+        !frontEdgeMat ||
+        !Number.isFinite(edgeLengthCm) ||
+        edgeLengthCm <= 0
+      ) {
+        return;
+      }
+
+      totalFrontEdgeLengthCm += edgeLengthCm;
+    };
+
     // Helper to add korpus item
     const addKorpus = (
       code: string,
@@ -461,13 +516,23 @@ export function calculateCutList(
       widthM: number,
       heightM: number,
       element: string,
+      edgeLengthSource: "width" | "height" | 0 = 0,
     ) => {
       const area = widthM * heightM;
+      const widthCm = widthM * 100;
+      const heightCm = heightM * 100;
+      const edgeLengthCm =
+        edgeLengthSource === "width"
+          ? widthCm
+          : edgeLengthSource === "height"
+            ? heightCm
+            : 0;
+      addCarcassEdgeLengthCm(edgeLengthCm);
       items.push({
         code,
         desc,
-        widthCm: widthM * 100,
-        heightCm: heightM * 100,
+        widthCm,
+        heightCm,
         thicknessMm: t * 1000,
         areaM2: area,
         cost: area * pricePerM2,
@@ -483,13 +548,23 @@ export function calculateCutList(
       widthM: number,
       heightM: number,
       element: string,
+      edgeMode: "all" | "longSides" | 0 = "all",
     ) => {
       const area = widthM * heightM;
+      const widthCm = widthM * 100;
+      const heightCm = heightM * 100;
+      const edgeLengthCm =
+        edgeMode === "all"
+          ? 2 * (widthCm + heightCm)
+          : edgeMode === "longSides"
+            ? 2 * Math.max(widthCm, heightCm)
+            : 0;
+      addFrontEdgeLengthCm(edgeLengthCm);
       items.push({
         code,
         desc,
-        widthCm: widthM * 100,
-        heightCm: heightM * 100,
+        widthCm,
+        heightCm,
         thicknessMm: frontT * 1000,
         areaM2: area,
         cost: area * frontPricePerM2,
@@ -528,8 +603,18 @@ export function calculateCutList(
       heightM: number,
       element: string,
       customMaterialId?: number,
+      edgeMode: "all" | "longSides" | 0 = "all",
     ) => {
       const area = widthM * heightM;
+      const widthCm = widthM * 100;
+      const heightCm = heightM * 100;
+      const edgeLengthCm =
+        edgeMode === "all"
+          ? 2 * (widthCm + heightCm)
+          : edgeMode === "longSides"
+            ? 2 * Math.max(widthCm, heightCm)
+            : 0;
+      addFrontEdgeLengthCm(edgeLengthCm);
       // Use custom material if provided, otherwise fall back to global front material
       let priceToUse = frontPricePerM2;
       let thicknessToUse = frontT;
@@ -547,8 +632,8 @@ export function calculateCutList(
       items.push({
         code,
         desc,
-        widthCm: widthM * 100,
-        heightCm: heightM * 100,
+        widthCm,
+        heightCm,
         thicknessMm: thicknessToUse * 1000,
         areaM2: area,
         cost: area * priceToUse,
@@ -605,6 +690,7 @@ export function calculateCutList(
         carcassD,
         span.height,
         elementKey,
+        "height",
       );
     });
 
@@ -628,6 +714,7 @@ export function calculateCutList(
         carcassD,
         span.height,
         elementKey,
+        "height",
       );
     });
 
@@ -653,6 +740,7 @@ export function calculateCutList(
           carcassD,
           span.height,
           elementKey,
+          "height",
         );
       });
 
@@ -672,6 +760,7 @@ export function calculateCutList(
           carcassD,
           span.height,
           elementKey,
+          "height",
         );
       });
     });
@@ -692,6 +781,7 @@ export function calculateCutList(
           innerW,
           carcassD,
           colLetter,
+          "width",
         );
 
         // Base front panel (sokl) - one per column
@@ -702,6 +792,7 @@ export function calculateCutList(
             innerW,
             baseH,
             colLetter,
+            "width",
           );
         }
 
@@ -715,6 +806,7 @@ export function calculateCutList(
           innerW,
           carcassD,
           needsModuleSplit ? topElementKey : colLetter,
+          "width",
         );
 
         // Module boundary panels (if h > 200cm) - 2 panels touching
@@ -725,6 +817,7 @@ export function calculateCutList(
             innerW,
             carcassD,
             colLetter,
+            "width",
           );
           addKorpus(
             `${colLetter}-MB2`,
@@ -735,6 +828,7 @@ export function calculateCutList(
             innerW,
             carcassD,
             topElementKey,
+            "width",
           );
         }
       }
@@ -762,6 +856,7 @@ export function calculateCutList(
             innerW,
             carcassD,
             colLetter,
+            "width",
           );
           shelfTargets.push({
             id: `${colLetter}-P${shelfIdx + 1}`,
@@ -807,6 +902,7 @@ export function calculateCutList(
             innerW,
             carcassD,
             topElementKey,
+            "width",
           );
           shelfTargets.push({
             id: `${colLetter}-TP${shelfIdx + 1}`,
@@ -865,6 +961,7 @@ export function calculateCutList(
             carcassD,
             compH,
             elementKey,
+            "height",
           );
         }
       }
@@ -884,6 +981,7 @@ export function calculateCutList(
             secW,
             carcassD,
             elementKey,
+            "width",
           );
           shelfTargets.push({
             id: `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
@@ -910,6 +1008,7 @@ export function calculateCutList(
           carcassD,
           compH,
           elementKey,
+          "height",
         );
       }
 
@@ -962,7 +1061,14 @@ export function calculateCutList(
             innerCols > 1
               ? `Fioka ${compKey} sek.${secIdx + 1} (${drwIdx + 1})`
               : `Fioka ${compKey} (${drwIdx + 1})`;
-          addFront(code, desc, drawerW, actualDrawerH, elementKey);
+          addFront(
+            code,
+            desc,
+            drawerW,
+            actualDrawerH,
+            elementKey,
+            isExternalDrawer ? "longSides" : 0,
+          );
           drawerTargets.push({
             id: code,
             element: elementKey,
@@ -996,6 +1102,7 @@ export function calculateCutList(
               secW,
               carcassD,
               elementKey,
+              "width",
             );
             shelfTargets.push({
               id: shelfCode,
@@ -1436,10 +1543,13 @@ export function calculateCutList(
         storeModuleBoundary !== undefined && storeModuleBoundary !== null;
 
       // Use store value if set, otherwise use calculated value when needsModuleSplit
-      const moduleBoundary = hasStoreModuleBoundary
-        ? storeModuleBoundary
-        : needsModuleSplit
-          ? calculatedModuleBoundaryY
+      const moduleBoundary =
+        h > TARGET_BOTTOM_HEIGHT
+          ? hasStoreModuleBoundary
+            ? storeModuleBoundary
+            : needsModuleSplit
+              ? calculatedModuleBoundaryY
+              : null
           : null;
       const hasModuleSplit = moduleBoundary !== null;
 
@@ -1865,6 +1975,11 @@ export function calculateCutList(
     // ==========================================
     const totalArea = items.reduce((a, b) => a + b.areaM2, 0);
     const materialCost = items.reduce((a, b) => a + b.cost, 0);
+    const totalCarcassEdgePrice =
+      (totalCarcassEdgeLengthCm / 100) * edgePricePerMeter;
+    const totalFrontEdgePrice =
+      (totalFrontEdgeLengthCm / 100) * frontEdgePricePerMeter;
+    const totalEdgePrice = totalCarcassEdgePrice + totalFrontEdgePrice;
 
     // Calculate handle totals
     const totalHandleCount = handleItems.reduce((sum, h) => sum + h.count, 0);
@@ -1949,7 +2064,8 @@ export function calculateCutList(
     });
 
     // Total cost includes materials + handles + accessories
-    const totalCost = materialCost + totalHandlePrice + totalAccessoryPrice;
+    const totalCost =
+      materialCost + totalEdgePrice + totalHandlePrice + totalAccessoryPrice;
 
     // Group by element
     const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
@@ -1989,6 +2105,31 @@ export function calculateCutList(
             .filter((it) => it.materialType === "back")
             .reduce((sum, it) => sum + it.cost, 0),
         ),
+      },
+      edge: {
+        lengthCm: totalCarcassEdgeLengthCm + totalFrontEdgeLengthCm,
+        lengthM: (totalCarcassEdgeLengthCm + totalFrontEdgeLengthCm) / 100,
+        price: Math.round(totalEdgePrice),
+        materialName:
+          edgeMat && frontEdgeMat && edgeMat.id === frontEdgeMat.id
+            ? edgeMat.name
+            : undefined,
+        carcass: edgeMat
+          ? {
+              lengthCm: totalCarcassEdgeLengthCm,
+              lengthM: totalCarcassEdgeLengthCm / 100,
+              price: Math.round(totalCarcassEdgePrice),
+              materialName: edgeMat.name ?? "Kant traka za korpuse",
+            }
+          : undefined,
+        front: frontEdgeMat
+          ? {
+              lengthCm: totalFrontEdgeLengthCm,
+              lengthM: totalFrontEdgeLengthCm / 100,
+              price: Math.round(totalFrontEdgePrice),
+              materialName: frontEdgeMat.name ?? "Kant traka za frontove",
+            }
+          : undefined,
       },
       handles: {
         count: totalHandleCount,

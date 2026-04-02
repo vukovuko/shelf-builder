@@ -277,8 +277,8 @@ export function AccessoriesClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Obrisati okov?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ova akcija je nepovratna. {selectedAccessories.length} stavki okova će
-              biti trajno obrisano zajedno sa svim varijantama.
+              Ova akcija je nepovratna. {selectedAccessories.length} stavki
+              okova će biti trajno obrisano zajedno sa svim varijantama.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

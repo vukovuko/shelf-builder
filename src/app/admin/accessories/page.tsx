@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { db } from "@/db/db";
-import { accessories, accessoryVariants, handleFinishes, handles } from "@/db/schema";
+import {
+  accessories,
+  accessoryVariants,
+  handleFinishes,
+  handles,
+} from "@/db/schema";
 import { asc, count, ilike, eq } from "drizzle-orm";
 import { AccessoriesClient } from "./AccessoriesClient";
 import { HandlesClient } from "../handles/HandlesClient";
@@ -11,8 +16,16 @@ type OkovTab = "accessories" | "handles";
 
 interface AccessoriesPageProps {
   searchParams?:
-    | Promise<{ page?: string | string[]; search?: string | string[]; tab?: string | string[] }>
-    | { page?: string | string[]; search?: string | string[]; tab?: string | string[] };
+    | Promise<{
+        page?: string | string[];
+        search?: string | string[];
+        tab?: string | string[];
+      }>
+    | {
+        page?: string | string[];
+        search?: string | string[];
+        tab?: string | string[];
+      };
 }
 
 export default async function AccessoriesPage({

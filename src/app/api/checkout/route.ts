@@ -64,6 +64,8 @@ const checkoutSchema = z
     materialId: z.number(),
     frontMaterialId: z.number(),
     backMaterialId: z.number().nullable(),
+    edgeMaterialId: z.number().nullable().optional(),
+    frontEdgeMaterialId: z.number().nullable().optional(),
     // Turnstile CAPTCHA token
     turnstileToken: z.string().min(1, "Verifikacija je obavezna"),
     // area and totalPrice are computed server-side, ignored if sent
@@ -121,6 +123,8 @@ export async function POST(request: Request) {
       materialId,
       frontMaterialId,
       backMaterialId,
+      edgeMaterialId,
+      frontEdgeMaterialId,
       turnstileToken,
       newsletter,
     } = validation.data;
@@ -230,6 +234,13 @@ export async function POST(request: Request) {
     );
     const resolvedBackMaterialIdRaw =
       snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
+    const resolvedEdgeMaterialIdRaw =
+      snapshot?.selectedEdgeMaterialId ?? edgeMaterialId ?? null;
+    const resolvedFrontEdgeMaterialIdRaw =
+      snapshot?.selectedFrontEdgeMaterialId ??
+      frontEdgeMaterialId ??
+      resolvedEdgeMaterialIdRaw ??
+      null;
 
     if (!Number.isFinite(resolvedMaterialId)) {
       return NextResponse.json(
@@ -273,6 +284,21 @@ export async function POST(request: Request) {
         ? Number(resolvedBackMaterialIdRaw)
         : null;
 
+    const resolvedEdgeMaterialId =
+      resolvedEdgeMaterialIdRaw != null &&
+      pricingMaterials.some(
+        (m) => Number(m.id) === Number(resolvedEdgeMaterialIdRaw),
+      )
+        ? Number(resolvedEdgeMaterialIdRaw)
+        : null;
+    const resolvedFrontEdgeMaterialId =
+      resolvedFrontEdgeMaterialIdRaw != null &&
+      pricingMaterials.some(
+        (m) => Number(m.id) === Number(resolvedFrontEdgeMaterialIdRaw),
+      )
+        ? Number(resolvedFrontEdgeMaterialIdRaw)
+        : null;
+
     if (resolvedBackMaterialId === null) {
       return NextResponse.json(
         { error: "Materijal za leđa je obavezan" },
@@ -287,6 +313,8 @@ export async function POST(request: Request) {
       selectedMaterialId: resolvedMaterialId,
       selectedFrontMaterialId: resolvedFrontMaterialId,
       selectedBackMaterialId: resolvedBackMaterialId,
+      selectedEdgeMaterialId: resolvedEdgeMaterialId,
+      selectedFrontEdgeMaterialId: resolvedFrontEdgeMaterialId,
       elementConfigs: snapshot?.elementConfigs ?? {},
       compartmentExtras: snapshot?.compartmentExtras ?? {},
       doorSelections: snapshot?.doorSelections ?? {},
@@ -329,6 +357,14 @@ export async function POST(request: Request) {
     const selectedBackMaterial = resolvedBackMaterialId
       ? pricingMaterials.find((m) => Number(m.id) === resolvedBackMaterialId)
       : null;
+    const selectedEdgeMaterial = resolvedEdgeMaterialId
+      ? pricingMaterials.find((m) => Number(m.id) === resolvedEdgeMaterialId)
+      : null;
+    const selectedFrontEdgeMaterial = resolvedFrontEdgeMaterialId
+      ? pricingMaterials.find(
+          (m) => Number(m.id) === resolvedFrontEdgeMaterialId,
+        )
+      : null;
 
     // Use price breakdown calculated by calcCutList (based on materialType field)
     const priceBreakdown = {
@@ -346,6 +382,32 @@ export async function POST(request: Request) {
         areaM2: pricing.priceBreakdown.back.areaM2,
         price: pricing.priceBreakdown.back.price,
         materialName: selectedBackMaterial?.name ?? "Nije izabrano",
+      },
+      edge: {
+        lengthCm: pricing.priceBreakdown.edge.lengthCm,
+        lengthM: pricing.priceBreakdown.edge.lengthM,
+        price: pricing.priceBreakdown.edge.price,
+        materialName:
+          pricing.priceBreakdown.edge.materialName ??
+          selectedEdgeMaterial?.name ??
+          selectedFrontEdgeMaterial?.name ??
+          "Nije izabrano",
+        carcass: pricing.priceBreakdown.edge.carcass
+          ? {
+              ...pricing.priceBreakdown.edge.carcass,
+              materialName:
+                selectedEdgeMaterial?.name ??
+                pricing.priceBreakdown.edge.carcass.materialName,
+            }
+          : undefined,
+        front: pricing.priceBreakdown.edge.front
+          ? {
+              ...pricing.priceBreakdown.edge.front,
+              materialName:
+                selectedFrontEdgeMaterial?.name ??
+                pricing.priceBreakdown.edge.front.materialName,
+            }
+          : undefined,
       },
       handles: {
         count: pricing.priceBreakdown.handles.count,

@@ -359,7 +359,26 @@ export const orders = pgTable(
       korpus: { areaM2: number; price: number; materialName: string };
       front: { areaM2: number; price: number; materialName: string };
       back: { areaM2: number; price: number; materialName: string };
+      edge?: {
+        lengthCm: number;
+        lengthM: number;
+        price: number;
+        materialName?: string;
+        carcass?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+        front?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+      };
       handles?: { count: number; price: number };
+      accessories?: { count: number; price: number };
     }>(),
     // Full cut list with CNC dimensions (stored at order time for historical accuracy)
     cutList: json("cutList").$type<{

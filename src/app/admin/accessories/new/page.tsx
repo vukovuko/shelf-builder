@@ -111,7 +111,9 @@ export default function NewAccessoryPage() {
               <Label htmlFor="category">Kategorija</Label>
               <Select
                 value={category}
-                onValueChange={(value) => setCategory(value as AccessoryCategory)}
+                onValueChange={(value) =>
+                  setCategory(value as AccessoryCategory)
+                }
               >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Izaberi kategoriju" />

@@ -122,6 +122,12 @@ export async function POST(req: Request) {
           selectedBackMaterialId: data.selectedBackMaterialId
             ? Number(data.selectedBackMaterialId)
             : null,
+          selectedEdgeMaterialId: data.selectedEdgeMaterialId
+            ? Number(data.selectedEdgeMaterialId)
+            : null,
+          selectedFrontEdgeMaterialId: data.selectedFrontEdgeMaterialId
+            ? Number(data.selectedFrontEdgeMaterialId)
+            : null,
           elementConfigs:
             data.elementConfigs as WardrobeSnapshot["elementConfigs"],
           compartmentExtras:

@@ -379,8 +379,9 @@ export function AccessoryDetailClient({
               {accessory.published ? "Objavljeno" : "Draft"}
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              {categoryOptions.find((option) => option.value === accessory.category)
-                ?.label ?? "Opšti okov"}
+              {categoryOptions.find(
+                (option) => option.value === accessory.category,
+              )?.label ?? "Opšti okov"}
             </p>
           </div>
         </div>
@@ -402,8 +403,8 @@ export function AccessoryDetailClient({
             <AlertDialogHeader>
               <AlertDialogTitle>Obrisati okov?</AlertDialogTitle>
               <AlertDialogDescription>
-                Ova akcija je nepovratna. Okov &quot;{accessory.name}&quot;
-                će biti trajno obrisan zajedno sa svim varijantama.
+                Ova akcija je nepovratna. Okov &quot;{accessory.name}&quot; će
+                biti trajno obrisan zajedno sa svim varijantama.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -448,7 +449,9 @@ export function AccessoryDetailClient({
               <Label htmlFor="category">Kategorija</Label>
               <Select
                 value={category}
-                onValueChange={(value) => setCategory(value as AccessoryCategory)}
+                onValueChange={(value) =>
+                  setCategory(value as AccessoryCategory)
+                }
               >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Izaberi kategoriju" />

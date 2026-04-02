@@ -22,6 +22,24 @@ interface PriceBreakdown {
   korpus: { areaM2: number; price: number; materialName: string };
   front: { areaM2: number; price: number; materialName: string };
   back: { areaM2: number; price: number; materialName: string };
+  edge: {
+    lengthCm: number;
+    lengthM: number;
+    price: number;
+    materialName?: string;
+    carcass?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+    front?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+  };
   handles?: { count: number; price: number };
 }
 
@@ -39,6 +57,7 @@ interface Order {
   materialName: string | null;
   frontMaterialName: string | null;
   backMaterialName: string | null;
+  edgeMaterialName: string | null;
   area: number;
   totalPrice: number;
   priceBreakdown: PriceBreakdown | null;
@@ -131,6 +150,10 @@ function formatPrice(price: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
+}
+
+function formatEdgeLength(lengthM: number): string {
+  return `${lengthM.toFixed(2)} m`;
 }
 
 export function OrderDetailClient({
@@ -266,6 +289,36 @@ export function OrderDetailClient({
                   <p className="text-sm">{order.backMaterialName}</p>
                 </div>
               )}
+              {order.priceBreakdown?.edge.carcass && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Kant traka korpus
+                  </p>
+                  <p className="text-sm">
+                    {order.priceBreakdown.edge.carcass.materialName}
+                  </p>
+                </div>
+              )}
+              {order.priceBreakdown?.edge.front && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Kant traka front
+                  </p>
+                  <p className="text-sm">
+                    {order.priceBreakdown.edge.front.materialName}
+                  </p>
+                </div>
+              )}
+              {!order.priceBreakdown?.edge.carcass &&
+                !order.priceBreakdown?.edge.front &&
+                order.edgeMaterialName && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Kant traka
+                  </p>
+                  <p className="text-sm">{order.edgeMaterialName}</p>
+                </div>
+                )}
             </div>
           </div>
 
@@ -322,6 +375,38 @@ export function OrderDetailClient({
                   {formatPrice(order.priceBreakdown.back.price)} RSD
                 </p>
               </div>
+              {order.priceBreakdown?.edge.carcass && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-sm text-muted-foreground">
+                    Kant traka korpus ({formatEdgeLength(order.priceBreakdown.edge.carcass.lengthM)})
+                  </p>
+                  <p className="text-sm tabular-nums">
+                    {formatPrice(order.priceBreakdown.edge.carcass.price)} RSD
+                  </p>
+                </div>
+              )}
+              {order.priceBreakdown?.edge.front && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-sm text-muted-foreground">
+                    Kant traka front ({formatEdgeLength(order.priceBreakdown.edge.front.lengthM)})
+                  </p>
+                  <p className="text-sm tabular-nums">
+                    {formatPrice(order.priceBreakdown.edge.front.price)} RSD
+                  </p>
+                </div>
+              )}
+              {!order.priceBreakdown?.edge.carcass &&
+                !order.priceBreakdown?.edge.front &&
+                order.edgeMaterialName && (
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <p className="text-sm text-muted-foreground">
+                    Kant traka ({formatEdgeLength(order.priceBreakdown.edge.lengthM)})
+                  </p>
+                  <p className="text-sm tabular-nums">
+                    {formatPrice(order.priceBreakdown.edge.price)} RSD
+                  </p>
+                </div>
+                )}
               {order.priceBreakdown.handles && (
                 <div className="flex items-center justify-between px-5 py-3.5">
                   <p className="text-sm text-muted-foreground">

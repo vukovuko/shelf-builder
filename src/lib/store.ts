@@ -14,6 +14,12 @@ import {
 } from "./wardrobe-constants";
 import { getDefaultBoundariesX } from "./wardrobe-utils";
 import { reconcileWardrobeState } from "./reconcileWardrobeState";
+import {
+  isBackMaterialCategory,
+  isEdgeTapeCategory,
+  isFrontMaterialCategory,
+  isKorpusMaterialCategory,
+} from "./material-categories";
 
 // Define the view modes for the application
 export type ViewMode = "3D" | "2D" | "Sizing";
@@ -198,6 +204,8 @@ export interface ShelfState {
   selectedMaterialId: number;
   selectedFrontMaterialId?: number;
   selectedBackMaterialId?: number;
+  selectedEdgeMaterialId?: number;
+  selectedFrontEdgeMaterialId?: number;
   showDimensions: boolean;
   // Materials from database
   materials: Material[];
@@ -223,6 +231,8 @@ export interface ShelfState {
   setSelectedMaterialId: (id: number) => void;
   setSelectedFrontMaterialId: (id: number) => void;
   setSelectedBackMaterialId: (id: number) => void;
+  setSelectedEdgeMaterialId: (id: number) => void;
+  setSelectedFrontEdgeMaterialId: (id: number) => void;
   setShowDimensions: (show: boolean) => void;
   showEdgesOnly: boolean;
   setShowEdgesOnly: (show: boolean) => void;
@@ -506,6 +516,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
   selectedMaterialId: 1, // default to first material
   selectedFrontMaterialId: undefined, // front/door material (Lica/Vrata)
   selectedBackMaterialId: undefined,
+  selectedEdgeMaterialId: undefined,
+  selectedFrontEdgeMaterialId: undefined,
   showDimensions: true,
   // Materials from database
   materials: [],
@@ -516,25 +528,16 @@ export const useShelfStore = create<ShelfState>((set) => ({
 
       // Find first material for each category type
       const firstKorpusMaterial = materials.find((m) =>
-        m.categories.some(
-          (c) =>
-            c.toLowerCase().includes("korpus") ||
-            c.toLowerCase().includes("18mm"),
-        ),
+        m.categories.some((category) => isKorpusMaterialCategory(category)),
       );
       const firstFrontMaterial = materials.find((m) =>
-        m.categories.some(
-          (c) =>
-            c.toLowerCase().includes("lica") ||
-            c.toLowerCase().includes("vrata"),
-        ),
+        m.categories.some((category) => isFrontMaterialCategory(category)),
       );
       const firstBackMaterial = materials.find((m) =>
-        m.categories.some(
-          (c) =>
-            c.toLowerCase().includes("leđa") ||
-            c.toLowerCase().includes("ledja"),
-        ),
+        m.categories.some((category) => isBackMaterialCategory(category)),
+      );
+      const firstEdgeMaterial = materials.find((m) =>
+        m.categories.some((category) => isEdgeTapeCategory(category)),
       );
 
       // Fallback to first material if category not found
@@ -556,11 +559,28 @@ export const useShelfStore = create<ShelfState>((set) => ({
           ? state.selectedBackMaterialId
           : firstBackMaterial?.id;
 
+      const selectedEdgeMaterialId =
+        state.selectedEdgeMaterialId &&
+        validIds.has(state.selectedEdgeMaterialId)
+          ? state.selectedEdgeMaterialId
+          : firstEdgeMaterial?.id;
+
+      const selectedFrontEdgeMaterialId =
+        state.selectedFrontEdgeMaterialId &&
+        validIds.has(state.selectedFrontEdgeMaterialId)
+          ? state.selectedFrontEdgeMaterialId
+          : state.selectedEdgeMaterialId &&
+              validIds.has(state.selectedEdgeMaterialId)
+            ? state.selectedEdgeMaterialId
+            : firstEdgeMaterial?.id;
+
       return {
         materials,
         selectedMaterialId,
         selectedFrontMaterialId,
         selectedBackMaterialId,
+        selectedEdgeMaterialId,
+        selectedFrontEdgeMaterialId,
       };
     }),
   // Handles from database
@@ -888,6 +908,9 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setSelectedMaterialId: (id) => set({ selectedMaterialId: id }),
   setSelectedFrontMaterialId: (id) => set({ selectedFrontMaterialId: id }),
   setSelectedBackMaterialId: (id) => set({ selectedBackMaterialId: id }),
+  setSelectedEdgeMaterialId: (id) => set({ selectedEdgeMaterialId: id }),
+  setSelectedFrontEdgeMaterialId: (id) =>
+    set({ selectedFrontEdgeMaterialId: id }),
   setShowDimensions: (show) => set({ showDimensions: show }),
   showEdgesOnly: false,
   setShowEdgesOnly: (show) => set({ showEdgesOnly: show }),
@@ -2390,6 +2413,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         selectedMaterialId: 1,
         selectedFrontMaterialId: undefined,
         selectedBackMaterialId: undefined,
+        selectedEdgeMaterialId: undefined,
+        selectedFrontEdgeMaterialId: undefined,
         // Preserve materials, handles, accessories (loaded from DB)
         materials: state.materials,
         handles: state.handles,

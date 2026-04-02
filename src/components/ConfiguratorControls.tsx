@@ -61,6 +61,12 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { calculateCutList } from "@/lib/calcCutList";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
+import {
+  isBackMaterialCategory,
+  isEdgeTapeCategory,
+  isFrontMaterialCategory,
+  isKorpusMaterialCategory,
+} from "@/lib/material-categories";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { useRulePreview } from "@/hooks/use-rule-preview";
@@ -530,8 +536,20 @@ export function ConfiguratorControls({
   const selectedBackMaterialId = useShelfStore(
     (state: ShelfState) => state.selectedBackMaterialId,
   );
+  const selectedEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedEdgeMaterialId,
+  );
+  const selectedFrontEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedFrontEdgeMaterialId,
+  );
   const setSelectedBackMaterialId = useShelfStore(
     (state: ShelfState) => state.setSelectedBackMaterialId,
+  );
+  const setSelectedEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.setSelectedEdgeMaterialId,
+  );
+  const setSelectedFrontEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.setSelectedFrontEdgeMaterialId,
   );
   const isSaving = useShelfStore((state: ShelfState) => state.isSaving);
   const lastSaveTime = useShelfStore((state: ShelfState) => state.lastSaveTime);
@@ -540,25 +558,16 @@ export function ConfiguratorControls({
   React.useEffect(() => {
     // Group materials by category type
     const korpusMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          !c.toLowerCase().includes("leđa") &&
-          !c.toLowerCase().includes("ledja") &&
-          !c.toLowerCase().includes("lica") &&
-          !c.toLowerCase().includes("vrata"),
-      ),
+      m.categories.some((category) => isKorpusMaterialCategory(category)),
     );
     const frontMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
-      ),
+      m.categories.some((category) => isFrontMaterialCategory(category)),
     );
     const backMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
-      ),
+      m.categories.some((category) => isBackMaterialCategory(category)),
+    );
+    const edgeMaterials = materials.filter((m) =>
+      m.categories.some((category) => isEdgeTapeCategory(category)),
     );
 
     // Validate korpus selection
@@ -590,14 +599,36 @@ export function ConfiguratorControls({
         setSelectedBackMaterialId(backMaterials[0].id);
       }
     }
+
+    if (
+      !selectedEdgeMaterialId ||
+      !edgeMaterials.some((m) => m.id === selectedEdgeMaterialId)
+    ) {
+      if (edgeMaterials.length > 0) {
+        setSelectedEdgeMaterialId(edgeMaterials[0].id);
+      }
+    }
+
+    if (
+      !selectedFrontEdgeMaterialId ||
+      !edgeMaterials.some((m) => m.id === selectedFrontEdgeMaterialId)
+    ) {
+      if (edgeMaterials.length > 0) {
+        setSelectedFrontEdgeMaterialId(edgeMaterials[0].id);
+      }
+    }
   }, [
     materials,
     selectedMaterialId,
     selectedFrontMaterialId,
     selectedBackMaterialId,
+    selectedEdgeMaterialId,
+    selectedFrontEdgeMaterialId,
     setSelectedMaterialId,
     setSelectedFrontMaterialId,
     setSelectedBackMaterialId,
+    setSelectedEdgeMaterialId,
+    setSelectedFrontEdgeMaterialId,
   ]);
 
   // Base (baza) state - needed for cutList
@@ -688,6 +719,8 @@ export function ConfiguratorControls({
           selectedMaterialId,
           selectedFrontMaterialId,
           selectedBackMaterialId,
+          selectedEdgeMaterialId,
+          selectedFrontEdgeMaterialId,
           elementConfigs,
           compartmentExtras,
           doorSelections,
@@ -720,6 +753,8 @@ export function ConfiguratorControls({
       selectedMaterialId,
       selectedFrontMaterialId,
       selectedBackMaterialId,
+      selectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
       elementConfigs,
       compartmentExtras,
       doorSelections,
@@ -763,6 +798,8 @@ export function ConfiguratorControls({
       selectedMaterialId,
       selectedFrontMaterialId,
       selectedBackMaterialId,
+      selectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
       elementConfigs,
       compartmentExtras,
       doorSelections,
@@ -1276,6 +1313,28 @@ export function ConfiguratorControls({
             ? (materials.find(
                 (m) => String(m.id) === String(selectedBackMaterialId),
               )?.productCode ?? null)
+            : null,
+          edgeMaterialId: selectedEdgeMaterialId ?? null,
+          edgeMaterialName: selectedEdgeMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedEdgeMaterialId),
+              )?.name ?? null)
+            : null,
+          edgeMaterialProductCode: selectedEdgeMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedEdgeMaterialId),
+              )?.productCode ?? null)
+            : null,
+          frontEdgeMaterialId: selectedFrontEdgeMaterialId ?? null,
+          frontEdgeMaterialName: selectedFrontEdgeMaterialId
+            ? materials.find(
+                (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
+              )?.name ?? null
+            : null,
+          frontEdgeMaterialProductCode: selectedFrontEdgeMaterialId
+            ? materials.find(
+                (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
+              )?.productCode ?? null
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,

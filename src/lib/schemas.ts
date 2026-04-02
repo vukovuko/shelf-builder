@@ -54,6 +54,30 @@ export const priceBreakdownSchema = z.object({
     price: z.number(),
     materialName: z.string(),
   }),
+  edge: z
+    .object({
+      lengthCm: z.number(),
+      lengthM: z.number(),
+      price: z.number(),
+      materialName: z.string().optional(),
+      carcass: z
+        .object({
+          lengthCm: z.number(),
+          lengthM: z.number(),
+          price: z.number(),
+          materialName: z.string(),
+        })
+        .optional(),
+      front: z
+        .object({
+          lengthCm: z.number(),
+          lengthM: z.number(),
+          price: z.number(),
+          materialName: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
   handles: z
     .object({
       count: z.number(),
@@ -134,6 +158,14 @@ export const wardrobeSnapshotSchema = z.object({
   selectedMaterialId: z.union([z.number(), z.string()]).optional(),
   selectedFrontMaterialId: z.union([z.number(), z.string()]).optional(),
   selectedBackMaterialId: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional(),
+  selectedEdgeMaterialId: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional(),
+  selectedFrontEdgeMaterialId: z
     .union([z.number(), z.string()])
     .nullable()
     .optional(),

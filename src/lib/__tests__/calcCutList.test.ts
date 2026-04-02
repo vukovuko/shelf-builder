@@ -9,6 +9,7 @@ const mockMaterials = [
   { id: 1, price: 5000, thickness: 18, categories: ["iverica"] },
   { id: 2, price: 8000, thickness: 18, categories: ["front"] },
   { id: 3, price: 3000, thickness: 5, categories: ["leda"] },
+  { id: 4, price: 120, thickness: 1, categories: ["kant traka"] },
 ];
 
 describe("calculateCutList", () => {
@@ -651,6 +652,121 @@ describe("calculateCutList", () => {
         result.priceBreakdown.handles.price;
 
       expect(Math.abs(result.totalCost - sumBreakdown)).toBeLessThan(1); // Allow for rounding
+    });
+
+    it("splits edge tape pricing between carcass and fronts", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        selectedEdgeMaterialId: 4,
+        selectedFrontEdgeMaterialId: 4,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: { A1: "left" },
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const withoutEdge = calculateCutList(
+        {
+          ...snapshot,
+          selectedEdgeMaterialId: null,
+          selectedFrontEdgeMaterialId: null,
+        },
+        mockMaterials,
+      );
+      const withEdge = calculateCutList(snapshot, mockMaterials);
+
+      expect(withEdge.priceBreakdown.edge.carcass?.lengthM).toBeCloseTo(
+        5.928,
+        3,
+      );
+      expect(withEdge.priceBreakdown.edge.front?.lengthM).toBeGreaterThan(0);
+      expect(withEdge.priceBreakdown.edge.lengthM).toBeCloseTo(
+        (withEdge.priceBreakdown.edge.carcass?.lengthM ?? 0) +
+          (withEdge.priceBreakdown.edge.front?.lengthM ?? 0),
+        6,
+      );
+      expect(withEdge.priceBreakdown.edge.price).toBeGreaterThan(
+        withoutEdge.priceBreakdown.edge.price,
+      );
+      expect(withEdge.totalCost).toBeCloseTo(
+        withoutEdge.totalCost + withEdge.priceBreakdown.edge.price,
+        0,
+      );
+    });
+
+    it("ignores stale module boundaries for a 100x100 single door wardrobe", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 100,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        selectedEdgeMaterialId: 4,
+        selectedFrontEdgeMaterialId: 4,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: { A1: "left" },
+        hasBase: false,
+        baseHeight: 0,
+        columnModuleBoundaries: { 0: 2 },
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+
+      expect(result.priceBreakdown.edge.front?.lengthM).toBeCloseTo(3.926, 3);
+      expect(result.priceBreakdown.edge.carcass?.lengthM).toBeCloseTo(3.928, 3);
+    });
+
+    it("does not count front edge tape for internal drawers behind doors", () => {
+      const externalSnapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        selectedEdgeMaterialId: 4,
+        selectedFrontEdgeMaterialId: 4,
+        elementConfigs: {
+          A1: {
+            columns: 1,
+            rowCounts: [0],
+            drawerCounts: [2],
+            drawersExternal: [true],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const internalSnapshot: WardrobeSnapshot = {
+        ...externalSnapshot,
+        elementConfigs: {
+          A1: {
+            columns: 1,
+            rowCounts: [0],
+            drawerCounts: [2],
+            drawersExternal: [false],
+          },
+        },
+      };
+
+      const externalResult = calculateCutList(externalSnapshot, mockMaterials);
+      const internalResult = calculateCutList(internalSnapshot, mockMaterials);
+
+      expect(externalResult.priceBreakdown.edge.front?.lengthCm).toBeGreaterThan(
+        internalResult.priceBreakdown.edge.front?.lengthCm ?? 0,
+      );
+      expect(internalResult.priceBreakdown.edge.front?.lengthCm ?? 0).toBe(0);
     });
   });
 
@@ -1644,7 +1760,7 @@ describe("calculateCutList", () => {
     it("doorGroups materialId overrides global front material", () => {
       const extraMaterials = [
         ...mockMaterials,
-        { id: 4, price: 12000, thickness: 18, categories: ["front"] },
+        { id: 5, price: 12000, thickness: 18, categories: ["front"] },
       ];
 
       const snapshot: WardrobeSnapshot = {
@@ -1666,7 +1782,7 @@ describe("calculateCutList", () => {
             type: "left",
             compartments: ["A1"],
             column: "A",
-            materialId: 4, // Override: 12000/m²
+            materialId: 5, // Override: 12000/m²
           },
         ],
       };

@@ -40,6 +40,8 @@ export async function POST(req: Request) {
       materialId,
       frontMaterialId,
       backMaterialId,
+      edgeMaterialId,
+      frontEdgeMaterialId,
       totalPrice,
       totalArea,
       customerEmail,
@@ -216,9 +218,24 @@ export async function POST(req: Request) {
     );
     const resolvedBackMaterialIdRaw =
       snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
+    const resolvedEdgeMaterialIdRaw =
+      snapshot?.selectedEdgeMaterialId ?? edgeMaterialId ?? null;
+    const resolvedFrontEdgeMaterialIdRaw =
+      snapshot?.selectedFrontEdgeMaterialId ??
+      frontEdgeMaterialId ??
+      resolvedEdgeMaterialIdRaw ??
+      null;
     const resolvedBackMaterialId =
       resolvedBackMaterialIdRaw != null
         ? Number(resolvedBackMaterialIdRaw)
+        : null;
+    const resolvedEdgeMaterialId =
+      resolvedEdgeMaterialIdRaw != null
+        ? Number(resolvedEdgeMaterialIdRaw)
+        : null;
+    const resolvedFrontEdgeMaterialId =
+      resolvedFrontEdgeMaterialIdRaw != null
+        ? Number(resolvedFrontEdgeMaterialIdRaw)
         : null;
     const pricingSnapshot = {
       width: Number(snapshot?.width ?? 0),
@@ -227,6 +244,8 @@ export async function POST(req: Request) {
       selectedMaterialId: resolvedMaterialId,
       selectedFrontMaterialId: resolvedFrontMaterialId,
       selectedBackMaterialId: resolvedBackMaterialId,
+      selectedEdgeMaterialId: resolvedEdgeMaterialId,
+      selectedFrontEdgeMaterialId: resolvedFrontEdgeMaterialId,
       elementConfigs: snapshot?.elementConfigs ?? {},
       compartmentExtras: snapshot?.compartmentExtras ?? {},
       doorSelections: snapshot?.doorSelections ?? {},

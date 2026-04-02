@@ -27,15 +27,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { AVAILABLE_MATERIAL_CATEGORIES } from "@/lib/material-categories";
 
-const AVAILABLE_CATEGORIES: Option[] = [
-  { value: "Materijal za Korpus (18mm)", label: "Materijal za Korpus (18mm)" },
-  {
-    value: "Materijal za Lica/Vrata (18mm)",
-    label: "Materijal za Lica/Vrata (18mm)",
-  },
-  { value: "Materijal za Leđa (3mm)", label: "Materijal za Leđa (3mm)" },
-];
+const AVAILABLE_CATEGORIES: Option[] = AVAILABLE_MATERIAL_CATEGORIES.map(
+  (category) => ({ value: category, label: category }),
+);
 
 interface Material {
   id: number;

@@ -10,6 +10,8 @@ export function getWardrobeSnapshot() {
     selectedMaterialId: s.selectedMaterialId,
     selectedFrontMaterialId: s.selectedFrontMaterialId,
     selectedBackMaterialId: s.selectedBackMaterialId,
+    selectedEdgeMaterialId: s.selectedEdgeMaterialId,
+    selectedFrontEdgeMaterialId: s.selectedFrontEdgeMaterialId,
     elementConfigs: s.elementConfigs,
     compartmentExtras: s.compartmentExtras,
     doorSelections: s.doorSelections,
@@ -57,6 +59,13 @@ export function applyWardrobeSnapshot(data: any) {
     st.setSelectedFrontMaterialId(data.selectedFrontMaterialId);
   if (data.selectedBackMaterialId)
     st.setSelectedBackMaterialId(data.selectedBackMaterialId);
+  if (data.selectedEdgeMaterialId != null)
+    st.setSelectedEdgeMaterialId(data.selectedEdgeMaterialId);
+  if (data.selectedFrontEdgeMaterialId != null) {
+    st.setSelectedFrontEdgeMaterialId(data.selectedFrontEdgeMaterialId);
+  } else if (data.selectedEdgeMaterialId != null) {
+    st.setSelectedFrontEdgeMaterialId(data.selectedEdgeMaterialId);
+  }
   Object.entries(data.elementConfigs || {}).forEach(([key, cfg]: any) => {
     st.setElementColumns(key, cfg.columns || 1);
     (cfg.rowCounts || []).forEach((cnt: number, idx: number) =>

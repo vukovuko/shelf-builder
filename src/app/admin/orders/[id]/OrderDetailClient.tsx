@@ -51,6 +51,24 @@ interface PriceBreakdown {
   korpus: { areaM2: number; price: number; materialName: string };
   front: { areaM2: number; price: number; materialName: string };
   back: { areaM2: number; price: number; materialName: string };
+  edge: {
+    lengthCm: number;
+    lengthM: number;
+    price: number;
+    materialName?: string;
+    carcass?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+    front?: {
+      lengthCm: number;
+      lengthM: number;
+      price: number;
+      materialName: string;
+    };
+  };
   handles?: { count: number; price: number };
 }
 
@@ -104,6 +122,7 @@ interface Order {
   frontMaterialName: string | null;
   backMaterialId: number | null;
   backMaterialName: string | null;
+  edgeMaterialName: string | null;
   area: number;
   totalPrice: number;
   priceBreakdown: PriceBreakdown | null;
@@ -301,6 +320,12 @@ export function OrderDetailClient({
   const selectedBackMaterialId = useShelfStore(
     (state: ShelfState) => state.selectedBackMaterialId,
   );
+  const selectedEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedEdgeMaterialId,
+  );
+  const selectedFrontEdgeMaterialId = useShelfStore(
+    (state: ShelfState) => state.selectedFrontEdgeMaterialId,
+  );
   const elementConfigs = useShelfStore(
     (state: ShelfState) => state.elementConfigs,
   );
@@ -348,6 +373,8 @@ export function OrderDetailClient({
           selectedMaterialId,
           selectedFrontMaterialId,
           selectedBackMaterialId,
+          selectedEdgeMaterialId,
+          selectedFrontEdgeMaterialId,
           elementConfigs,
           compartmentExtras,
           doorSelections,
@@ -376,6 +403,8 @@ export function OrderDetailClient({
       selectedMaterialId,
       selectedFrontMaterialId,
       selectedBackMaterialId,
+      selectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
       elementConfigs,
       compartmentExtras,
       doorSelections,
@@ -944,6 +973,65 @@ export function OrderDetailClient({
                             {order.priceBreakdown
                               ? `${order.priceBreakdown.back.price.toLocaleString("sr-RS")} RSD`
                               : "-"}
+                          </td>
+                        </tr>
+                      )}
+                      {(order.priceBreakdown?.edge.carcass ||
+                        (!order.priceBreakdown?.edge.front &&
+                          order.edgeMaterialName)) && (
+                        <tr>
+                          <td className="py-2.5 pr-2">
+                            <div className="text-muted-foreground text-xs">
+                              {order.priceBreakdown?.edge.carcass
+                                ? "Kant traka korpus"
+                                : "Kant traka"}
+                            </div>
+                            <div
+                              className="font-medium max-w-[180px] sm:max-w-full"
+                              title={
+                                order.priceBreakdown?.edge.carcass?.materialName ||
+                                order.edgeMaterialName ||
+                                ""
+                              }
+                            >
+                              {order.priceBreakdown?.edge.carcass?.materialName ||
+                                order.edgeMaterialName}
+                            </div>
+                          </td>
+                          <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                            {order.priceBreakdown
+                              ? order.priceBreakdown.edge.carcass
+                                ? `${order.priceBreakdown.edge.carcass.lengthM.toFixed(2)} m`
+                                : `${order.priceBreakdown.edge.lengthM.toFixed(2)} m`
+                              : "-"}
+                          </td>
+                          <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                            {order.priceBreakdown
+                              ? order.priceBreakdown.edge.carcass
+                                ? `${order.priceBreakdown.edge.carcass.price.toLocaleString("sr-RS")} RSD`
+                                : `${order.priceBreakdown.edge.price.toLocaleString("sr-RS")} RSD`
+                              : "-"}
+                          </td>
+                        </tr>
+                      )}
+                      {order.priceBreakdown?.edge.front && (
+                        <tr>
+                          <td className="py-2.5 pr-2">
+                            <div className="text-muted-foreground text-xs">
+                              Kant traka lica/frontovi/vrata
+                            </div>
+                            <div
+                              className="font-medium max-w-[180px] sm:max-w-full"
+                              title={order.priceBreakdown.edge.front.materialName}
+                            >
+                              {order.priceBreakdown.edge.front.materialName}
+                            </div>
+                          </td>
+                          <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                            {`${order.priceBreakdown.edge.front.lengthM.toFixed(2)} m`}
+                          </td>
+                          <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                            {`${order.priceBreakdown.edge.front.price.toLocaleString("sr-RS")} RSD`}
                           </td>
                         </tr>
                       )}

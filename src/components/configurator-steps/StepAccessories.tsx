@@ -64,8 +64,7 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
 
       // Generic fallback for any future accessories with pricing rules
       if (acc.pricingRule === "perDoor" && totalDoorLeaves === 0) return false;
-      if (acc.pricingRule === "perDrawer" && totalDrawers === 0)
-        return false;
+      if (acc.pricingRule === "perDrawer" && totalDrawers === 0) return false;
 
       return true;
     });
@@ -83,7 +82,9 @@ export function StepAccessories({ compact }: { compact?: boolean } = {}) {
       }
       if (acc.variants.length === 0) continue;
       const currentSelection = selectedAccessories[acc.id];
-      const isCurrentVisible = acc.variants.some((v) => v.id === currentSelection);
+      const isCurrentVisible = acc.variants.some(
+        (v) => v.id === currentSelection,
+      );
       if (currentSelection == null || !isCurrentVisible) {
         setSelectedAccessory(acc.id, acc.variants[0].id);
       }

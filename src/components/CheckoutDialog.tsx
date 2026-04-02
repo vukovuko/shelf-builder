@@ -45,12 +45,36 @@ interface CheckoutDialogProps {
     backMaterialId: number | null;
     backMaterialName: string | null;
     backMaterialProductCode: string | null;
+    edgeMaterialId: number | null;
+    edgeMaterialName: string | null;
+    edgeMaterialProductCode: string | null;
+    frontEdgeMaterialId: number | null;
+    frontEdgeMaterialName: string | null;
+    frontEdgeMaterialProductCode: string | null;
     totalArea: number; // in cm²
     totalPrice: number; // in RSD
     priceBreakdown: {
       korpus: { areaM2: number; price: number };
       front: { areaM2: number; price: number };
       back: { areaM2: number; price: number };
+      edge: {
+        lengthCm: number;
+        lengthM: number;
+        price: number;
+        materialName?: string;
+        carcass?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+        front?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+      };
       handles?: { count: number; price: number };
       accessories?: { count: number; price: number };
     };
@@ -184,6 +208,8 @@ export function CheckoutDialog({
           materialId: orderData.materialId,
           frontMaterialId: orderData.frontMaterialId,
           backMaterialId: orderData.backMaterialId,
+          edgeMaterialId: orderData.edgeMaterialId,
+          frontEdgeMaterialId: orderData.frontEdgeMaterialId,
           totalPrice: Math.round(orderData.totalPrice),
           totalArea: orderData.totalArea,
           customerEmail: formData.customerEmail,
@@ -217,6 +243,8 @@ export function CheckoutDialog({
     orderData.materialId,
     orderData.frontMaterialId,
     orderData.backMaterialId,
+    orderData.edgeMaterialId,
+    orderData.frontEdgeMaterialId,
     orderData.totalPrice,
     orderData.totalArea,
     formData.customerEmail,
@@ -357,6 +385,8 @@ export function CheckoutDialog({
           materialId: orderData.materialId,
           frontMaterialId: orderData.frontMaterialId,
           backMaterialId: orderData.backMaterialId,
+          edgeMaterialId: orderData.edgeMaterialId,
+          frontEdgeMaterialId: orderData.frontEdgeMaterialId,
           area: orderData.totalArea,
           totalPrice: Math.round(orderData.totalPrice),
           turnstileToken,

@@ -3,6 +3,12 @@
 import React, { useState } from "react";
 import { Menu } from "lucide-react";
 import { toast } from "sonner";
+import {
+  isBackMaterialCategory,
+  isEdgeTapeCategory,
+  isFrontMaterialCategory,
+  isKorpusMaterialCategory,
+} from "@/lib/material-categories";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { calculateCutList } from "@/lib/calcCutList";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
@@ -58,6 +64,12 @@ export function MobileBottomTabs({
   const selectedBackMaterialId = useShelfStore(
     (s: ShelfState) => s.selectedBackMaterialId,
   );
+  const selectedEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedEdgeMaterialId,
+  );
+  const selectedFrontEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedFrontEdgeMaterialId,
+  );
   const setSelectedMaterialId = useShelfStore(
     (s: ShelfState) => s.setSelectedMaterialId,
   );
@@ -67,30 +79,27 @@ export function MobileBottomTabs({
   const setSelectedBackMaterialId = useShelfStore(
     (s: ShelfState) => s.setSelectedBackMaterialId,
   );
+  const setSelectedEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedEdgeMaterialId,
+  );
+  const setSelectedFrontEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedFrontEdgeMaterialId,
+  );
 
   // Auto-select first material for each category type if current selection is invalid
   // (Same logic as ConfiguratorControls - ensures materials are set even without opening drawer)
   React.useEffect(() => {
     const korpusMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          !c.toLowerCase().includes("leđa") &&
-          !c.toLowerCase().includes("ledja") &&
-          !c.toLowerCase().includes("lica") &&
-          !c.toLowerCase().includes("vrata"),
-      ),
+      m.categories.some((category) => isKorpusMaterialCategory(category)),
     );
     const frontMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          c.toLowerCase().includes("lica") || c.toLowerCase().includes("vrata"),
-      ),
+      m.categories.some((category) => isFrontMaterialCategory(category)),
     );
     const backMaterials = materials.filter((m) =>
-      m.categories.some(
-        (c) =>
-          c.toLowerCase().includes("leđa") || c.toLowerCase().includes("ledja"),
-      ),
+      m.categories.some((category) => isBackMaterialCategory(category)),
+    );
+    const edgeMaterials = materials.filter((m) =>
+      m.categories.some((category) => isEdgeTapeCategory(category)),
     );
 
     if (
@@ -117,14 +126,36 @@ export function MobileBottomTabs({
         setSelectedBackMaterialId(backMaterials[0].id);
       }
     }
+
+    if (
+      !selectedEdgeMaterialId ||
+      !edgeMaterials.some((m) => m.id === selectedEdgeMaterialId)
+    ) {
+      if (edgeMaterials.length > 0) {
+        setSelectedEdgeMaterialId(edgeMaterials[0].id);
+      }
+    }
+
+    if (
+      !selectedFrontEdgeMaterialId ||
+      !edgeMaterials.some((m) => m.id === selectedFrontEdgeMaterialId)
+    ) {
+      if (edgeMaterials.length > 0) {
+        setSelectedFrontEdgeMaterialId(edgeMaterials[0].id);
+      }
+    }
   }, [
     materials,
     selectedMaterialId,
     selectedFrontMaterialId,
     selectedBackMaterialId,
+    selectedEdgeMaterialId,
+    selectedFrontEdgeMaterialId,
     setSelectedMaterialId,
     setSelectedFrontMaterialId,
     setSelectedBackMaterialId,
+    setSelectedEdgeMaterialId,
+    setSelectedFrontEdgeMaterialId,
   ]);
 
   const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
@@ -169,6 +200,8 @@ export function MobileBottomTabs({
           selectedMaterialId,
           selectedFrontMaterialId,
           selectedBackMaterialId,
+          selectedEdgeMaterialId,
+          selectedFrontEdgeMaterialId,
           elementConfigs,
           compartmentExtras,
           doorSelections,
@@ -197,6 +230,8 @@ export function MobileBottomTabs({
       selectedMaterialId,
       selectedFrontMaterialId,
       selectedBackMaterialId,
+      selectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
       elementConfigs,
       compartmentExtras,
       doorSelections,
@@ -295,6 +330,8 @@ export function MobileBottomTabs({
       selectedMaterialId,
       selectedFrontMaterialId,
       selectedBackMaterialId,
+      selectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
       elementConfigs,
       compartmentExtras,
       doorSelections,
@@ -434,6 +471,28 @@ export function MobileBottomTabs({
             ? (materials.find(
                 (m) => String(m.id) === String(selectedBackMaterialId),
               )?.productCode ?? null)
+            : null,
+          edgeMaterialId: selectedEdgeMaterialId ?? null,
+          edgeMaterialName: selectedEdgeMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedEdgeMaterialId),
+              )?.name ?? null)
+            : null,
+          edgeMaterialProductCode: selectedEdgeMaterialId
+            ? (materials.find(
+                (m) => String(m.id) === String(selectedEdgeMaterialId),
+              )?.productCode ?? null)
+            : null,
+          frontEdgeMaterialId: selectedFrontEdgeMaterialId ?? null,
+          frontEdgeMaterialName: selectedFrontEdgeMaterialId
+            ? materials.find(
+                (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
+              )?.name ?? null
+            : null,
+          frontEdgeMaterialProductCode: selectedFrontEdgeMaterialId
+            ? materials.find(
+                (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
+              )?.productCode ?? null
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,

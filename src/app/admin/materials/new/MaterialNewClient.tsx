@@ -11,12 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-
-const AVAILABLE_CATEGORIES = [
-  "Materijal za Korpus (18mm)",
-  "Materijal za Lica/Vrata (18mm)",
-  "Materijal za Leđa (3mm)",
-];
+import { AVAILABLE_MATERIAL_CATEGORIES } from "@/lib/material-categories";
 
 export function MaterialNewClient() {
   const router = useRouter();
@@ -172,7 +167,7 @@ export function MaterialNewClient() {
           <div className="space-y-3 pt-2">
             <Label>Kategorije *</Label>
             <div className="space-y-2">
-              {AVAILABLE_CATEGORIES.map((cat) => (
+              {AVAILABLE_MATERIAL_CATEGORIES.map((cat) => (
                 <div key={cat} className="flex items-center space-x-2">
                   <Checkbox
                     id={cat}

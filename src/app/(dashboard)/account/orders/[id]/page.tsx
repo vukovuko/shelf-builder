@@ -79,6 +79,11 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
   // Get front and back material names
   let frontMaterialName: string | null = null;
   let backMaterialName: string | null = null;
+  const edgeMaterialName =
+    order.priceBreakdown?.edge?.materialName ??
+    order.priceBreakdown?.edge?.carcass?.materialName ??
+    order.priceBreakdown?.edge?.front?.materialName ??
+    null;
 
   if (order.frontMaterialId) {
     const [frontMat] = await db
@@ -140,6 +145,7 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
         materialName: order.materialName,
         frontMaterialName,
         backMaterialName,
+        edgeMaterialName,
         area: order.area,
         totalPrice: order.totalPrice,
         priceBreakdown: order.priceBreakdown,

@@ -118,6 +118,15 @@ export const columns: ColumnDef<Material>[] = [
     cell: ({ row }) => row.getValue("productCode") || "-",
   },
   {
+    accessorKey: "categories",
+    header: "Kategorije",
+    cell: ({ row }) => {
+      const categories = row.getValue("categories") as string[];
+      return categories.length > 0 ? categories.join(", ") : "-";
+    },
+    enableSorting: false,
+  },
+  {
     accessorKey: "published",
     header: ({ column }) => {
       return (

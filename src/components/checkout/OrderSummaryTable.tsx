@@ -11,12 +11,36 @@ interface OrderSummaryTableProps {
     backMaterialId: number | null;
     backMaterialName: string | null;
     backMaterialProductCode: string | null;
+    edgeMaterialId: number | null;
+    edgeMaterialName: string | null;
+    edgeMaterialProductCode: string | null;
+    frontEdgeMaterialId: number | null;
+    frontEdgeMaterialName: string | null;
+    frontEdgeMaterialProductCode: string | null;
     totalArea: number;
     totalPrice: number;
     priceBreakdown: {
       korpus: { areaM2: number; price: number };
       front: { areaM2: number; price: number };
       back: { areaM2: number; price: number };
+      edge: {
+        lengthCm: number;
+        lengthM: number;
+        price: number;
+        materialName?: string;
+        carcass?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+        front?: {
+          lengthCm: number;
+          lengthM: number;
+          price: number;
+          materialName: string;
+        };
+      };
       handles?: { count: number; price: number };
       accessories?: { count: number; price: number };
     };
@@ -45,6 +69,9 @@ export function OrderSummaryTable({
     visibleAdjustments.length > 0 &&
     adjustedTotal != null;
   const finalPrice = adjustedTotal ?? orderData.totalPrice;
+  const carcassEdge = orderData.priceBreakdown.edge.carcass;
+  const frontEdge = orderData.priceBreakdown.edge.front;
+  const formatEdgeLength = (lengthM: number) => `${lengthM.toFixed(2)} m`;
 
   return (
     <div className="rounded-lg border bg-muted/30 p-4 space-y-4 min-w-0">
@@ -146,6 +173,60 @@ export function OrderSummaryTable({
                 </td>
                 <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
                   {formatPrice(orderData.priceBreakdown.back.price)}
+                </td>
+              </tr>
+            )}
+            {(carcassEdge || (!frontEdge && orderData.edgeMaterialId)) && (
+              <tr>
+                <td className="py-2.5 pr-2">
+                  <div className="text-muted-foreground text-xs">
+                    {carcassEdge ? "Kant traka korpus" : "Kant traka"}
+                  </div>
+                  <div
+                    className="font-medium max-w-[140px] sm:max-w-full truncate"
+                    title={
+                      carcassEdge?.materialName || orderData.edgeMaterialName || ""
+                    }
+                  >
+                    {carcassEdge?.materialName || orderData.edgeMaterialName}
+                  </div>
+                </td>
+                <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                  {orderData.edgeMaterialProductCode || "-"}
+                </td>
+                <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                  {formatEdgeLength(
+                    carcassEdge?.lengthM ?? orderData.priceBreakdown.edge.lengthM,
+                  )}
+                </td>
+                <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                  {formatPrice(
+                    carcassEdge?.price ?? orderData.priceBreakdown.edge.price,
+                  )}
+                </td>
+              </tr>
+            )}
+            {frontEdge && (
+              <tr>
+                <td className="py-2.5 pr-2">
+                  <div className="text-muted-foreground text-xs">
+                    Kant traka lica/frontovi/vrata
+                  </div>
+                  <div
+                    className="font-medium max-w-[140px] sm:max-w-full truncate"
+                    title={frontEdge.materialName}
+                  >
+                    {frontEdge.materialName}
+                  </div>
+                </td>
+                <td className="py-2.5 px-2 tabular-nums whitespace-nowrap">
+                  {orderData.frontEdgeMaterialProductCode || "-"}
+                </td>
+                <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
+                  {formatEdgeLength(frontEdge.lengthM)}
+                </td>
+                <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">
+                  {formatPrice(frontEdge.price)}
                 </td>
               </tr>
             )}

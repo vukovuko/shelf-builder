@@ -3,6 +3,12 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import {
+  isBackMaterialCategory,
+  isEdgeTapeCategory,
+  isFrontMaterialCategory,
+  isKorpusMaterialCategory,
+} from "@/lib/material-categories";
 import { MaterialPickerModal } from "../MaterialPickerModal";
 import { Button } from "../ui/button";
 
@@ -30,6 +36,18 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
   const setSelectedBackMaterialId = useShelfStore(
     (s: ShelfState) => s.setSelectedBackMaterialId,
   );
+  const selectedEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedEdgeMaterialId,
+  );
+  const setSelectedEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedEdgeMaterialId,
+  );
+  const selectedFrontEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.selectedFrontEdgeMaterialId,
+  );
+  const setSelectedFrontEdgeMaterialId = useShelfStore(
+    (s: ShelfState) => s.setSelectedFrontEdgeMaterialId,
+  );
   const setActiveAccordionStep = useShelfStore(
     (s: ShelfState) => s.setActiveAccordionStep,
   );
@@ -41,46 +59,81 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
     korpus?: number;
     front?: number;
     back?: number;
+    edge?: number;
+    frontEdge?: number;
   }>({});
 
-  // Get all unique categories from materials
-  const allCategories = React.useMemo(
-    () => [...new Set(materials.flatMap((m) => m.categories))],
-    [materials],
+  const sections = React.useMemo(
+    () => [
+      {
+        key: "korpus" as const,
+        label: "Materijal za korpus",
+        materials: materials.filter((material) =>
+          material.categories.some((category) =>
+            isKorpusMaterialCategory(category),
+          ),
+        ),
+        selectedId: selectedMaterialId,
+        setSelectedId: setSelectedMaterialId,
+      },
+      {
+        key: "front" as const,
+        label: "Materijal za lica/vrata",
+        materials: materials.filter((material) =>
+          material.categories.some((category) => isFrontMaterialCategory(category)),
+        ),
+        selectedId: selectedFrontMaterialId,
+        setSelectedId: setSelectedFrontMaterialId,
+      },
+      {
+        key: "back" as const,
+        label: "Materijal za leđa",
+        materials: materials.filter((material) =>
+          material.categories.some((category) => isBackMaterialCategory(category)),
+        ),
+        selectedId: selectedBackMaterialId,
+        setSelectedId: setSelectedBackMaterialId,
+      },
+      {
+        key: "edge" as const,
+        label: "Kant traka za korpuse",
+        materials: materials.filter((material) =>
+          material.categories.some((category) => isEdgeTapeCategory(category)),
+        ),
+        selectedId: selectedEdgeMaterialId,
+        setSelectedId: setSelectedEdgeMaterialId,
+      },
+      {
+        key: "frontEdge" as const,
+        label: "Kant traka za lica/frontove/vrata",
+        materials: materials.filter((material) =>
+          material.categories.some((category) => isEdgeTapeCategory(category)),
+        ),
+        selectedId: selectedFrontEdgeMaterialId,
+        setSelectedId: setSelectedFrontEdgeMaterialId,
+      },
+    ].filter((section) => section.materials.length > 0),
+    [
+      materials,
+      selectedMaterialId,
+      setSelectedMaterialId,
+      selectedFrontMaterialId,
+      setSelectedFrontMaterialId,
+      selectedBackMaterialId,
+      setSelectedBackMaterialId,
+      selectedEdgeMaterialId,
+      setSelectedEdgeMaterialId,
+      selectedFrontEdgeMaterialId,
+      setSelectedFrontEdgeMaterialId,
+    ],
   );
 
   return (
     <div className={compact ? "space-y-3 pt-2" : "space-y-6 pt-4"}>
-      {allCategories.map((category) => {
-        const categoryMaterials = materials.filter((m) =>
-          m.categories.includes(category),
-        );
-        const isBackCategory =
-          category.toLowerCase().includes("leđa") ||
-          category.toLowerCase().includes("ledja");
-        const isFrontCategory =
-          category.toLowerCase().includes("lica") ||
-          category.toLowerCase().includes("vrata");
+      {sections.map((section) => {
+        const pinnedId = pinnedMaterialIds[section.key];
 
-        const categoryType = isBackCategory
-          ? "back"
-          : isFrontCategory
-            ? "front"
-            : "korpus";
-        const selectedId = isBackCategory
-          ? selectedBackMaterialId
-          : isFrontCategory
-            ? selectedFrontMaterialId
-            : selectedMaterialId;
-        const setSelectedId = isBackCategory
-          ? setSelectedBackMaterialId
-          : isFrontCategory
-            ? setSelectedFrontMaterialId
-            : setSelectedMaterialId;
-
-        const pinnedId = pinnedMaterialIds[categoryType];
-
-        const sorted = [...categoryMaterials].sort((a, b) => {
+        const sorted = [...section.materials].sort((a, b) => {
           if (pinnedId !== undefined) {
             if (a.id === pinnedId) return -1;
             if (b.id === pinnedId) return 1;
@@ -89,18 +142,21 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
         });
 
         const preview = sorted.slice(0, 3);
-        const remaining = categoryMaterials.length - 3;
+        const remaining = section.materials.length - 3;
 
         return (
-          <div key={category} className={compact ? "space-y-2" : "space-y-3"}>
-            <h4 className="text-sm font-semibold">{category}</h4>
+          <div
+            key={section.key}
+            className={compact ? "space-y-2" : "space-y-3"}
+          >
+            <h4 className="text-sm font-semibold">{section.label}</h4>
             <div className="grid grid-cols-3 gap-2">
               {preview.map((material) => (
                 <div key={material.id} className="flex flex-col items-center">
                   <button
                     type="button"
                     className={`rounded-lg border-2 ${
-                      selectedId === material.id
+                      section.selectedId === material.id
                         ? "border-primary"
                         : "border-transparent"
                     } hover:border-primary ${compact ? "h-14" : "h-20"} w-full bg-cover bg-center bg-muted`}
@@ -109,7 +165,7 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
                         ? `url(${material.img})`
                         : undefined,
                     }}
-                    onClick={() => setSelectedId(material.id)}
+                    onClick={() => section.setSelectedId(material.id)}
                     title={material.name}
                   >
                     <span className="sr-only">{material.name}</span>
@@ -125,24 +181,24 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
                 variant="outline"
                 size="sm"
                 className="w-full"
-                onClick={() => setOpenMaterialCategory(category)}
+                onClick={() => setOpenMaterialCategory(section.key)}
               >
                 Prikaži više ({remaining})
               </Button>
             )}
             <MaterialPickerModal
-              open={openMaterialCategory === category}
+              open={openMaterialCategory === section.key}
               onOpenChange={(open) =>
-                setOpenMaterialCategory(open ? category : null)
+                setOpenMaterialCategory(open ? section.key : null)
               }
-              category={category}
-              materials={categoryMaterials}
-              selectedId={selectedId}
+              category={section.label}
+              materials={section.materials}
+              selectedId={section.selectedId}
               onSelect={(id) => {
-                setSelectedId(id);
+                section.setSelectedId(id);
                 setPinnedMaterialIds((prev) => ({
                   ...prev,
-                  [categoryType]: id,
+                  [section.key]: id,
                 }));
               }}
             />
