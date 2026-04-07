@@ -69,6 +69,7 @@ export function BlueprintView() {
   const seamPanelFill = "#e9e9e9";
   const innerPanelFill = "#fafafa";
   const panelStrokeWidth = 0.9;
+  const showDrawerDebugOverlay = true;
 
   // Drawing layout
   const padding = 60;
@@ -190,6 +191,7 @@ export function BlueprintView() {
             width="4"
             height="4"
           >
+            <rect width="4" height="4" fill="#f3e5d8" />
             <path d="M 0,4 L 4,0" stroke="#a0522d" strokeWidth="0.5" />
           </pattern>
         </defs>
@@ -668,14 +670,20 @@ export function BlueprintView() {
 
               // Draw inner vertical dividers (DASHED lines)
               if (innerCols > 1) {
-                const dividerRects = buildSectionDividerRects({
-                  x: compInnerX1,
-                  width: innerPanelSpan,
-                  y: mapYForColumn(safeTopY, colIdx),
-                  height: (safeTopY - safeBottomY) * scale,
-                  sectionCount: innerCols,
-                  dividerThickness: panelThicknessPx,
-                });
+                const dividerRects = Array.from(
+                  { length: innerCols - 1 },
+                  (_, divIdx) => {
+                    const dividerCenterX =
+                      compInnerX1 + ((divIdx + 1) * innerPanelSpan) / innerCols;
+
+                    return {
+                      x: dividerCenterX - panelThicknessPx / 2,
+                      y: mapYForColumn(safeTopY, colIdx),
+                      width: panelThicknessPx,
+                      height: (safeTopY - safeBottomY) * scale,
+                    };
+                  },
+                );
 
                 dividerRects.forEach((rect, divIdx) => {
                   const dividerPanel = createPanelRect(
@@ -687,6 +695,23 @@ export function BlueprintView() {
                     seamPanelFill,
                   );
                   if (dividerPanel) nodes.push(dividerPanel);
+
+                  if (showDrawerDebugOverlay) {
+                    const centerX = rect.x + rect.width / 2;
+                    nodes.push(
+                      <line
+                        key={`vd-debug-${compKey}-${divIdx}`}
+                        x1={centerX}
+                        y1={rect.y}
+                        x2={centerX}
+                        y2={rect.y + rect.height}
+                        stroke="#7c3aed"
+                        strokeWidth="0.9"
+                        strokeDasharray="4 2"
+                        opacity="0.9"
+                      />,
+                    );
+                  }
                 });
               }
 
@@ -770,18 +795,18 @@ export function BlueprintView() {
                 const section = sections[secIdx];
                 if (!section) continue;
 
-                const isExternal = cfg.drawersExternal?.[secIdx] ?? false;
+                const isExternal = cfg.drawersExternal?.[secIdx] ?? true;
                 const drawerSpan = getDrawerFrontSpan({
-                  elementInnerWidthM: innerPanelSpan / scale,
-                  elementOuterWidthM: (compX2 - compX1) / scale,
+                  elementInnerWidthM: innerPanelSpan / (scale * 100),
+                  elementOuterWidthM: (compX2 - compX1) / (scale * 100),
                   sectionCount: innerCols,
                   sectionIndex: secIdx,
                   sideThicknessM: tCm / 100,
                   isExternal,
                 });
                 const drawerOriginX = isExternal ? compX1 : compInnerX1;
-                const secX1 = drawerOriginX + drawerSpan.start * scale;
-                const secX2 = drawerOriginX + drawerSpan.end * scale;
+                const secX1 = drawerOriginX + drawerSpan.start * 100 * scale;
+                const secX2 = drawerOriginX + drawerSpan.end * 100 * scale;
                 const secDrawerW = secX2 - secX1;
                 if (secDrawerW <= 0) continue;
                 const stack = getDrawerStackMetrics(
@@ -801,25 +826,64 @@ export function BlueprintView() {
                   : drawerCount;
 
                 for (let drIdx = 0; drIdx < visibleDrawerCount; drIdx++) {
-                  const drawerBottomY = safeBottomY + drIdx * drawerH;
-                  const drawerTopY = Math.min(
+                  let drawerBottomY = safeBottomY + drIdx * drawerH;
+                  let drawerTopY = Math.min(
                     drawerBottomY + drawerH - drawerGap,
                     safeTopY,
                   );
 
+                  if (!shouldUseDrawerStack(drawerCount) && shelfCount > 0) {
+                    const gap = compInnerH / (shelfCount + 1);
+                    const spaceBottomY = safeBottomY + drIdx * gap + tCm / 2;
+                    const spaceTopY = safeBottomY + (drIdx + 1) * gap - tCm / 2;
+                    drawerBottomY = spaceBottomY;
+                    drawerTopY = Math.min(spaceTopY - drawerGap, safeTopY);
+                  }
+
                   if (drawerTopY > drawerBottomY) {
+                    const drawerTopYPx = mapYForColumn(drawerTopY, colIdx);
+                    const drawerHeightPx =
+                      (drawerTopY - drawerBottomY) * scale;
+
                     nodes.push(
                       <rect
                         key={`drawer-${compKey}-${secIdx}-${drIdx}`}
                         x={secX1}
-                        y={mapYForColumn(drawerTopY, colIdx)}
+                        y={drawerTopYPx}
                         width={secDrawerW}
-                        height={(drawerTopY - drawerBottomY) * scale}
+                        height={drawerHeightPx}
                         fill="url(#drawerHatch)"
                         stroke="#8b4513"
                         strokeWidth="0.5"
                       />,
                     );
+
+                    if (showDrawerDebugOverlay) {
+                      nodes.push(
+                        <line
+                          key={`drawer-debug-left-${compKey}-${secIdx}-${drIdx}`}
+                          x1={secX1}
+                          y1={drawerTopYPx}
+                          x2={secX1}
+                          y2={drawerTopYPx + drawerHeightPx}
+                          stroke="#dc2626"
+                          strokeWidth="0.9"
+                          strokeDasharray="3 2"
+                          opacity="0.9"
+                        />,
+                        <line
+                          key={`drawer-debug-right-${compKey}-${secIdx}-${drIdx}`}
+                          x1={secX2}
+                          y1={drawerTopYPx}
+                          x2={secX2}
+                          y2={drawerTopYPx + drawerHeightPx}
+                          stroke="#2563eb"
+                          strokeWidth="0.9"
+                          strokeDasharray="3 2"
+                          opacity="0.9"
+                        />,
+                      );
+                    }
                   }
                 }
               }

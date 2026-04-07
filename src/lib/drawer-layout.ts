@@ -1,7 +1,4 @@
-import {
-  DRAWER_HEIGHT_CM,
-  MAX_DRAWER_HEIGHT_CM,
-} from "./wardrobe-constants";
+import { DRAWER_HEIGHT_CM, MAX_DRAWER_HEIGHT_CM } from "./wardrobe-constants";
 
 const DRAWER_SIDE_REVEAL_M = 2.5 / 1000;
 const DRAWER_INNER_CLEARANCE_TOTAL_M = 2.5 / 1000;

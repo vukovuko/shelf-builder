@@ -506,8 +506,7 @@ export function CompartmentExtrasPanel({
                           +
                         </Button>
                         <span className="text-xs w-6 text-right">
-                          {displayDrawerCount}/
-                          {maxDrawersForSectionCalc}
+                          {displayDrawerCount}/{maxDrawersForSectionCalc}
                         </span>
                       </div>
                       {drawerCount > 0 && (
@@ -673,8 +672,7 @@ export function CompartmentExtrasPanel({
                     +
                   </Button>
                   <span className="text-xs w-6 text-right">
-                    {displayDrawerCount}/
-                    {maxDrawersForSection}
+                    {displayDrawerCount}/{maxDrawersForSection}
                   </span>
                 </div>
                 {/* External/Internal checkbox - only show if drawers > 0 */}

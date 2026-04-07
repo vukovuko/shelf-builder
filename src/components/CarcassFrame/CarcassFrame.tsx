@@ -1329,16 +1329,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             (secIdx + 1) * sectionW -
                             (secIdx < innerCols - 1 ? t / 2 : 0);
                           const secW = secRightX - secLeftX;
-                          const drawerSpan = getDrawerFrontSpan(
-                            {
-                              elementInnerWidthM: colInnerW,
-                              elementOuterWidthM: colInnerW + 2 * t,
-                              sectionCount: innerCols,
-                              sectionIndex: secIdx,
-                              sideThicknessM: t,
-                              isExternal,
-                            },
-                          );
+                          const drawerSpan = getDrawerFrontSpan({
+                            elementInnerWidthM: colInnerW,
+                            elementOuterWidthM: colInnerW + 2 * t,
+                            sectionCount: innerCols,
+                            sectionIndex: secIdx,
+                            sideThicknessM: t,
+                            isExternal,
+                          });
                           const drawerW = drawerSpan.width;
                           const drawerCenterX =
                             (isExternal ? compOuterLeftX : compLeftX) +
@@ -1390,7 +1388,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
+                                  position={[
+                                    drawerCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
+                                  ]}
                                 >
                                   <boxGeometry
                                     args={[
@@ -1455,7 +1457,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
+                                  position={[
+                                    drawerCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
+                                  ]}
                                 >
                                   <boxGeometry
                                     args={[
@@ -1528,7 +1534,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
+                                  position={[
+                                    drawerCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
+                                  ]}
                                 >
                                   <boxGeometry
                                     args={[
