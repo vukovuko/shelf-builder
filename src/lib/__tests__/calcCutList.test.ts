@@ -763,7 +763,9 @@ describe("calculateCutList", () => {
       const externalResult = calculateCutList(externalSnapshot, mockMaterials);
       const internalResult = calculateCutList(internalSnapshot, mockMaterials);
 
-      expect(externalResult.priceBreakdown.edge.front?.lengthCm).toBeGreaterThan(
+      expect(
+        externalResult.priceBreakdown.edge.front?.lengthCm,
+      ).toBeGreaterThan(
         internalResult.priceBreakdown.edge.front?.lengthCm ?? 0,
       );
       expect(internalResult.priceBreakdown.edge.front?.lengthCm ?? 0).toBe(0);

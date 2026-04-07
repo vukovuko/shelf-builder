@@ -185,7 +185,9 @@ export function OrderSummaryTable({
                   <div
                     className="font-medium max-w-[140px] sm:max-w-full truncate"
                     title={
-                      carcassEdge?.materialName || orderData.edgeMaterialName || ""
+                      carcassEdge?.materialName ||
+                      orderData.edgeMaterialName ||
+                      ""
                     }
                   >
                     {carcassEdge?.materialName || orderData.edgeMaterialName}
@@ -196,7 +198,8 @@ export function OrderSummaryTable({
                 </td>
                 <td className="py-2.5 pl-2 pr-3 text-right tabular-nums whitespace-nowrap">
                   {formatEdgeLength(
-                    carcassEdge?.lengthM ?? orderData.priceBreakdown.edge.lengthM,
+                    carcassEdge?.lengthM ??
+                      orderData.priceBreakdown.edge.lengthM,
                   )}
                 </td>
                 <td className="py-2.5 pl-3 text-right tabular-nums whitespace-nowrap">

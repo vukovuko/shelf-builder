@@ -1327,14 +1327,14 @@ export function ConfiguratorControls({
             : null,
           frontEdgeMaterialId: selectedFrontEdgeMaterialId ?? null,
           frontEdgeMaterialName: selectedFrontEdgeMaterialId
-            ? materials.find(
+            ? (materials.find(
                 (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
-              )?.name ?? null
+              )?.name ?? null)
             : null,
           frontEdgeMaterialProductCode: selectedFrontEdgeMaterialId
-            ? materials.find(
+            ? (materials.find(
                 (m) => String(m.id) === String(selectedFrontEdgeMaterialId),
-              )?.productCode ?? null
+              )?.productCode ?? null)
             : null,
           totalArea: Math.round(cutList.totalArea * 10000), // Convert m² to cm²
           totalPrice: cutList.totalCost,

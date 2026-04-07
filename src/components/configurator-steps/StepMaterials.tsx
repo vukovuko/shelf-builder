@@ -64,55 +64,64 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
   }>({});
 
   const sections = React.useMemo(
-    () => [
-      {
-        key: "korpus" as const,
-        label: "Materijal za korpus",
-        materials: materials.filter((material) =>
-          material.categories.some((category) =>
-            isKorpusMaterialCategory(category),
+    () =>
+      [
+        {
+          key: "korpus" as const,
+          label: "Materijal za korpus",
+          materials: materials.filter((material) =>
+            material.categories.some((category) =>
+              isKorpusMaterialCategory(category),
+            ),
           ),
-        ),
-        selectedId: selectedMaterialId,
-        setSelectedId: setSelectedMaterialId,
-      },
-      {
-        key: "front" as const,
-        label: "Materijal za lica/vrata",
-        materials: materials.filter((material) =>
-          material.categories.some((category) => isFrontMaterialCategory(category)),
-        ),
-        selectedId: selectedFrontMaterialId,
-        setSelectedId: setSelectedFrontMaterialId,
-      },
-      {
-        key: "back" as const,
-        label: "Materijal za leđa",
-        materials: materials.filter((material) =>
-          material.categories.some((category) => isBackMaterialCategory(category)),
-        ),
-        selectedId: selectedBackMaterialId,
-        setSelectedId: setSelectedBackMaterialId,
-      },
-      {
-        key: "edge" as const,
-        label: "Kant traka za korpuse",
-        materials: materials.filter((material) =>
-          material.categories.some((category) => isEdgeTapeCategory(category)),
-        ),
-        selectedId: selectedEdgeMaterialId,
-        setSelectedId: setSelectedEdgeMaterialId,
-      },
-      {
-        key: "frontEdge" as const,
-        label: "Kant traka za lica/frontove/vrata",
-        materials: materials.filter((material) =>
-          material.categories.some((category) => isEdgeTapeCategory(category)),
-        ),
-        selectedId: selectedFrontEdgeMaterialId,
-        setSelectedId: setSelectedFrontEdgeMaterialId,
-      },
-    ].filter((section) => section.materials.length > 0),
+          selectedId: selectedMaterialId,
+          setSelectedId: setSelectedMaterialId,
+        },
+        {
+          key: "front" as const,
+          label: "Materijal za lica/vrata",
+          materials: materials.filter((material) =>
+            material.categories.some((category) =>
+              isFrontMaterialCategory(category),
+            ),
+          ),
+          selectedId: selectedFrontMaterialId,
+          setSelectedId: setSelectedFrontMaterialId,
+        },
+        {
+          key: "back" as const,
+          label: "Materijal za leđa",
+          materials: materials.filter((material) =>
+            material.categories.some((category) =>
+              isBackMaterialCategory(category),
+            ),
+          ),
+          selectedId: selectedBackMaterialId,
+          setSelectedId: setSelectedBackMaterialId,
+        },
+        {
+          key: "edge" as const,
+          label: "Kant traka za korpuse",
+          materials: materials.filter((material) =>
+            material.categories.some((category) =>
+              isEdgeTapeCategory(category),
+            ),
+          ),
+          selectedId: selectedEdgeMaterialId,
+          setSelectedId: setSelectedEdgeMaterialId,
+        },
+        {
+          key: "frontEdge" as const,
+          label: "Kant traka za lica/frontove/vrata",
+          materials: materials.filter((material) =>
+            material.categories.some((category) =>
+              isEdgeTapeCategory(category),
+            ),
+          ),
+          selectedId: selectedFrontEdgeMaterialId,
+          setSelectedId: setSelectedFrontEdgeMaterialId,
+        },
+      ].filter((section) => section.materials.length > 0),
     [
       materials,
       selectedMaterialId,
