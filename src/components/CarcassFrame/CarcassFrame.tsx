@@ -28,6 +28,8 @@ import {
   SLIDING_DOOR_THICKNESS_M,
 } from "@/lib/wardrobe-constants";
 import {
+  getDrawerFrontSpan,
+  isDrawerCountValid,
   getDrawerStackMetrics,
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
@@ -1258,10 +1260,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         // Distribute shelves evenly
                         const usableH = compInnerH;
                         const gap = usableH / (shelfCount + 1);
-                        const visibleShelfStartIndex = getVisibleShelfStartIndex(
-                          shelfCount,
-                          drawerCount,
-                        );
+                        const visibleShelfStartIndex =
+                          getVisibleShelfStartIndex(shelfCount, drawerCount);
 
                         for (
                           let shIdx = visibleShelfStartIndex;
@@ -1300,6 +1300,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         const compBottomY = centerY - compInnerH / 2;
 
                         const compLeftX = colCenterX - colInnerW / 2;
+                        const compOuterLeftX = compLeftX - t;
                         const sectionW = colInnerW / innerCols;
 
                         const drawerPanels: React.ReactNode[] = [];
@@ -1309,6 +1310,14 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const isExternal =
                             cfg.drawersExternal?.[secIdx] ?? true;
                           if (drawerCount <= 0) continue;
+                          if (
+                            !isDrawerCountValid(
+                              drawerCount,
+                              compInnerH * 100,
+                              shelfCount,
+                            )
+                          )
+                            continue;
 
                           // Section X bounds (account for divider thickness)
                           const secLeftX =
@@ -1319,12 +1328,23 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             compLeftX +
                             (secIdx + 1) * sectionW -
                             (secIdx < innerCols - 1 ? t / 2 : 0);
-                          const secCenterX = (secLeftX + secRightX) / 2;
                           const secW = secRightX - secLeftX;
+                          const drawerSpan = getDrawerFrontSpan(
+                            {
+                              elementInnerWidthM: colInnerW,
+                              elementOuterWidthM: colInnerW + 2 * t,
+                              sectionCount: innerCols,
+                              sectionIndex: secIdx,
+                              sideThicknessM: t,
+                              isExternal,
+                            },
+                          );
+                          const drawerW = drawerSpan.width;
+                          const drawerCenterX =
+                            (isExternal ? compOuterLeftX : compLeftX) +
+                            drawerSpan.center;
 
                           // Drawer front dimensions
-                          const drawerInset = 0.0015; // 1.5mm per side = 3mm total gap
-                          const drawerW = secW - drawerInset * 2;
                           const MIN_DRAWER_SIZE = 0.1; // 10cm minimum drawer dimension
                           // External drawers at door Z level, internal drawers inside
                           const drawerZ = isExternal
@@ -1334,9 +1354,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const drawerColor = isExternal
                             ? "#e0d5c7"
                             : "#d4c4b0";
-                          const useDrawerStack = shouldUseDrawerStack(
-                            drawerCount,
-                          );
+                          const useDrawerStack =
+                            shouldUseDrawerStack(drawerCount);
 
                           // TWO CASES: with shelves vs without shelves
                           if (useDrawerStack) {
@@ -1347,7 +1366,11 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             );
                             const drawerH = stack.slotHeight;
 
-                            for (let drIdx = 0; drIdx < stack.drawerCount; drIdx++) {
+                            for (
+                              let drIdx = 0;
+                              drIdx < stack.drawerCount;
+                              drIdx++
+                            ) {
                               const drawerBottomY =
                                 compBottomY + drIdx * drawerH;
                               const drawerTopY = drawerBottomY + drawerH;
@@ -1358,17 +1381,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 drawerH - 0.003,
                               );
 
-                              if (drawerW < MIN_DRAWER_SIZE || actualDrawerH < MIN_DRAWER_SIZE)
+                              if (
+                                drawerW < MIN_DRAWER_SIZE ||
+                                actualDrawerH < MIN_DRAWER_SIZE
+                              )
                                 continue;
 
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[
-                                    secCenterX,
-                                    drawerCenterY,
-                                    drawerZ,
-                                  ]}
+                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
                                 >
                                   <boxGeometry
                                     args={[
@@ -1391,7 +1413,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 <mesh
                                   key={`handle-${compKey}-${secIdx}-${drIdx}`}
                                   position={[
-                                    secCenterX,
+                                    drawerCenterX,
                                     drawerCenterY,
                                     drawerZ +
                                       DEFAULT_PANEL_THICKNESS_M / 2 +
@@ -1433,11 +1455,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[
-                                    secCenterX,
-                                    drawerCenterY,
-                                    drawerZ,
-                                  ]}
+                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
                                 >
                                   <boxGeometry
                                     args={[
@@ -1461,7 +1479,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 <mesh
                                   key={`handle-${compKey}-${secIdx}-${drIdx}`}
                                   position={[
-                                    secCenterX,
+                                    drawerCenterX,
                                     drawerCenterY,
                                     drawerZ +
                                       DEFAULT_PANEL_THICKNESS_M / 2 +
@@ -1510,11 +1528,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               drawerPanels.push(
                                 <mesh
                                   key={`drawer-${compKey}-${secIdx}-${drIdx}`}
-                                  position={[
-                                    secCenterX,
-                                    drawerCenterY,
-                                    drawerZ,
-                                  ]}
+                                  position={[drawerCenterX, drawerCenterY, drawerZ]}
                                 >
                                   <boxGeometry
                                     args={[
@@ -1538,7 +1552,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 <mesh
                                   key={`handle-${compKey}-${secIdx}-${drIdx}`}
                                   position={[
-                                    secCenterX,
+                                    drawerCenterX,
                                     drawerCenterY,
                                     drawerZ +
                                       DEFAULT_PANEL_THICKNESS_M / 2 +

@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
-import { getMaxDrawersForOpening } from "@/lib/drawer-layout";
+import {
+  getValidDrawerCountRange,
+  normalizeDrawerCount,
+} from "@/lib/drawer-layout";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
 import {
   MIN_DIVIDER_WIDTH_CM,
@@ -421,12 +424,19 @@ export function CompartmentExtrasPanel({
                 </div>
                 {/* Drawers - TWO MODES: checkbox (no shelves) or slider (with shelves) */}
                 {(() => {
-                  const effectiveMaxDrawers = shelfCount > 0
-                    ? shelfCount + 1
-                    : getMaxDrawersForOpening(compartmentHeightCm);
+                  const validDrawerRange = getValidDrawerCountRange(
+                    compartmentHeightCm,
+                    shelfCount,
+                  );
+                  const effectiveMaxDrawers = validDrawerRange.max;
                   const isExternal = config.drawersExternal?.[idx] ?? true;
                   const maxDrawersForSectionCalc = effectiveMaxDrawers;
                   const drawersDisabled = maxDrawersForSectionCalc <= 0;
+                  const displayDrawerCount = normalizeDrawerCount(
+                    drawerCount,
+                    compartmentHeightCm,
+                    shelfCount,
+                  );
                   return (
                     <>
                       <div className="flex items-center gap-2">
@@ -445,7 +455,11 @@ export function CompartmentExtrasPanel({
                             setElementDrawerCount(
                               compartmentKey,
                               idx,
-                              Math.max(drawerCount - 1, 0),
+                              normalizeDrawerCount(
+                                drawerCount - 1,
+                                compartmentHeightCm,
+                                shelfCount,
+                              ),
                             )
                           }
                           disabled={drawerCount <= 0}
@@ -457,9 +471,17 @@ export function CompartmentExtrasPanel({
                           min={0}
                           max={maxDrawersForSectionCalc}
                           step={1}
-                          value={[Math.min(drawerCount, maxDrawersForSectionCalc)]}
+                          value={[displayDrawerCount]}
                           onValueChange={([val]) =>
-                            setElementDrawerCount(compartmentKey, idx, val)
+                            setElementDrawerCount(
+                              compartmentKey,
+                              idx,
+                              normalizeDrawerCount(
+                                val,
+                                compartmentHeightCm,
+                                shelfCount,
+                              ),
+                            )
                           }
                           className="flex-1"
                           disabled={drawersDisabled}
@@ -471,9 +493,10 @@ export function CompartmentExtrasPanel({
                             setElementDrawerCount(
                               compartmentKey,
                               idx,
-                              Math.min(
+                              normalizeDrawerCount(
                                 drawerCount + 1,
-                                maxDrawersForSectionCalc,
+                                compartmentHeightCm,
+                                shelfCount,
                               ),
                             )
                           }
@@ -483,7 +506,7 @@ export function CompartmentExtrasPanel({
                           +
                         </Button>
                         <span className="text-xs w-6 text-right">
-                          {Math.min(drawerCount, maxDrawersForSectionCalc)}/
+                          {displayDrawerCount}/
                           {maxDrawersForSectionCalc}
                         </span>
                       </div>
@@ -572,20 +595,24 @@ export function CompartmentExtrasPanel({
             const shelfCount = config.rowCounts?.[0] || 0;
             const drawerCount = config.drawerCounts?.[0] || 0;
             const isExternal = config.drawersExternal?.[0] ?? true;
-            const maxDrawersForSection =
-              shelfCount > 0
-                ? shelfCount + 1
-                : getMaxDrawersForOpening(compartmentHeightCm);
+            const validDrawerRange = getValidDrawerCountRange(
+              compartmentHeightCm,
+              shelfCount,
+            );
+            const maxDrawersForSection = validDrawerRange.max;
             const drawersDisabled = maxDrawersForSection <= 0;
+            const displayDrawerCount = normalizeDrawerCount(
+              drawerCount,
+              compartmentHeightCm,
+              shelfCount,
+            );
             return (
               <>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-14">
                     Fioke:
                     {drawersDisabled && (
-                      <span className="block text-[10px]">
-                        (min 10cm)
-                      </span>
+                      <span className="block text-[10px]">(min 10cm)</span>
                     )}
                   </span>
                   <Button
@@ -595,7 +622,11 @@ export function CompartmentExtrasPanel({
                       setElementDrawerCount(
                         compartmentKey,
                         0,
-                        Math.max(drawerCount - 1, 0),
+                        normalizeDrawerCount(
+                          drawerCount - 1,
+                          compartmentHeightCm,
+                          shelfCount,
+                        ),
                       )
                     }
                     disabled={drawerCount <= 0}
@@ -607,9 +638,17 @@ export function CompartmentExtrasPanel({
                     min={0}
                     max={maxDrawersForSection}
                     step={1}
-                    value={[Math.min(drawerCount, maxDrawersForSection)]}
+                    value={[displayDrawerCount]}
                     onValueChange={([val]) =>
-                      setElementDrawerCount(compartmentKey, 0, val)
+                      setElementDrawerCount(
+                        compartmentKey,
+                        0,
+                        normalizeDrawerCount(
+                          val,
+                          compartmentHeightCm,
+                          shelfCount,
+                        ),
+                      )
                     }
                     className="flex-1"
                     disabled={drawersDisabled}
@@ -621,7 +660,11 @@ export function CompartmentExtrasPanel({
                       setElementDrawerCount(
                         compartmentKey,
                         0,
-                        Math.min(drawerCount + 1, maxDrawersForSection),
+                        normalizeDrawerCount(
+                          drawerCount + 1,
+                          compartmentHeightCm,
+                          shelfCount,
+                        ),
                       )
                     }
                     disabled={drawerCount >= maxDrawersForSection}
@@ -630,7 +673,7 @@ export function CompartmentExtrasPanel({
                     +
                   </Button>
                   <span className="text-xs w-6 text-right">
-                    {Math.min(drawerCount, maxDrawersForSection)}/
+                    {displayDrawerCount}/
                     {maxDrawersForSection}
                   </span>
                 </div>

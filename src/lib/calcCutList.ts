@@ -10,6 +10,8 @@ import {
   SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
 import {
+  getDrawerFrontSpan,
+  isDrawerCountValid,
   getDrawerStackMetrics,
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
@@ -1038,14 +1040,26 @@ export function calculateCutList(
         if (drawerCount <= 0) continue;
 
         const secW = getSectionOpeningWidth(secIdx);
-        const drawerW = Math.max(secW - drawerFrontClearance, 0);
         const isExternalDrawer = cfg.drawersExternal?.[secIdx] ? 1 : 0;
+        const drawerSpan = getDrawerFrontSpan({
+          elementInnerWidthM: innerW,
+          elementOuterWidthM: col.width,
+          sectionCount: innerCols,
+          sectionIndex: secIdx,
+          sideThicknessM: t,
+          isExternal: isExternalDrawer === 1,
+        });
+        const drawerW = Math.max(drawerSpan.width, 0);
         const rawShelfCount = Math.max(
           0,
           Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
         );
         const useDrawerStack = shouldUseDrawerStack(drawerCount);
         const shelfCount = rawShelfCount;
+
+        if (!isDrawerCountValid(drawerCount, compH * 100, shelfCount)) {
+          continue;
+        }
 
         const usedCount =
           shelfCount > 0 ? Math.min(drawerCount, shelfCount + 1) : drawerCount;
@@ -1054,7 +1068,10 @@ export function calculateCutList(
         if (usedCount > 0) {
           if (useDrawerStack) {
             const stack = getDrawerStackMetrics(compH, shelfCount, usedCount);
-            actualDrawerH = Math.max(stack.slotHeight - drawerFrontClearance, 0);
+            actualDrawerH = Math.max(
+              stack.slotHeight - drawerFrontClearance,
+              0,
+            );
           } else if (shelfCount > 0) {
             const slotH = compH / (shelfCount + 1);
             actualDrawerH = Math.max(slotH - t - drawerFrontClearance, 0);

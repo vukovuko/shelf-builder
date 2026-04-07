@@ -2,6 +2,8 @@
 
 import type React from "react";
 import {
+  getDrawerFrontSpan,
+  isDrawerCountValid,
   getDrawerStackMetrics,
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
@@ -759,16 +761,29 @@ export function BlueprintView() {
               for (let secIdx = 0; secIdx < innerCols; secIdx++) {
                 const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
                 if (drawerCount <= 0) continue;
+                const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                const compInnerH = safeTopY - safeBottomY;
+                if (!isDrawerCountValid(drawerCount, compInnerH, shelfCount)) {
+                  continue;
+                }
 
                 const section = sections[secIdx];
                 if (!section) continue;
 
-                const secX1 = section.x + 4;
-                const secX2 = section.x + section.width - 4;
+                const isExternal = cfg.drawersExternal?.[secIdx] ?? false;
+                const drawerSpan = getDrawerFrontSpan({
+                  elementInnerWidthM: innerPanelSpan / scale,
+                  elementOuterWidthM: (compX2 - compX1) / scale,
+                  sectionCount: innerCols,
+                  sectionIndex: secIdx,
+                  sideThicknessM: tCm / 100,
+                  isExternal,
+                });
+                const drawerOriginX = isExternal ? compX1 : compInnerX1;
+                const secX1 = drawerOriginX + drawerSpan.start * scale;
+                const secX2 = drawerOriginX + drawerSpan.end * scale;
                 const secDrawerW = secX2 - secX1;
                 if (secDrawerW <= 0) continue;
-                const compInnerH = safeTopY - safeBottomY;
-                const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                 const stack = getDrawerStackMetrics(
                   compInnerH / 100,
                   shelfCount,

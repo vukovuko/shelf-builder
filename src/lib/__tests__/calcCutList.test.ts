@@ -495,16 +495,21 @@ describe("calculateCutList", () => {
       expect(result.items.length).toBeGreaterThan(0);
     });
 
-    it("calculates drawer front dimensions from the real opening, not fixed 10cm", () => {
+    it("uses outer element width for external drawer fronts", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 100,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
         selectedBackMaterialId: 3,
         elementConfigs: {
-          A1: { columns: 1, rowCounts: [0], drawerCounts: [3] },
+          A1: {
+            columns: 1,
+            rowCounts: [2],
+            drawerCounts: [3],
+            drawersExternal: [true],
+          },
         },
         compartmentExtras: {},
         doorSelections: {},
@@ -516,20 +521,54 @@ describe("calculateCutList", () => {
       const drawerFronts = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
 
       expect(drawerFronts).toHaveLength(3);
-      expect(drawerFronts[0]?.widthCm).toBeCloseTo(96.1, 1);
-      expect(drawerFronts[0]?.heightCm).toBeCloseTo(65.17, 1);
+      expect(drawerFronts[0]?.widthCm).toBeCloseTo(99.5, 1);
+      expect(drawerFronts[0]?.heightCm).toBeCloseTo(31.83, 1);
     });
 
-    it("uses actual section opening width for drawer fronts in subdivided compartments", () => {
+    it("keeps internal drawer fronts on inner opening width", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 100,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
         selectedBackMaterialId: 3,
         elementConfigs: {
-          A1: { columns: 2, rowCounts: [0, 0], drawerCounts: [1, 1] },
+          A1: {
+            columns: 1,
+            rowCounts: [2],
+            drawerCounts: [3],
+            drawersExternal: [false],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const drawerFronts = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
+
+      expect(drawerFronts).toHaveLength(3);
+      expect(drawerFronts[0]?.widthCm).toBeCloseTo(96.15, 1);
+    });
+
+    it("offsets external drawer fronts 2.5mm away from the divider centerline", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 40,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: {
+            columns: 2,
+            rowCounts: [0, 0],
+            drawerCounts: [1, 1],
+            drawersExternal: [true, true],
+          },
         },
         compartmentExtras: {},
         doorSelections: {},
@@ -541,8 +580,36 @@ describe("calculateCutList", () => {
       const leftDrawer = result.items.find((i) => i.code === "A1-S1F1");
       const rightDrawer = result.items.find((i) => i.code === "A1-S2F1");
 
-      expect(leftDrawer?.widthCm).toBeCloseTo(47.0, 1);
-      expect(rightDrawer?.widthCm).toBeCloseTo(47.0, 1);
+      expect(leftDrawer?.widthCm).toBeCloseTo(49.5, 1);
+      expect(rightDrawer?.widthCm).toBeCloseTo(49.5, 1);
+    });
+
+    it("does not generate drawers when a drawer slot would exceed 40cm", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 120,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: {
+            columns: 1,
+            rowCounts: [0],
+            drawerCounts: [1],
+            drawersExternal: [true],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const drawerFronts = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
+
+      expect(drawerFronts).toHaveLength(0);
     });
 
     it("handles shelves via columnHorizontalBoundaries", () => {
@@ -727,7 +794,7 @@ describe("calculateCutList", () => {
     it("does not count front edge tape for internal drawers behind doors", () => {
       const externalSnapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 80,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
@@ -737,7 +804,7 @@ describe("calculateCutList", () => {
         elementConfigs: {
           A1: {
             columns: 1,
-            rowCounts: [0],
+            rowCounts: [1],
             drawerCounts: [2],
             drawersExternal: [true],
           },
@@ -801,7 +868,9 @@ describe("calculateCutList", () => {
       expect(
         result.items.filter((item) => /^A1-S1P\d+$/.test(item.code)).length,
       ).toBe(8);
-      expect(result.items.filter((item) => item.code.startsWith("A1-F")).length).toBe(3);
+      expect(
+        result.items.filter((item) => item.code.startsWith("A1-F")).length,
+      ).toBe(3);
     });
   });
 
@@ -1763,13 +1832,13 @@ describe("calculateCutList", () => {
     it("drawer fronts use front material pricing, not korpus", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 100,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
         selectedBackMaterialId: 3,
         elementConfigs: {
-          A1: { columns: 1, rowCounts: [0], drawerCounts: [3] },
+          A1: { columns: 1, rowCounts: [2], drawerCounts: [3] },
         },
         compartmentExtras: {},
         doorSelections: {},
@@ -1998,7 +2067,7 @@ describe("calculateCutList", () => {
     it("exposes parent element inner width for drawer targets", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 40,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
@@ -2051,7 +2120,7 @@ describe("calculateCutList", () => {
     it("exposes external drawer selection as 1 or 0 for drawer targets", () => {
       const snapshot: WardrobeSnapshot = {
         width: 100,
-        height: 200,
+        height: 40,
         depth: 60,
         selectedMaterialId: 1,
         selectedFrontMaterialId: 2,
