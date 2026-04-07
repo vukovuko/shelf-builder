@@ -1047,10 +1047,13 @@ export const useShelfStore = create<ShelfState>((set) => ({
           if (drawerCounts[i] == null) drawerCounts[i] = 0;
       }
       drawerCounts[index] = count;
+
+      const nextConfig = { ...current, drawerCounts };
+
       // Clear rod/LED if compartment now has subdivisions
       const hasSubdivisions =
         (current.columns ?? 1) > 1 ||
-        (current.rowCounts?.some((c) => c > 0) ?? false) ||
+        (nextConfig.rowCounts?.some((c) => c > 0) ?? false) ||
         drawerCounts.some((c) => c > 0);
       let compartmentExtras = state.compartmentExtras;
       if (hasSubdivisions && state.compartmentExtras[key]) {
@@ -1063,7 +1066,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return {
         elementConfigs: {
           ...state.elementConfigs,
-          [key]: { ...current, drawerCounts },
+          [key]: nextConfig,
         },
         compartmentExtras,
       };

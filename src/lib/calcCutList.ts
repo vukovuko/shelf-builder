@@ -9,6 +9,11 @@ import {
   MIN_TOP_HEIGHT,
   SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
+import {
+  getDrawerStackMetrics,
+  getVisibleShelfStartIndex,
+  shouldUseDrawerStack,
+} from "./drawer-layout";
 import { buildBlocksX } from "./wardrobe-utils";
 import { computeCompartmentCount } from "./rules/computeCompartmentCount";
 import { computeDoorMetrics } from "./rules/computeDoorMetrics";
@@ -968,25 +973,37 @@ export function calculateCutList(
 
       // Inner shelves per section (from rowCounts)
       for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+        const drawerCount = Math.max(
+          0,
+          Math.floor(cfg.drawerCounts?.[secIdx] ?? 0),
+        );
         const shelfCount = Math.max(
           0,
           Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
         );
         const secW = Math.max(sectionW - (innerCols > 1 ? t : 0), 0);
+        const visibleShelfStartIndex = getVisibleShelfStartIndex(
+          shelfCount,
+          drawerCount,
+        );
 
-        for (let shelfNum = 0; shelfNum < shelfCount; shelfNum++) {
+        for (
+          let shelfNum = visibleShelfStartIndex;
+          shelfNum <= shelfCount;
+          shelfNum++
+        ) {
           addKorpus(
-            `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
-            `Polica ${getElementScope(compKey)} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+            `${compKey}-S${secIdx + 1}P${shelfNum}`,
+            `Polica ${getElementScope(compKey)} sekcija ${secIdx + 1} (${shelfNum})`,
             secW,
             carcassD,
             elementKey,
             "width",
           );
           shelfTargets.push({
-            id: `${compKey}-S${secIdx + 1}P${shelfNum + 1}`,
+            id: `${compKey}-S${secIdx + 1}P${shelfNum}`,
             element: elementKey,
-            label: `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum + 1})`,
+            label: `Polica ${compKey} sekcija ${secIdx + 1} (${shelfNum})`,
             width: toCm(secW),
             height: toCm(carcassD),
             depth: toCm(carcassD),
@@ -1023,17 +1040,22 @@ export function calculateCutList(
         const secW = getSectionOpeningWidth(secIdx);
         const drawerW = Math.max(secW - drawerFrontClearance, 0);
         const isExternalDrawer = cfg.drawersExternal?.[secIdx] ? 1 : 0;
-        const shelfCount = Math.max(
+        const rawShelfCount = Math.max(
           0,
           Math.floor((cfg.rowCounts as number[] | undefined)?.[secIdx] ?? 0),
         );
+        const useDrawerStack = shouldUseDrawerStack(drawerCount);
+        const shelfCount = rawShelfCount;
 
         const usedCount =
           shelfCount > 0 ? Math.min(drawerCount, shelfCount + 1) : drawerCount;
 
         let actualDrawerH = 0;
         if (usedCount > 0) {
-          if (shelfCount > 0) {
+          if (useDrawerStack) {
+            const stack = getDrawerStackMetrics(compH, shelfCount, usedCount);
+            actualDrawerH = Math.max(stack.slotHeight - drawerFrontClearance, 0);
+          } else if (shelfCount > 0) {
             const slotH = compH / (shelfCount + 1);
             actualDrawerH = Math.max(slotH - t - drawerFrontClearance, 0);
           } else {
@@ -1083,41 +1105,6 @@ export function calculateCutList(
             isExternalDrawer,
             outerWidth: toCm(col.width),
           });
-        }
-
-        // Auto-shelf above drawers if space remains
-        const maxDrawers = Math.max(0, Math.floor(compH / minDrawerFrontSize));
-        if (usedCount > 0 && usedCount < maxDrawers) {
-          const drawersTopY =
-            shelfCount > 0
-              ? (usedCount * compH) / (shelfCount + 1)
-              : (usedCount * compH) / usedCount;
-          const remaining = compH - drawersTopY;
-          if (remaining >= t) {
-            const shelfCode =
-              innerCols > 1 ? `${compKey}-S${secIdx + 1}PA` : `${compKey}-PA`;
-            addKorpus(
-              shelfCode,
-              `Polica iznad fioka ${getElementScope(compKey)}`,
-              secW,
-              carcassD,
-              elementKey,
-              "width",
-            );
-            shelfTargets.push({
-              id: shelfCode,
-              element: elementKey,
-              label: `Polica iznad fioka ${compKey}`,
-              width: toCm(secW),
-              height: toCm(carcassD),
-              depth: toCm(carcassD),
-              area: toCm(secW) * toCm(carcassD),
-              index: shelfTargets.length,
-              columnIndex: colIdx,
-              elementInnerWidth: toCm(secW),
-              outerWidth: toCm(col.width),
-            });
-          }
         }
       }
 

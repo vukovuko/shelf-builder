@@ -12,6 +12,7 @@ import {
 import { buildVerticalPanelSpans } from "@/lib/technicalDrawingModel";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
+  MAX_DRAWER_HEIGHT_CM,
   getMinColumnHeightCm,
   MAX_COLUMN_HEIGHT_CM,
   MIN_TOP_HEIGHT,
@@ -26,6 +27,11 @@ import {
   SLIDING_DOOR_Z_GAP_M,
   SLIDING_DOOR_THICKNESS_M,
 } from "@/lib/wardrobe-constants";
+import {
+  getDrawerStackMetrics,
+  getVisibleShelfStartIndex,
+  shouldUseDrawerStack,
+} from "@/lib/drawer-layout";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
@@ -1233,6 +1239,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                       const shelfPanels: React.ReactNode[] = [];
                       for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                        const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
                         const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                         if (shelfCount <= 0) continue;
 
@@ -1251,8 +1258,16 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         // Distribute shelves evenly
                         const usableH = compInnerH;
                         const gap = usableH / (shelfCount + 1);
+                        const visibleShelfStartIndex = getVisibleShelfStartIndex(
+                          shelfCount,
+                          drawerCount,
+                        );
 
-                        for (let shIdx = 1; shIdx <= shelfCount; shIdx++) {
+                        for (
+                          let shIdx = visibleShelfStartIndex;
+                          shIdx <= shelfCount;
+                          shIdx++
+                        ) {
                           const shelfY = compBottomY + shIdx * gap;
                           shelfPanels.push(
                             <Panel
@@ -1289,8 +1304,8 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
 
                         const drawerPanels: React.ReactNode[] = [];
                         for (let secIdx = 0; secIdx < innerCols; secIdx++) {
-                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                           const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
+                          const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
                           const isExternal =
                             cfg.drawersExternal?.[secIdx] ?? true;
                           if (drawerCount <= 0) continue;
@@ -1319,9 +1334,82 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                           const drawerColor = isExternal
                             ? "#e0d5c7"
                             : "#d4c4b0";
+                          const useDrawerStack = shouldUseDrawerStack(
+                            drawerCount,
+                          );
 
                           // TWO CASES: with shelves vs without shelves
-                          if (shelfCount === 0) {
+                          if (useDrawerStack) {
+                            const stack = getDrawerStackMetrics(
+                              compInnerH,
+                              shelfCount,
+                              drawerCount,
+                            );
+                            const drawerH = stack.slotHeight;
+
+                            for (let drIdx = 0; drIdx < stack.drawerCount; drIdx++) {
+                              const drawerBottomY =
+                                compBottomY + drIdx * drawerH;
+                              const drawerTopY = drawerBottomY + drawerH;
+                              const drawerCenterY =
+                                (drawerBottomY + drawerTopY) / 2;
+                              const actualDrawerH = Math.max(
+                                0.02,
+                                drawerH - 0.003,
+                              );
+
+                              if (drawerW < MIN_DRAWER_SIZE || actualDrawerH < MIN_DRAWER_SIZE)
+                                continue;
+
+                              drawerPanels.push(
+                                <mesh
+                                  key={`drawer-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ,
+                                  ]}
+                                >
+                                  <boxGeometry
+                                    args={[
+                                      drawerW,
+                                      actualDrawerH,
+                                      DEFAULT_PANEL_THICKNESS_M,
+                                    ]}
+                                  />
+                                  <meshStandardMaterial
+                                    color={drawerColor}
+                                    roughness={0.7}
+                                    metalness={0}
+                                  />
+                                </mesh>,
+                              );
+                              const handleW = Math.min(drawerW * 0.3, 0.12);
+                              const handleH = 0.015;
+                              const handleD = 0.02;
+                              drawerPanels.push(
+                                <mesh
+                                  key={`handle-${compKey}-${secIdx}-${drIdx}`}
+                                  position={[
+                                    secCenterX,
+                                    drawerCenterY,
+                                    drawerZ +
+                                      DEFAULT_PANEL_THICKNESS_M / 2 +
+                                      handleD / 2,
+                                  ]}
+                                >
+                                  <boxGeometry
+                                    args={[handleW, handleH, handleD]}
+                                  />
+                                  <meshStandardMaterial
+                                    color="#888888"
+                                    roughness={0.3}
+                                    metalness={0.6}
+                                  />
+                                </mesh>,
+                              );
+                            }
+                          } else if (shelfCount === 0) {
                             // CASE 1: No shelves - drawers divide entire compartment equally
                             const drawerH = compInnerH / drawerCount;
                             for (let drIdx = 0; drIdx < drawerCount; drIdx++) {

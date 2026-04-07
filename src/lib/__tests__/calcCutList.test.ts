@@ -770,6 +770,39 @@ describe("calculateCutList", () => {
       );
       expect(internalResult.priceBreakdown.edge.front?.lengthCm ?? 0).toBe(0);
     });
+
+    it("removes only the bottom shelves consumed by stacked drawers", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {
+          A1: {
+            columns: 1,
+            rowCounts: [10],
+            drawerCounts: [3],
+          },
+        },
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+
+      expect(result.items.some((item) => item.code === "A1-S1P1")).toBe(false);
+      expect(result.items.some((item) => item.code === "A1-S1P2")).toBe(false);
+      expect(result.items.some((item) => item.code === "A1-S1P3")).toBe(true);
+      expect(result.items.some((item) => item.code === "A1-S1P10")).toBe(true);
+      expect(
+        result.items.filter((item) => /^A1-S1P\d+$/.test(item.code)).length,
+      ).toBe(8);
+      expect(result.items.filter((item) => item.code.startsWith("A1-F")).length).toBe(3);
+    });
   });
 
   describe("grouped output", () => {

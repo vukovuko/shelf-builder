@@ -1,6 +1,11 @@
 "use client";
 
 import type React from "react";
+import {
+  getDrawerStackMetrics,
+  getVisibleShelfStartIndex,
+  shouldUseDrawerStack,
+} from "@/lib/drawer-layout";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { TARGET_BOTTOM_HEIGHT_CM } from "@/lib/wardrobe-constants";
 import {
@@ -691,10 +696,9 @@ export function BlueprintView() {
                 dividerThickness: panelThicknessPx,
               });
               for (let secIdx = 0; secIdx < innerCols; secIdx++) {
+                const drawerCount = cfg.drawerCounts?.[secIdx] ?? 0;
                 const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
-                if (shelfCount <= 0) {
-                  continue;
-                }
+                if (shelfCount <= 0) continue;
 
                 const section = sections[secIdx];
                 if (!section) continue;
@@ -703,31 +707,28 @@ export function BlueprintView() {
                 const secX2 = section.x + section.width;
                 const usableH = safeTopY - safeBottomY;
                 const gap = usableH / (shelfCount + 1);
-
-                const innerShelfRects = buildEvenShelfRects({
-                  x: secX1,
-                  width: Math.max(secX2 - secX1, 0),
-                  topY: mapYForColumn(safeTopY, colIdx),
-                  bottomY: mapYForColumn(safeBottomY, colIdx),
+                const visibleShelfStartIndex = getVisibleShelfStartIndex(
                   shelfCount,
-                  shelfThickness: panelThicknessPx,
-                });
+                  drawerCount,
+                );
 
-                innerShelfRects.forEach((rect, shIdx) => {
+                for (
+                  let shIdx = visibleShelfStartIndex;
+                  shIdx <= shelfCount;
+                  shIdx++
+                ) {
+                  const shelfY = safeBottomY + shIdx * gap;
                   const innerShelfPanel = createPanelRect(
                     `ish-${compKey}-${secIdx}-${shIdx}`,
-                    rect.x,
-                    rect.y,
-                    rect.width,
-                    rect.height,
+                    secX1,
+                    mapYForColumn(shelfY + tCm / 2, colIdx),
+                    Math.max(secX2 - secX1, 0),
+                    panelThicknessPx,
                     innerPanelFill,
                   );
                   if (innerShelfPanel) nodes.push(innerShelfPanel);
-                });
+                }
 
-                // Draw height labels for spaces between inner shelves
-                // Always show labels regardless of height (user requirement)
-                // MIN_DRAG_GAP = 10cm is the minimum compartment height
                 if (gap > 0) {
                   for (let spaceIdx = 0; spaceIdx <= shelfCount; spaceIdx++) {
                     const spaceBottomY = safeBottomY + spaceIdx * gap;
@@ -735,7 +736,6 @@ export function BlueprintView() {
                     const spaceMidY = (spaceBottomY + spaceTopY) / 2;
                     const spaceMidX = (secX1 + secX2) / 2;
                     const spaceHeightCm = Math.round(gap);
-                    // Font size (min gap is 10cm per MIN_DRAG_GAP)
                     const labelFontSize = gap < 15 ? 7 : 8;
 
                     nodes.push(
@@ -768,11 +768,24 @@ export function BlueprintView() {
                 const secDrawerW = secX2 - secX1;
                 if (secDrawerW <= 0) continue;
                 const compInnerH = safeTopY - safeBottomY;
-                // Match CarcassFrame: divide compartment equally among drawers
-                const drawerH = compInnerH / drawerCount;
+                const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
+                const stack = getDrawerStackMetrics(
+                  compInnerH / 100,
+                  shelfCount,
+                  drawerCount,
+                );
+                const drawerH = shouldUseDrawerStack(drawerCount)
+                  ? stack.slotHeight * 100
+                  : shelfCount > 0
+                    ? compInnerH / (shelfCount + 1)
+                    : compInnerH / drawerCount;
                 const drawerGap = Math.min(1, drawerH * 0.03); // small visual gap
 
-                for (let drIdx = 0; drIdx < drawerCount; drIdx++) {
+                const visibleDrawerCount = shouldUseDrawerStack(drawerCount)
+                  ? stack.drawerCount
+                  : drawerCount;
+
+                for (let drIdx = 0; drIdx < visibleDrawerCount; drIdx++) {
                   const drawerBottomY = safeBottomY + drIdx * drawerH;
                   const drawerTopY = Math.min(
                     drawerBottomY + drawerH - drawerGap,
