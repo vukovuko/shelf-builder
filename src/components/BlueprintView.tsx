@@ -842,8 +842,7 @@ export function BlueprintView() {
 
                   if (drawerTopY > drawerBottomY) {
                     const drawerTopYPx = mapYForColumn(drawerTopY, colIdx);
-                    const drawerHeightPx =
-                      (drawerTopY - drawerBottomY) * scale;
+                    const drawerHeightPx = (drawerTopY - drawerBottomY) * scale;
 
                     nodes.push(
                       <rect
