@@ -730,8 +730,9 @@ export function CheckoutDialog({
                   <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                     {INSTALLATION_SERVICE_OPTIONS.map((option) => (
                       <p key={`hint-${option.value}`}>
-                        {option.label}: 12.000 RSD + {Math.round(option.rate * 100)}%
-                        od trenutne cene, zaokruženo naviše na 2.000 RSD.
+                        {option.label}: 12.000 RSD +{" "}
+                        {Math.round(option.rate * 100)}% od trenutne cene,
+                        zaokruženo naviše na 2.000 RSD.
                       </p>
                     ))}
                   </div>

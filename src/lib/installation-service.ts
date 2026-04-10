@@ -1,3 +1,5 @@
+import type { RuleAdjustment } from "@/lib/rules";
+
 export const INSTALLATION_SERVICE_VALUES = [
   "prepared-delivery",
   "full-installation",
@@ -33,15 +35,6 @@ export const INSTALLATION_SERVICE_OPTIONS: Array<{
   },
 ];
 
-export interface InstallationServiceAdjustment {
-  ruleId: string;
-  ruleName: string;
-  actionType: string;
-  description: string;
-  amount: number;
-  visible: boolean;
-}
-
 export function isInstallationServiceType(
   value: string,
 ): value is InstallationServiceType {
@@ -63,7 +56,7 @@ export function getInstallationServiceOption(type: InstallationServiceType) {
 export function buildInstallationServiceAdjustment(
   subtotal: number,
   serviceType: InstallationServiceType | "" | null | undefined,
-): InstallationServiceAdjustment | null {
+): RuleAdjustment | null {
   if (!serviceType || !isInstallationServiceType(serviceType)) {
     return null;
   }
@@ -81,7 +74,7 @@ export function buildInstallationServiceAdjustment(
   return {
     ruleId: `installation:${serviceType}`,
     ruleName: "Usluga montaže",
-    actionType: "installation_service",
+    actionType: "surcharge_fixed",
     description: option.label,
     amount,
     visible: true,

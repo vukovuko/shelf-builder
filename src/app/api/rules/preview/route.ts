@@ -28,7 +28,10 @@ import {
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
-import { buildInstallationServiceAdjustment } from "@/lib/installation-service";
+import {
+  buildInstallationServiceAdjustment,
+  isInstallationServiceType,
+} from "@/lib/installation-service";
 
 // Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
@@ -347,11 +350,20 @@ export async function POST(req: Request) {
       ruleContext,
       previewBaseTotal,
     );
-    const baseAdjustedTotal = calculateFinalPrice(previewBaseTotal, adjustments);
-    const subtotalAfterRules = adjustments.length > 0 ? baseAdjustedTotal : previewBaseTotal;
+    const baseAdjustedTotal = calculateFinalPrice(
+      previewBaseTotal,
+      adjustments,
+    );
+    const subtotalAfterRules =
+      adjustments.length > 0 ? baseAdjustedTotal : previewBaseTotal;
+    const normalizedInstallationService =
+      typeof installationService === "string" &&
+      isInstallationServiceType(installationService)
+        ? installationService
+        : undefined;
     const installationAdjustment = buildInstallationServiceAdjustment(
       subtotalAfterRules,
-      typeof installationService === "string" ? installationService : "",
+      normalizedInstallationService,
     );
     const combinedAdjustments = installationAdjustment
       ? [...adjustments, installationAdjustment]
