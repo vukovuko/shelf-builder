@@ -24,9 +24,17 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import posthog from "posthog-js";
 import { validateCheckoutForm } from "@/lib/checkoutValidation";
+import { INSTALLATION_SERVICE_OPTIONS } from "@/lib/installation-service";
 import { OrderSuccess } from "@/components/checkout/OrderSuccess";
 import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
 
@@ -113,6 +121,7 @@ export function CheckoutDialog({
     shippingApartment: "",
     shippingCity: "",
     shippingPostalCode: "",
+    installationService: "",
     notes: "",
     newsletter: false,
   });
@@ -215,6 +224,7 @@ export function CheckoutDialog({
           customerEmail: formData.customerEmail,
           customerPhone: formData.customerPhone,
           shippingCity: formData.shippingCity,
+          installationService: formData.installationService,
         }),
       })
         .then((res) => (res.ok ? res.json() : null))
@@ -250,6 +260,7 @@ export function CheckoutDialog({
     formData.customerEmail,
     formData.customerPhone,
     formData.shippingCity,
+    formData.installationService,
   ]);
 
   // Close suggestions when clicking outside
@@ -378,6 +389,7 @@ export function CheckoutDialog({
           shippingApartment: formData.shippingApartment,
           shippingCity: formData.shippingCity,
           shippingPostalCode: formData.shippingPostalCode,
+          installationService: formData.installationService,
           notes: formData.notes,
           newsletter: formData.newsletter,
           wardrobeSnapshot: orderData.wardrobeSnapshot,
@@ -461,6 +473,7 @@ export function CheckoutDialog({
       shippingApartment: "",
       shippingCity: "",
       shippingPostalCode: "",
+      installationService: "",
       notes: "",
       newsletter: false,
     });
@@ -678,6 +691,55 @@ export function CheckoutDialog({
                       className="mt-2"
                     />
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-medium text-sm">Način montaže</h3>
+                <div className="relative pb-5">
+                  <Label htmlFor="installationService">Usluga *</Label>
+                  <Select
+                    value={formData.installationService}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        installationService: value,
+                      }));
+                      if (errors.installationService) {
+                        setErrors((prev) => ({
+                          ...prev,
+                          installationService: "",
+                        }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      id="installationService"
+                      className={`mt-2 h-auto min-h-11 ${errors.installationService ? "border-destructive" : ""}`}
+                    >
+                      <SelectValue placeholder="Izaberite način montaže" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INSTALLATION_SERVICE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    {INSTALLATION_SERVICE_OPTIONS.map((option) => (
+                      <p key={`hint-${option.value}`}>
+                        {option.label}: 12.000 RSD + {Math.round(option.rate * 100)}%
+                        od trenutne cene, zaokruženo naviše na 2.000 RSD.
+                      </p>
+                    ))}
+                  </div>
+                  {errors.installationService && (
+                    <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                      {errors.installationService}
+                    </p>
+                  )}
                 </div>
               </div>
 

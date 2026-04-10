@@ -34,6 +34,10 @@ import {
   type Rule,
 } from "@/lib/rules";
 import {
+  buildInstallationServiceAdjustment,
+  INSTALLATION_SERVICE_VALUES,
+} from "@/lib/installation-service";
+import {
   strictRateLimit,
   getIdentifier,
   rateLimitResponse,
@@ -54,6 +58,7 @@ const checkoutSchema = z
     shippingApartment: z.string().optional().or(z.literal("")),
     shippingCity: z.string().min(1, "Grad je obavezan"),
     shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
+    installationService: z.enum(INSTALLATION_SERVICE_VALUES),
     // Optional customer note
     notes: z.string().optional().or(z.literal("")),
     // Newsletter opt-in
@@ -117,6 +122,7 @@ export async function POST(request: Request) {
       shippingApartment,
       shippingCity,
       shippingPostalCode,
+      installationService,
       notes,
       wardrobeSnapshot,
       thumbnail,
@@ -655,9 +661,20 @@ export async function POST(request: Request) {
         ruleContext,
         totalPrice,
       );
-      const adjustedTotal =
+      const subtotalAfterRules =
         ruleAdjustments.length > 0
           ? calculateFinalPrice(totalPrice, ruleAdjustments)
+          : totalPrice;
+      const installationAdjustment = buildInstallationServiceAdjustment(
+        subtotalAfterRules,
+        installationService,
+      );
+      const finalRuleAdjustments = installationAdjustment
+        ? [...ruleAdjustments, installationAdjustment]
+        : ruleAdjustments;
+      const adjustedTotal =
+        finalRuleAdjustments.length > 0
+          ? subtotalAfterRules + (installationAdjustment?.amount ?? 0)
           : null;
 
       // 4. Insert wardrobe
@@ -698,7 +715,8 @@ export async function POST(request: Request) {
           shippingCity,
           shippingPostalCode,
           notes: notes || null,
-          ruleAdjustments: ruleAdjustments.length > 0 ? ruleAdjustments : null,
+          ruleAdjustments:
+            finalRuleAdjustments.length > 0 ? finalRuleAdjustments : null,
           adjustedTotal,
           status: "open",
           paymentStatus: "unpaid",
@@ -735,7 +753,7 @@ export async function POST(request: Request) {
         orderId: order.id,
         orderNumber: order.orderNumber,
         wardrobeId: wardrobe.id,
-        ruleAdjustments,
+        ruleAdjustments: finalRuleAdjustments,
         adjustedTotal,
       };
     });

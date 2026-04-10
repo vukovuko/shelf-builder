@@ -43,6 +43,15 @@ interface PriceBreakdown {
   handles?: { count: number; price: number };
 }
 
+interface RuleAdjustment {
+  ruleId: string;
+  ruleName: string;
+  actionType: string;
+  description: string;
+  amount: number;
+  visible: boolean;
+}
+
 interface Order {
   id: string;
   orderNumber: number;
@@ -61,6 +70,7 @@ interface Order {
   area: number;
   totalPrice: number;
   priceBreakdown: PriceBreakdown | null;
+  ruleAdjustments: RuleAdjustment[] | null;
   adjustedTotal: number | null;
   status: "open" | "archived" | "cancelled";
   paymentStatus:
@@ -424,6 +434,22 @@ export function OrderDetailClient({
                   </p>
                 </div>
               )}
+              {order.ruleAdjustments
+                ?.filter((adj) => adj.visible)
+                .map((adj) => (
+                  <div
+                    key={adj.ruleId}
+                    className="flex items-center justify-between px-5 py-3.5"
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      {adj.description}
+                    </p>
+                    <p className="text-sm tabular-nums">
+                      {adj.amount >= 0 ? "+" : ""}
+                      {formatPrice(adj.amount)} RSD
+                    </p>
+                  </div>
+                ))}
               <div className="flex items-center justify-between px-5 py-3.5 bg-muted/30">
                 <p className="text-sm font-semibold">Ukupno</p>
                 <p className="text-sm font-semibold tabular-nums">

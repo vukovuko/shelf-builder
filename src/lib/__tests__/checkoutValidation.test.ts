@@ -12,6 +12,7 @@ const validForm: CheckoutFormData = {
   shippingApartment: "3/5",
   shippingCity: "Beograd",
   shippingPostalCode: "11000",
+  installationService: "prepared-delivery",
   notes: "",
 };
 
@@ -104,6 +105,14 @@ describe("validateCheckoutForm", () => {
     expect(errors.shippingPostalCode).toBe("Poštanski broj je obavezan");
   });
 
+  it("missing installation service → installationService error", () => {
+    const errors = validateCheckoutForm(
+      { ...validForm, installationService: "" },
+      "valid-token",
+    );
+    expect(errors.installationService).toBe("Izaberite način montaže");
+  });
+
   it("missing turnstile token → turnstile error", () => {
     const errors = validateCheckoutForm(validForm, null);
     expect(errors.turnstile).toBe("Molimo sačekajte verifikaciju");
@@ -119,6 +128,7 @@ describe("validateCheckoutForm", () => {
         shippingApartment: "",
         shippingCity: "",
         shippingPostalCode: "",
+        installationService: "",
         notes: "",
       },
       null,
@@ -129,7 +139,8 @@ describe("validateCheckoutForm", () => {
     expect(errors.shippingStreet).toBeDefined();
     expect(errors.shippingCity).toBeDefined();
     expect(errors.shippingPostalCode).toBeDefined();
+    expect(errors.installationService).toBeDefined();
     expect(errors.turnstile).toBeDefined();
-    expect(Object.keys(errors).length).toBe(7);
+    expect(Object.keys(errors).length).toBe(8);
   });
 });

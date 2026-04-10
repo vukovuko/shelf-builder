@@ -3,6 +3,8 @@
  * Extracted from CheckoutDialog.tsx to enable unit testing.
  */
 
+import { isInstallationServiceType } from "./installation-service";
+
 export interface CheckoutFormData {
   customerName: string;
   customerEmail: string;
@@ -11,6 +13,7 @@ export interface CheckoutFormData {
   shippingApartment: string;
   shippingCity: string;
   shippingPostalCode: string;
+  installationService: string;
   notes: string;
 }
 
@@ -46,6 +49,10 @@ export function validateCheckoutForm(
 
   if (!formData.shippingPostalCode.trim()) {
     errors.shippingPostalCode = "Poštanski broj je obavezan";
+  }
+
+  if (!isInstallationServiceType(formData.installationService)) {
+    errors.installationService = "Izaberite način montaže";
   }
 
   if (!turnstileToken) {

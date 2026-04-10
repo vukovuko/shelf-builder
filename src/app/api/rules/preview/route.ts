@@ -28,6 +28,7 @@ import {
   type RuleContext,
   type Rule,
 } from "@/lib/rules";
+import { buildInstallationServiceAdjustment } from "@/lib/installation-service";
 
 // Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       customerEmail,
       customerPhone,
       shippingCity,
+      installationService,
     } = body;
 
     if (!snapshot || !materialId || !totalPrice) {
@@ -345,11 +347,23 @@ export async function POST(req: Request) {
       ruleContext,
       previewBaseTotal,
     );
-    const visibleAdjustments = getVisibleAdjustments(adjustments);
-    const adjustedTotal = calculateFinalPrice(previewBaseTotal, adjustments);
+    const baseAdjustedTotal = calculateFinalPrice(previewBaseTotal, adjustments);
+    const subtotalAfterRules = adjustments.length > 0 ? baseAdjustedTotal : previewBaseTotal;
+    const installationAdjustment = buildInstallationServiceAdjustment(
+      subtotalAfterRules,
+      typeof installationService === "string" ? installationService : "",
+    );
+    const combinedAdjustments = installationAdjustment
+      ? [...adjustments, installationAdjustment]
+      : adjustments;
+    const visibleAdjustments = getVisibleAdjustments(combinedAdjustments);
+    const adjustedTotal =
+      combinedAdjustments.length > 0
+        ? subtotalAfterRules + (installationAdjustment?.amount ?? 0)
+        : previewBaseTotal;
 
     return NextResponse.json({
-      adjustedTotal: adjustments.length > 0 ? adjustedTotal : null,
+      adjustedTotal: combinedAdjustments.length > 0 ? adjustedTotal : null,
       visibleAdjustments:
         visibleAdjustments.length > 0
           ? visibleAdjustments.map((a) => ({
