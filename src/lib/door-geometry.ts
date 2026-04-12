@@ -181,12 +181,17 @@ export function getDoorSelectionBounds(
   };
   const innerCols = Math.max(1, cfg.columns ?? 1);
   const innerLeft = context.columnLeft + t;
-  const innerWidth = Math.max(context.columnRight - context.columnLeft - 2 * t, 0);
+  const innerWidth = Math.max(
+    context.columnRight - context.columnLeft - 2 * t,
+    0,
+  );
   const sectionWidth = innerCols > 0 ? innerWidth / innerCols : innerWidth;
   const sectionIdx = Math.min(Math.max(parsed.sectionIdx, 0), innerCols - 1);
 
   const leftX =
-    sectionIdx === 0 ? context.columnLeft : innerLeft + sectionIdx * sectionWidth;
+    sectionIdx === 0
+      ? context.columnLeft
+      : innerLeft + sectionIdx * sectionWidth;
   const rightX =
     sectionIdx === innerCols - 1
       ? context.columnRight

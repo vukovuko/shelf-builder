@@ -882,10 +882,7 @@ export function BlueprintView() {
                     const spaceBottomY =
                       safeBottomY + drIdx * gap + tCm / 2 + drawerInsetCm;
                     const spaceTopY =
-                      safeBottomY +
-                      (drIdx + 1) * gap -
-                      tCm / 2 -
-                      drawerInsetCm;
+                      safeBottomY + (drIdx + 1) * gap - tCm / 2 - drawerInsetCm;
                     drawerBottomY = spaceBottomY;
                     drawerTopY = Math.min(spaceTopY, safeTopY);
                   }
@@ -1027,7 +1024,8 @@ export function BlueprintView() {
               if (colIdx === -1) return null;
 
               const colH = (columnHeights[colIdx] ?? height) / 100;
-              const storeModuleBoundary = columnModuleBoundaries[colIdx] ?? null;
+              const storeModuleBoundary =
+                columnModuleBoundaries[colIdx] ?? null;
               const effectiveModuleBoundary =
                 colH > splitThreshold ? storeModuleBoundary : null;
               const bounds = getDoorGroupBounds(group.compartments, {
@@ -1113,9 +1111,13 @@ export function BlueprintView() {
                     />
                   ) : isLeftHinge || isRightHinge ? (
                     <line
-                      x1={isLeftHinge ? right - handleInset : left + handleInset}
+                      x1={
+                        isLeftHinge ? right - handleInset : left + handleInset
+                      }
                       y1={handleTop}
-                      x2={isLeftHinge ? right - handleInset : left + handleInset}
+                      x2={
+                        isLeftHinge ? right - handleInset : left + handleInset
+                      }
                       y2={handleBottom}
                       stroke="#111"
                       strokeWidth="1"

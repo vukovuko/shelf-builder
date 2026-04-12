@@ -17,10 +17,7 @@ import {
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
 } from "./drawer-layout";
-import {
-  DOUBLE_DOOR_CENTER_GAP_M,
-  getDoorGroupBounds,
-} from "./door-geometry";
+import { DOUBLE_DOOR_CENTER_GAP_M, getDoorGroupBounds } from "./door-geometry";
 import { buildBlocksX } from "./wardrobe-utils";
 import { computeCompartmentCount } from "./rules/computeCompartmentCount";
 import { computeDoorMetrics } from "./rules/computeDoorMetrics";
@@ -956,7 +953,7 @@ export function calculateCutList(
       const effectiveModuleBoundary =
         h > TARGET_BOTTOM_HEIGHT
           ? (columnModuleBoundaries[colIdx] ??
-              (needsModuleSplit ? calculatedModuleBoundaryY : null))
+            (needsModuleSplit ? calculatedModuleBoundaryY : null))
           : null;
 
       // Calculate inner section widths

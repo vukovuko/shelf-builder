@@ -90,7 +90,11 @@ export function computeDoorMetrics(
   const elementConfigs =
     (snapshot.elementConfigs as Record<
       string,
-      { columns?: number; rowCounts?: number[]; sectionShelfRatios?: number[][] }
+      {
+        columns?: number;
+        rowCounts?: number[];
+        sectionShelfRatios?: number[][];
+      }
     >) ?? {};
 
   // Count door types and compute heights
