@@ -103,8 +103,16 @@ export default function RootLayout({
     <html lang="sr">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
-        <meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
+        <meta
+          name="theme-color"
+          content="#1e1e2e"
+          media="(prefers-color-scheme: dark)"
+        />
+        <meta
+          name="theme-color"
+          content="#eff1f5"
+          media="(prefers-color-scheme: light)"
+        />
         <meta name="color-scheme" content="light dark" />
         <script
           type="application/ld+json"
@@ -148,7 +156,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${poppins.variable} ${poppins.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
           <NextTopLoader color="#7c3aed" showSpinner={false} />
           <PostHogProvider>
             <AuthSessionProvider>{children}</AuthSessionProvider>

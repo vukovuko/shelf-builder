@@ -46,7 +46,10 @@ function slugify(value: string): string {
     .slice(0, 80);
 }
 
-function parseSerbianPrice(value: string): { integer: number; decimal: number } {
+function parseSerbianPrice(value: string): {
+  integer: number;
+  decimal: number;
+} {
   const normalized = value
     .replace(/\s*RSD/i, "")
     .replaceAll(".", "")
@@ -126,7 +129,9 @@ async function main() {
   const outputPath = resolve(process.cwd(), process.argv[3] ?? DEFAULT_OUTPUT);
   const html = await readFile(inputPath, "utf8");
   const dom = new JSDOM(html);
-  const items = Array.from(dom.window.document.querySelectorAll("li.product-item"));
+  const items: Element[] = Array.from(
+    dom.window.document.querySelectorAll("li.product-item"),
+  );
   const rows = items
     .map((item) => buildRowFromItem(item))
     .filter((row): row is ExtractedHandleRow => row !== null);
@@ -153,7 +158,11 @@ async function main() {
   const lines = [
     header.join(","),
     ...rows.map((row) =>
-      header.map((column) => escapeCsvValue(row[column as keyof ExtractedHandleRow])).join(","),
+      header
+        .map((column) =>
+          escapeCsvValue(row[column as keyof ExtractedHandleRow]),
+        )
+        .join(","),
     ),
   ];
 
