@@ -323,7 +323,7 @@ export function DesignLayoutClient({
           )}
         </div>
         <div className="flex-1" />
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-2 justify-end ">
           <Button
             variant="ghost"
             size="icon"
@@ -332,6 +332,7 @@ export function DesignLayoutClient({
           >
             <Ruler
               className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+              stroke="#4c4f69"
             />
           </Button>
           {hasDoors && (
@@ -342,9 +343,9 @@ export function DesignLayoutClient({
               title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
             >
               {showDoors ? (
-                <DoorOpen className="h-4 w-4" />
+                <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
               ) : (
-                <DoorClosed className="h-4 w-4 opacity-50" />
+                <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
               )}
             </Button>
           )}
@@ -411,7 +412,7 @@ export function DesignLayoutClient({
             </Button>
           </div>
         )}
-        <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20">
+        <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20 ">
           <Button
             variant="ghost"
             size="icon"
@@ -420,6 +421,7 @@ export function DesignLayoutClient({
           >
             <Ruler
               className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+              stroke="#4c4f69"
             />
           </Button>
           {hasDoors && (
@@ -430,9 +432,9 @@ export function DesignLayoutClient({
               title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
             >
               {showDoors ? (
-                <DoorOpen className="h-4 w-4" />
+                <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
               ) : (
-                <DoorClosed className="h-4 w-4 opacity-50" />
+                <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
               )}
             </Button>
           )}

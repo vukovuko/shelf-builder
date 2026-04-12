@@ -30,7 +30,7 @@ export function ThemeToggle() {
       title={resolvedTheme === "dark" ? "Svetla tema" : "Tamna tema"}
     >
       {resolvedTheme === "dark" ? (
-        <Sun className="h-4 w-4" />
+        <Sun className="h-4 w-4" stroke="#4c4f69" />
       ) : (
         <Moon className="h-4 w-4" />
       )}

@@ -16,6 +16,7 @@ import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
 import { Wardrobe } from "./Wardrobe";
 import { Canvas3DErrorBoundary } from "./Canvas3DErrorBoundary";
+import { RoomEnvironment } from "./RoomEnvironment";
 
 const HINT_DISMISSED_KEY = "shelf-builder-3d-hint-dismissed";
 
@@ -416,10 +417,9 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
             gl.domElement.addEventListener("webglcontextrestored", () => {});
           }}
         >
-          {/* Background: dark purple from theme (--background in dark mode) */}
           <color
             attach="background"
-            args={[showEdgesOnly ? "#ffffff" : "#2d2a3e"]}
+            args={[showEdgesOnly ? "#ffffff" : "#c5bfb6"]}
           />
 
           {/* Basic lighting - flat lighting in edges mode for clean download */}
@@ -429,6 +429,14 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
               position={[5, 10, 5]}
               intensity={0.8}
               castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+              shadow-camera-left={-4}
+              shadow-camera-right={4}
+              shadow-camera-top={4}
+              shadow-camera-bottom={-4}
+              shadow-camera-near={0.5}
+              shadow-camera-far={30}
             />
           )}
 
@@ -437,6 +445,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
           {/* Wardrobe centered manually, CameraPositioner handles camera fitting */}
           <Suspense fallback={null}>
             <WardrobeCenterer wardrobeRef={wardrobeRef} />
+            {!showEdgesOnly && <RoomEnvironment />}
           </Suspense>
           <CameraPositioner />
 
