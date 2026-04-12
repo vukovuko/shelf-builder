@@ -522,7 +522,7 @@ describe("calculateCutList", () => {
 
       expect(drawerFronts).toHaveLength(3);
       expect(drawerFronts[0]?.widthCm).toBeCloseTo(99.5, 1);
-      expect(drawerFronts[0]?.heightCm).toBeCloseTo(31.83, 1);
+      expect(drawerFronts[0]?.heightCm).toBeCloseTo(31.63, 1);
     });
 
     it("keeps internal drawer fronts on inner opening width", () => {
@@ -551,7 +551,7 @@ describe("calculateCutList", () => {
       const drawerFronts = result.items.filter((i) => /^A1-F\d+$/.test(i.code));
 
       expect(drawerFronts).toHaveLength(3);
-      expect(drawerFronts[0]?.widthCm).toBeCloseTo(96.15, 1);
+      expect(drawerFronts[0]?.widthCm).toBeCloseTo(95.9, 1);
     });
 
     it("offsets external drawer fronts 2.5mm away from the divider centerline", () => {
@@ -787,7 +787,7 @@ describe("calculateCutList", () => {
 
       const result = calculateCutList(snapshot, mockMaterials);
 
-      expect(result.priceBreakdown.edge.front?.lengthM).toBeCloseTo(3.926, 3);
+      expect(result.priceBreakdown.edge.front?.lengthM).toBeCloseTo(3.98, 3);
       expect(result.priceBreakdown.edge.carcass?.lengthM).toBeCloseTo(3.928, 3);
     });
 
@@ -2008,7 +2008,7 @@ describe("calculateCutList", () => {
       expect(generated).toHaveLength(2);
       expect(generated[0]?.materialType).toBe("korpus");
       expect(generated[0]?.thicknessMm).toBe(18);
-      expect(generated[0]?.widthCm).toBeCloseTo(49.95, 2);
+      expect(generated[0]?.widthCm).toBeCloseTo(49.75, 2);
       expect(generated[0]?.heightCm).toBeCloseTo(10, 5);
       expect(withRules.totalCost).toBeGreaterThan(withoutRules.totalCost);
     });

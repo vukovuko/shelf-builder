@@ -1,7 +1,8 @@
 import { DRAWER_HEIGHT_CM, MAX_DRAWER_HEIGHT_CM } from "./wardrobe-constants";
 
-const DRAWER_SIDE_REVEAL_M = 2.5 / 1000;
-const DRAWER_INNER_CLEARANCE_TOTAL_M = 2.5 / 1000;
+export const DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M = 2.5 / 1000;
+export const DRAWER_FRONT_TOTAL_CLEARANCE_M =
+  DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M * 2;
 
 export function shouldUseDrawerStack(drawerCount: number): boolean {
   return Number.isFinite(drawerCount) && drawerCount > 1;
@@ -134,7 +135,7 @@ export function getDrawerFrontSpan({
     const openingEnd =
       (safeSectionIndex + 1) * sectionSpan -
       (safeSectionIndex < safeSectionCount - 1 ? safeSideThickness / 2 : 0);
-    const inset = DRAWER_INNER_CLEARANCE_TOTAL_M / 2;
+    const inset = DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M;
     const start = openingStart + inset;
     const end = Math.max(openingEnd - inset, start);
 
@@ -147,8 +148,11 @@ export function getDrawerFrontSpan({
   }
 
   if (safeSectionCount === 1) {
-    const start = DRAWER_SIDE_REVEAL_M;
-    const end = Math.max(safeOuterWidth - DRAWER_SIDE_REVEAL_M, start);
+    const start = DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M;
+    const end = Math.max(
+      safeOuterWidth - DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M,
+      start,
+    );
     return {
       start,
       end,
@@ -165,8 +169,11 @@ export function getDrawerFrontSpan({
     safeSectionIndex === safeSectionCount - 1
       ? safeOuterWidth
       : safeSideThickness + (safeSectionIndex + 1) * sectionSpan;
-  const start = leftBoundary + DRAWER_SIDE_REVEAL_M;
-  const end = Math.max(rightBoundary - DRAWER_SIDE_REVEAL_M, start);
+  const start = leftBoundary + DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M;
+  const end = Math.max(
+    rightBoundary - DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M,
+    start,
+  );
 
   return {
     start,

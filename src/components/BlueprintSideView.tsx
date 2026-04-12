@@ -14,6 +14,8 @@ interface BlueprintSideViewProps {
   columns: { start: number; end: number; width: number }[];
   columnHeights: Record<number, number>;
   columnModuleBoundaries: Record<number, number | null>;
+  showDoors: boolean;
+  hasFrontDoors: boolean;
 }
 
 export function BlueprintSideView({
@@ -29,6 +31,8 @@ export function BlueprintSideView({
   columns,
   columnHeights,
   columnModuleBoundaries,
+  showDoors,
+  hasFrontDoors,
 }: BlueprintSideViewProps) {
   // Use max column height for side view
   const sideColIdx = columns.reduce((bestIdx, _col, idx) => {
@@ -43,6 +47,7 @@ export function BlueprintSideView({
   const shellBottomY = sideViewY + scaledHeight;
   const topBottomThickness = 1.8 * scale;
   const backThickness = 0.5 * scale;
+  const doorThickness = 1.8 * scale;
   const backFrontX = sideViewX + backThickness;
   const moduleBoundary = columnModuleBoundaries[sideColIdx] ?? null;
   const moduleBoundaryCm =
@@ -149,6 +154,18 @@ export function BlueprintSideView({
           y2={sideViewY + scaledHeight - moduleBoundaryCm * scale}
           stroke="#000"
           strokeWidth="0.9"
+        />
+      )}
+
+      {showDoors && hasFrontDoors && (
+        <rect
+          x={sideViewX + scaledDepth - doorThickness}
+          y={shellTopY}
+          width={doorThickness}
+          height={scaledMaxHeight}
+          fill="rgba(0,0,0,0.05)"
+          stroke="#111"
+          strokeWidth="0.8"
         />
       )}
 

@@ -3,8 +3,8 @@
  * Reuses the same column/compartment geometry as calcCutList.ts.
  */
 
+import { getDoorGroupBounds } from "@/lib/door-geometry";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
-import { parseSubCompKey } from "@/lib/store";
 import { TARGET_BOTTOM_HEIGHT, MIN_TOP_HEIGHT } from "@/lib/wardrobe-constants";
 
 export interface HandleLookupEntry {
@@ -87,6 +87,11 @@ export function computeDoorMetrics(
     (snapshot.columnModuleBoundaries as Record<number, number | null>) ?? {};
   const columnTopModuleShelves =
     (snapshot.columnTopModuleShelves as Record<number, number[]>) ?? {};
+  const elementConfigs =
+    (snapshot.elementConfigs as Record<
+      string,
+      { columns?: number; rowCounts?: number[]; sectionShelfRatios?: number[][] }
+    >) ?? {};
 
   // Count door types and compute heights
   let doubleDoorCount = 0;
@@ -129,6 +134,7 @@ export function computeDoorMetrics(
       columnHorizontalBoundaries,
       columnModuleBoundaries,
       columnTopModuleShelves,
+      elementConfigs,
     );
     if (doorH > 0) {
       maxDoorHeight = Math.max(maxDoorHeight, doorH);
@@ -198,6 +204,10 @@ function computeDoorGroupHeight(
   columnHorizontalBoundaries: Record<number, number[]>,
   columnModuleBoundaries: Record<number, number | null>,
   columnTopModuleShelves: Record<number, number[]>,
+  elementConfigs: Record<
+    string,
+    { columns?: number; rowCounts?: number[]; sectionShelfRatios?: number[][] }
+  >,
 ): number {
   const colIdx = group.column.charCodeAt(0) - 65;
   if (colIdx < 0 || colIdx >= columns.length) return 0;
@@ -213,79 +223,18 @@ function computeDoorGroupHeight(
       : null;
   const hasModuleSplit = moduleBoundary !== null;
 
-  // Bottom module Y boundaries (same as calcCutList.ts:895-905)
-  const bottomShelfYs = columnHorizontalBoundaries[colIdx] ?? [];
-  const bottomNumComps = bottomShelfYs.length + 1;
-  const bottomYStart = -h / 2 + t + baseH;
-  const bottomYEnd = hasModuleSplit ? moduleBoundary - t : h / 2 - t;
-  const bottomSortedYs = [...bottomShelfYs].sort((a, b) => a - b);
-  const bottomAllYs = [bottomYStart, ...bottomSortedYs, bottomYEnd];
-
-  // Top module Y boundaries (same as calcCutList.ts:929-937)
-  let topAllYs: number[] = [];
-  if (hasModuleSplit) {
-    const topShelfYs = columnTopModuleShelves[colIdx] ?? [];
-    const topYStart = moduleBoundary + t;
-    const topYEnd = h / 2 - t;
-    const topSortedYs = [...topShelfYs].sort((a, b) => a - b);
-    topAllYs = [topYStart, ...topSortedYs, topYEnd];
-  }
-
-  // Helper to get compartment Y bounds from a compKey like "A1", "A2", etc.
-  function getCompBounds(compKey: string): { yStart: number; yEnd: number } {
-    const match = compKey.match(/^[A-Z]+(\d+)/);
-    if (!match) return { yStart: 0, yEnd: 0 };
-    const compNum = parseInt(match[1]) - 1; // 0-based
-
-    if (hasModuleSplit && compNum >= bottomNumComps) {
-      // Top module compartment
-      const topIdx = compNum - bottomNumComps;
-      if (topIdx >= 0 && topIdx < topAllYs.length - 1) {
-        return { yStart: topAllYs[topIdx], yEnd: topAllYs[topIdx + 1] };
-      }
-    } else {
-      // Bottom module compartment
-      if (compNum >= 0 && compNum < bottomAllYs.length - 1) {
-        return { yStart: bottomAllYs[compNum], yEnd: bottomAllYs[compNum + 1] };
-      }
-    }
-    return { yStart: 0, yEnd: 0 };
-  }
-
-  // Single compartment door
-  if (group.compartments.length === 1) {
-    const parsed = parseSubCompKey(group.compartments[0]);
-    if (!parsed) return 0;
-    const bounds = getCompBounds(parsed.compKey);
-    const heightM = Math.max(bounds.yEnd - bounds.yStart - t, 0);
-    return heightM * 100;
-  }
-
-  // Multi-compartment door: check if all sub-comps of same base (calcCutList.ts:596-605)
-  const allSameBase = group.compartments.every((cKey: string) => {
-    const parsed = parseSubCompKey(cKey);
-    const firstParsed = parseSubCompKey(group.compartments[0]);
-    return parsed && firstParsed && parsed.compKey === firstParsed.compKey;
+  const bounds = getDoorGroupBounds(group.compartments, {
+    columnLeft: columns[colIdx].start,
+    columnRight: columns[colIdx].end,
+    columnBottomY: -h / 2,
+    columnHeight: h,
+    baseHeight: baseH,
+    panelThickness: t,
+    columnShelfYs: columnHorizontalBoundaries[colIdx] ?? [],
+    columnModuleBoundary: hasModuleSplit ? moduleBoundary : null,
+    topModuleShelfYs: columnTopModuleShelves[colIdx] ?? [],
+    elementConfigs,
   });
 
-  if (allSameBase) {
-    const parsed = parseSubCompKey(group.compartments[0]);
-    if (!parsed) return 0;
-    const bounds = getCompBounds(parsed.compKey);
-    return Math.max(bounds.yEnd - bounds.yStart - t, 0) * 100;
-  }
-
-  // Multiple different base compartments - sum unique heights (calcCutList.ts:607-635)
-  const uniqueBaseKeys = new Set<string>();
-  let totalH = 0;
-  for (const cKey of group.compartments) {
-    const parsed = parseSubCompKey(cKey);
-    const baseKey = parsed ? parsed.compKey : cKey;
-    if (uniqueBaseKeys.has(baseKey)) continue;
-    uniqueBaseKeys.add(baseKey);
-
-    const bounds = getCompBounds(baseKey);
-    totalH += Math.max(bounds.yEnd - bounds.yStart - t, 0);
-  }
-  return totalH * 100;
+  return bounds ? bounds.height * 100 : 0;
 }

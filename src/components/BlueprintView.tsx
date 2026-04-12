@@ -2,13 +2,20 @@
 
 import type React from "react";
 import {
+  DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M,
   getDrawerFrontSpan,
   isDrawerCountValid,
   getDrawerStackMetrics,
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
 } from "@/lib/drawer-layout";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
+import { getDoorGroupBounds } from "@/lib/door-geometry";
+import {
+  useShelfStore,
+  type DoorGroup,
+  type Material,
+  type ShelfState,
+} from "@/lib/store";
 import { TARGET_BOTTOM_HEIGHT_CM } from "@/lib/wardrobe-constants";
 import {
   buildBlocksFromBoundaries,
@@ -55,6 +62,10 @@ export function BlueprintView() {
   const compartmentExtras = useShelfStore(
     (s: ShelfState) => s.compartmentExtras,
   );
+  const doorGroups = useShelfStore((s: ShelfState) => s.doorGroups);
+  const doorSelections = useShelfStore((s: ShelfState) => s.doorSelections);
+  const showDoors = useShelfStore((s: ShelfState) => s.showDoors);
+  const slidingDoors = useShelfStore((s: ShelfState) => s.slidingDoors);
   // Module boundaries for tall wardrobes (>200cm)
   const columnModuleBoundaries = useShelfStore(
     (s: ShelfState) => s.columnModuleBoundaries,
@@ -162,6 +173,20 @@ export function BlueprintView() {
       />
     );
   };
+
+  const legacyDoorGroups: DoorGroup[] = Object.entries(doorSelections)
+    .filter(([, type]) => type && type !== "none")
+    .map(([compartmentKey, type], index) => ({
+      id: `legacy-door-${compartmentKey}-${index}`,
+      type,
+      compartments: [compartmentKey],
+      column: compartmentKey.replace(/\d.*$/, ""),
+    }));
+  const resolvedDoorGroups =
+    doorGroups.length > 0 ? doorGroups : legacyDoorGroups;
+  const shouldRenderFrontDoors =
+    showDoors && !slidingDoors && resolvedDoorGroups.length > 0;
+  const hasAnyFrontDoors = !slidingDoors && resolvedDoorGroups.length > 0;
 
   return (
     <div className="w-full h-full bg-white flex items-center justify-center">
@@ -837,25 +862,32 @@ export function BlueprintView() {
                   : shelfCount > 0
                     ? compInnerH / (shelfCount + 1)
                     : compInnerH / drawerCount;
-                const drawerGap = Math.min(1, drawerH * 0.03); // small visual gap
+                const drawerInsetCm =
+                  DRAWER_FRONT_EDGE_CLEARANCE_PER_SIDE_M * 100;
 
                 const visibleDrawerCount = shouldUseDrawerStack(drawerCount)
                   ? stack.drawerCount
                   : drawerCount;
 
                 for (let drIdx = 0; drIdx < visibleDrawerCount; drIdx++) {
-                  let drawerBottomY = safeBottomY + drIdx * drawerH;
+                  let drawerBottomY =
+                    safeBottomY + drIdx * drawerH + drawerInsetCm;
                   let drawerTopY = Math.min(
-                    drawerBottomY + drawerH - drawerGap,
+                    drawerBottomY + drawerH - drawerInsetCm * 2,
                     safeTopY,
                   );
 
                   if (!shouldUseDrawerStack(drawerCount) && shelfCount > 0) {
                     const gap = compInnerH / (shelfCount + 1);
-                    const spaceBottomY = safeBottomY + drIdx * gap + tCm / 2;
-                    const spaceTopY = safeBottomY + (drIdx + 1) * gap - tCm / 2;
+                    const spaceBottomY =
+                      safeBottomY + drIdx * gap + tCm / 2 + drawerInsetCm;
+                    const spaceTopY =
+                      safeBottomY +
+                      (drIdx + 1) * gap -
+                      tCm / 2 -
+                      drawerInsetCm;
                     drawerBottomY = spaceBottomY;
-                    drawerTopY = Math.min(spaceTopY - drawerGap, safeTopY);
+                    drawerTopY = Math.min(spaceTopY, safeTopY);
                   }
 
                   if (drawerTopY > drawerBottomY) {
@@ -985,6 +1017,113 @@ export function BlueprintView() {
 
             return <g key={`col-${colIdx}`}>{nodes}</g>;
           })}
+
+          {shouldRenderFrontDoors &&
+            resolvedDoorGroups.map((group) => {
+              const colIdx = columns.findIndex((_, idx) => {
+                const colLetter = String.fromCharCode(65 + idx);
+                return group.column === colLetter;
+              });
+              if (colIdx === -1) return null;
+
+              const colH = (columnHeights[colIdx] ?? height) / 100;
+              const storeModuleBoundary = columnModuleBoundaries[colIdx] ?? null;
+              const effectiveModuleBoundary =
+                colH > splitThreshold ? storeModuleBoundary : null;
+              const bounds = getDoorGroupBounds(group.compartments, {
+                columnLeft: columns[colIdx].start / 100,
+                columnRight: columns[colIdx].end / 100,
+                columnBottomY: 0,
+                columnHeight: colH,
+                baseHeight: hasBase ? baseHeight / 100 : 0,
+                panelThickness: tCm / 100,
+                columnShelfYs: columnHorizontalBoundaries[colIdx] || [],
+                columnModuleBoundary: effectiveModuleBoundary,
+                topModuleShelfYs: columnTopModuleShelves[colIdx] || [],
+                elementConfigs,
+              });
+              if (!bounds) return null;
+
+              const left = frontViewX + bounds.leftX * 100 * scale;
+              const right = frontViewX + bounds.rightX * 100 * scale;
+              const top = mapY(bounds.topY * 100);
+              const bottom = mapY(bounds.bottomY * 100);
+              const widthPx = right - left;
+              const heightPx = bottom - top;
+
+              if (widthPx <= 0 || heightPx <= 0) return null;
+
+              const isDouble =
+                group.type === "double" || group.type === "doubleMirror";
+              const isDrawerStyle = group.type === "drawerStyle";
+              const isLeftHinge =
+                group.type === "left" || group.type === "leftMirror";
+              const isRightHinge =
+                group.type === "right" || group.type === "rightMirror";
+              const handleInset = Math.min(8, Math.max(widthPx * 0.08, 4));
+              const handleTop = top + heightPx * 0.35;
+              const handleBottom = top + heightPx * 0.65;
+
+              return (
+                <g key={`blueprint-door-${group.id}`}>
+                  <rect
+                    x={left}
+                    y={top}
+                    width={widthPx}
+                    height={heightPx}
+                    fill={isDrawerStyle ? "#f7efe6" : "rgba(0,0,0,0.03)"}
+                    stroke="#111"
+                    strokeWidth="1"
+                  />
+                  {isDouble ? (
+                    <>
+                      <line
+                        x1={left + widthPx / 2}
+                        y1={top}
+                        x2={left + widthPx / 2}
+                        y2={bottom}
+                        stroke="#111"
+                        strokeWidth="0.8"
+                      />
+                      <line
+                        x1={left + widthPx / 2 - handleInset}
+                        y1={handleTop}
+                        x2={left + widthPx / 2 - handleInset}
+                        y2={handleBottom}
+                        stroke="#111"
+                        strokeWidth="1"
+                      />
+                      <line
+                        x1={left + widthPx / 2 + handleInset}
+                        y1={handleTop}
+                        x2={left + widthPx / 2 + handleInset}
+                        y2={handleBottom}
+                        stroke="#111"
+                        strokeWidth="1"
+                      />
+                    </>
+                  ) : isDrawerStyle ? (
+                    <line
+                      x1={left + widthPx * 0.35}
+                      y1={top + heightPx * 0.2}
+                      x2={left + widthPx * 0.65}
+                      y2={top + heightPx * 0.2}
+                      stroke="#111"
+                      strokeWidth="1"
+                    />
+                  ) : isLeftHinge || isRightHinge ? (
+                    <line
+                      x1={isLeftHinge ? right - handleInset : left + handleInset}
+                      y1={handleTop}
+                      x2={isLeftHinge ? right - handleInset : left + handleInset}
+                      y2={handleBottom}
+                      stroke="#111"
+                      strokeWidth="1"
+                    />
+                  ) : null}
+                </g>
+              );
+            })}
 
           {/* ============================================ */}
           {/* EXTERNAL DIMENSIONS */}
@@ -1197,6 +1336,8 @@ export function BlueprintView() {
           columns={columns}
           columnHeights={columnHeights}
           columnModuleBoundaries={columnModuleBoundaries}
+          showDoors={showDoors}
+          hasFrontDoors={hasAnyFrontDoors}
         />
       </svg>
     </div>

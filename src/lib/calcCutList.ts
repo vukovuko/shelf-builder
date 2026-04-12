@@ -10,12 +10,17 @@ import {
   SLIDING_DOOR_OVERLAP_M,
 } from "./wardrobe-constants";
 import {
+  DRAWER_FRONT_TOTAL_CLEARANCE_M,
   getDrawerFrontSpan,
   isDrawerCountValid,
   getDrawerStackMetrics,
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
 } from "./drawer-layout";
+import {
+  DOUBLE_DOOR_CENTER_GAP_M,
+  getDoorGroupBounds,
+} from "./door-geometry";
 import { buildBlocksX } from "./wardrobe-utils";
 import { computeCompartmentCount } from "./rules/computeCompartmentCount";
 import { computeDoorMetrics } from "./rules/computeDoorMetrics";
@@ -946,8 +951,13 @@ export function calculateCutList(
       // Get element config for this compartment
       const cfg = elementConfigs[compKey] ?? { columns: 1, rowCounts: [0] };
       const innerCols = Math.max(1, (cfg.columns as number) | 0);
-      const drawerFrontClearance = 3 / 1000; // 3mm total visible gap
+      const drawerFrontClearance = DRAWER_FRONT_TOTAL_CLEARANCE_M;
       const minDrawerFrontSize = 0.1; // 10cm minimum size, matches 3D guard
+      const effectiveModuleBoundary =
+        h > TARGET_BOTTOM_HEIGHT
+          ? (columnModuleBoundaries[colIdx] ??
+              (needsModuleSplit ? calculatedModuleBoundaryY : null))
+          : null;
 
       // Calculate inner section widths
       const sectionW = innerW / innerCols;
@@ -1154,52 +1164,24 @@ export function calculateCutList(
           if (isFirstComp) {
             const doorType = doorGroup.type;
             if (doorType && doorType !== "none") {
-              const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
-
-              // Calculate total door height for multi-compartment groups
-              let totalDoorH = compH;
-              if (doorGroup.compartments.length > 1) {
-                // Check if all compartments share the same base key (all sub-compartments of current compartment)
-                const allSameBase = doorGroup.compartments.every((cKey) => {
-                  const parsed = parseSubCompKey(cKey);
-                  return parsed && parsed.compKey === compKey;
-                });
-
-                if (allSameBase) {
-                  // All sub-compartments of the current base compartment
-                  // Door spans the entire base compartment, so use compH
-                  totalDoorH = compH;
-                } else {
-                  // Multiple different base compartments - sum unique heights
-                  const uniqueBaseKeys = new Set<string>();
-                  totalDoorH = doorGroup.compartments.reduce((sum, cKey) => {
-                    const parsed = parseSubCompKey(cKey);
-                    const baseKey = parsed ? parsed.compKey : cKey;
-
-                    // Only add height once per unique base key
-                    if (uniqueBaseKeys.has(baseKey)) {
-                      return sum;
-                    }
-                    uniqueBaseKeys.add(baseKey);
-
-                    const compMatch = baseKey.match(/^([A-Z]+)(\d+)/);
-                    if (compMatch) {
-                      const cIdx = parseInt(compMatch[2]) - 1;
-                      if (
-                        cIdx >= 0 &&
-                        cIdx < numCompartments &&
-                        allYs[cIdx] !== undefined &&
-                        allYs[cIdx + 1] !== undefined
-                      ) {
-                        const cYStart = allYs[cIdx];
-                        const cYEnd = allYs[cIdx + 1];
-                        return sum + Math.max(cYEnd - cYStart - t, 0);
-                      }
-                    }
-                    return sum;
-                  }, 0);
-                }
+              const doorBounds = getDoorGroupBounds(doorGroup.compartments, {
+                columnLeft: col.start,
+                columnRight: col.end,
+                columnBottomY: 0,
+                columnHeight: h,
+                baseHeight: hasBase ? baseH : 0,
+                panelThickness: t,
+                columnShelfYs: columnHorizontalBoundaries[colIdx] || [],
+                columnModuleBoundary: effectiveModuleBoundary,
+                topModuleShelfYs: columnTopModuleShelves[colIdx] || [],
+                elementConfigs,
+              });
+              if (!doorBounds) {
+                return;
               }
+
+              const doorW = doorBounds.width;
+              const totalDoorH = doorBounds.height;
 
               // Get per-door material if in per-door mode
               const doorMaterialId =
@@ -1253,7 +1235,7 @@ export function calculateCutList(
 
               if (doorType === "double" || doorType === "doubleMirror") {
                 totalDoorLeaves += 2;
-                const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+                const leafW = (doorW - DOUBLE_DOOR_CENTER_GAP_M) / 2;
                 const isMirror = doorType === "doubleMirror";
                 addFrontWithMaterial(
                   `${compKey}-VL`,
@@ -1273,8 +1255,9 @@ export function calculateCutList(
                   area: toCm(leafW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
-                  elementInnerWidth: toCm(innerW),
-                  outerWidth: toCm(col.width),
+                  elementInnerWidth: toCm(doorW),
+                  outerWidth: toCm(doorW),
+                  outerHeight: toCm(totalDoorH),
                 });
                 addFrontWithMaterial(
                   `${compKey}-VD`,
@@ -1294,8 +1277,9 @@ export function calculateCutList(
                   area: toCm(leafW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
-                  elementInnerWidth: toCm(innerW),
-                  outerWidth: toCm(col.width),
+                  elementInnerWidth: toCm(doorW),
+                  outerWidth: toCm(doorW),
+                  outerHeight: toCm(totalDoorH),
                 });
                 // Add 2 handles for double doors
                 const handlePrice = getHandlePrice(
@@ -1332,8 +1316,9 @@ export function calculateCutList(
                   area: toCm(doorW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
-                  elementInnerWidth: toCm(innerW),
-                  outerWidth: toCm(col.width),
+                  elementInnerWidth: toCm(doorW),
+                  outerWidth: toCm(doorW),
+                  outerHeight: toCm(totalDoorH),
                 });
               } else {
                 totalDoorLeaves += 1;
@@ -1358,8 +1343,9 @@ export function calculateCutList(
                   area: toCm(doorW) * toCm(totalDoorH),
                   index: doorTargets.length,
                   columnIndex: colIdx,
-                  elementInnerWidth: toCm(innerW),
-                  outerWidth: toCm(col.width),
+                  elementInnerWidth: toCm(doorW),
+                  outerWidth: toCm(doorW),
+                  outerHeight: toCm(totalDoorH),
                 });
                 // Add 1 handle for single door
                 const handlePrice = getHandlePrice(
@@ -1383,8 +1369,24 @@ export function calculateCutList(
           // Legacy doorSelections system (for backward compatibility)
           const doorSel = doorSelections[compKey];
           if (doorSel && doorSel !== "none") {
-            const doorW = Math.max(col.width - 1 / 1000, 0); // 1mm clearance
-            const doorH = compH;
+            const doorBounds = getDoorGroupBounds([compKey], {
+              columnLeft: col.start,
+              columnRight: col.end,
+              columnBottomY: 0,
+              columnHeight: h,
+              baseHeight: hasBase ? baseH : 0,
+              panelThickness: t,
+              columnShelfYs: columnHorizontalBoundaries[colIdx] || [],
+              columnModuleBoundary: effectiveModuleBoundary,
+              topModuleShelfYs: columnTopModuleShelves[colIdx] || [],
+              elementConfigs,
+            });
+            if (!doorBounds) {
+              return;
+            }
+
+            const doorW = doorBounds.width;
+            const doorH = doorBounds.height;
 
             // Get handle price using global settings (legacy mode)
             const handlePrice = getHandlePrice(
@@ -1416,7 +1418,7 @@ export function calculateCutList(
 
             if (doorSel === "double" || doorSel === "doubleMirror") {
               totalDoorLeaves += 2;
-              const leafW = (doorW - 3 / 1000) / 2; // 3mm gap between leaves
+              const leafW = (doorW - DOUBLE_DOOR_CENTER_GAP_M) / 2;
               const isMirror = doorSel === "doubleMirror";
               addFront(
                 `${compKey}-VL`,
@@ -1435,8 +1437,9 @@ export function calculateCutList(
                 area: toCm(leafW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
-                elementInnerWidth: toCm(innerW),
-                outerWidth: toCm(col.width),
+                elementInnerWidth: toCm(doorW),
+                outerWidth: toCm(doorW),
+                outerHeight: toCm(doorH),
               });
               addFront(
                 `${compKey}-VD`,
@@ -1455,8 +1458,9 @@ export function calculateCutList(
                 area: toCm(leafW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
-                elementInnerWidth: toCm(innerW),
-                outerWidth: toCm(col.width),
+                elementInnerWidth: toCm(doorW),
+                outerWidth: toCm(doorW),
+                outerHeight: toCm(doorH),
               });
               // Add 2 handles for double doors
               if (handlePrice > 0) {
@@ -1488,8 +1492,9 @@ export function calculateCutList(
                 area: toCm(doorW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
-                elementInnerWidth: toCm(innerW),
-                outerWidth: toCm(col.width),
+                elementInnerWidth: toCm(doorW),
+                outerWidth: toCm(doorW),
+                outerHeight: toCm(doorH),
               });
             } else {
               totalDoorLeaves += 1;
@@ -1510,8 +1515,9 @@ export function calculateCutList(
                 area: toCm(doorW) * toCm(doorH),
                 index: doorTargets.length,
                 columnIndex: colIdx,
-                elementInnerWidth: toCm(innerW),
-                outerWidth: toCm(col.width),
+                elementInnerWidth: toCm(doorW),
+                outerWidth: toCm(doorW),
+                outerHeight: toCm(doorH),
               });
               // Add 1 handle for single door
               if (handlePrice > 0) {

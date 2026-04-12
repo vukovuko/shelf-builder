@@ -28,6 +28,7 @@ import {
   SLIDING_DOOR_THICKNESS_M,
 } from "@/lib/wardrobe-constants";
 import {
+  DRAWER_FRONT_TOTAL_CLEARANCE_M,
   getDrawerFrontSpan,
   isDrawerCountValid,
   getDrawerStackMetrics,
@@ -40,6 +41,10 @@ import {
   getSectionSpaceBounds,
   getShelfRatioFromPosition,
 } from "@/lib/section-shelf-layout";
+import {
+  DOUBLE_DOOR_CENTER_GAP_M,
+  getDoorGroupBounds,
+} from "@/lib/door-geometry";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
@@ -1425,7 +1430,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 (drawerBottomY + drawerTopY) / 2;
                               const actualDrawerH = Math.max(
                                 0.02,
-                                drawerH - 0.003,
+                                drawerH - DRAWER_FRONT_TOTAL_CLEARANCE_M,
                               );
 
                               if (
@@ -1493,7 +1498,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                                 (drawerBottomY + drawerTopY) / 2;
                               const actualDrawerH = Math.max(
                                 0.02,
-                                drawerH - 0.003,
+                                drawerH - DRAWER_FRONT_TOTAL_CLEARANCE_M,
                               );
 
                               // Skip drawer if below minimum 10x10cm size
@@ -1575,7 +1580,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               const drawerCenterY = space.center;
                               const actualDrawerH = Math.max(
                                 0.02,
-                                spaceTopY - spaceBottomY - 0.003,
+                                spaceTopY -
+                                  spaceBottomY -
+                                  DRAWER_FRONT_TOTAL_CLEARANCE_M,
                               );
 
                               // Skip drawer if below minimum 10x10cm size
@@ -1952,130 +1959,31 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             const isMirror = group.type.includes("Mirror");
 
             const col = columns[colIdx];
-            const colCenterX = (col.start + col.end) / 2;
-            const colInnerW = col.width - 2 * t;
             const colH = getColumnHeight(colIdx);
 
-            // Get compartment bounds helper for this column
             const shelves = columnHorizontalBoundaries[colIdx] || [];
             const moduleBoundary = columnModuleBoundaries[colIdx] ?? null;
-            const hasModuleBoundary =
-              moduleBoundary !== null && colH > splitThreshold;
             const topModuleShelves = columnTopModuleShelves[colIdx] || [];
-            const bottomModuleCompartments = shelves.length + 1;
+            const bounds = getDoorGroupBounds(group.compartments, {
+              columnLeft: col.start,
+              columnRight: col.end,
+              columnBottomY: 0,
+              columnHeight: colH,
+              baseHeight: baseH,
+              panelThickness: t,
+              columnShelfYs: shelves,
+              columnModuleBoundary: moduleBoundary,
+              topModuleShelfYs: topModuleShelves,
+              elementConfigs,
+            });
+            if (!bounds) return null;
 
-            // Get bounds for compartment by key (supports sub-compartment keys like "A1.0.2")
-            const getCompBounds = (key: string) => {
-              const parsed = parseSubCompKey(key);
-              if (!parsed)
-                return {
-                  bottomY: baseH + t,
-                  topY: colH - t,
-                  centerX: colCenterX,
-                  width: colInnerW,
-                };
-
-              const compIdx = parsed.compIdx - 1;
-
-              // Get main compartment bounds first
-              let compBottomY: number;
-              let compTopY: number;
-
-              // Check if this is a top module compartment
-              if (hasModuleBoundary && compIdx >= bottomModuleCompartments) {
-                const topCompIdx = compIdx - bottomModuleCompartments;
-                compBottomY =
-                  topCompIdx === 0
-                    ? moduleBoundary + t
-                    : topModuleShelves[topCompIdx - 1];
-                compTopY =
-                  topCompIdx === topModuleShelves.length
-                    ? colH - t
-                    : topModuleShelves[topCompIdx];
-              } else {
-                // Bottom module compartment
-                compBottomY = compIdx === 0 ? baseH + t : shelves[compIdx - 1];
-                if (
-                  hasModuleBoundary &&
-                  compIdx === bottomModuleCompartments - 1
-                ) {
-                  compTopY = moduleBoundary - t;
-                } else if (compIdx === shelves.length) {
-                  compTopY = colH - t;
-                } else {
-                  compTopY = shelves[compIdx];
-                }
-              }
-
-              // If not a sub-compartment, return main compartment bounds
-              if (!parsed.isSubComp) {
-                return {
-                  bottomY: compBottomY,
-                  topY: compTopY,
-                  centerX: colCenterX,
-                  width: colInnerW,
-                };
-              }
-
-              // Handle sub-compartment: get section and space bounds
-              const cfg = elementConfigs[parsed.compKey] ?? {
-                columns: 1,
-                rowCounts: [0],
-              };
-              const innerCols = Math.max(1, cfg.columns);
-              const compInnerH = compTopY - compBottomY;
-              const compLeftX = colCenterX - colInnerW / 2;
-              const sectionW = colInnerW / innerCols;
-
-              // Section X bounds
-              const secIdx = parsed.sectionIdx;
-              const secLeftX =
-                compLeftX + secIdx * sectionW + (secIdx > 0 ? t / 2 : 0);
-              const secRightX =
-                compLeftX +
-                (secIdx + 1) * sectionW -
-                (secIdx < innerCols - 1 ? t / 2 : 0);
-              const secCenterX = (secLeftX + secRightX) / 2;
-              const secW = secRightX - secLeftX;
-
-              // Space Y bounds within section
-              const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
-              const gap = compInnerH / (shelfCount + 1);
-              const spaceIdx = parsed.spaceIdx;
-              const spaceBottomY =
-                compBottomY + spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
-              const spaceTopY =
-                compBottomY +
-                (spaceIdx + 1) * gap -
-                (spaceIdx < shelfCount ? t / 2 : 0);
-
-              return {
-                bottomY: spaceBottomY,
-                topY: spaceTopY,
-                centerX: secCenterX,
-                width: secW,
-              };
-            };
-
-            // Calculate door span bounds
-            const firstComp = group.compartments[0];
-            const lastComp = group.compartments[group.compartments.length - 1];
-            const firstBounds = getCompBounds(firstComp);
-            const lastBounds = getCompBounds(lastComp);
-
-            const doorBottomY = firstBounds.bottomY;
-            const doorTopY = lastBounds.topY;
-            const doorHeight = doorTopY - doorBottomY;
-            const doorCenterY = (doorBottomY + doorTopY) / 2;
-
-            // Use centerX and width from bounds (supports sub-compartment sections)
-            const doorCenterX = firstBounds.centerX;
-            const sectionWidth = firstBounds.width;
+            const doorCenterX = bounds.centerX;
+            const doorCenterY = bounds.centerY;
 
             // Door dimensions
-            const doorInset = 0.0015; // 1.5mm clearance per side
-            const doorW = sectionWidth - doorInset * 2;
-            const doorH = doorHeight - doorInset * 2;
+            const doorW = bounds.width;
+            const doorH = bounds.height;
             const doorT = DEFAULT_PANEL_THICKNESS_M; // 18mm
             const doorZ = d / 2 + doorT / 2 + 0.001; // In front of carcass
 
@@ -2093,7 +2001,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
             // Render based on door type
             if (group.type === "double" || group.type === "doubleMirror") {
               // Double doors - two panels with gap
-              const gapBetween = 0.003; // 3mm gap
+              const gapBetween = DOUBLE_DOOR_CENTER_GAP_M;
               // Guard against zero/negative dimensions to prevent shader division by zero
               const leafW = Math.max(0.01, (doorW - gapBetween) / 2);
               const offset = (leafW + gapBetween) / 2;

@@ -1,8 +1,8 @@
 "use client";
 
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { getDoorSelectionBounds } from "@/lib/door-geometry";
 import { useShelfStore, type ShelfState } from "@/lib/store";
-import { getSectionSpaceBounds } from "@/lib/section-shelf-layout";
 import {
   TARGET_BOTTOM_HEIGHT_CM,
   SLIDING_DOOR_MIN_COLUMNS,
@@ -71,27 +71,25 @@ export function StepDoors({ compact }: StepDoorsProps) {
         moduleBoundary !== null && colH > splitThreshold;
       const topModuleShelves = columnTopModuleShelves[colIdx] || [];
       const bottomModuleCompartments = shelves.length + 1;
+      const geometryContext = {
+        columnLeft: columns[colIdx].start,
+        columnRight: columns[colIdx].end,
+        columnBottomY: 0,
+        columnHeight: colH,
+        baseHeight: baseH,
+        panelThickness: t,
+        columnShelfYs: shelves,
+        columnModuleBoundary: hasModuleBoundary ? moduleBoundary : null,
+        topModuleShelfYs: topModuleShelves,
+        elementConfigs,
+      };
 
       for (let compIdx = 0; compIdx < bottomModuleCompartments; compIdx++) {
         const compKey = `${colLetter}${compIdx + 1}`;
-        let bottomSurface: number;
-        let topSurface: number;
-
-        if (hasModuleBoundary && compIdx === bottomModuleCompartments - 1) {
-          bottomSurface =
-            compIdx === 0 ? baseH + t : shelves[compIdx - 1] + t / 2;
-          topSurface = moduleBoundary - t;
-        } else {
-          bottomSurface =
-            compIdx === 0 ? baseH + t : shelves[compIdx - 1] + t / 2;
-          if (compIdx === shelves.length && !hasModuleBoundary) {
-            topSurface = colH - t;
-          } else {
-            topSurface = shelves[compIdx] - t / 2;
-          }
+        const bounds = getDoorSelectionBounds(compKey, geometryContext);
+        if (bounds) {
+          heights[compKey] = Math.round(bounds.height * 100);
         }
-
-        heights[compKey] = Math.round((topSurface - bottomSurface) * 100);
       }
 
       if (hasModuleBoundary) {
@@ -103,22 +101,10 @@ export function StepDoors({ compact }: StepDoorsProps) {
         ) {
           const compIdx = bottomModuleCompartments + topCompIdx;
           const compKey = `${colLetter}${compIdx + 1}`;
-          let bottomSurface: number;
-          let topSurface: number;
-
-          if (topCompIdx === 0) {
-            bottomSurface = moduleBoundary + t;
-          } else {
-            bottomSurface = topModuleShelves[topCompIdx - 1] + t / 2;
+          const bounds = getDoorSelectionBounds(compKey, geometryContext);
+          if (bounds) {
+            heights[compKey] = Math.round(bounds.height * 100);
           }
-
-          if (topCompIdx === topModuleShelves.length) {
-            topSurface = colH - t;
-          } else {
-            topSurface = topModuleShelves[topCompIdx] - t / 2;
-          }
-
-          heights[compKey] = Math.round((topSurface - bottomSurface) * 100);
         }
       }
 
@@ -139,27 +125,16 @@ export function StepDoors({ compact }: StepDoorsProps) {
 
         if (!hasSubdivisions) continue;
 
-        const mainHeightM = mainHeight / 100;
-
         for (let secIdx = 0; secIdx < innerCols; secIdx++) {
           const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
           const numSpaces = shelfCount + 1;
-          const { spaces } = getSectionSpaceBounds({
-            start: 0,
-            size: mainHeightM,
-            shelfCount,
-            sectionShelfRatios: cfg.sectionShelfRatios,
-            sectionIndex: secIdx,
-            panelThickness: t,
-          });
 
           for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
-            const space = spaces[spaceIdx];
-            if (!space) continue;
-            const spaceHeightCm = Math.round(space.size * 100);
-
             const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
-            heights[subKey] = spaceHeightCm;
+            const bounds = getDoorSelectionBounds(subKey, geometryContext);
+            if (bounds) {
+              heights[subKey] = Math.round(bounds.height * 100);
+            }
           }
         }
       }
