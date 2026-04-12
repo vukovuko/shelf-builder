@@ -986,14 +986,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-1"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-1" && "text-foreground",
+                activeAccordionStep === "item-1" && "text-primary",
               )}
             >
               1. Definiši spoljašnje dimenzije
@@ -1008,14 +1008,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-2"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-2" && "text-foreground",
+                activeAccordionStep === "item-2" && "text-primary",
               )}
             >
               2. Kolone i Pregrade
@@ -1030,14 +1030,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-3"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-3" && "text-foreground",
+                activeAccordionStep === "item-3" && "text-primary",
               )}
             >
               3. Izbor materijala
@@ -1052,14 +1052,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-4"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-4" && "text-foreground",
+                activeAccordionStep === "item-4" && "text-primary",
               )}
             >
               4. Baza
@@ -1074,14 +1074,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-5"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-5" && "text-foreground",
+                activeAccordionStep === "item-5" && "text-primary",
               )}
             >
               5. Vrata
@@ -1096,14 +1096,14 @@ export function ConfiguratorControls({
             className={cn(
               "border-border rounded-xl border px-3 transition-colors duration-200",
               activeAccordionStep === "item-6"
-                ? "border-accent/25 bg-accent/18 shadow-sm ring-1 ring-accent/20"
+                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
                 : "bg-card",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-6" && "text-foreground",
+                activeAccordionStep === "item-6" && "text-primary",
               )}
             >
               6. Dodaci

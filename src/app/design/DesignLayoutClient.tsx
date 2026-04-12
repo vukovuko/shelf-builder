@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -348,6 +349,7 @@ export function DesignLayoutClient({
             </Button>
           )}
           <ViewModeToggle />
+          <ThemeToggle />
         </div>
       </div>
 
@@ -435,6 +437,7 @@ export function DesignLayoutClient({
             </Button>
           )}
           <ViewModeToggle />
+          <ThemeToggle />
         </div>
         {childrenWithProps}
       </main>

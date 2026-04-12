@@ -6,6 +6,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default async function AdminLayout({
   children,
@@ -33,6 +34,8 @@ export default async function AdminLayout({
         <SidebarInset className="min-w-0">
           <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
             <SidebarTrigger />
+            <div className="flex-1" />
+            <ThemeToggle />
           </header>
           <main className="flex-1 p-4 sm:p-6 overflow-x-auto">
             <div className="max-w-6xl mx-auto">{children}</div>

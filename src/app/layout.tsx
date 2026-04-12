@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { PostHogProvider } from "./providers";
+import { ThemeProvider } from "next-themes";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -99,11 +100,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="sr" className="dark">
+    <html lang="sr">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0a0a0a" />
-        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
+        <meta name="color-scheme" content="light dark" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -146,11 +148,13 @@ export default function RootLayout({
         />
       </head>
       <body className={`${poppins.variable} ${poppins.className} antialiased`}>
-        <NextTopLoader color="#7c3aed" showSpinner={false} />
-        <PostHogProvider>
-          <AuthSessionProvider>{children}</AuthSessionProvider>
-        </PostHogProvider>
-        <Toaster position="bottom-center" />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <NextTopLoader color="#7c3aed" showSpinner={false} />
+          <PostHogProvider>
+            <AuthSessionProvider>{children}</AuthSessionProvider>
+          </PostHogProvider>
+          <Toaster position="bottom-center" />
+        </ThemeProvider>
       </body>
     </html>
   );
