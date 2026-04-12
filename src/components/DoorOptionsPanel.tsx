@@ -424,12 +424,14 @@ export function DoorOptionsPanel({
                 <div key={material.id} className="flex flex-col items-center">
                   <button
                     type="button"
-                    className={`rounded-lg border-2 ${
+                    className={`flex items-center justify-center rounded-full border-2 ${
                       currentMaterialId === material.id
                         ? "border-primary"
                         : "border-transparent"
-                    } hover:border-primary ${compact ? "h-12" : "h-16"} w-full bg-cover bg-center bg-muted`}
+                    } hover:border-primary bg-muted bg-cover bg-center`}
                     style={{
+                      width: compact ? "43px" : "58px",
+                      height: compact ? "43px" : "58px",
                       backgroundImage: material.img
                         ? `url(${material.img})`
                         : undefined,

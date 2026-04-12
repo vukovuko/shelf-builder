@@ -173,14 +173,20 @@ export function MaterialPickerModal({
                     : "border-border hover:border-primary/50",
                 )}
               >
-                <div
-                  className="aspect-square bg-cover bg-center bg-muted"
-                  style={{
-                    backgroundImage: material.img
-                      ? `url(${material.img})`
-                      : undefined,
-                  }}
-                />
+                <div className="h-32 overflow-hidden bg-muted">
+                  {material.img ? (
+                    <img
+                      src={material.img}
+                      alt={material.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs text-muted-foreground">
+                      Bez slike
+                    </div>
+                  )}
+                </div>
                 <div className="p-3 space-y-1">
                   <p
                     className="text-sm font-medium line-clamp-2 leading-tight"

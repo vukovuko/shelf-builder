@@ -164,12 +164,14 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
                 <div key={material.id} className="flex flex-col items-center">
                   <button
                     type="button"
-                    className={`rounded-lg border-2 ${
+                    className={`flex items-center justify-center rounded-full border-2 ${
                       section.selectedId === material.id
                         ? "border-primary"
                         : "border-transparent"
-                    } hover:border-primary ${compact ? "h-14" : "h-20"} w-full bg-cover bg-center bg-muted`}
+                    } hover:border-primary bg-muted bg-cover bg-center`}
                     style={{
+                      width: compact ? "50px" : "72px",
+                      height: compact ? "50px" : "72px",
                       backgroundImage: material.img
                         ? `url(${material.img})`
                         : undefined,
