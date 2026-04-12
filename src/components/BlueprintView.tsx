@@ -748,7 +748,11 @@ export function BlueprintView() {
                   drawerCount,
                 );
 
-                for (let shIdx = visibleShelfStartIndex - 1; shIdx < shelfPositions.length; shIdx++) {
+                for (
+                  let shIdx = visibleShelfStartIndex - 1;
+                  shIdx < shelfPositions.length;
+                  shIdx++
+                ) {
                   const shelfY = shelfPositions[shIdx];
                   const innerShelfPanel = createPanelRect(
                     `ish-${compKey}-${secIdx}-${shIdx}`,

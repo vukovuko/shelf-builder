@@ -67,9 +67,9 @@ export function HorizontalSplitHandle({
   const setIsDraggingRef = useRef(setIsDragging);
   useEffect(() => {
     moveShelfRef.current = onMove
-      ? ((_columnIndex: number, _shelfIndex: number, nextY: number) => {
+      ? (_columnIndex: number, _shelfIndex: number, nextY: number) => {
           onMove(nextY);
-        })
+        }
       : moveShelf;
     setIsDraggingRef.current = setIsDragging;
   }, [moveShelf, onMove, setIsDragging]);

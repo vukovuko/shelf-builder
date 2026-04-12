@@ -963,7 +963,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
       if (columns > sectionShelfRatios.length) {
         sectionShelfRatios = [
           ...sectionShelfRatios,
-          ...Array.from({ length: columns - sectionShelfRatios.length }, () => []),
+          ...Array.from(
+            { length: columns - sectionShelfRatios.length },
+            () => [],
+          ),
         ];
       } else if (columns < sectionShelfRatios.length) {
         sectionShelfRatios = sectionShelfRatios.slice(0, columns);

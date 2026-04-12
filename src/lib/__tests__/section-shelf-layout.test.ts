@@ -4,6 +4,7 @@ import {
   getSectionShelfDragBounds,
   getSectionShelfPositions,
   getSectionSpaceBounds,
+  normalizeSectionShelfRatios,
 } from "../section-shelf-layout";
 
 describe("section shelf layout", () => {
@@ -21,6 +22,13 @@ describe("section shelf layout", () => {
     });
 
     expect(shelfPositions).toEqual([1.4, 2.6]);
+  });
+
+  it("falls back to default ratios when stored values are invalid", () => {
+    expect(normalizeSectionShelfRatios([0.2, Number.NaN], 2)).toEqual([
+      1 / 3,
+      2 / 3,
+    ]);
   });
 
   it("computes space bounds around shelf thickness", () => {
@@ -53,5 +61,19 @@ describe("section shelf layout", () => {
 
     expect(bounds.min).toBeCloseTo(0.13);
     expect(bounds.max).toBeCloseTo(0.56);
+  });
+
+  it("returns empty geometry for invalid section bounds", () => {
+    const { shelfPositions, spaces } = getSectionSpaceBounds({
+      start: Number.NaN,
+      size: 1,
+      shelfCount: 2,
+      sectionShelfRatios: [[0.3, 0.7]],
+      sectionIndex: 0,
+      panelThickness: 0.02,
+    });
+
+    expect(shelfPositions).toEqual([]);
+    expect(spaces).toEqual([]);
   });
 });

@@ -12,21 +12,29 @@ export function normalizeSectionShelfRatios(
   ratios: number[] | undefined,
   shelfCount: number,
 ): number[] {
-  if (!Number.isFinite(shelfCount) || shelfCount <= 0) {
+  const safeShelfCount =
+    Number.isFinite(shelfCount) && shelfCount > 0 ? Math.floor(shelfCount) : 0;
+
+  if (safeShelfCount <= 0) {
     return [];
   }
 
-  if (!ratios || ratios.length !== shelfCount) {
-    return getDefaultSectionShelfRatios(shelfCount);
+  if (!ratios || ratios.length !== safeShelfCount) {
+    return getDefaultSectionShelfRatios(safeShelfCount);
+  }
+
+  const hasInvalidRatio = ratios.some((ratio) => !Number.isFinite(ratio));
+  if (hasInvalidRatio) {
+    return getDefaultSectionShelfRatios(safeShelfCount);
   }
 
   const normalized = ratios
     .map((ratio) => Math.min(0.999, Math.max(0.001, ratio)))
     .sort((a, b) => a - b);
 
-  return normalized.length === shelfCount
+  return normalized.length === safeShelfCount
     ? normalized
-    : getDefaultSectionShelfRatios(shelfCount);
+    : getDefaultSectionShelfRatios(safeShelfCount);
 }
 
 export function getSectionShelfRatios(
@@ -48,6 +56,10 @@ export function getSectionShelfPositions(params: {
   sectionIndex: number;
 }): number[] {
   const { start, size, shelfCount, sectionShelfRatios, sectionIndex } = params;
+  if (!Number.isFinite(start) || !Number.isFinite(size) || size <= 0) {
+    return [];
+  }
+
   const ratios = getSectionShelfRatios(
     sectionShelfRatios,
     sectionIndex,
@@ -73,6 +85,19 @@ export function getSectionSpaceBounds(params: {
     sectionIndex,
     panelThickness,
   } = params;
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(size) ||
+    size <= 0 ||
+    !Number.isFinite(panelThickness) ||
+    panelThickness < 0
+  ) {
+    return {
+      shelfPositions: [],
+      spaces: [],
+    };
+  }
+
   const shelfPositions = getSectionShelfPositions({
     start,
     size,
@@ -126,6 +151,21 @@ export function getSectionShelfDragBounds(params: {
     panelThickness,
     minSpaceSize,
   } = params;
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(size) ||
+    size <= 0 ||
+    !Number.isFinite(panelThickness) ||
+    panelThickness < 0 ||
+    !Number.isFinite(minSpaceSize) ||
+    minSpaceSize < 0
+  ) {
+    return {
+      min: 0,
+      max: 0,
+    };
+  }
+
   const shelfPositions = getSectionShelfPositions({
     start,
     size,
@@ -133,11 +173,20 @@ export function getSectionShelfDragBounds(params: {
     sectionShelfRatios,
     sectionIndex,
   });
+  if (shelfIndex < 0 || shelfIndex >= shelfPositions.length) {
+    return {
+      min: start,
+      max: start,
+    };
+  }
+
   const end = start + size;
   const previousReference =
     shelfIndex === 0 ? start : shelfPositions[shelfIndex - 1];
   const nextReference =
-    shelfIndex === shelfPositions.length - 1 ? end : shelfPositions[shelfIndex + 1];
+    shelfIndex === shelfPositions.length - 1
+      ? end
+      : shelfPositions[shelfIndex + 1];
 
   return {
     min:
@@ -156,7 +205,7 @@ export function getShelfRatioFromPosition(
   start: number,
   size: number,
 ): number {
-  if (size <= 0) {
+  if (!Number.isFinite(position) || !Number.isFinite(start) || size <= 0) {
     return 0.5;
   }
 

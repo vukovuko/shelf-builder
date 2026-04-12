@@ -156,9 +156,7 @@ export function StepDoors({ compact }: StepDoorsProps) {
           for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
             const space = spaces[spaceIdx];
             if (!space) continue;
-            const spaceHeightCm = Math.round(
-              space.size * 100,
-            );
+            const spaceHeightCm = Math.round(space.size * 100);
 
             const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
             heights[subKey] = spaceHeightCm;

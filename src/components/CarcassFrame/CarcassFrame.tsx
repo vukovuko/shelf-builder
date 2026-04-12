@@ -1042,9 +1042,7 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             const spaceBottomY = space.bottom;
                             const spaceTopY = space.top;
                             const spaceCenterY = space.center;
-                            const spaceHeightCm = Math.round(
-                              space.size * 100,
-                            );
+                            const spaceHeightCm = Math.round(space.size * 100);
 
                             const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
                             const spaceWidth = secRightX - secLeftX;
@@ -1293,36 +1291,39 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             minSpaceSize: MIN_SHELF_HEIGHT_CM / 100,
                           });
                           shelfPanels.push(
-                            <React.Fragment key={`sh-${compKey}-${secIdx}-${shIdx}`}>
+                            <React.Fragment
+                              key={`sh-${compKey}-${secIdx}-${shIdx}`}
+                            >
                               <Panel
                                 position={[secCenterX, shelfY, carcassZ]}
                                 size={[secW, t, carcassD]}
                                 showEdgesOnly={showEdgesOnly}
                               />
-                              {hoveredColumnIndex === colIdx && !hideUIForSteps && (
-                                <HorizontalSplitHandle
-                                  columnIndex={colIdx}
-                                  shelfIndex={shIdx}
-                                  x={secCenterX}
-                                  y={shelfY}
-                                  depth={d}
-                                  colWidth={secW}
-                                  minY={dragBounds.min}
-                                  maxY={dragBounds.max}
-                                  onMove={(newY) =>
-                                    moveElementShelf(
-                                      compKey,
-                                      secIdx,
-                                      shIdx,
-                                      getShelfRatioFromPosition(
-                                        newY,
-                                        compBottomY,
-                                        compInnerH,
-                                      ),
-                                    )
-                                  }
-                                />
-                              )}
+                              {hoveredColumnIndex === colIdx &&
+                                !hideUIForSteps && (
+                                  <HorizontalSplitHandle
+                                    columnIndex={colIdx}
+                                    shelfIndex={shIdx}
+                                    x={secCenterX}
+                                    y={shelfY}
+                                    depth={d}
+                                    colWidth={secW}
+                                    minY={dragBounds.min}
+                                    maxY={dragBounds.max}
+                                    onMove={(newY) =>
+                                      moveElementShelf(
+                                        compKey,
+                                        secIdx,
+                                        shIdx,
+                                        getShelfRatioFromPosition(
+                                          newY,
+                                          compBottomY,
+                                          compInnerH,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                )}
                             </React.Fragment>,
                           );
                         }
