@@ -2,6 +2,7 @@
 
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useShelfStore, type ShelfState } from "@/lib/store";
+import { getSectionSpaceBounds } from "@/lib/section-shelf-layout";
 import {
   TARGET_BOTTOM_HEIGHT_CM,
   SLIDING_DOOR_MIN_COLUMNS,
@@ -143,15 +144,20 @@ export function StepDoors({ compact }: StepDoorsProps) {
         for (let secIdx = 0; secIdx < innerCols; secIdx++) {
           const shelfCount = cfg.rowCounts?.[secIdx] ?? 0;
           const numSpaces = shelfCount + 1;
-          const gap = mainHeightM / (shelfCount + 1);
+          const { spaces } = getSectionSpaceBounds({
+            start: 0,
+            size: mainHeightM,
+            shelfCount,
+            sectionShelfRatios: cfg.sectionShelfRatios,
+            sectionIndex: secIdx,
+            panelThickness: t,
+          });
 
           for (let spaceIdx = 0; spaceIdx < numSpaces; spaceIdx++) {
-            const spaceBottomOffset =
-              spaceIdx * gap + (spaceIdx > 0 ? t / 2 : 0);
-            const spaceTopOffset =
-              (spaceIdx + 1) * gap - (spaceIdx < shelfCount ? t / 2 : 0);
+            const space = spaces[spaceIdx];
+            if (!space) continue;
             const spaceHeightCm = Math.round(
-              (spaceTopOffset - spaceBottomOffset) * 100,
+              space.size * 100,
             );
 
             const subKey = `${compKey}.${secIdx}.${spaceIdx}`;

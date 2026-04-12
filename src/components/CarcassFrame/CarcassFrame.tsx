@@ -34,6 +34,12 @@ import {
   getVisibleShelfStartIndex,
   shouldUseDrawerStack,
 } from "@/lib/drawer-layout";
+import {
+  getSectionShelfDragBounds,
+  getSectionShelfPositions,
+  getSectionSpaceBounds,
+  getShelfRatioFromPosition,
+} from "@/lib/section-shelf-layout";
 import { Panel } from "@/components/Panel";
 import { SeamHandle } from "./SeamHandle";
 import { HorizontalSplitHandle } from "./HorizontalSplitHandle";
@@ -93,6 +99,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     );
     const columnModuleBoundaries = useShelfStore(
       (state: ShelfState) => state.columnModuleBoundaries,
+    );
+    const moveElementShelf = useShelfStore(
+      (state: ShelfState) => state.moveElementShelf,
     );
     const columnTopModuleShelves = useShelfStore(
       (state: ShelfState) => state.columnTopModuleShelves,
@@ -1014,27 +1023,27 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             (secIdx < innerCols - 1 ? t / 2 : 0);
                           const secCenterX = (secLeftX + secRightX) / 2;
 
-                          // Calculate space positions (distribute evenly)
-                          const usableH = compInnerH;
-                          const gap = usableH / (shelfCount + 1);
+                          const { spaces } = getSectionSpaceBounds({
+                            start: compBottomY,
+                            size: compInnerH,
+                            shelfCount,
+                            sectionShelfRatios: cfg.sectionShelfRatios,
+                            sectionIndex: secIdx,
+                            panelThickness: t,
+                          });
 
                           for (
                             let spaceIdx = 0;
                             spaceIdx < numSpaces;
                             spaceIdx++
                           ) {
-                            // Space bounds (account for shelf thickness)
-                            const spaceBottomY =
-                              compBottomY +
-                              spaceIdx * gap +
-                              (spaceIdx > 0 ? t / 2 : 0);
-                            const spaceTopY =
-                              compBottomY +
-                              (spaceIdx + 1) * gap -
-                              (spaceIdx < shelfCount ? t / 2 : 0);
-                            const spaceCenterY = (spaceBottomY + spaceTopY) / 2;
+                            const space = spaces[spaceIdx];
+                            if (!space) continue;
+                            const spaceBottomY = space.bottom;
+                            const spaceTopY = space.top;
+                            const spaceCenterY = space.center;
                             const spaceHeightCm = Math.round(
-                              (spaceTopY - spaceBottomY) * 100,
+                              space.size * 100,
                             );
 
                             const subKey = `${compKey}.${secIdx}.${spaceIdx}`;
@@ -1257,25 +1266,64 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                         const secCenterX = (secLeftX + secRightX) / 2;
                         const secW = secRightX - secLeftX;
 
-                        // Distribute shelves evenly
-                        const usableH = compInnerH;
-                        const gap = usableH / (shelfCount + 1);
+                        const shelfPositions = getSectionShelfPositions({
+                          start: compBottomY,
+                          size: compInnerH,
+                          shelfCount,
+                          sectionShelfRatios: cfg.sectionShelfRatios,
+                          sectionIndex: secIdx,
+                        });
                         const visibleShelfStartIndex =
                           getVisibleShelfStartIndex(shelfCount, drawerCount);
 
                         for (
-                          let shIdx = visibleShelfStartIndex;
-                          shIdx <= shelfCount;
+                          let shIdx = visibleShelfStartIndex - 1;
+                          shIdx < shelfPositions.length;
                           shIdx++
                         ) {
-                          const shelfY = compBottomY + shIdx * gap;
+                          const shelfY = shelfPositions[shIdx];
+                          const dragBounds = getSectionShelfDragBounds({
+                            start: compBottomY,
+                            size: compInnerH,
+                            shelfCount,
+                            sectionShelfRatios: cfg.sectionShelfRatios,
+                            sectionIndex: secIdx,
+                            shelfIndex: shIdx,
+                            panelThickness: t,
+                            minSpaceSize: MIN_SHELF_HEIGHT_CM / 100,
+                          });
                           shelfPanels.push(
-                            <Panel
-                              key={`sh-${compKey}-${secIdx}-${shIdx}`}
-                              position={[secCenterX, shelfY, carcassZ]}
-                              size={[secW, t, carcassD]}
-                              showEdgesOnly={showEdgesOnly}
-                            />,
+                            <React.Fragment key={`sh-${compKey}-${secIdx}-${shIdx}`}>
+                              <Panel
+                                position={[secCenterX, shelfY, carcassZ]}
+                                size={[secW, t, carcassD]}
+                                showEdgesOnly={showEdgesOnly}
+                              />
+                              {hoveredColumnIndex === colIdx && !hideUIForSteps && (
+                                <HorizontalSplitHandle
+                                  columnIndex={colIdx}
+                                  shelfIndex={shIdx}
+                                  x={secCenterX}
+                                  y={shelfY}
+                                  depth={d}
+                                  colWidth={secW}
+                                  minY={dragBounds.min}
+                                  maxY={dragBounds.max}
+                                  onMove={(newY) =>
+                                    moveElementShelf(
+                                      compKey,
+                                      secIdx,
+                                      shIdx,
+                                      getShelfRatioFromPosition(
+                                        newY,
+                                        compBottomY,
+                                        compInnerH,
+                                      ),
+                                    )
+                                  }
+                                />
+                              )}
+                            </React.Fragment>,
                           );
                         }
                       }
@@ -1505,20 +1553,25 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                             }
                           } else {
                             // CASE 2: With shelves - one drawer per space (bottom-up)
-                            const usableH = compInnerH;
-                            const gap = usableH / (shelfCount + 1);
+                            const { spaces } = getSectionSpaceBounds({
+                              start: compBottomY,
+                              size: compInnerH,
+                              shelfCount,
+                              sectionShelfRatios: cfg.sectionShelfRatios,
+                              sectionIndex: secIdx,
+                              panelThickness: t,
+                            });
 
                             for (
                               let drIdx = 0;
                               drIdx < Math.min(drawerCount, shelfCount + 1);
                               drIdx++
                             ) {
-                              const spaceBottomY =
-                                compBottomY + drIdx * gap + t / 2;
-                              const spaceTopY =
-                                compBottomY + (drIdx + 1) * gap - t / 2;
-                              const drawerCenterY =
-                                (spaceBottomY + spaceTopY) / 2;
+                              const space = spaces[drIdx];
+                              if (!space) continue;
+                              const spaceBottomY = space.bottom;
+                              const spaceTopY = space.top;
+                              const drawerCenterY = space.center;
                               const actualDrawerH = Math.max(
                                 0.02,
                                 spaceTopY - spaceBottomY - 0.003,

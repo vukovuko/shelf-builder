@@ -20,6 +20,7 @@ export interface HorizontalSplitHandleProps {
   minY: number;
   maxY: number;
   isTopModule?: boolean; // If true, controls top module shelf instead of bottom module shelf
+  onMove?: (newY: number) => void;
 }
 
 /**
@@ -36,6 +37,7 @@ export function HorizontalSplitHandle({
   minY,
   maxY,
   isTopModule = false,
+  onMove,
 }: HorizontalSplitHandleProps) {
   const moveColumnShelf = useShelfStore(
     (state: ShelfState) => state.moveColumnShelf,
@@ -64,9 +66,13 @@ export function HorizontalSplitHandle({
   const moveShelfRef = useRef(moveShelf);
   const setIsDraggingRef = useRef(setIsDragging);
   useEffect(() => {
-    moveShelfRef.current = moveShelf;
+    moveShelfRef.current = onMove
+      ? ((_columnIndex: number, _shelfIndex: number, nextY: number) => {
+          onMove(nextY);
+        })
+      : moveShelf;
     setIsDraggingRef.current = setIsDragging;
-  });
+  }, [moveShelf, onMove, setIsDragging]);
 
   // For relative dragging
   const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));

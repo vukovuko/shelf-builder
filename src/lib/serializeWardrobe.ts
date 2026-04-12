@@ -144,6 +144,7 @@ export function applyWardrobeSnapshot(data: any) {
   }
 
   (useShelfStore as any).setState((prev: any) => ({
+    ...(data.elementConfigs ? { elementConfigs: data.elementConfigs } : {}),
     compartmentExtras: {
       ...prev.compartmentExtras,
       ...(data.compartmentExtras || {}),

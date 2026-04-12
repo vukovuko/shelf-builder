@@ -26,6 +26,10 @@ import {
   buildVerticalPanelSpans,
   computeSectionBounds,
 } from "@/lib/technicalDrawingModel";
+import {
+  getSectionShelfPositions,
+  getSectionSpaceBounds,
+} from "@/lib/section-shelf-layout";
 import { BlueprintHeader } from "./BlueprintHeader";
 import { BlueprintSideView } from "./BlueprintSideView";
 
@@ -732,19 +736,20 @@ export function BlueprintView() {
 
                 const secX1 = section.x;
                 const secX2 = section.x + section.width;
-                const usableH = safeTopY - safeBottomY;
-                const gap = usableH / (shelfCount + 1);
+                const shelfPositions = getSectionShelfPositions({
+                  start: safeBottomY,
+                  size: safeTopY - safeBottomY,
+                  shelfCount,
+                  sectionShelfRatios: cfg.sectionShelfRatios,
+                  sectionIndex: secIdx,
+                });
                 const visibleShelfStartIndex = getVisibleShelfStartIndex(
                   shelfCount,
                   drawerCount,
                 );
 
-                for (
-                  let shIdx = visibleShelfStartIndex;
-                  shIdx <= shelfCount;
-                  shIdx++
-                ) {
-                  const shelfY = safeBottomY + shIdx * gap;
+                for (let shIdx = visibleShelfStartIndex - 1; shIdx < shelfPositions.length; shIdx++) {
+                  const shelfY = shelfPositions[shIdx];
                   const innerShelfPanel = createPanelRect(
                     `ish-${compKey}-${secIdx}-${shIdx}`,
                     secX1,
@@ -756,14 +761,23 @@ export function BlueprintView() {
                   if (innerShelfPanel) nodes.push(innerShelfPanel);
                 }
 
-                if (gap > 0) {
-                  for (let spaceIdx = 0; spaceIdx <= shelfCount; spaceIdx++) {
-                    const spaceBottomY = safeBottomY + spaceIdx * gap;
-                    const spaceTopY = safeBottomY + (spaceIdx + 1) * gap;
-                    const spaceMidY = (spaceBottomY + spaceTopY) / 2;
+                const { spaces } = getSectionSpaceBounds({
+                  start: safeBottomY,
+                  size: safeTopY - safeBottomY,
+                  shelfCount,
+                  sectionShelfRatios: cfg.sectionShelfRatios,
+                  sectionIndex: secIdx,
+                  panelThickness: tCm,
+                });
+
+                if (spaces.length > 0) {
+                  for (let spaceIdx = 0; spaceIdx < spaces.length; spaceIdx++) {
+                    const space = spaces[spaceIdx];
+                    if (!space) continue;
+                    const spaceMidY = space.center;
                     const spaceMidX = (secX1 + secX2) / 2;
-                    const spaceHeightCm = Math.round(gap);
-                    const labelFontSize = gap < 15 ? 7 : 8;
+                    const spaceHeightCm = Math.round(space.size);
+                    const labelFontSize = space.size < 15 ? 7 : 8;
 
                     nodes.push(
                       <text

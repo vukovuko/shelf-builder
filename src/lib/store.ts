@@ -15,6 +15,10 @@ import {
 import { getDefaultBoundariesX } from "./wardrobe-utils";
 import { reconcileWardrobeState } from "./reconcileWardrobeState";
 import {
+  getDefaultSectionShelfRatios,
+  normalizeSectionShelfRatios,
+} from "./section-shelf-layout";
+import {
   isBackMaterialCategory,
   isEdgeTapeCategory,
   isFrontMaterialCategory,
@@ -179,6 +183,7 @@ export function parseSubCompKey(key: string): ParsedSubCompKey | null {
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
+  sectionShelfRatios?: number[][]; // relative shelf center positions per section
   drawerCounts?: number[]; // drawers per compartment (max = rowCounts[i] + 1)
   drawersExternal?: boolean[]; // true = external (facade), false = internal (behind door)
 }
@@ -248,6 +253,12 @@ export interface ShelfState {
   elementConfigs: Record<string, ElementConfig>;
   setElementColumns: (key: string, columns: number) => void;
   setElementRowCount: (key: string, index: number, count: number) => void;
+  moveElementShelf: (
+    key: string,
+    sectionIndex: number,
+    shelfIndex: number,
+    ratio: number,
+  ) => void;
   setElementDrawerCount: (key: string, index: number, count: number) => void;
   setElementDrawerExternal: (
     key: string,
@@ -432,7 +443,11 @@ function validateInnerShelfConfigs(
     if (cfg.rowCounts.some((count: number) => count > maxShelves)) {
       result = {
         ...result,
-        [compKey]: { ...cfg, rowCounts: cfg.rowCounts.map(() => 0) },
+        [compKey]: {
+          ...cfg,
+          rowCounts: cfg.rowCounts.map(() => 0),
+          sectionShelfRatios: cfg.rowCounts.map(() => []),
+        },
       };
     }
   }
@@ -932,6 +947,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         columns: 1,
         rowCounts: [0],
         drawerCounts: [0],
+        sectionShelfRatios: [[]],
       };
       // Adjust rowCounts length to match new columns
       let rowCounts = [...current.rowCounts];
@@ -943,6 +959,18 @@ export const useShelfStore = create<ShelfState>((set) => ({
       } else if (columns < rowCounts.length) {
         rowCounts = rowCounts.slice(0, columns);
       }
+      let sectionShelfRatios = [...(current.sectionShelfRatios ?? [])];
+      if (columns > sectionShelfRatios.length) {
+        sectionShelfRatios = [
+          ...sectionShelfRatios,
+          ...Array.from({ length: columns - sectionShelfRatios.length }, () => []),
+        ];
+      } else if (columns < sectionShelfRatios.length) {
+        sectionShelfRatios = sectionShelfRatios.slice(0, columns);
+      }
+      sectionShelfRatios = rowCounts.map((rowCount, idx) =>
+        normalizeSectionShelfRatios(sectionShelfRatios[idx], rowCount),
+      );
       // Adjust drawerCounts length to match new columns
       let drawerCounts = [...(current.drawerCounts ?? [])];
       if (columns > drawerCounts.length) {
@@ -973,7 +1001,13 @@ export const useShelfStore = create<ShelfState>((set) => ({
       return {
         elementConfigs: {
           ...state.elementConfigs,
-          [key]: { columns, rowCounts, drawerCounts },
+          [key]: {
+            ...current,
+            columns,
+            rowCounts,
+            sectionShelfRatios,
+            drawerCounts,
+          },
         },
         compartmentExtras,
       };
@@ -983,6 +1017,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const current = state.elementConfigs[key] ?? {
         columns: 1,
         rowCounts: [0],
+        sectionShelfRatios: [[]],
       };
 
       // Clamp count based on compartment height
@@ -993,6 +1028,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       const clampedCount = Math.min(count, maxShelves);
 
       const rowCounts = [...current.rowCounts];
+      const sectionShelfRatios = [...(current.sectionShelfRatios ?? [])];
       // Ensure index exists
       if (index >= rowCounts.length) {
         rowCounts.length = index + 1;
@@ -1000,8 +1036,16 @@ export const useShelfStore = create<ShelfState>((set) => ({
           if (rowCounts[i] == null) rowCounts[i] = 0;
       }
       rowCounts[index] = clampedCount;
+      sectionShelfRatios[index] = getDefaultSectionShelfRatios(clampedCount);
+      const normalizedSectionShelfRatios = rowCounts.map((rowCount, idx) =>
+        normalizeSectionShelfRatios(sectionShelfRatios[idx], rowCount),
+      );
       // Clear "whole compartment drawer" when adding shelves
-      let updatedConfig = { ...current, rowCounts };
+      let updatedConfig = {
+        ...current,
+        rowCounts,
+        sectionShelfRatios: normalizedSectionShelfRatios,
+      };
       if (
         clampedCount > 0 &&
         (current.drawerCounts?.[0] ?? 0) > 0 &&
@@ -1030,6 +1074,37 @@ export const useShelfStore = create<ShelfState>((set) => ({
           [key]: updatedConfig,
         },
         compartmentExtras,
+      };
+    }),
+  moveElementShelf: (key, sectionIndex, shelfIndex, ratio) =>
+    set((state) => {
+      const current = state.elementConfigs[key] ?? {
+        columns: 1,
+        rowCounts: [0],
+        sectionShelfRatios: [[]],
+      };
+      const shelfCount = current.rowCounts?.[sectionIndex] ?? 0;
+      if (shelfCount <= 0) {
+        return state;
+      }
+
+      const sectionShelfRatios = [...(current.sectionShelfRatios ?? [])];
+      const ratios = normalizeSectionShelfRatios(
+        sectionShelfRatios[sectionIndex],
+        shelfCount,
+      );
+      ratios[shelfIndex] = Math.min(0.999, Math.max(0.001, ratio));
+      ratios.sort((a, b) => a - b);
+      sectionShelfRatios[sectionIndex] = ratios;
+
+      return {
+        elementConfigs: {
+          ...state.elementConfigs,
+          [key]: {
+            ...current,
+            sectionShelfRatios,
+          },
+        },
       };
     }),
   setElementDrawerCount: (key, index, count) =>
