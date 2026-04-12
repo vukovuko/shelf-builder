@@ -522,13 +522,13 @@ export function WardrobePreviewClient({
 
   // CSV export handler
   const handleExportCSV = useCallback(() => {
-    if (wardrobe.cutList) {
+    if (cutList) {
       exportCutListAsCsv(
-        wardrobe.cutList.items,
+        cutList.items,
         `${wardrobe.name}-cut-list.csv`,
       );
     }
-  }, [wardrobe.cutList, wardrobe.name]);
+  }, [cutList, wardrobe.name]);
 
   // PDF export handler with schematic drawings (matching /design page)
   const handleExportPDF = useCallback(() => {

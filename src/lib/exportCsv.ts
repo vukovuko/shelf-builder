@@ -3,17 +3,25 @@
  * Exports cut list items to a CSV file for CNC machines
  */
 
-export interface CutListItem {
-  code: string;
-  desc: string;
-  widthCm: number;
-  heightCm: number;
-  thicknessMm: number;
-  areaM2: number;
-  cost: number;
-  element: string;
+import type { CutListEdgeFlags, CutListItem } from "@/lib/calcCutList";
+
+type BoardCutListItem = CutListItem & {
   materialType: "korpus" | "front" | "back";
-}
+};
+
+type GroupedCncRow = {
+  sifra: string;
+  naziv: string;
+  duzina: number;
+  kd1: number;
+  kd2: number;
+  sirina: number;
+  ks1: number;
+  ks2: number;
+  kom: number;
+  t: number;
+  napomena: string;
+};
 
 function downloadFile(
   content: string,
@@ -31,6 +39,114 @@ function downloadFile(
   URL.revokeObjectURL(url);
 }
 
+function escapeCsvValue(value: string): string {
+  if (/[;"\n]/.test(value)) {
+    return `"${value.replaceAll('"', '""')}"`;
+  }
+
+  return value;
+}
+
+function formatDimension(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function toFlag(value: boolean | undefined): number {
+  return value ? 1 : 0;
+}
+
+function getDefaultEdgeFlags(): CutListEdgeFlags {
+  return {
+    longSide1: false,
+    longSide2: false,
+    shortSide1: false,
+    shortSide2: false,
+  };
+}
+
+function isBoardItem(item: CutListItem): item is BoardCutListItem {
+  return (
+    item.materialType === "korpus" ||
+    item.materialType === "front" ||
+    item.materialType === "back"
+  );
+}
+
+function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
+  const groupedRows = new Map<
+    string,
+    Omit<GroupedCncRow, "kom"> & {
+      kom: number;
+      codes: Set<string>;
+      notes: Set<string>;
+    }
+  >();
+
+  for (const item of items.filter(isBoardItem)) {
+    const edgeFlags = item.edgeFlags ?? getDefaultEdgeFlags();
+    const duzina = Math.max(item.widthCm, item.heightCm);
+    const sirina = Math.min(item.widthCm, item.heightCm);
+    const sifra = item.materialProductCode?.trim() || String(item.materialType);
+    const groupKey = [
+      sifra,
+      duzina.toFixed(2),
+      sirina.toFixed(2),
+      toFlag(edgeFlags.longSide1),
+      toFlag(edgeFlags.longSide2),
+      toFlag(edgeFlags.shortSide1),
+      toFlag(edgeFlags.shortSide2),
+    ].join("|");
+
+    const existing = groupedRows.get(groupKey);
+    if (existing) {
+      existing.kom += 1;
+      existing.codes.add(item.code);
+      existing.notes.add(item.desc);
+      continue;
+    }
+
+    groupedRows.set(groupKey, {
+      sifra,
+      naziv: item.code,
+      duzina,
+      kd1: toFlag(edgeFlags.longSide1),
+      kd2: toFlag(edgeFlags.longSide2),
+      sirina,
+      ks1: toFlag(edgeFlags.shortSide1),
+      ks2: toFlag(edgeFlags.shortSide2),
+      kom: 1,
+      t: 0,
+      napomena: item.desc,
+      codes: new Set([item.code]),
+      notes: new Set([item.desc]),
+    });
+  }
+
+  return Array.from(groupedRows.values())
+    .map((row) => ({
+      sifra: row.sifra,
+      naziv: Array.from(row.codes).sort().join(", "),
+      duzina: row.duzina,
+      kd1: row.kd1,
+      kd2: row.kd2,
+      sirina: row.sirina,
+      ks1: row.ks1,
+      ks2: row.ks2,
+      kom: row.kom,
+      t: row.t,
+      napomena: Array.from(row.notes).sort().join(" | "),
+    }))
+    .sort((left, right) => {
+      if (left.sifra !== right.sifra) {
+        return left.sifra.localeCompare(right.sifra, "sr");
+      }
+      if (left.duzina !== right.duzina) {
+        return right.duzina - left.duzina;
+      }
+      return right.sirina - left.sirina;
+    });
+}
+
 /**
  * Export cut list items to CSV file
  * @param items - Array of cut list items
@@ -41,32 +157,39 @@ export function exportCutListAsCsv(
   filename = "cut-list.csv",
 ): void {
   const headers = [
-    "Oznaka",
-    "Opis",
-    "Sirina_cm",
-    "Visina_cm",
-    "Debljina_mm",
-    "Povrsina_m2",
-    "Cena_RSD",
-    "Element",
-    "Tip_materijala",
+    "Šifra",
+    "Naziv",
+    "Dužina",
+    "KD1",
+    "KD2",
+    "Širina",
+    "KŠ1",
+    "KŠ2",
+    "Kom",
+    "T",
+    "Napomena",
   ];
-
-  const rows = items.map((item) => [
-    item.code,
-    `"${item.desc.replace(/"/g, '""')}"`, // Escape quotes in description
-    item.widthCm.toFixed(2),
-    item.heightCm.toFixed(2),
-    item.thicknessMm.toString(),
-    item.areaM2.toFixed(4),
-    item.cost.toFixed(2),
-    item.element,
-    item.materialType,
+  const rows = buildGroupedCncRows(items).map((row) => [
+    row.sifra,
+    row.naziv,
+    formatDimension(row.duzina),
+    String(row.kd1),
+    String(row.kd2),
+    formatDimension(row.sirina),
+    String(row.ks1),
+    String(row.ks2),
+    String(row.kom),
+    String(row.t),
+    row.napomena,
   ]);
 
   // Add BOM for Excel UTF-8 compatibility
   const bom = "\uFEFF";
   const csv =
-    bom + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    bom +
+    [
+      headers.join(";"),
+      ...rows.map((row) => row.map((value) => escapeCsvValue(value)).join(";")),
+    ].join("\n");
   downloadFile(csv, filename, "text/csv;charset=utf-8;");
 }

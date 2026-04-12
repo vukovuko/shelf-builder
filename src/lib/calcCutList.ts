@@ -41,6 +41,7 @@ type PricingHandle = {
 type PricingMaterial = {
   id: number;
   name?: string;
+  productCode?: string | null;
   price: number;
   thickness: number | null;
   categories: string[];
@@ -166,6 +167,13 @@ export type MaterialType =
   | "handles"
   | "accessories";
 
+export type CutListEdgeFlags = {
+  longSide1: boolean;
+  longSide2: boolean;
+  shortSide1: boolean;
+  shortSide2: boolean;
+};
+
 export type CutListItem = {
   code: string;
   desc: string;
@@ -176,6 +184,8 @@ export type CutListItem = {
   cost: number;
   element: string;
   materialType: MaterialType;
+  materialProductCode?: string | null;
+  edgeFlags?: CutListEdgeFlags;
 };
 
 export type PriceBreakdown = {
@@ -490,6 +500,74 @@ export function calculateCutList(
 
     const toCm = (valueM: number) => valueM * 100;
     const toMm = (valueM: number) => valueM * 1000;
+    const createEmptyEdgeFlags = (): CutListEdgeFlags => ({
+      longSide1: false,
+      longSide2: false,
+      shortSide1: false,
+      shortSide2: false,
+    });
+    const getMaterialProductCode = (
+      material: PricingMaterial | null | undefined,
+      fallbackId?: number | string | null,
+    ) => {
+      if (material?.productCode) {
+        return material.productCode;
+      }
+
+      if (material?.id !== undefined && material?.id !== null) {
+        return String(material.id);
+      }
+
+      if (fallbackId !== undefined && fallbackId !== null && fallbackId !== "") {
+        return String(fallbackId);
+      }
+
+      return "";
+    };
+    const getSingleEdgeFlags = (
+      widthCm: number,
+      heightCm: number,
+      edgedDimension: "width" | "height" | 0,
+    ): CutListEdgeFlags => {
+      const edgeFlags = createEmptyEdgeFlags();
+      if (!edgedDimension) {
+        return edgeFlags;
+      }
+
+      const edgeIsLongSide =
+        edgedDimension === "width" ? widthCm >= heightCm : heightCm >= widthCm;
+
+      if (edgeIsLongSide) {
+        edgeFlags.longSide1 = true;
+      } else {
+        edgeFlags.shortSide1 = true;
+      }
+
+      return edgeFlags;
+    };
+    const getFrontEdgeFlags = (
+      edgeMode: "all" | "longSides" | 0,
+    ): CutListEdgeFlags => {
+      if (edgeMode === "all") {
+        return {
+          longSide1: true,
+          longSide2: true,
+          shortSide1: true,
+          shortSide2: true,
+        };
+      }
+
+      if (edgeMode === "longSides") {
+        return {
+          longSide1: true,
+          longSide2: true,
+          shortSide1: false,
+          shortSide2: false,
+        };
+      }
+
+      return createEmptyEdgeFlags();
+    };
     const sanitizeCodePart = (value: string) => {
       const sanitized = value
         .toUpperCase()
@@ -547,6 +625,11 @@ export function calculateCutList(
         cost: area * pricePerM2,
         element,
         materialType: "korpus",
+        materialProductCode: getMaterialProductCode(
+          mat,
+          snapshot.selectedMaterialId,
+        ),
+        edgeFlags: getSingleEdgeFlags(widthCm, heightCm, edgeLengthSource),
       });
     };
 
@@ -579,6 +662,11 @@ export function calculateCutList(
         cost: area * frontPricePerM2,
         element,
         materialType: "front",
+        materialProductCode: getMaterialProductCode(
+          frontMat,
+          snapshot.selectedFrontMaterialId ?? snapshot.selectedMaterialId,
+        ),
+        edgeFlags: getFrontEdgeFlags(edgeMode),
       });
     };
 
@@ -601,6 +689,11 @@ export function calculateCutList(
         cost: area * backPricePerM2,
         element,
         materialType: "back",
+        materialProductCode: getMaterialProductCode(
+          backMat,
+          snapshot.selectedBackMaterialId,
+        ),
+        edgeFlags: createEmptyEdgeFlags(),
       });
     };
 
@@ -648,6 +741,13 @@ export function calculateCutList(
         cost: area * priceToUse,
         element,
         materialType: "front",
+        materialProductCode: getMaterialProductCode(
+          customMaterialId !== undefined
+            ? materials.find((m) => String(m.id) === String(customMaterialId))
+            : frontMat,
+          customMaterialId ?? snapshot.selectedFrontMaterialId ?? snapshot.selectedMaterialId,
+        ),
+        edgeFlags: getFrontEdgeFlags(edgeMode),
       });
     };
 
@@ -1956,6 +2056,15 @@ export function calculateCutList(
 
           const areaM2 = (widthCm / 100) * (heightCm / 100);
           const itemName = rule.config.itemName.trim() || rule.name;
+          const materialProductCode =
+            materialType === "korpus"
+              ? getMaterialProductCode(mat, snapshot.selectedMaterialId)
+              : materialType === "front"
+                ? getMaterialProductCode(
+                    frontMat,
+                    snapshot.selectedFrontMaterialId ?? snapshot.selectedMaterialId,
+                  )
+                : getMaterialProductCode(backMat, snapshot.selectedBackMaterialId);
 
           for (let itemIndex = 0; itemIndex < quantity; itemIndex++) {
             items.push({
@@ -1971,6 +2080,8 @@ export function calculateCutList(
               cost: areaM2 * defaults.pricePerM2,
               element: target.element,
               materialType,
+              materialProductCode,
+              edgeFlags: createEmptyEdgeFlags(),
             });
           }
         });

@@ -651,13 +651,13 @@ export function OrderDetailClient({
 
   // CSV export handler
   const handleExportCSV = useCallback(() => {
-    if (order.cutList) {
+    if (calculatedCutList) {
       exportCutListAsCsv(
-        order.cutList.items,
+        calculatedCutList.items,
         `order-${order.orderNumber}-cut-list.csv`,
       );
     }
-  }, [order.cutList, order.orderNumber]);
+  }, [calculatedCutList, order.orderNumber]);
 
   // PDF export handler with schematic drawings (matching /design page)
   const handleExportPDF = useCallback(() => {
