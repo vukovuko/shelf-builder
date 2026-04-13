@@ -177,6 +177,7 @@ export type CutListEdgeFlags = {
 export type CutListItem = {
   code: string;
   desc: string;
+  quantity?: number;
   widthCm: number;
   heightCm: number;
   thicknessMm: number;
@@ -238,6 +239,55 @@ const emptyCutList: CutList = {
     accessories: { count: 0, price: 0 },
   },
 };
+
+function aggregateCutListItems(items: CutListItem[]): CutListItem[] {
+  const aggregated = new Map<string, CutListItem>();
+
+  for (const item of items) {
+    const quantity = item.quantity ?? 1;
+    const edgeFlags = item.edgeFlags ?? {
+      longSide1: false,
+      longSide2: false,
+      shortSide1: false,
+      shortSide2: false,
+    };
+    const displayGroupKey = getCutListGroupKey(item.element);
+    const isBoardItem =
+      item.materialType === "korpus" ||
+      item.materialType === "front" ||
+      item.materialType === "back";
+
+    const aggregationKey = isBoardItem
+      ? [
+          displayGroupKey,
+          item.materialType,
+          item.materialProductCode ?? "",
+          item.widthCm.toFixed(4),
+          item.heightCm.toFixed(4),
+          item.thicknessMm.toFixed(4),
+          edgeFlags.longSide1 ? 1 : 0,
+          edgeFlags.longSide2 ? 1 : 0,
+          edgeFlags.shortSide1 ? 1 : 0,
+          edgeFlags.shortSide2 ? 1 : 0,
+        ].join("|")
+      : [displayGroupKey, item.materialType, item.code, item.desc].join("|");
+
+    const existing = aggregated.get(aggregationKey);
+    if (existing) {
+      existing.quantity = (existing.quantity ?? 1) + quantity;
+      existing.areaM2 += item.areaM2;
+      existing.cost += item.cost;
+      continue;
+    }
+
+    aggregated.set(aggregationKey, {
+      ...item,
+      quantity,
+    });
+  }
+
+  return Array.from(aggregated.values());
+}
 
 export function countBoardsExcludingShelvesAndBacks(
   items: CutListItem[],
@@ -2195,41 +2245,46 @@ export function calculateCutList(
     const totalCost =
       materialCost + totalEdgePrice + totalHandlePrice + totalAccessoryPrice;
 
+    const aggregatedItems = aggregateCutListItems(items);
+
     // Group by element
-    const grouped = items.reduce((acc: Record<string, CutListItem[]>, it) => {
-      const groupKey = getCutListGroupKey(it.element);
-      (acc[groupKey] = acc[groupKey] || []).push(it);
-      return acc;
-    }, {});
+    const grouped = aggregatedItems.reduce(
+      (acc: Record<string, CutListItem[]>, it) => {
+        const groupKey = getCutListGroupKey(it.element);
+        (acc[groupKey] = acc[groupKey] || []).push(it);
+        return acc;
+      },
+      {},
+    );
 
     // Price breakdown by material type
     const priceBreakdown: PriceBreakdown = {
       korpus: {
-        areaM2: items
+        areaM2: aggregatedItems
           .filter((it) => it.materialType === "korpus")
           .reduce((sum, it) => sum + it.areaM2, 0),
         price: Math.round(
-          items
+          aggregatedItems
             .filter((it) => it.materialType === "korpus")
             .reduce((sum, it) => sum + it.cost, 0),
         ),
       },
       front: {
-        areaM2: items
+        areaM2: aggregatedItems
           .filter((it) => it.materialType === "front")
           .reduce((sum, it) => sum + it.areaM2, 0),
         price: Math.round(
-          items
+          aggregatedItems
             .filter((it) => it.materialType === "front")
             .reduce((sum, it) => sum + it.cost, 0),
         ),
       },
       back: {
-        areaM2: items
+        areaM2: aggregatedItems
           .filter((it) => it.materialType === "back")
           .reduce((sum, it) => sum + it.areaM2, 0),
         price: Math.round(
-          items
+          aggregatedItems
             .filter((it) => it.materialType === "back")
             .reduce((sum, it) => sum + it.cost, 0),
         ),

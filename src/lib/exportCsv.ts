@@ -75,10 +75,10 @@ function isBoardItem(item: CutListItem): item is BoardCutListItem {
 function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
   const groupedRows = new Map<
     string,
-    Omit<GroupedCncRow, "kom"> & {
+    Omit<GroupedCncRow, "napomena"> & {
       kom: number;
-      codes: Set<string>;
       notes: Set<string>;
+      napomena: string;
     }
   >();
 
@@ -99,8 +99,7 @@ function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
 
     const existing = groupedRows.get(groupKey);
     if (existing) {
-      existing.kom += 1;
-      existing.codes.add(item.code);
+      existing.kom += item.quantity ?? 1;
       existing.notes.add(item.desc);
       continue;
     }
@@ -114,10 +113,9 @@ function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
       sirina,
       ks1: toFlag(edgeFlags.shortSide1),
       ks2: toFlag(edgeFlags.shortSide2),
-      kom: 1,
+      kom: item.quantity ?? 1,
       t: 0,
       napomena: item.desc,
-      codes: new Set([item.code]),
       notes: new Set([item.desc]),
     });
   }
@@ -125,7 +123,7 @@ function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
   return Array.from(groupedRows.values())
     .map((row) => ({
       sifra: row.sifra,
-      naziv: Array.from(row.codes).sort().join(", "),
+      naziv: row.naziv,
       duzina: row.duzina,
       kd1: row.kd1,
       kd2: row.kd2,

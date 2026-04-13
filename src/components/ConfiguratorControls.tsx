@@ -1181,6 +1181,7 @@ export function ConfiguratorControls({
                           <tr className="border-b">
                             <th className="text-left py-1 pr-2">Oznaka</th>
                             <th className="text-left py-1 pr-2">Opis</th>
+                            <th className="text-right py-1 pr-2">Kom</th>
                             <th className="text-right py-1 pr-2">
                               Širina (cm)
                             </th>
@@ -1206,6 +1207,9 @@ export function ConfiguratorControls({
                                 {it.code}
                               </td>
                               <td className="py-1 pr-2">{it.desc}</td>
+                              <td className="py-1 pr-2 text-right">
+                                {it.quantity ?? 1}
+                              </td>
                               <td className="py-1 pr-2 text-right">
                                 {fmt2(it.widthCm)}
                               </td>

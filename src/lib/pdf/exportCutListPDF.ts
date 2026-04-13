@@ -42,13 +42,14 @@ export function exportCutListPDF(
       const headers = [
         "Oznaka",
         "Opis",
+        "Kom",
         "S (cm)",
         "V (cm)",
         "Deb",
         "m2",
         "Cena",
       ];
-      const colX = [margin, 30, 80, 105, 130, 150, 170];
+      const colX = [margin, 30, 77, 90, 112, 133, 151, 171];
 
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
@@ -72,11 +73,12 @@ export function exportCutListPDF(
         doc.text(it.code || "", colX[0], y);
         const desc = doc.splitTextToSize(it.desc || "", 45);
         doc.text(desc[0] || "", colX[1], y);
-        doc.text(fmt2(it.widthCm), colX[2], y);
-        doc.text(fmt2(it.heightCm), colX[3], y);
-        doc.text(fmt2(it.thicknessMm), colX[4], y);
-        doc.text(fmt2(it.areaM2), colX[5], y);
-        doc.text(fmt2(it.cost), colX[6], y);
+        doc.text(String(it.quantity ?? 1), colX[2], y);
+        doc.text(fmt2(it.widthCm), colX[3], y);
+        doc.text(fmt2(it.heightCm), colX[4], y);
+        doc.text(fmt2(it.thicknessMm), colX[5], y);
+        doc.text(fmt2(it.areaM2), colX[6], y);
+        doc.text(fmt2(it.cost), colX[7], y);
         y += 5;
       });
 
