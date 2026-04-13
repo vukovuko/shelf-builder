@@ -1114,6 +1114,7 @@ export function ConfiguratorControls({
           </AccordionItem>
 
           <StepActions
+            isAdmin={isAdmin}
             onSaveClick={handleSaveClick}
             onShowCutList={() => setShowCutList(true)}
             onExportElementSpecs={handleExportElementSpecs}

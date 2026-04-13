@@ -14,6 +14,7 @@ import { useShelfStore, type ShelfState } from "@/lib/store";
 import { Button } from "../ui/button";
 
 interface StepActionsProps {
+  isAdmin?: boolean;
   onSaveClick: () => void;
   onShowCutList: () => void;
   onExportElementSpecs: () => void;
@@ -23,6 +24,7 @@ interface StepActionsProps {
 }
 
 export function StepActions({
+  isAdmin = false,
   onSaveClick,
   onShowCutList,
   onExportElementSpecs,
@@ -69,52 +71,58 @@ export function StepActions({
       </div>
 
       {/* View Controls */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground px-1">Prikaz</p>
-        <Button
-          variant={showDimensions ? "secondary" : "ghost"}
-          onClick={() => setShowDimensions(!showDimensions)}
-          className="w-full justify-start"
-          size="sm"
-        >
-          {showDimensions ? (
-            <EyeOff className="h-4 w-4 mr-2" />
-          ) : (
-            <Eye className="h-4 w-4 mr-2" />
-          )}
-          {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
-        </Button>
-      </div>
-
-      {/* Reports & Data */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground px-1">
-          Izveštaji
-        </p>
-        <div className="flex flex-col gap-2">
+      {isAdmin && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground px-1">
+            Prikaz
+          </p>
           <Button
-            variant="secondary"
-            onClick={onShowCutList}
+            variant={showDimensions ? "secondary" : "ghost"}
+            onClick={() => setShowDimensions(!showDimensions)}
             className="w-full justify-start"
             size="sm"
           >
-            <Table className="h-4 w-4 mr-2" />
-            Tabela ploča
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onExportElementSpecs}
-            className="w-full justify-between"
-            size="sm"
-          >
-            <span className="flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Specifikacija elemenata
-            </span>
-            <Download className="h-3 w-3 opacity-50" />
+            {showDimensions ? (
+              <EyeOff className="h-4 w-4 mr-2" />
+            ) : (
+              <Eye className="h-4 w-4 mr-2" />
+            )}
+            {showDimensions ? "Sakrij Mere" : "Prikaži Mere"}
           </Button>
         </div>
-      </div>
+      )}
+
+      {/* Reports & Data */}
+      {isAdmin && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground px-1">
+            Izveštaji
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="secondary"
+              onClick={onShowCutList}
+              className="w-full justify-start"
+              size="sm"
+            >
+              <Table className="h-4 w-4 mr-2" />
+              Tabela ploča
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={onExportElementSpecs}
+              className="w-full justify-between"
+              size="sm"
+            >
+              <span className="flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Specifikacija elemenata
+              </span>
+              <Download className="h-3 w-3 opacity-50" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Downloads */}
       <div className="space-y-2">
