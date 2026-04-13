@@ -15,29 +15,35 @@ export function RoomEnvironment() {
   const floorTex = useTexture("/textures/parquet.jpg");
 
   wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-  wallTex.repeat.set(12, 8);
+  wallTex.repeat.set(8, 3);
 
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-  floorTex.repeat.set(12, 12);
+  floorTex.repeat.set(10, 5);
+
+  const wallW = 12;
+  const wallH = 4;
+  const floorW = 12;
+  // Floor depth: only extends forward from the wall, not behind it
+  const floorD = 6;
 
   const floorY = -h / 2;
   const wallZ = -d / 2 - 0.001;
 
   return (
     <group>
-      {/* Wall — massive plane, no visible edges */}
-      <mesh position={[0, floorY + 25, wallZ]} receiveShadow>
-        <planeGeometry args={[50, 50]} />
+      {/* Wall */}
+      <mesh position={[0, floorY + wallH / 2, wallZ]} receiveShadow>
+        <planeGeometry args={[wallW, wallH]} />
         <meshStandardMaterial map={wallTex} roughness={0.9} metalness={0} />
       </mesh>
 
-      {/* Floor — massive plane, no visible edges */}
+      {/* Floor — centered so back edge aligns with wall, extends forward only */}
       <mesh
-        position={[0, floorY, 0]}
+        position={[0, floorY, wallZ + floorD / 2]}
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
       >
-        <planeGeometry args={[50, 50]} />
+        <planeGeometry args={[floorW, floorD]} />
         <meshStandardMaterial map={floorTex} roughness={0.8} metalness={0} />
       </mesh>
     </group>
