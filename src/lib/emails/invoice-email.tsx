@@ -135,12 +135,12 @@ export default function InvoiceEmail({
             </Row>
           </Section>
 
-          {/* IPS QR Code */}
+          {/* IPS QR Code — raw img tag because react-email <Img> strips cid: URLs */}
           <Section style={qrSection}>
-            <Img
+            <img
               src={`cid:${qrCid}`}
-              width="200"
-              height="200"
+              width={200}
+              height={200}
               alt="IPS QR kod za uplatu"
               style={qrImage}
             />
