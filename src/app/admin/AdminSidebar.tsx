@@ -12,6 +12,7 @@ import {
   Wrench,
   Settings2,
   PanelsTopLeft,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -71,6 +72,11 @@ const navItems = [
     title: "Pravila za dodatke",
     href: "/admin/accessory-rules",
     icon: PanelsTopLeft,
+  },
+  {
+    title: "Podešavanja firme",
+    href: "/admin/settings",
+    icon: Building2,
   },
 ];
 

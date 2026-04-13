@@ -605,3 +605,20 @@ export const contactMessageRelations = relations(
     }),
   }),
 );
+
+// ── Company settings (single-row, admin-editable) ────────────────────
+
+export const companySettings = pgTable("company_settings", {
+  id: integer("id").primaryKey().default(1), // Always row id=1
+  companyName: text("company_name").notNull().default(""),
+  companyAddress: text("company_address").notNull().default(""),
+  companyCity: text("company_city").notNull().default(""),
+  companyPostalCode: text("company_postal_code").notNull().default(""),
+  pib: text("pib").notNull().default(""), // Poreski identifikacioni broj
+  mb: text("mb").notNull().default(""), // Matični broj
+  bankAccount: text("bank_account").notNull().default(""), // 18 digits no dashes
+  paymentCode: text("payment_code").notNull().default("289"), // Šifra plaćanja
+  contactPhone: text("contact_phone").notNull().default(""),
+  contactEmail: text("contact_email").notNull().default(""),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

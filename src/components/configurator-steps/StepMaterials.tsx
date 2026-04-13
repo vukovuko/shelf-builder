@@ -133,7 +133,9 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
   return (
     <div className={compact ? "space-y-3 pt-2" : "space-y-6 pt-4"}>
       <div
-        className={compact ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-4"}
+        className={
+          compact ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-4"
+        }
       >
         {sections.map((section) => {
           const selectedMaterial = section.materials.find(

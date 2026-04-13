@@ -19,6 +19,7 @@ import { auth } from "@/lib/auth";
 import {
   sendOrderConfirmationEmail,
   sendAdminNewOrderEmail,
+  sendInvoiceEmail,
 } from "@/lib/email";
 import {
   calculateCutList,
@@ -798,6 +799,16 @@ export async function POST(request: Request) {
         shippingCity,
         shippingPostalCode,
       });
+
+      // Send invoice with IPS QR code for payment
+      if (customerEmail && customerEmail.length > 0) {
+        await sendInvoiceEmail({
+          to: customerEmail,
+          orderNumber: txResult.orderNumber,
+          customerName,
+          totalPrice: finalPrice,
+        });
+      }
     } catch (emailError) {
       // Log but don't fail the order
       console.error("Failed to send emails:", emailError);

@@ -6,7 +6,10 @@ import { user } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import OrderConfirmationEmail from "./emails/order-confirmation-email";
 import AdminNewOrderEmail from "./emails/admin-new-order-email";
+import InvoiceEmail from "./emails/invoice-email";
 import { sendEmail } from "./email-rate-limiter";
+import { generateIpsQrDataUrl } from "./ips-qr";
+import { getPaymentConfig, formatAccountNumber } from "./payment-config";
 
 interface OrderConfirmationData {
   to: string;
@@ -86,4 +89,52 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
       html,
     });
   }
+}
+
+// ── Invoice email (priznanica + IPS QR) ──────────────────────────────
+
+interface InvoiceEmailData {
+  to: string;
+  orderNumber: number;
+  customerName: string;
+  totalPrice: number;
+}
+
+/**
+ * Send an invoice email with a Serbian priznanica (payment slip) and IPS QR code.
+ * Reusable — call from checkout route, admin "send invoice" button, etc.
+ */
+export async function sendInvoiceEmail(data: InvoiceEmailData) {
+  const config = await getPaymentConfig();
+  const paymentPurpose = `Porudzbina #${data.orderNumber}`;
+  const referenceNumber = `00${data.orderNumber}`;
+
+  const ipsQrDataUrl = await generateIpsQrDataUrl({
+    receiverName: config.receiverName,
+    receiverAccount: config.receiverAccount,
+    amount: data.totalPrice,
+    paymentCode: config.paymentCode,
+    paymentPurpose,
+    referenceNumber,
+  });
+
+  const html = await render(
+    InvoiceEmail({
+      orderNumber: data.orderNumber,
+      customerName: data.customerName,
+      totalPrice: data.totalPrice,
+      ipsQrDataUrl,
+      receiverName: config.receiverName,
+      receiverAccountFormatted: formatAccountNumber(config.receiverAccount),
+      paymentCode: config.paymentCode,
+      paymentPurpose,
+      referenceNumber,
+    }),
+  );
+
+  await sendEmail({
+    to: data.to,
+    subject: `Faktura za porudžbinu #${data.orderNumber} - Ormani po meri`,
+    html,
+  });
 }
