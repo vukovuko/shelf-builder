@@ -523,10 +523,7 @@ export function WardrobePreviewClient({
   // CSV export handler
   const handleExportCSV = useCallback(() => {
     if (cutList) {
-      exportCutListAsCsv(
-        cutList.items,
-        `${wardrobe.name}-cut-list.csv`,
-      );
+      exportCutListAsCsv(cutList.items, `${wardrobe.name}-cut-list.csv`);
     }
   }, [cutList, wardrobe.name]);
 

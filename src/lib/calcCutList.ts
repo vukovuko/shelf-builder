@@ -518,7 +518,11 @@ export function calculateCutList(
         return String(material.id);
       }
 
-      if (fallbackId !== undefined && fallbackId !== null && fallbackId !== "") {
+      if (
+        fallbackId !== undefined &&
+        fallbackId !== null &&
+        fallbackId !== ""
+      ) {
         return String(fallbackId);
       }
 
@@ -745,7 +749,9 @@ export function calculateCutList(
           customMaterialId !== undefined
             ? materials.find((m) => String(m.id) === String(customMaterialId))
             : frontMat,
-          customMaterialId ?? snapshot.selectedFrontMaterialId ?? snapshot.selectedMaterialId,
+          customMaterialId ??
+            snapshot.selectedFrontMaterialId ??
+            snapshot.selectedMaterialId,
         ),
         edgeFlags: getFrontEdgeFlags(edgeMode),
       });
@@ -2062,9 +2068,13 @@ export function calculateCutList(
               : materialType === "front"
                 ? getMaterialProductCode(
                     frontMat,
-                    snapshot.selectedFrontMaterialId ?? snapshot.selectedMaterialId,
+                    snapshot.selectedFrontMaterialId ??
+                      snapshot.selectedMaterialId,
                   )
-                : getMaterialProductCode(backMat, snapshot.selectedBackMaterialId);
+                : getMaterialProductCode(
+                    backMat,
+                    snapshot.selectedBackMaterialId,
+                  );
 
           for (let itemIndex = 0; itemIndex < quantity; itemIndex++) {
             items.push({
