@@ -8,7 +8,7 @@ import OrderConfirmationEmail from "./emails/order-confirmation-email";
 import AdminNewOrderEmail from "./emails/admin-new-order-email";
 import InvoiceEmail from "./emails/invoice-email";
 import { sendEmail } from "./email-rate-limiter";
-import { generateIpsQrDataUrl } from "./ips-qr";
+import { generateIpsQrBuffer } from "./ips-qr";
 import { getPaymentConfig, formatAccountNumber } from "./payment-config";
 
 interface OrderConfirmationData {
@@ -109,7 +109,8 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
   const paymentPurpose = `Porudzbina #${data.orderNumber}`;
   const referenceNumber = `00${data.orderNumber}`;
 
-  const ipsQrDataUrl = await generateIpsQrDataUrl({
+  const qrCid = "ips-qr";
+  const qrBuffer = await generateIpsQrBuffer({
     receiverName: config.receiverName,
     receiverAccount: config.receiverAccount,
     amount: data.totalPrice,
@@ -123,7 +124,7 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
       orderNumber: data.orderNumber,
       customerName: data.customerName,
       totalPrice: data.totalPrice,
-      ipsQrDataUrl,
+      qrCid,
       receiverName: config.receiverName,
       receiverAccountFormatted: formatAccountNumber(config.receiverAccount),
       paymentCode: config.paymentCode,
@@ -136,5 +137,12 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
     to: data.to,
     subject: `Faktura za porudžbinu #${data.orderNumber} - Ormani po meri`,
     html,
+    attachments: [
+      {
+        filename: "ips-qr.png",
+        content: qrBuffer,
+        cid: qrCid,
+      },
+    ],
   });
 }

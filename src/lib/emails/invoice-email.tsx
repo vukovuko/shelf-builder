@@ -17,7 +17,7 @@ interface InvoiceEmailProps {
   orderNumber: number;
   customerName: string;
   totalPrice: number;
-  ipsQrDataUrl: string;
+  qrCid: string; // Content-ID for inline QR image (e.g. "ips-qr")
   receiverName: string;
   receiverAccountFormatted: string; // BBB-AAAAAAAAAAAAA-KK
   paymentCode: string;
@@ -58,7 +58,7 @@ export default function InvoiceEmail({
   orderNumber,
   customerName,
   totalPrice,
-  ipsQrDataUrl,
+  qrCid,
   receiverName,
   receiverAccountFormatted,
   paymentCode,
@@ -138,7 +138,7 @@ export default function InvoiceEmail({
           {/* IPS QR Code */}
           <Section style={qrSection}>
             <Img
-              src={ipsQrDataUrl}
+              src={`cid:${qrCid}`}
               width="200"
               height="200"
               alt="IPS QR kod za uplatu"

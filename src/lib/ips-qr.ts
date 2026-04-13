@@ -43,16 +43,17 @@ export function buildIpsString(data: IpsPaymentData): string {
 }
 
 /**
- * Generate an IPS QR code as a base64 data URL (PNG).
- * Can be embedded directly in <img src="..."> or react-email <Img>.
+ * Generate an IPS QR code as a PNG Buffer.
+ * Use with Resend CID attachments to embed in emails.
  */
-export async function generateIpsQrDataUrl(
+export async function generateIpsQrBuffer(
   data: IpsPaymentData,
-): Promise<string> {
+): Promise<Buffer> {
   const ipsString = buildIpsString(data);
-  return QRCode.toDataURL(ipsString, {
+  return QRCode.toBuffer(ipsString, {
     errorCorrectionLevel: "M",
     margin: 2,
     width: 200,
+    type: "png",
   });
 }

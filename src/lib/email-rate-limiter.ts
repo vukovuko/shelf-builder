@@ -30,11 +30,18 @@ export function enqueueResend<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  cid?: string;
+}
+
 interface SendEmailParams {
   from?: string;
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(params: SendEmailParams) {
@@ -44,6 +51,7 @@ export async function sendEmail(params: SendEmailParams) {
       to: params.to,
       subject: params.subject,
       html: params.html,
+      attachments: params.attachments,
     }),
   );
 }
