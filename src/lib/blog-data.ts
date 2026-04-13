@@ -290,6 +290,95 @@ Mali stan zahteva pametan pristup nameštaju. Orman po meri nije luksuz — u ma
 
 Započnite dizajn u [3D konfiguratoru](/design) — besplatno je, traje 5 minuta, i na kraju dobijate kompletnu specifikaciju sa cenama.`,
   },
+  {
+    slug: "greske-pri-narucivanju-ormana-po-meri",
+    title:
+      "7 grešaka koje ljudi prave pri naručivanju ormana po meri (i kako ih izbeći)",
+    description:
+      "Izbegnite najčešće greške kod planiranja ormana po meri — od pogrešnog merenja do loše raspoređene unutrašnjosti. Saznajte šta stručnjaci savetuju.",
+    date: "2026-04-10",
+    readTime: "6 min",
+    content: `Orman po meri je investicija koja treba da traje godinama. Ali jedna pogrešna odluka u fazi planiranja može da vas košta — nepraktičnog prostora, dodatnih troškova ili ormana koji jednostavno ne funkcioniše kako ste zamislili. Evo sedam najčešćih grešaka i kako da ih izbegnete.
+
+## 1. Merenje „na oko"
+
+Najčešća i najskuplja greška. Ljudi procene da je zid „oko 180 centimetara" i naruče orman na osnovu toga. Kada orman stigne, ili ne staje ili ostaje praznina od 5cm sa strane.
+
+**Kako izbeći:**
+- Merite **minimum tri puta** — pri vrhu, sredini i dnu zida
+- Koristite **najmanji rezultat** jer zidovi nikada nisu savršeno ravni
+- Ne zaboravite na **lajsne, prekidače i utičnice** koji mogu smetati
+- Visinu merite na **obe strane** jer podovi i plafoni često nisu u ravni
+
+Naš [3D konfigurator](/design) prikazuje tačne dimenzije u realnom vremenu, tako da odmah vidite kako orman staje u prostor.
+
+## 2. Pogrešna dubina ormana
+
+Standardna dubina od 60cm je idealna za spavaću sobu, ali ne i za svaku situaciju:
+
+- **Hodnik** — 60cm dubine u hodniku širine 120cm znači da vam ostaje samo 60cm za prolaz. Izaberite **40–45cm** i koristite vešalice postavljene frontalno.
+- **Niša** — dubina mora da prati dubinu niše, inače orman viri iz zida.
+- **Iza vrata** — proverite da li vrata sobe mogu da se otvore kad se orman postavi.
+
+**Pravilo:** Uvek prvo proverite koliko prostora ostaje za kretanje *nakon* što se orman postavi. Minimum za udoban prolaz je 70–80cm.
+
+## 3. Previše kolona (ili premalo)
+
+Čest instinkt je da se prostor podeli na mnogo uskih kolona „da sve ima svoje mesto". U praksi, kolone uže od 40cm su nepraktične — teško je složiti odeću, a pregradne ploče zauzimaju prostor.
+
+**Optimalan broj kolona:**
+- **Orman do 150cm** — 2 kolone
+- **Orman 150–250cm** — 2–3 kolone
+- **Orman 250–400cm** — 3–4 kolone
+
+Svaka kolona treba da bude **minimum 40cm široka**, idealno 50–80cm. Širina kolone određuje šta može da stane unutra — šipka za vešalice zahteva minimum 55cm.
+
+## 4. Zanemarivanje gornjeg prostora
+
+Orman koji ne ide do plafona je promašena prilika. Prostor iznad ormana skuplja prašinu i ne služi ničemu. Orman od poda do plafona:
+
+- **Daje 20–40cm dodatnog prostora** za sezonsku odeću, kofere ili posteljinu
+- **Izgleda ugrađeno** — kao deo zida, ne kao komad nameštaja koji stoji u sobi
+- **Sprečava nakupljanje prašine** na vrhu
+
+Čak i ako gornji deo koristite samo za stvari koje vadite dva puta godišnje, to je bolje nego prazan prostor.
+
+## 5. Sve police na istom razmaku
+
+Fabričke police obično dolaze na razmaku od 30cm. Ali vaša odeća nije sva iste visine:
+
+- **Džemperi i majice** — 25–30cm razmak je dovoljan
+- **Posteljina i peškiri** — treba 35–40cm jer su kabasti
+- **Cipele** — dovoljno je 15–20cm
+- **Torbe i koferi** — mogu da traže i 45–50cm
+
+**Savet:** Planirajte police prema sadržaju, ne prema estetici. Bolje je imati 5 polica na različitim razmacima nego 7 jednakih polica od kojih su neke poluprazne a neke pretrpane.
+
+## 6. Pogrešan izbor vrata
+
+Vrata nisu samo estetski element — ona direktno utiču na funkcionalnost:
+
+- **Krilna vrata u uskom hodniku** — nemoguće ih otvoriti. Koristite klizna vrata.
+- **Klizna vrata na malom ormanu** — klizna vrata se preklapaju, pa uvek pokrivaju pola ormana. Na ormanu od 90cm, vidite samo 45cm. Krilna vrata su bolji izbor za uske ormare.
+- **Ogledalo na svim vratima** — izgleda dobro na papiru, ali u praksi čistite otiske prstiju svaki dan. Ogledalo na jednom krilu je sasvim dovoljno.
+
+**Pravilo:** Klizna vrata za ormare šire od 150cm i za prostore gde nema mesta za otvaranje. Krilna vrata za sve ostalo.
+
+## 7. Bez fioka
+
+Mnogi ljudi planiraju orman samo sa policama i šipkom za vešalice. Ali bez fioka, sitne stvari — donji veš, čarape, maramice, kaiševi — završe u gomilama na policama.
+
+**Minimum preporuka:**
+- **3–4 fioke** u jednoj koloni za svakodnevne sitnice
+- Fioke uvek idu **na dnu kolone** — lakše se otvara i zatvara
+- Ako imate prostor, dodajte još jednu kolonu sa fiokama za aksesoar
+
+Fioke su možda najkorisniji element u ormanu. Bolje je imati jednu policu manje i jednu fioku više.
+
+## Kako da budete sigurni da nećete pogrešiti
+
+Sve ove greške imaju jednu zajedničku stvar: nastaju zato što je teško zamisliti orman pre nego što ga vidite. Upravo zato smo napravili [besplatni 3D konfigurator](/design) — unesite dimenzije, dodajte kolone, police i fioke, izaberite materijal i vrata, i vidite tačno kako će vaš orman izgledati. Menjajte raspored dok ne budete potpuno zadovoljni, a onda naručite sa sigurnošću.`,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
