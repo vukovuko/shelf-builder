@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import {
   isBackMaterialCategory,
@@ -55,13 +55,6 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
   const [openMaterialCategory, setOpenMaterialCategory] = React.useState<
     string | null
   >(null);
-  const [pinnedMaterialIds, setPinnedMaterialIds] = React.useState<{
-    korpus?: number;
-    front?: number;
-    back?: number;
-    edge?: number;
-    frontEdge?: number;
-  }>({});
 
   const sections = React.useMemo(
     () =>
@@ -139,83 +132,75 @@ export function StepMaterials({ materials, compact }: StepMaterialsProps) {
 
   return (
     <div className={compact ? "space-y-3 pt-2" : "space-y-6 pt-4"}>
-      {sections.map((section) => {
-        const pinnedId = pinnedMaterialIds[section.key];
+      <div
+        className={compact ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-4"}
+      >
+        {sections.map((section) => {
+          const selectedMaterial = section.materials.find(
+            (material) => material.id === section.selectedId,
+          );
 
-        const sorted = [...section.materials].sort((a, b) => {
-          if (pinnedId !== undefined) {
-            if (a.id === pinnedId) return -1;
-            if (b.id === pinnedId) return 1;
-          }
-          return 0;
-        });
-
-        const preview = sorted.slice(0, 3);
-        const remaining = section.materials.length - 3;
-
-        return (
-          <div
-            key={section.key}
-            className={compact ? "space-y-2" : "space-y-3"}
-          >
-            <h4 className="text-sm font-semibold">{section.label}</h4>
-            <div className="grid grid-cols-3 gap-2">
-              {preview.map((material) => (
-                <div key={material.id} className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    className={`flex items-center justify-center rounded-full border-2 ${
-                      section.selectedId === material.id
-                        ? "border-primary"
-                        : "border-transparent"
-                    } hover:border-primary bg-muted bg-cover bg-center`}
-                    style={{
-                      width: compact ? "50px" : "72px",
-                      height: compact ? "50px" : "72px",
-                      backgroundImage: material.img
-                        ? `url(${material.img})`
-                        : undefined,
-                    }}
-                    onClick={() => section.setSelectedId(material.id)}
-                    title={material.name}
-                  >
-                    <span className="sr-only">{material.name}</span>
-                  </button>
-                  <span className="text-xs mt-1 text-center truncate w-full">
-                    {material.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {remaining > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
+          return (
+            <React.Fragment key={section.key}>
+              <button
+                type="button"
+                className="flex min-h-[168px] flex-col items-center justify-between rounded-2xl border border-border bg-card px-3 py-4 text-center transition-colors hover:border-primary/50 hover:bg-accent/30"
                 onClick={() => setOpenMaterialCategory(section.key)}
               >
-                Prikaži više ({remaining})
-              </Button>
-            )}
-            <MaterialPickerModal
-              open={openMaterialCategory === section.key}
-              onOpenChange={(open) =>
-                setOpenMaterialCategory(open ? section.key : null)
-              }
-              category={section.label}
-              materials={section.materials}
-              selectedId={section.selectedId}
-              onSelect={(id) => {
-                section.setSelectedId(id);
-                setPinnedMaterialIds((prev) => ({
-                  ...prev,
-                  [section.key]: id,
-                }));
-              }}
-            />
-          </div>
-        );
-      })}
+                <div className="space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    {section.label}
+                  </p>
+                </div>
+                <div
+                  className="rounded-full border-2 border-primary/20 bg-muted bg-cover bg-center shadow-sm"
+                  style={{
+                    width: compact ? "62px" : "84px",
+                    height: compact ? "62px" : "84px",
+                    backgroundImage: selectedMaterial?.img
+                      ? `url(${selectedMaterial.img})`
+                      : undefined,
+                  }}
+                >
+                  {!selectedMaterial?.img && (
+                    <div className="flex h-full w-full items-center justify-center rounded-full text-[10px] font-medium text-muted-foreground">
+                      Bez slike
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-5 text-foreground">
+                    {selectedMaterial?.name ?? "Izaberite materijal"}
+                  </p>
+                  {selectedMaterial?.thickness ? (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedMaterial.thickness}mm
+                    </p>
+                  ) : (
+                    <div className="h-4" />
+                  )}
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                  Promeni
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </span>
+              </button>
+
+              <MaterialPickerModal
+                open={openMaterialCategory === section.key}
+                onOpenChange={(open) =>
+                  setOpenMaterialCategory(open ? section.key : null)
+                }
+                category={section.label}
+                materials={section.materials}
+                selectedId={section.selectedId}
+                onSelect={section.setSelectedId}
+              />
+            </React.Fragment>
+          );
+        })}
+      </div>
+
       {selectedBackMaterialId == null && (
         <p className="text-destructive text-sm mt-4">
           Izaberite materijal za leđa
