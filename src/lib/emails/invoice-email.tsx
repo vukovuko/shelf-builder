@@ -11,6 +11,7 @@ import {
   Img,
   Row,
   Column,
+  Link,
 } from "@react-email/components";
 
 interface InvoiceEmailProps {
@@ -94,7 +95,7 @@ export default function InvoiceEmail({
             porudžbine #{orderNumber}.
           </Text>
 
-          {/* Priznanica / Nalog za uplatu */}
+          {/* Priznanica / Nalog za uplatu — simple text layout */}
           <Section style={priznanicaBox}>
             <Text style={priznanicaTitle}>NALOG ZA UPLATU</Text>
 
@@ -111,10 +112,13 @@ export default function InvoiceEmail({
             </Row>
 
             <Row style={priznanicaRow}>
-              <Column style={priznanicaLabel}>Račun primaoca:</Column>
-              <Column style={priznanicaValue}>
-                {receiverAccountFormatted}
-              </Column>
+              <Column style={priznanicaLabel}>Šifra plaćanja:</Column>
+              <Column style={priznanicaValue}>{paymentCode}</Column>
+            </Row>
+
+            <Row style={priznanicaRow}>
+              <Column style={priznanicaLabel}>Valuta:</Column>
+              <Column style={priznanicaValue}>RSD</Column>
             </Row>
 
             <Row style={priznanicaRow}>
@@ -125,12 +129,14 @@ export default function InvoiceEmail({
             </Row>
 
             <Row style={priznanicaRow}>
-              <Column style={priznanicaLabel}>Šifra plaćanja:</Column>
-              <Column style={priznanicaValue}>{paymentCode}</Column>
+              <Column style={priznanicaLabel}>Račun primaoca:</Column>
+              <Column style={priznanicaValue}>
+                {receiverAccountFormatted}
+              </Column>
             </Row>
 
             <Row style={priznanicaRow}>
-              <Column style={priznanicaLabel}>Poziv na broj:</Column>
+              <Column style={priznanicaLabel}>Model i poziv na broj:</Column>
               <Column style={priznanicaValue}>{referenceNumber}</Column>
             </Row>
           </Section>
@@ -139,8 +145,8 @@ export default function InvoiceEmail({
           <Section style={qrSection}>
             <img
               src={`cid:${qrCid}`}
-              width={200}
-              height={200}
+              width={280}
+              height={280}
               alt="IPS QR kod za uplatu"
               style={qrImage}
             />
@@ -153,7 +159,11 @@ export default function InvoiceEmail({
 
           {/* Footer */}
           <Text style={footer}>
-            Ukoliko imate bilo kakvih pitanja, slobodno nas kontaktirajte.
+            Ukoliko imate bilo kakvih pitanja, slobodno nas{" "}
+            <Link href={`${baseUrl}/contact`} style={footerLink}>
+              kontaktirajte
+            </Link>
+            .
           </Text>
           <Text style={footerSmall}>
             © {new Date().getFullYear()} Ormani po meri. Sva prava zadržana.
@@ -163,6 +173,19 @@ export default function InvoiceEmail({
     </Html>
   );
 }
+
+// Sample data for react-email preview (npm run email:dev)
+InvoiceEmail.PreviewProps = {
+  orderNumber: 1026,
+  customerName: "Vuko Vukašinović",
+  totalPrice: 44020,
+  qrCid: "ips-qr",
+  receiverName: "SLAVISA BLESIC PR STILANO\nZUPANA PRIBILA 14\n11080 BEOGRAD",
+  receiverAccountFormatted: "265-1100310092401-72",
+  paymentCode: "289",
+  paymentPurpose: "Porudzbina #1026",
+  referenceNumber: "001026",
+} as InvoiceEmailProps;
 
 /* ── Styles ── */
 
@@ -223,37 +246,37 @@ const priznanicaBox = {
 
 const priznanicaTitle = {
   color: colors.textMuted,
-  fontSize: "12px",
-  fontWeight: "700",
+  fontSize: "14px",
+  fontWeight: "700" as const,
   textTransform: "uppercase" as const,
   letterSpacing: "1px",
-  margin: "0 0 16px",
+  margin: "0 0 18px",
   textAlign: "center" as const,
 };
 
 const priznanicaRow = {
-  marginBottom: "10px",
+  marginBottom: "12px",
 };
 
 const priznanicaLabel = {
   color: colors.textMuted,
-  fontSize: "13px",
+  fontSize: "15px",
   width: "40%",
   verticalAlign: "top" as const,
 };
 
 const priznanicaValue = {
   color: colors.text,
-  fontSize: "13px",
-  fontWeight: "500",
+  fontSize: "15px",
+  fontWeight: "500" as const,
   width: "60%",
   textAlign: "right" as const,
 };
 
 const priznanicaValueHighlight = {
   color: colors.primary,
-  fontSize: "15px",
-  fontWeight: "bold",
+  fontSize: "18px",
+  fontWeight: "bold" as const,
   width: "60%",
   textAlign: "right" as const,
 };
@@ -270,22 +293,28 @@ const qrImage = {
 };
 
 const qrLabel = {
-  color: colors.textMuted,
-  fontSize: "12px",
-  margin: "12px 0 0",
+  color: colors.text,
+  fontSize: "15px",
+  fontWeight: "500",
+  margin: "16px 0 0",
   textAlign: "center" as const,
 };
 
 const footer = {
   color: colors.textMuted,
-  fontSize: "13px",
+  fontSize: "14px",
   textAlign: "center" as const,
   margin: "0 0 8px",
 };
 
+const footerLink = {
+  color: colors.primary,
+  textDecoration: "underline",
+};
+
 const footerSmall = {
   color: colors.textMuted,
-  fontSize: "11px",
+  fontSize: "12px",
   textAlign: "center" as const,
   margin: "0",
   opacity: 0.7,

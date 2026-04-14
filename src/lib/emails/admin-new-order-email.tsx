@@ -154,6 +154,18 @@ export default function AdminNewOrderEmail({
   );
 }
 
+// Sample data for react-email preview (npm run email:dev)
+AdminNewOrderEmail.PreviewProps = {
+  orderId: "abc12345-6789-def0-1234-56789abcdef0",
+  customerName: "Vuko Vukašinović",
+  customerEmail: "vuko@example.com",
+  customerPhone: "+381 60 123 4567",
+  totalPrice: 44020,
+  shippingStreet: "Knez Mihailova 10",
+  shippingCity: "Beograd",
+  shippingPostalCode: "11000",
+} as AdminNewOrderEmailProps;
+
 const main = {
   backgroundColor: colors.background,
   fontFamily:

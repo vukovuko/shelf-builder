@@ -173,6 +173,18 @@ export default function OrderConfirmationEmail({
   );
 }
 
+// Sample data for react-email preview (npm run email:dev)
+OrderConfirmationEmail.PreviewProps = {
+  orderNumber: 1026,
+  customerName: "Vuko Vukašinović",
+  totalPrice: 44020,
+  basePrice: 40000,
+  adjustments: [{ description: "Montaža", amount: 4020 }],
+  shippingStreet: "Knez Mihailova 10",
+  shippingCity: "Beograd",
+  shippingPostalCode: "11000",
+} as OrderConfirmationEmailProps;
+
 const main = {
   backgroundColor: colors.background,
   fontFamily:
