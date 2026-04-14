@@ -141,7 +141,8 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
       {
         filename: "ips-qr.png",
         content: qrBuffer,
-        cid: qrCid,
+        contentId: qrCid,
+        contentType: "image/png",
       },
     ],
   });

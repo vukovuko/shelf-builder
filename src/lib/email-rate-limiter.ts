@@ -33,7 +33,8 @@ export function enqueueResend<T>(fn: () => Promise<T>): Promise<T> {
 interface EmailAttachment {
   filename: string;
   content: Buffer;
-  cid?: string;
+  contentId?: string;
+  contentType?: string;
 }
 
 interface SendEmailParams {
