@@ -18,6 +18,7 @@
     "db:set-order-seq": "npx tsx src/db/set-order-sequence.ts",
     "db:seed-materials": "npx tsx src/db/seed-materials.ts",
     "r2:upload": "npx tsx src/db/upload-to-r2.ts",
+    "seo:indexnow": "npx tsx scripts/indexnow.ts",
     "email:dev": "npx react-email dev --dir src/lib/emails --port 3001",
     "prepare": "husky"
   },

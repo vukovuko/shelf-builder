@@ -279,7 +279,9 @@ function Board({
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} />
         <Controls showInteractive={false} />
+        {/* On a phone the overview would cover a third of the board. */}
         <MiniMap
+          className="max-sm:hidden!"
           pannable
           zoomable
           nodeColor={(n) =>

@@ -39,8 +39,12 @@ export default async function AdminLayout({
             <div className="flex-1" />
             <ThemeToggle />
           </header>
-          <main className="flex-1 p-4 sm:p-6 overflow-x-auto">
-            <div className="max-w-6xl mx-auto">{children}</div>
+          {/* A page marked .admin-full-bleed (the to-do board) fills the
+              whole area right of the sidebar instead of the centered column. */}
+          <main className="flex-1 p-4 sm:p-6 overflow-x-auto has-[.admin-full-bleed]:p-0">
+            <div className="max-w-6xl mx-auto has-[.admin-full-bleed]:max-w-none">
+              {children}
+            </div>
           </main>
         </SidebarInset>
       </div>

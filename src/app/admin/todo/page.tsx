@@ -11,8 +11,7 @@ export default async function TodoPage() {
   const { notes, links } = await loadBoard();
 
   return (
-    // Edge to edge under the admin header: the board is the whole page.
-    <div className="-m-4 sm:-m-6 h-[calc(100svh-3.5rem)]">
+    <div className="admin-full-bleed h-[calc(100svh-3.5rem)]">
       <TodoBoard initialNotes={notes} initialLinks={links} />
     </div>
   );
