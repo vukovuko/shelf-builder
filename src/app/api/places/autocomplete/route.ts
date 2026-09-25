@@ -6,9 +6,9 @@ import {
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-// Worst-case Google spend per day if bots max out every limit; real
-// checkouts use a small fraction of this.
-const DAILY_BUDGET = 1000;
+// 300/day keeps even a fully abused month (9,000) inside Google's 10,000
+// free autocomplete calls; real checkouts use a few dozen a day at most.
+const DAILY_BUDGET = 300;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

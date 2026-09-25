@@ -3,7 +3,8 @@ import { externalApiRateLimit, guardPaidRoute } from "@/lib/upstash-rate-limit";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-// One call per chosen address; real checkouts need one or two.
+// One call per chosen address. 200/day stays inside Google's 10,000 free
+// monthly detail calls even when abused.
 const DAILY_BUDGET = 200;
 const PLACE_ID_PATTERN = /^[A-Za-z0-9_-]{10,300}$/;
 
