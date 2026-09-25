@@ -28,6 +28,7 @@ async function fetchFromNominatim(address: string): Promise<NominatimResult> {
         "User-Agent": "ShelfBuilder/1.0 (address autocomplete)",
         "Accept-Language": "sr-Latn",
       },
+      signal: AbortSignal.timeout(3000),
     });
 
     if (!response.ok) return { postalCode: null, municipality: null };
@@ -92,6 +93,9 @@ export async function GET(request: Request) {
           "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
           "X-Goog-FieldMask": "addressComponents,formattedAddress",
         },
+        // A hung lookup would keep the buyer's address spinner going; the
+        // address fields stay editable either way.
+        signal: AbortSignal.timeout(4000),
       },
     );
 

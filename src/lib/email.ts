@@ -21,6 +21,8 @@ interface OrderConfirmationData {
   shippingStreet: string;
   shippingCity: string;
   shippingPostalCode: string;
+  /** Checkout passes one so a retried send can't duplicate the email. */
+  idempotencyKey?: string;
 }
 
 export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
@@ -40,6 +42,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
   await sendEmail({
     to: data.to,
     subject: `Potvrda porudžbine #${data.orderNumber} - Ormani po meri`,
+    idempotencyKey: data.idempotencyKey,
     html,
   });
 }
@@ -54,6 +57,8 @@ interface AdminOrderNotificationData {
   shippingStreet: string;
   shippingCity: string;
   shippingPostalCode: string;
+  /** Placed while Cloudflare's bot check was unreachable. */
+  unverified?: boolean;
 }
 
 export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
@@ -85,7 +90,8 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
   for (const admin of admins) {
     await sendEmail({
       to: admin.email,
-      subject: `Nova porudžbina #${data.orderNumber} - ${data.totalPrice.toLocaleString("sr-RS")} RSD`,
+      subject: `Nova porudžbina #${data.orderNumber} - ${data.totalPrice.toLocaleString("sr-RS")} RSD${data.unverified ? " (bez Cloudflare provere)" : ""}`,
+      idempotencyKey: `order-admin/${data.orderId}/${admin.email}`,
       html,
     });
   }
@@ -98,6 +104,8 @@ interface InvoiceEmailData {
   orderNumber: number;
   customerName: string;
   totalPrice: number;
+  /** Checkout passes one; an admin resending the invoice must not. */
+  idempotencyKey?: string;
 }
 
 /**
@@ -136,6 +144,7 @@ export async function sendInvoiceEmail(data: InvoiceEmailData) {
   await sendEmail({
     to: data.to,
     subject: `Faktura za porudžbinu #${data.orderNumber} - Ormani po meri`,
+    idempotencyKey: data.idempotencyKey,
     html,
     attachments: [
       {

@@ -42,10 +42,12 @@ import {
 // Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
   try {
-    const limited = await checkRateLimit(previewRateLimit, getIdentifier(req));
-    if (limited) return limited;
-
     const session = await auth.api.getSession({ headers: await headers() });
+    const limited = await checkRateLimit(
+      previewRateLimit,
+      session?.user?.id ?? getIdentifier(req),
+    );
+    if (limited) return limited;
 
     const body = await req.json();
     const {

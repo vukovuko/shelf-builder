@@ -5,33 +5,44 @@ import { rateLimitKey } from "./rate-limit-key";
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-  // The default retries add ~4s before an unreachable Redis errors out.
+  // The default retries add ~4s before an unreachable Redis errors out, and
+  // a hung request would otherwise hold the page until the function times out.
   retry: { retries: 1, backoff: () => 100 },
+  signal: () => AbortSignal.timeout(1000),
 });
 
-// Customer forms, 5 req/min per client each: allows typos and retries but
-// not brute force. Each has its own counter, so a few contact messages
-// never block the same visitor's checkout.
+// Upstash answers in ~10 ms from fra1. After this long a limiter stops
+// waiting: customer routes let the request through, paid routes refuse it.
+const timeout = 500;
+
+// Per-IP limits are only a loose outer cap: one Serbian mobile or home IP is
+// often shared by many people (carrier-grade NAT), and a shared cap must
+// never stop a real buyer. Turnstile gates each form submission, and the
+// checkout counts per account when the buyer is logged in. Each form has
+// its own counter, so contact messages never use up a visitor's checkout.
 export const checkoutRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.fixedWindow(5, "1 m"),
+  limiter: Ratelimit.fixedWindow(10, "1 m"),
   prefix: "ratelimit:checkout",
   analytics: true,
+  timeout,
 });
 
 // Shared by both contact forms: the same action on two pages.
 export const contactRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.fixedWindow(5, "1 m"),
+  limiter: Ratelimit.fixedWindow(10, "1 m"),
   prefix: "ratelimit:contact",
   analytics: true,
+  timeout,
 });
 
 export const signupRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.fixedWindow(5, "1 m"),
+  limiter: Ratelimit.fixedWindow(10, "1 m"),
   prefix: "ratelimit:signup",
   analytics: true,
+  timeout,
 });
 
 // Standard: Wardrobe save/update endpoints (30 req/min)
@@ -41,24 +52,26 @@ export const standardRateLimit = new Ratelimit({
   limiter: Ratelimit.fixedWindow(30, "1 m"),
   prefix: "ratelimit:standard",
   analytics: true,
+  timeout,
 });
 
-// External autocomplete: Google Places autocomplete (30 req/min)
-// Users type fast, each keystroke can trigger request (with debounce)
+// Google Places autocomplete, per IP. Typing fires a request per pause, and
+// several buyers can share one IP; the daily budget is the cost ceiling.
 export const autocompleteRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  limiter: Ratelimit.slidingWindow(60, "1 m"),
   prefix: "ratelimit:autocomplete",
   analytics: true,
+  timeout,
 });
 
-// External details: Google Places details (10 req/min)
-// Triggered once when user selects an address suggestion
+// Google Places details: one call per picked suggestion.
 export const externalApiRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(10, "1 m"),
+  limiter: Ratelimit.slidingWindow(20, "1 m"),
   prefix: "ratelimit:external",
   analytics: true,
+  timeout,
 });
 
 // Photo/sketch import: each call is a paid Claude request, keyed by account
@@ -66,14 +79,17 @@ export const designImportRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "1 d"),
   prefix: "ratelimit:design-import",
+  timeout,
 });
 
-// Rules preview: configurator re-prices after every change (250ms debounce)
+// Rules preview: the configurator re-prices after every change (250 ms
+// debounce), keyed by account when logged in, else by IP.
 export const previewRateLimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(120, "1 m"),
+  limiter: Ratelimit.slidingWindow(300, "1 m"),
   prefix: "ratelimit:preview",
   analytics: true,
+  timeout,
 });
 
 // Per-recipient caps: however many IPs trigger them, one inbox gets at most
@@ -82,12 +98,14 @@ const authEmailLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "1 h"),
   prefix: "ratelimit:email-auth",
+  timeout,
 });
 
 const orderEmailLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "1 d"),
   prefix: "ratelimit:email-order",
+  timeout,
 });
 
 // Saving designs is login-only, so the limit follows the account, not the IP.
@@ -95,6 +113,7 @@ export const wardrobeSaveRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "1 m"),
   prefix: "ratelimit:wardrobe-save",
+  timeout,
 });
 
 /**
@@ -191,25 +210,21 @@ export async function checkRateLimit(
   }
 }
 
-// Helper to create rate limit response (industry standard format)
+// 429 with Retry-After (RFC 6585). Clients show `error` to the visitor.
 export function rateLimitResponse(reset: number) {
   const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
-  return new Response(
-    JSON.stringify({
-      error: "Too Many Requests",
-      message:
-        "Prekoračili ste maksimalan broj zahteva. Molimo sačekajte pre ponovnog pokušaja.",
-      retryAfter,
-    }),
-    {
-      status: 429,
-      headers: {
-        "Content-Type": "application/json",
-        "Retry-After": String(retryAfter),
-        "X-RateLimit-Reset": String(Math.ceil(reset / 1000)),
-      },
+  const message =
+    retryAfter > 90
+      ? "Previše zahteva. Pokušajte ponovo malo kasnije."
+      : `Previše zahteva. Pokušajte ponovo za ${retryAfter} s.`;
+  return new Response(JSON.stringify({ error: message, message, retryAfter }), {
+    status: 429,
+    headers: {
+      "Content-Type": "application/json",
+      "Retry-After": String(retryAfter),
+      "X-RateLimit-Reset": String(Math.ceil(reset / 1000)),
     },
-  );
+  });
 }
 
 /**
@@ -234,13 +249,11 @@ async function withinDailyBudget(name: string, perDay: number) {
 }
 
 function unavailableResponse() {
-  return new Response(
-    JSON.stringify({
-      error: "Service Unavailable",
-      message: "Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.",
-    }),
-    { status: 503, headers: { "Content-Type": "application/json" } },
-  );
+  const message = "Usluga trenutno nije dostupna. Pokušajte ponovo kasnije.";
+  return new Response(JSON.stringify({ error: message, message }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 /**
@@ -275,5 +288,31 @@ export async function guardPaidRoute(
   } catch (error) {
     console.error("Rate limiter unavailable:", error);
     return unavailableResponse();
+  }
+}
+
+/**
+ * Checkout idempotency: the response of a placed order, stored under the
+ * key the checkout dialog generates. A retry after a dropped connection gets
+ * the same order back instead of placing a second one. Without Redis the
+ * retry is treated as a new order, as before.
+ */
+const CHECKOUT_REPLAY_SECONDS = 60 * 60 * 24;
+
+export async function recallCheckout(key: string): Promise<unknown | null> {
+  try {
+    return await redis.get(`checkout:done:${key}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function rememberCheckout(key: string, response: unknown) {
+  try {
+    await redis.set(`checkout:done:${key}`, response, {
+      ex: CHECKOUT_REPLAY_SECONDS,
+    });
+  } catch (error) {
+    console.error("Could not store checkout idempotency key:", error);
   }
 }

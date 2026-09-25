@@ -66,8 +66,8 @@ export default function ResetPasswordEmail({
           {/* Main Content */}
           <Heading style={h1}>Postavite vašu lozinku</Heading>
           <Text style={text}>
-            Kreiran vam je nalog na platformi Ormani po meri. Kliknite na dugme
-            ispod da biste postavili vašu lozinku i aktivirali nalog.
+            Kliknite na dugme ispod da biste postavili lozinku za vaš nalog na
+            platformi Ormani po meri. Link važi sat vremena.
           </Text>
 
           <Section style={buttonContainer}>

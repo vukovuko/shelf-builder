@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type RulePreview = {
   adjustedTotal: number | null;
@@ -19,13 +19,39 @@ type RulePreviewInput = {
   shippingCity?: string;
 };
 
+// The sidebar and the phone's bottom bar are both mounted and preview the
+// same design, so identical requests made moments apart share one fetch
+// instead of doubling the load on /api/rules/preview.
+const SHARE_MS = 2000;
+const recent = new Map<
+  string,
+  { at: number; result: Promise<RulePreview | null> }
+>();
+
+function fetchPreview(body: string): Promise<RulePreview | null> {
+  const now = Date.now();
+  for (const [key, entry] of recent) {
+    if (now - entry.at > SHARE_MS) recent.delete(key);
+  }
+  const shared = recent.get(body);
+  if (shared) return shared.result;
+  const result = fetch("/api/rules/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  })
+    .then((res) => (res.ok ? (res.json() as Promise<RulePreview>) : null))
+    .catch(() => null);
+  recent.set(body, { at: now, result });
+  return result;
+}
+
 export function useRulePreview(
   input: RulePreviewInput,
   options?: { enabled?: boolean; debounceMs?: number },
 ) {
   const enabled = options?.enabled ?? true;
   const debounceMs = options?.debounceMs ?? 250;
-  const abortRef = useRef<AbortController | null>(null);
   const [preview, setPreview] = useState<RulePreview | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,17 +61,13 @@ export function useRulePreview(
       return;
     }
 
+    // A shared fetch can't be aborted for one caller, so a stale answer
+    // (the design changed meanwhile) is just ignored.
+    let stale = false;
     const timeoutId = window.setTimeout(() => {
       setLoading(true);
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      fetch("/api/rules/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
+      fetchPreview(
+        JSON.stringify({
           wardrobeSnapshot: input.wardrobeSnapshot,
           materialId: input.materialId,
           frontMaterialId: input.frontMaterialId,
@@ -56,25 +78,16 @@ export function useRulePreview(
           customerPhone: input.customerPhone,
           shippingCity: input.shippingCity,
         }),
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) {
-            setPreview(data);
-          }
-          setLoading(false);
-        })
-        .catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          setLoading(false);
-        });
+      ).then((data) => {
+        if (stale) return;
+        if (data) setPreview(data);
+        setLoading(false);
+      });
     }, debounceMs);
 
     return () => {
+      stale = true;
       window.clearTimeout(timeoutId);
-      abortRef.current?.abort();
     };
   }, [
     enabled,

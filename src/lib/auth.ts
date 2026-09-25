@@ -3,7 +3,11 @@ import "server-only";
 import { render } from "@react-email/components";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { admin, captcha } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
@@ -94,7 +98,9 @@ export const auth = betterAuth({
   rateLimit: {
     customStorage: betterAuthRateLimitStorage,
     customRules: {
-      "/sign-in/email": { window: 60, max: 5 },
+      // Per IP, and one IP is often shared by many people (mobile carriers
+      // and home routers use carrier-grade NAT); Turnstile gates each try.
+      "/sign-in/email": { window: 60, max: 10 },
       "/sign-up/email": { window: 600, max: 3 },
       "/request-password-reset": { window: 3600, max: 3 },
       "/send-verification-email": { window: 3600, max: 3 },
@@ -105,6 +111,16 @@ export const auth = betterAuth({
   hooks: {
     // The strength rules the signup form shows, enforced for direct API calls.
     before: createAuthMiddleware(async (ctx) => {
+      // Better Auth mails any unverified address when asked without a session.
+      // Our only caller is account settings (logged in), and signup/sign-in
+      // send their own emails, so a logged-out request here is only abuse:
+      // flooding someone's inbox or burning their per-address email cap.
+      if (ctx.path === "/send-verification-email") {
+        if (!(await getSessionFromCtx(ctx))) {
+          throw new APIError("UNAUTHORIZED");
+        }
+        return;
+      }
       if (ctx.path !== "/sign-up/email" && ctx.path !== "/reset-password") {
         return;
       }

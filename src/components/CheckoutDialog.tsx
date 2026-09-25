@@ -150,6 +150,25 @@ export function CheckoutDialog({
   // Turnstile CAPTCHA state
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
+  // The submit button waits for a token; if none arrives, say why.
+  const [turnstileProblem, setTurnstileProblem] = useState<
+    "waiting" | "failed" | null
+  >(null);
+  useEffect(() => {
+    if (!open || turnstileToken) {
+      setTurnstileProblem(null);
+      return;
+    }
+    const id = window.setTimeout(
+      () => setTurnstileProblem((p) => p ?? "waiting"),
+      10_000,
+    );
+    return () => window.clearTimeout(id);
+  }, [open, turnstileToken]);
+
+  // One key per order: if the connection drops after the order is saved,
+  // the retry gets that order back instead of placing a second one.
+  const idempotencyKeyRef = useRef<string | null>(null);
   const previewAbortRef = useRef<AbortController | null>(null);
 
   // Track if logged-in user is already subscribed (hide checkbox)
@@ -377,6 +396,7 @@ export function CheckoutDialog({
     if (!validate()) return;
 
     setSubmitting(true);
+    idempotencyKeyRef.current ??= globalThis.crypto?.randomUUID?.() ?? null;
 
     try {
       const res = await fetch("/api/checkout", {
@@ -403,6 +423,7 @@ export function CheckoutDialog({
           area: orderData.totalArea,
           totalPrice: Math.round(orderData.totalPrice),
           turnstileToken,
+          idempotencyKey: idempotencyKeyRef.current ?? undefined,
         }),
       });
 
@@ -435,6 +456,7 @@ export function CheckoutDialog({
         wardrobe_id: data.wardrobeId,
       });
 
+      idempotencyKeyRef.current = null;
       // Show success view instead of toast
       setOrderSuccess({
         orderNumber: data.orderNumber,
@@ -488,13 +510,20 @@ export function CheckoutDialog({
     setRulePreview(null);
     setRulePreviewLoading(false);
     setTurnstileToken(null);
+    idempotencyKeyRef.current = null;
     previewAbortRef.current?.abort();
     turnstileRef.current?.reset();
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    // Closing mid-submit would wipe the form while the order may be saving.
+    <Dialog
+      open={open}
+      onOpenChange={() => {
+        if (!submitting) handleClose();
+      }}
+    >
       <DialogContent className="sm:!max-w-3xl max-h-[90vh] !p-0 !gap-0 flex flex-col overflow-hidden">
         {orderSuccess ? (
           <div className="overflow-y-auto p-6">
@@ -794,13 +823,25 @@ export function CheckoutDialog({
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
                   options={{ language: "sr" }}
                   onSuccess={setTurnstileToken}
-                  onError={() => setTurnstileToken(null)}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    setTurnstileProblem("failed");
+                  }}
                   onExpire={() => setTurnstileToken(null)}
                 />
-                {errors.turnstile && (
+                {errors.turnstile ? (
                   <p className="absolute bottom-0 left-0 text-xs text-destructive">
                     {errors.turnstile}
                   </p>
+                ) : (
+                  turnstileProblem && (
+                    // Can wrap to two lines on phones, so it takes its own space.
+                    <p className="mt-1 text-xs text-destructive">
+                      {turnstileProblem === "failed"
+                        ? "Bezbednosna provera nije uspela. Osvežite stranicu i pokušajte ponovo."
+                        : "Završite bezbednosnu proveru iznad. Ako se ne učitava, osvežite stranicu."}
+                    </p>
+                  )
                 )}
               </div>
             </div>

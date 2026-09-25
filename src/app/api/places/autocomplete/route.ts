@@ -46,6 +46,8 @@ export async function GET(request: Request) {
           includedRegionCodes: ["rs"],
           languageCode: "sr",
         }),
+        // Suggestions are a convenience; a slow answer is worse than none.
+        signal: AbortSignal.timeout(4000),
       },
     );
 

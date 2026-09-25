@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signIn } from "@/lib/auth-client";
+import { authClient, signIn } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
 
 interface AuthFormsProps {
@@ -26,6 +26,8 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  // "Zaboravili ste lozinku?" swaps the login form for a reset request.
+  const [forgot, setForgot] = useState(false);
   // Turnstile tokens are single-use: every attempt needs a fresh one.
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -113,14 +115,22 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         });
 
         if (result.error) {
-          if (result.error.code === "EMAIL_NOT_VERIFIED") {
+          const { code, status } = result.error;
+          if (code === "EMAIL_NOT_VERIFIED") {
             setError(
               "Nalog još nije aktiviran. Poslali smo vam email sa linkom za aktivaciju.",
             );
-          } else if (result.error.status === 429) {
+          } else if (status === 429) {
             setError("Previše pokušaja. Sačekajte minut pa pokušajte ponovo.");
-          } else {
+          } else if (status === 401) {
             setError("Pogrešni kredencijali");
+          } else if (status === 400 || status === 403) {
+            // The captcha plugin rejects a missing or refused token.
+            setError("Verifikacija nije uspela. Pokušajte ponovo.");
+          } else {
+            setError(
+              "Prijava trenutno nije moguća. Pokušajte ponovo za minut.",
+            );
           }
           return;
         }
@@ -128,11 +138,60 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         onSuccess?.();
       }
     } catch (err: any) {
+      // Only a network failure lands here; wrong credentials come back as
+      // result.error above.
       console.error("Auth error:", err);
-      // Generic error message for security
-      const errorMsg =
-        mode === "login" ? "Pogrešni kredencijali" : "Registracija nije uspela";
-      setError(errorMsg);
+      setError("Nema veze sa serverom. Proverite internet i pokušajte ponovo.");
+    } finally {
+      setLoading(false);
+      resetTurnstile();
+    }
+  }
+
+  async function requestReset(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setEmailError(null);
+
+    const emailValidation = z
+      .email({ message: "Neispravna email adresa" })
+      .safeParse(email);
+    if (!emailValidation.success) {
+      setEmailError(emailValidation.error.issues[0].message);
+      return;
+    }
+    if (!turnstileToken) {
+      setError("Sačekajte da se verifikacija završi, pa pokušajte ponovo.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await authClient.requestPasswordReset({
+        email,
+        redirectTo: "/reset-password",
+        fetchOptions: { headers: { "x-captcha-response": turnstileToken } },
+      });
+      if (result.error) {
+        const { status } = result.error;
+        setError(
+          status === 429
+            ? "Previše zahteva. Pokušajte ponovo za sat vremena."
+            : status === 400 || status === 403
+              ? "Verifikacija nije uspela. Pokušajte ponovo."
+              : "Slanje trenutno nije moguće. Pokušajte ponovo za minut.",
+        );
+        return;
+      }
+      // Same answer whether or not the account exists (no account probing).
+      toast.success(
+        "Ako nalog sa ovom adresom postoji, poslali smo vam link za novu lozinku.",
+        { duration: 10000 },
+      );
+      setForgot(false);
+    } catch (err) {
+      console.error("Password reset request error:", err);
+      setError("Nema veze sa serverom. Proverite internet i pokušajte ponovo.");
     } finally {
       setLoading(false);
       resetTurnstile();
@@ -180,6 +239,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       value={mode}
       onValueChange={(v) => {
         setMode(v as "login" | "register");
+        setForgot(false);
         setTurnstileToken(null);
         setError(null);
         setPasswordError(null);
@@ -193,80 +253,148 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       </TabsList>
 
       <TabsContent value="login" className="space-y-4 min-h-[520px]">
-        <form onSubmit={submit} className="space-y-4 pt-4">
-          <div className="relative pb-5">
-            <Label htmlFor="email-login">Email</Label>
-            <Input
-              id="email-login"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setEmailError(null);
-              }}
-              placeholder="vas@email.com"
-              type="email"
-              required
-              className={`mt-2 ${emailError ? "border-destructive" : ""}`}
-            />
-            {emailError && (
-              <p className="absolute bottom-0 left-0 text-xs text-destructive">
-                {emailError}
-              </p>
-            )}
-          </div>
-          <div className="relative pb-5">
-            <Label htmlFor="password-login">Lozinka</Label>
-            <div className="relative mt-2">
+        {forgot ? (
+          <form onSubmit={requestReset} className="space-y-4 pt-4">
+            <div className="relative pb-5">
+              <Label htmlFor="email-reset">Email</Label>
               <Input
-                id="password-login"
-                value={password}
+                id="email-reset"
+                value={email}
                 onChange={(e) => {
-                  setPassword(e.target.value);
-                  setPasswordError(null);
+                  setEmail(e.target.value);
+                  setEmailError(null);
                 }}
-                placeholder="••••••••"
-                type={showPassword ? "text" : "password"}
+                placeholder="vas@email.com"
+                type="email"
                 required
-                className={`pr-10 ${passwordError ? "border-destructive" : ""}`}
+                className={`mt-2 ${emailError ? "border-destructive" : ""}`}
               />
+              {emailError && (
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                  {emailError}
+                </p>
+              )}
+            </div>
+            <div className="min-h-[0.5rem]">
+              {error && (
+                <div className="text-sm text-destructive px-1 py-2 bg-destructive/10 rounded">
+                  {error}
+                </div>
+              )}
+            </div>
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              options={{ language: "sr", size: "flexible" }}
+              onSuccess={setTurnstileToken}
+              onError={() => setTurnstileToken(null)}
+              onExpire={() => setTurnstileToken(null)}
+            />
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Slanje..." : "Pošalji link za novu lozinku"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setForgot(false);
+                setError(null);
+                resetTurnstile();
+              }}
+              className="w-full"
+            >
+              Nazad na prijavu
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={submit} className="space-y-4 pt-4">
+            <div className="relative pb-5">
+              <Label htmlFor="email-login">Email</Label>
+              <Input
+                id="email-login"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError(null);
+                }}
+                placeholder="vas@email.com"
+                type="email"
+                required
+                className={`mt-2 ${emailError ? "border-destructive" : ""}`}
+              />
+              {emailError && (
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                  {emailError}
+                </p>
+              )}
+            </div>
+            <div className="relative pb-5">
+              <Label htmlFor="password-login">Lozinka</Label>
+              <div className="relative mt-2">
+                <Input
+                  id="password-login"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError(null);
+                  }}
+                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className={`pr-10 ${passwordError ? "border-destructive" : ""}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {passwordError && (
+                <p className="absolute bottom-0 left-0 text-xs text-destructive">
+                  {passwordError}
+                </p>
+              )}
+            </div>
+            <div className="-mt-3 flex justify-end">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
+                onClick={() => {
+                  setForgot(true);
+                  setError(null);
+                  resetTurnstile();
+                }}
+                className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                Zaboravili ste lozinku?
               </button>
             </div>
-            {passwordError && (
-              <p className="absolute bottom-0 left-0 text-xs text-destructive">
-                {passwordError}
-              </p>
-            )}
-          </div>
-          <div className="min-h-[0.5rem]">
-            {error && (
-              <div className="text-sm text-destructive px-1 py-2 bg-destructive/10 rounded">
-                {error}
-              </div>
-            )}
-          </div>
-          <Turnstile
-            ref={turnstileRef}
-            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-            options={{ language: "sr", size: "flexible" }}
-            onSuccess={setTurnstileToken}
-            onError={() => setTurnstileToken(null)}
-            onExpire={() => setTurnstileToken(null)}
-          />
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Učitavanje..." : "Prijavi se"}
-          </Button>
-        </form>
+            <div className="min-h-[0.5rem]">
+              {error && (
+                <div className="text-sm text-destructive px-1 py-2 bg-destructive/10 rounded">
+                  {error}
+                </div>
+              )}
+            </div>
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              options={{ language: "sr", size: "flexible" }}
+              onSuccess={setTurnstileToken}
+              onError={() => setTurnstileToken(null)}
+              onExpire={() => setTurnstileToken(null)}
+            />
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Učitavanje..." : "Prijavi se"}
+            </Button>
+          </form>
+        )}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
