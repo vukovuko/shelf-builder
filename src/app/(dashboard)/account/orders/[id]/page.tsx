@@ -115,7 +115,8 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
     name: m.name,
     productCode: m.productCode,
     price: m.price,
-    costPrice: m.costPrice,
+    // Purchase prices stay server-side; customers only see selling prices.
+    costPrice: 0,
     img: m.img,
     thickness: m.thickness,
     stock: m.stock,

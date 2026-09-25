@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore, type ShelfState } from "@/lib/store";
+import { type ShelfState, useShelfStore } from "@/lib/store";
 
 // Separate component for URL param handling - wrapped in Suspense
 function LoadFromUrl() {
@@ -165,12 +165,10 @@ export default function DesignPage({
     setHasRestoredState(true);
   }, [hasRestoredState, isLoggedIn]);
 
-  // Hide loading overlay after scene initializes
+  // The overlay lifts on the scene's first frame (onReady below); this only
+  // guarantees it never hides a WebGL error screen.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsSceneLoading(false);
-    }, 1500); // Give WebGL context time to initialize
-
+    const timer = setTimeout(() => setIsSceneLoading(false), 5000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -198,7 +196,10 @@ export default function DesignPage({
         <LoadFromUrl />
       </Suspense>
       {/* Scene stays mounted and stable */}
-      <Scene wardrobeRef={wardrobeRef!} />
+      <Scene
+        wardrobeRef={wardrobeRef!}
+        onReady={() => setIsSceneLoading(false)}
+      />
     </>
   );
 }

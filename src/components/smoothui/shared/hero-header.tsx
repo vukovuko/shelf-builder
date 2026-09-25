@@ -167,11 +167,7 @@ export const HeroHeader = () => {
                         ease: EASE_OUT_QUART,
                       }}
                     >
-                      <Button
-                        asChild
-                        size="sm"
-                        type="button"
-                      >
+                      <Button asChild size="sm" type="button">
                         <Link href="/design">
                           <LinkPending>Započnite dizajn</LinkPending>
                         </Link>

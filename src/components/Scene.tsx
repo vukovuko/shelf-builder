@@ -1,22 +1,22 @@
 "use client";
 
-import { OrbitControls, Environment } from "@react-three/drei";
+import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
+import { Hand, Move, Move3d, ZoomIn } from "lucide-react";
 import React, {
-  useRef,
-  useEffect,
-  useCallback,
   Suspense,
+  useCallback,
+  useEffect,
+  useRef,
   useState,
 } from "react";
-import * as THREE from "three";
+import type * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { Move3d, ZoomIn, Move, Hand } from "lucide-react";
-import { useShelfStore, type ShelfState, type ViewMode } from "@/lib/store";
+import { type ShelfState, useShelfStore, type ViewMode } from "@/lib/store";
 import { BlueprintView } from "./BlueprintView";
-import { Wardrobe } from "./Wardrobe";
 import { Canvas3DErrorBoundary } from "./Canvas3DErrorBoundary";
 import { RoomEnvironment } from "./RoomEnvironment";
+import { Wardrobe } from "./Wardrobe";
 
 const HINT_DISMISSED_KEY = "shelf-builder-3d-hint-dismissed";
 
@@ -367,7 +367,14 @@ function ViewModeController({
   return null;
 }
 
-export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
+export function Scene({
+  wardrobeRef,
+  onReady,
+}: {
+  wardrobeRef: React.RefObject<any>;
+  /** Called once the canvas has drawn its first frame. */
+  onReady?: () => void;
+}) {
   const viewMode = useShelfStore((state: ShelfState) => state.viewMode);
   const showEdgesOnly = useShelfStore(
     (state: ShelfState) => state.showEdgesOnly,
@@ -411,6 +418,7 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
             antialias: true,
           }}
           onCreated={({ gl }) => {
+            requestAnimationFrame(() => onReady?.());
             gl.domElement.addEventListener("webglcontextlost", (e) => {
               e.preventDefault();
             });
@@ -440,13 +448,23 @@ export function Scene({ wardrobeRef }: { wardrobeRef: React.RefObject<any> }) {
             />
           )}
 
-          {!showEdgesOnly && <Environment preset="apartment" />}
+          {/* Lighting map and room textures each load on their own, so the
+              wardrobe shows immediately instead of waiting for ~1.5 MB. */}
+          {!showEdgesOnly && (
+            <Suspense fallback={null}>
+              <Environment files="/hdri/apartment.hdr" />
+            </Suspense>
+          )}
 
           {/* Wardrobe centered manually, CameraPositioner handles camera fitting */}
           <Suspense fallback={null}>
             <WardrobeCenterer wardrobeRef={wardrobeRef} />
-            {!showEdgesOnly && <RoomEnvironment />}
           </Suspense>
+          {!showEdgesOnly && (
+            <Suspense fallback={null}>
+              <RoomEnvironment />
+            </Suspense>
+          )}
           <CameraPositioner />
 
           <OrbitControls

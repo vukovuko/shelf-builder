@@ -1,8 +1,8 @@
 "use client";
 
 import { useTexture } from "@react-three/drei";
-import { useShelfStore, type ShelfState } from "@/lib/store";
 import * as THREE from "three";
+import { type ShelfState, useShelfStore } from "@/lib/store";
 
 export function RoomEnvironment() {
   const height = useShelfStore((s: ShelfState) => s.height);
@@ -11,8 +11,8 @@ export function RoomEnvironment() {
   const h = height / 100;
   const d = depth / 100;
 
-  const wallTex = useTexture("/textures/wall.jpg");
-  const floorTex = useTexture("/textures/parquet.jpg");
+  const wallTex = useTexture("/textures/wall.webp");
+  const floorTex = useTexture("/textures/parquet.webp");
 
   wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
   wallTex.repeat.set(8, 3);

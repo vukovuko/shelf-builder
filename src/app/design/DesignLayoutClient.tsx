@@ -1,27 +1,27 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { ArrowLeft, DoorClosed, DoorOpen, Ruler } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, DoorOpen, DoorClosed, Ruler } from "lucide-react";
-import { LockedPreviewBar } from "@/components/LockedPreviewBar";
+import React, { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
 import { DesignImportOverlay } from "@/components/DesignImportOverlay";
+import { LockedPreviewBar } from "@/components/LockedPreviewBar";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
-import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
-import {
-  useShelfStore,
-  type Material,
-  type Handle,
-  type Accessory,
-  type ShelfState,
-} from "@/lib/store";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import {
+  type Accessory,
+  type Handle,
+  type Material,
+  type ShelfState,
+  useShelfStore,
+} from "@/lib/store";
 
 // Helper to capture thumbnail from canvas
 async function captureThumbnail(canvas: HTMLCanvasElement): Promise<string> {
