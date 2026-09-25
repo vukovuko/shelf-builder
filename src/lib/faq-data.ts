@@ -10,6 +10,11 @@ export const faqItems: FaqItem[] = [
       "Konfigurator vam omogućava da korak po korak dizajnirate orman po meri. Birate dimenzije, materijale, broj kolona, police, fioke, vrata i dodatke. Sve promene se prikazuju uživo u 3D prikazu.",
   },
   {
+    question: "Mogu li da krenem od skice ili slike?",
+    answer:
+      "Možete. U konfiguratoru kliknite „Učitaj skicu ili sliku“ i pošaljite fotografiju skice ili ormana koji vam se dopada. Konfigurator prepozna kolone, police, fioke, šipke i vrata i od toga napravi početni dizajn koji dalje menjate. Mere uzima sa slike samo ako su napisane, inače kreće od visine 240 cm i dubine 60 cm, a širinu određuje po proporcijama crteža. Za učitavanje skice potrebno je da budete prijavljeni.",
+  },
+  {
     question: "Koje materijale mogu da izaberem?",
     answer:
       "Nudimo preko 30 premium materijala uključujući medijapan (MDF), iveral, furnir i masivno drvo u različitim bojama i teksturama. Svaki materijal ima definisanu debljinu i cenu po kvadratnom metru.",

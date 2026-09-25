@@ -6,7 +6,7 @@ const steps = [
     icon: PencilRuler,
     title: "Dizajnirajte",
     description:
-      "Izaberite dimenzije, materijale, vrata i dodatke u 3D konfiguratoru.",
+      "Izaberite dimenzije, materijale, vrata i dodatke u 3D konfiguratoru, ili krenite od skice.",
   },
   {
     number: "02",

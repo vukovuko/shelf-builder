@@ -2,6 +2,7 @@ import { FaqSearchable } from "@/components/smoothui/faq-3";
 import { Features } from "@/components/smoothui/features";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroGrid } from "@/components/smoothui/header-1";
+import { SketchImport } from "@/components/smoothui/sketch-import";
 import { StatsCards } from "@/components/smoothui/stats-2";
 import { TestimonialsStars } from "@/components/smoothui/testimonials";
 import Link from "next/link";
@@ -85,6 +86,7 @@ export default function HomePage() {
       <HeroGrid />
       <StatsCards />
       <Features />
+      <SketchImport />
       <FaqSearchable />
       <TestimonialsStars />
       <section className="py-8 lg:py-14 text-center">
