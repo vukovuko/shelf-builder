@@ -125,6 +125,10 @@ function describeStore() {
     return {
       col: letter,
       cm: Math.round(col.width * 100),
+      joint:
+        s.columnModuleBoundaries[i] != null
+          ? Math.round((s.columnModuleBoundaries[i] as number) * 100)
+          : null,
       shelves: (s.columnHorizontalBoundaries[i] ?? []).map((y) =>
         Math.round(y * 100),
       ),

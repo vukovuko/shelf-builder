@@ -46,8 +46,11 @@ export function applyPlan(plan: WardrobePlan, store: Store = useShelfStore) {
   }
   st.setVerticalBoundaries(seams);
 
-  // Structure first: shelf-count setters wipe the column's interiors.
+  // Structure first: shelf-count setters wipe the column's interiors and
+  // size themselves to the module joint, so the joint goes in before them.
   plan.columns.forEach((col, c) => {
+    if (col.moduleSplit !== null)
+      st.setColumnModuleBoundary(c, col.moduleSplit);
     if (col.shelves.length > 0) {
       st.setColumnShelfCount(c, col.shelves.length, T);
       st.setColumnHorizontalBoundaries(c, col.shelves);

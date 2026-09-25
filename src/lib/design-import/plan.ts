@@ -71,6 +71,8 @@ export interface PlannedDoor {
 
 export interface PlannedColumn {
   widthCm: number;
+  /** Module joint, meters from the floor; null at 200 cm or lower. */
+  moduleSplit: number | null;
   /** Bottom-module shelf centres, meters from the floor. */
   shelves: number[];
   topShelfCount: number;
@@ -312,22 +314,32 @@ export function planWardrobe(
     MAX_SEGMENT_X_CM,
   );
 
-  // Vertical frame shared by every column.
+  // Over 200 cm every column is two stacked modules. The joint defaults to
+  // 200 cm but may sit anywhere that keeps both modules within 200 cm, so a
+  // line drawn across the column becomes the joint rather than the joint
+  // adding a line the drawing doesn't have (a 2×2 sketch stays 2×2).
   const heightM = heightCm / 100;
-  const moduleSplit =
+  const splitRange =
     heightM > TARGET_BOTTOM_HEIGHT
-      ? Math.min(MAX_MODULE_HEIGHT, heightM - MIN_TOP_HEIGHT)
+      ? {
+          lo: Math.max(MIN_TOP_HEIGHT, heightM - MAX_MODULE_HEIGHT),
+          hi: Math.min(MAX_MODULE_HEIGHT, heightM - MIN_TOP_HEIGHT),
+        }
       : null;
+  const pickModuleSplit = (lines: number[]): number | null => {
+    if (splitRange === null) return null;
+    const standard = splitRange.hi;
+    if (lines.some((y) => Math.abs(y - standard) <= MODULE_SNAP_M))
+      return standard;
+    const drawn = lines.filter((y) => y >= splitRange.lo && y <= standard);
+    return drawn.length === 0
+      ? standard
+      : drawn.reduce((best, y) =>
+          Math.abs(y - standard) < Math.abs(best - standard) ? y : best,
+        );
+  };
   const baseM = hasBase ? baseHeightCm / 100 : 0;
   const floorY = baseM + T;
-  const bottomTop = moduleSplit ?? heightM;
-  const ceilingY = bottomTop - T;
-  const maxBottomShelves = getMaxShelvesForHeight(Math.round(bottomTop * 100));
-  const topHeightM = moduleSplit !== null ? heightM - moduleSplit : 0;
-  const maxTopShelves =
-    moduleSplit !== null
-      ? getMaxShelvesForHeight(Math.round(topHeightM * 100))
-      : 0;
   const pitch = MIN_DRAG_GAP + T;
 
   const columns: PlannedColumn[] = groups.map((group, colIdx) => {
@@ -335,14 +347,6 @@ export function planWardrobe(
     const m = group.length;
 
     const lineYs = (s: Section) => (s.shelves ?? []).map((f) => f * heightM);
-    const bottomOf = (ys: number[]) =>
-      ys.filter((y) =>
-        moduleSplit === null ? true : y < moduleSplit - MODULE_SNAP_M,
-      );
-    const topOf = (ys: number[]) =>
-      moduleSplit === null
-        ? []
-        : ys.filter((y) => y > moduleSplit + MODULE_SNAP_M);
 
     // In a divided column only lines drawn across every section are shelves
     // of the column itself; the rest belong to one section.
@@ -361,6 +365,27 @@ export function planWardrobe(
         ys.filter((y) => !columnLines.some((c) => Math.abs(c - y) <= tol)),
       );
     }
+
+    const moduleSplit = pickModuleSplit(columnLines);
+    // Lines near the standard joint merge into it; a drawn joint is only itself.
+    const absorb =
+      moduleSplit !== null && moduleSplit === splitRange?.hi
+        ? MODULE_SNAP_M
+        : 0;
+    const bottomOf = (ys: number[]) =>
+      moduleSplit === null ? ys : ys.filter((y) => y < moduleSplit - absorb);
+    const topOf = (ys: number[]) =>
+      moduleSplit === null ? [] : ys.filter((y) => y > moduleSplit + absorb);
+    const bottomTop = moduleSplit ?? heightM;
+    const ceilingY = bottomTop - T;
+    const maxBottomShelves = getMaxShelvesForHeight(
+      Math.round(bottomTop * 100),
+    );
+    const topHeightM = moduleSplit !== null ? heightM - moduleSplit : 0;
+    const maxTopShelves =
+      moduleSplit !== null
+        ? getMaxShelvesForHeight(Math.round(topHeightM * 100))
+        : 0;
 
     // Drawers get their own bottom compartment sized to the stack.
     let drawerCounts = group.map((s) => s.drawers ?? 0);
@@ -584,6 +609,7 @@ export function planWardrobe(
 
     return {
       widthCm: widths[colIdx],
+      moduleSplit,
       shelves,
       topShelfCount,
       compartments,

@@ -41,17 +41,42 @@ describe("rough sketches with no numbers", () => {
     expect(r.violations).toEqual([]);
   });
 
-  it("a square with a + becomes two columns with one shelf each", () => {
+  it("a square with a + becomes 2×2: the line is the module joint", () => {
     const r = importWardrobeDraft({
       recognized: true,
       aspectRatio: 1,
       sections: [{ shelves: [0.5] }, { shelves: [0.5] }],
     });
     expect(r.status).toBe("ok");
+    expect(r.violations).toEqual([]);
     expect(columnWidthsCm()).toEqual([105, 105]);
+    for (const c of [0, 1]) {
+      expect(state().columnModuleBoundaries[c]).toBeCloseTo(1.2, 2);
+      expect(state().columnHorizontalBoundaries[c] ?? []).toHaveLength(0);
+      expect(state().columnTopModuleShelves[c] ?? []).toHaveLength(0);
+    }
+  });
+
+  it("the drawn line closest to 200 cm becomes the joint, the rest stay shelves", () => {
+    const r = importWardrobeDraft({
+      recognized: true,
+      sections: [{ shelves: [0.3, 0.5, 0.7] }],
+      widthCm: 100,
+    });
+    expect(r.violations).toEqual([]);
+    expect(state().columnModuleBoundaries[0]).toBeCloseTo(1.68, 2);
+    expect(state().columnHorizontalBoundaries[0]).toHaveLength(2);
+    expect(state().columnTopModuleShelves[0] ?? []).toHaveLength(0);
+  });
+
+  it("with no drawn line in reach the joint stays at 200 cm", () => {
+    importWardrobeDraft({
+      recognized: true,
+      sections: [{ shelves: [0.1] }, {}],
+    });
+    expect(state().columnModuleBoundaries[0]).toBeCloseTo(2, 2);
+    expect(state().columnModuleBoundaries[1]).toBeCloseTo(2, 2);
     expect(state().columnHorizontalBoundaries[0]).toHaveLength(1);
-    expect(state().columnHorizontalBoundaries[1]).toHaveLength(1);
-    expect(state().columnHorizontalBoundaries[0][0]).toBeCloseTo(1.2, 2);
   });
 
   it("keeps one column slightly wider when drawn that way", () => {
@@ -107,6 +132,7 @@ describe("rough sketches with no numbers", () => {
       sections: [{ shelves: [0.83] }, {}],
     });
     expect(state().columnHorizontalBoundaries[0] ?? []).toHaveLength(0);
+    expect(state().columnModuleBoundaries[0]).toBeCloseTo(2, 2);
   });
 });
 
