@@ -167,7 +167,7 @@ export function AccountClient({ user }: AccountClientProps) {
 
     try {
       const res = await fetch(
-        `/api/places/details?placeId=${suggestion.placeId}`,
+        `/api/places/details?placeId=${encodeURIComponent(suggestion.placeId)}`,
       );
       const data = await res.json();
 

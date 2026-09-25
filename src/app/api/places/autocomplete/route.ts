@@ -1,32 +1,35 @@
 import { NextResponse } from "next/server";
 import {
   autocompleteRateLimit,
-  getIdentifier,
-  rateLimitResponse,
+  guardPaidRoute,
 } from "@/lib/upstash-rate-limit";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
+// Worst-case Google spend per day if bots max out every limit; real
+// checkouts use a small fraction of this.
+const DAILY_BUDGET = 1000;
+
 export async function GET(request: Request) {
-  // Rate limit - 30 requests per minute per IP (users type fast)
-  const identifier = getIdentifier(request);
-  const { success, reset } = await autocompleteRateLimit.limit(identifier);
-  if (!success) {
-    return rateLimitResponse(reset);
+  const { searchParams } = new URL(request.url);
+  const input = searchParams.get("q")?.trim() ?? "";
+
+  // Same minimum as the client, so short or junk queries never reach Google
+  if (input.length < 3 || input.length > 100) {
+    return NextResponse.json({ suggestions: [] });
   }
+
+  const blocked = await guardPaidRoute(request, autocompleteRateLimit, {
+    name: "places-autocomplete",
+    perDay: DAILY_BUDGET,
+  });
+  if (blocked) return blocked;
 
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
       { error: "Google Places API key not configured" },
       { status: 500 },
     );
-  }
-
-  const { searchParams } = new URL(request.url);
-  const input = searchParams.get("q");
-
-  if (!input || input.length < 2) {
-    return NextResponse.json({ suggestions: [] });
   }
 
   try {

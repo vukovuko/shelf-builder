@@ -1,17 +1,17 @@
+import { and, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { db } from "@/db/db";
 import { contactMessages, user, wardrobes } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { auth } from "@/lib/auth";
 import { sendEmail } from "@/lib/email-rate-limiter";
-import { escapeHtml } from "@/lib/utils";
 import {
-  strictRateLimit,
+  checkRateLimit,
   getIdentifier,
-  rateLimitResponse,
+  strictRateLimit,
 } from "@/lib/upstash-rate-limit";
+import { escapeHtml } from "@/lib/utils";
 
 const contactSchema = z.object({
   name: z
@@ -52,10 +52,8 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 contact messages per minute per IP
     const identifier = getIdentifier(request);
-    const { success, reset } = await strictRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(strictRateLimit, identifier);
+    if (limited) return limited;
 
     // Get session (optional - could allow guest messages in future)
     const session = await auth.api.getSession({ headers: await headers() });

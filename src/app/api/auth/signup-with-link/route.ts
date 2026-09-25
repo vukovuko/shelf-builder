@@ -1,14 +1,14 @@
+import { and, desc, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
-import { user, account, orders } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { account, orders, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import {
-  strictRateLimit,
+  checkRateLimit,
   getIdentifier,
-  rateLimitResponse,
+  strictRateLimit,
 } from "@/lib/upstash-rate-limit";
 
 // Helper function to copy shipping address from most recent order to user profile
@@ -67,10 +67,8 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 signup attempts per minute per IP
     const identifier = getIdentifier(request);
-    const { success, reset } = await strictRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(strictRateLimit, identifier);
+    if (limited) return limited;
 
     const body = await request.json();
     const validation = signupSchema.safeParse(body);

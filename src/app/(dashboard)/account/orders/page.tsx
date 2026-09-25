@@ -1,9 +1,9 @@
+import { desc, eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db/db";
-import { orders, user } from "@/db/schema";
+import { orders } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { desc, eq, or } from "drizzle-orm";
 import { OrdersClient } from "./OrdersClient";
 
 export default async function UserOrdersPage() {
@@ -15,24 +15,13 @@ export default async function UserOrdersPage() {
     redirect("/");
   }
 
-  // Get user's phone for matching
-  const [currentUser] = await db
-    .select({ phone: user.phone })
-    .from(user)
-    .where(eq(user.id, session.user.id));
-
-  // Query orders by:
-  // 1. userId (orders made while logged in)
-  // 2. customerEmail matching user's email (guest orders with same email)
-  // 3. customerPhone matching user's phone (guest orders with same phone)
+  // Orders placed on this account, plus guest orders under the same email
+  // once the email is verified. Phone numbers are self-set and unverified,
+  // so they never grant access.
   const conditions = [eq(orders.userId, session.user.id)];
 
-  if (session.user.email) {
+  if (session.user.email && session.user.emailVerified) {
     conditions.push(eq(orders.customerEmail, session.user.email));
-  }
-
-  if (currentUser?.phone) {
-    conditions.push(eq(orders.customerPhone, currentUser.phone));
   }
 
   const userOrders = await db

@@ -1,41 +1,50 @@
+import { asc, count, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
 import {
-  user,
-  orders,
-  materials,
-  rules,
-  accessoryRules,
-  handles,
-  handleFinishes,
   accessories,
+  accessoryRules,
   accessoryVariants,
+  handleFinishes,
+  handles,
+  materials,
+  orders,
+  rules,
+  user,
 } from "@/db/schema";
-import { eq, asc, count } from "drizzle-orm";
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import {
   calculateCutList,
   countBoardsExcludingShelvesAndBacks,
 } from "@/lib/calcCutList";
 import {
-  applyRules,
-  calculateFinalPrice,
-  computeCompartmentCount,
-  computeShelfCount,
-  getVisibleAdjustments,
-  computeDoorMetrics,
-  type RuleContext,
-  type Rule,
-} from "@/lib/rules";
-import {
   buildInstallationServiceAdjustment,
   isInstallationServiceType,
 } from "@/lib/installation-service";
+import {
+  applyRules,
+  calculateFinalPrice,
+  computeCompartmentCount,
+  computeDoorMetrics,
+  computeShelfCount,
+  getVisibleAdjustments,
+  type Rule,
+  type RuleContext,
+} from "@/lib/rules";
+import { snapshotBoundsError } from "@/lib/snapshot-bounds";
+import {
+  checkRateLimit,
+  getIdentifier,
+  previewRateLimit,
+} from "@/lib/upstash-rate-limit";
 
 // Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
   try {
+    const limited = await checkRateLimit(previewRateLimit, getIdentifier(req));
+    if (limited) return limited;
+
     const session = await auth.api.getSession({ headers: await headers() });
 
     const body = await req.json();
@@ -49,13 +58,16 @@ export async function POST(req: Request) {
       totalPrice,
       totalArea,
       customerEmail,
-      customerPhone,
       shippingCity,
       installationService,
     } = body;
 
     if (!snapshot || !materialId || !totalPrice) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    }
+
+    if (snapshotBoundsError(snapshot)) {
+      return NextResponse.json({ error: "Invalid snapshot" }, { status: 400 });
     }
 
     // Look up material names and pricing data needed for derived pricing and board counts
@@ -157,40 +169,9 @@ export async function POST(req: Request) {
       (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
     );
 
-    // Resolve customer context the same way checkout does, but read-only.
-    let previewUserId: string | null = session?.user?.id ?? null;
-
-    if (!previewUserId) {
-      const hasRealEmail =
-        typeof customerEmail === "string" && customerEmail.length > 0;
-      const hasPhone =
-        typeof customerPhone === "string" && customerPhone.length > 0;
-
-      if (hasRealEmail) {
-        const [existing] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.email, customerEmail));
-        previewUserId = existing?.id ?? null;
-      } else if (hasPhone) {
-        const [existingByPhone] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.phone, customerPhone));
-
-        if (existingByPhone) {
-          previewUserId = existingByPhone.id;
-        } else {
-          const sanitizedPhone = customerPhone.replace(/[^0-9]/g, "");
-          const internalEmail = `phone.${sanitizedPhone}@internal.local`;
-          const [existingByEmail] = await db
-            .select({ id: user.id })
-            .from(user)
-            .where(eq(user.email, internalEmail));
-          previewUserId = existingByEmail?.id ?? null;
-        }
-      }
-    }
+    // Customer-specific pricing (order count, tags) only for a signed-in
+    // customer: a typed email or phone proves nothing about who is asking.
+    const previewUserId: string | null = session?.user?.id ?? null;
 
     let previousOrderCount = 0;
     let userTags: string[] = [];

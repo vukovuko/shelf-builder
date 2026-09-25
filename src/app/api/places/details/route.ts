@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import {
-  externalApiRateLimit,
-  getIdentifier,
-  rateLimitResponse,
-} from "@/lib/upstash-rate-limit";
+import { externalApiRateLimit, guardPaidRoute } from "@/lib/upstash-rate-limit";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+
+// One call per chosen address; real checkouts need one or two.
+const DAILY_BUDGET = 200;
+const PLACE_ID_PATTERN = /^[A-Za-z0-9_-]{10,300}$/;
 
 interface NominatimResult {
   postalCode: string | null;
@@ -59,12 +59,20 @@ async function fetchFromNominatim(address: string): Promise<NominatimResult> {
 }
 
 export async function GET(request: Request) {
-  // Rate limit - 20 requests per minute per IP (protects Google API costs)
-  const identifier = getIdentifier(request);
-  const { success, reset } = await externalApiRateLimit.limit(identifier);
-  if (!success) {
-    return rateLimitResponse(reset);
+  const { searchParams } = new URL(request.url);
+  const placeId = searchParams.get("placeId") ?? "";
+
+  // Place IDs are URL-safe tokens; anything else could rewrite the Google
+  // request path or query (e.g. a pricier field mask).
+  if (!PLACE_ID_PATTERN.test(placeId)) {
+    return NextResponse.json({ error: "Invalid placeId" }, { status: 400 });
   }
+
+  const blocked = await guardPaidRoute(request, externalApiRateLimit, {
+    name: "places-details",
+    perDay: DAILY_BUDGET,
+  });
+  if (blocked) return blocked;
 
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
@@ -73,16 +81,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const { searchParams } = new URL(request.url);
-  const placeId = searchParams.get("placeId");
-
-  if (!placeId) {
-    return NextResponse.json({ error: "placeId is required" }, { status: 400 });
-  }
-
   try {
     const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
       {
         method: "GET",
         headers: {

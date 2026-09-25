@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { snapshotBoundsError } from "./snapshot-bounds";
 
 // Thumbnail: Max 5MB as base64 string
 // Base64 encoding adds ~33% overhead, so 5MB image = ~6.65MB string
@@ -19,6 +20,10 @@ export const createWardrobeSchema = z.object({
     .refine(
       (data) => JSON.stringify(data).length < MAX_DATA_SIZE,
       "Podaci su preveliki (max 500KB)",
+    )
+    .refine(
+      (data) => snapshotBoundsError(data) === null,
+      "Nevažeći podaci ormana",
     ),
 
   thumbnail: z
@@ -50,6 +55,10 @@ export const updateWardrobeSchema = z.object({
     .refine(
       (data) => JSON.stringify(data).length < MAX_DATA_SIZE,
       "Podaci su preveliki (max 500KB)",
+    )
+    .refine(
+      (data) => snapshotBoundsError(data) === null,
+      "Nevažeći podaci ormana",
     )
     .optional(),
 

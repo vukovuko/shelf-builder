@@ -72,6 +72,20 @@ export const auth = betterAuth({
       trustedProviders: ["google"], // Auto-link Google accounts to existing users with same email
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        // Checkout files phone-only guests under phone.<digits>@internal.local
+        // (inserted directly, not through Better Auth). Signing up with such
+        // an address would receive that guest's future orders.
+        before: async (newUser) => {
+          if (newUser.email?.toLowerCase().endsWith("@internal.local")) {
+            return false;
+          }
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       role: {

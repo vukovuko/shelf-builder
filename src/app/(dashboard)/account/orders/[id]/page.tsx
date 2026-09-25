@@ -1,8 +1,8 @@
+import { eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { eq, or } from "drizzle-orm";
 import { db } from "@/db/db";
-import { orders, materials, wardrobes, user } from "@/db/schema";
+import { materials, orders, wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { OrderDetailClient } from "./OrderDetailClient";
 
@@ -22,12 +22,6 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
   if (!session) {
     redirect("/");
   }
-
-  // Get user's phone for matching
-  const [currentUser] = await db
-    .select({ phone: user.phone })
-    .from(user)
-    .where(eq(user.id, session.user.id));
 
   // Fetch order
   const [order] = await db
@@ -70,8 +64,7 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
   // Verify this order belongs to the user (same logic as orders list page)
   const isOwner =
     order.userId === session.user.id ||
-    (session.user.email && order.customerEmail === session.user.email) ||
-    (currentUser?.phone && order.customerPhone === currentUser.phone);
+    (session.user.emailVerified && order.customerEmail === session.user.email);
 
   if (!isOwner) {
     notFound();

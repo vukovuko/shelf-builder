@@ -2,16 +2,16 @@ import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
-import { wardrobes, materials } from "@/db/schema";
+import { materials, wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { createWardrobeSchema } from "@/lib/validation";
 import { calculateCutList, type WardrobeSnapshot } from "@/lib/calcCutList";
 import { isCurrentUserAdmin } from "@/lib/roles";
 import {
-  standardRateLimit,
+  checkRateLimit,
   getIdentifier,
-  rateLimitResponse,
+  standardRateLimit,
 } from "@/lib/upstash-rate-limit";
+import { createWardrobeSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -53,10 +53,8 @@ export async function POST(req: Request) {
   try {
     // Rate limit - 30 wardrobe saves per minute per IP
     const identifier = getIdentifier(req);
-    const { success, reset } = await standardRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(standardRateLimit, identifier);
+    if (limited) return limited;
 
     const session = await auth.api.getSession({
       headers: await headers(),

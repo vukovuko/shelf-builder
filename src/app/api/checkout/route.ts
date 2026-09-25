@@ -1,52 +1,53 @@
+import { asc, count, eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
 import {
+  accessories,
+  accessoryRules,
+  accessoryVariants,
+  handleFinishes,
+  handles,
+  materials,
+  orders,
+  rules,
   user,
   wardrobes,
-  orders,
-  materials,
-  rules,
-  accessoryRules,
-  handles,
-  handleFinishes,
-  accessories,
-  accessoryVariants,
 } from "@/db/schema";
-import { eq, asc, count } from "drizzle-orm";
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import {
-  sendOrderConfirmationEmail,
-  sendAdminNewOrderEmail,
-  sendInvoiceEmail,
-} from "@/lib/email";
 import {
   calculateCutList,
   countBoardsExcludingShelvesAndBacks,
 } from "@/lib/calcCutList";
 import {
-  applyRules,
-  calculateFinalPrice,
-  computeCompartmentCount,
-  computeShelfCount,
-  computeDoorMetrics,
-  type RuleContext,
-  type Rule,
-} from "@/lib/rules";
+  sendAdminNewOrderEmail,
+  sendInvoiceEmail,
+  sendOrderConfirmationEmail,
+} from "@/lib/email";
 import {
   buildInstallationServiceAdjustment,
   INSTALLATION_SERVICE_VALUES,
 } from "@/lib/installation-service";
 import {
-  strictRateLimit,
-  getIdentifier,
-  rateLimitResponse,
-} from "@/lib/upstash-rate-limit";
-import {
-  syncResendContact,
   addToCustomersSegment,
+  syncResendContact,
 } from "@/lib/resend-contacts";
+import {
+  applyRules,
+  calculateFinalPrice,
+  computeCompartmentCount,
+  computeDoorMetrics,
+  computeShelfCount,
+  type Rule,
+  type RuleContext,
+} from "@/lib/rules";
+import { snapshotBoundsError } from "@/lib/snapshot-bounds";
+import {
+  checkRateLimit,
+  getIdentifier,
+  strictRateLimit,
+} from "@/lib/upstash-rate-limit";
 
 const checkoutSchema = z
   .object({
@@ -65,7 +66,12 @@ const checkoutSchema = z
     // Newsletter opt-in
     newsletter: z.boolean().optional(),
     // Wardrobe data
-    wardrobeSnapshot: z.record(z.string(), z.any()),
+    wardrobeSnapshot: z
+      .record(z.string(), z.any())
+      .refine(
+        (snapshot) => snapshotBoundsError(snapshot) === null,
+        "Nevažeći podaci ormana",
+      ),
     thumbnail: z.string().nullable(),
     materialId: z.number(),
     frontMaterialId: z.number(),
@@ -100,10 +106,8 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 checkout attempts per minute per IP
     const identifier = getIdentifier(request);
-    const { success, reset } = await strictRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(strictRateLimit, identifier);
+    if (limited) return limited;
 
     const body = await request.json();
     const validation = checkoutSchema.safeParse(body);
@@ -514,6 +518,9 @@ export async function POST(request: Request) {
     const txResult = await db.transaction(async (tx) => {
       // 1. Resolve userId (find or create guest user)
       let userId: string;
+      // A guest can type anyone's email or phone, so an existing account
+      // matched that way must not be read (pricing) or written (profile).
+      let ownsUser = Boolean(session?.user);
 
       if (session?.user) {
         userId = session.user.id;
@@ -531,6 +538,7 @@ export async function POST(request: Request) {
             userId = existing.id;
           } else {
             userId = crypto.randomUUID();
+            ownsUser = true;
             const now = new Date();
 
             await tx.insert(user).values({
@@ -548,36 +556,31 @@ export async function POST(request: Request) {
           const sanitizedPhone = customerPhone!.replace(/[^0-9]/g, "");
           const internalEmail = `phone.${sanitizedPhone}@internal.local`;
 
-          const [existingByPhone] = await tx
+          // Only the phone-only guest record: profile phones are self-set
+          // and unverified, so matching them would hand this order to
+          // whoever typed the number into their account.
+          const [existingByEmail] = await tx
             .select({ id: user.id })
             .from(user)
-            .where(eq(user.phone, customerPhone));
+            .where(eq(user.email, internalEmail));
 
-          if (existingByPhone) {
-            userId = existingByPhone.id;
+          if (existingByEmail) {
+            userId = existingByEmail.id;
           } else {
-            const [existingByEmail] = await tx
-              .select({ id: user.id })
-              .from(user)
-              .where(eq(user.email, internalEmail));
+            userId = crypto.randomUUID();
+            ownsUser = true;
+            const now = new Date();
 
-            if (existingByEmail) {
-              userId = existingByEmail.id;
-            } else {
-              userId = crypto.randomUUID();
-              const now = new Date();
-
-              await tx.insert(user).values({
-                id: userId,
-                name: customerName,
-                email: internalEmail,
-                phone: customerPhone,
-                emailVerified: false,
-                role: "user",
-                createdAt: now,
-                updatedAt: now,
-              });
-            }
+            await tx.insert(user).values({
+              id: userId,
+              name: customerName,
+              email: internalEmail,
+              phone: customerPhone,
+              emailVerified: false,
+              role: "user",
+              createdAt: now,
+              updatedAt: now,
+            });
           }
         } else {
           throw new Error("Morate uneti email ili telefon");
@@ -585,19 +588,21 @@ export async function POST(request: Request) {
       }
 
       // 2. Fetch order count + user tags for rule engine
-      const [orderCountResult] = await tx
-        .select({ count: count() })
-        .from(orders)
-        .where(eq(orders.userId, userId));
-      const previousOrderCount = Number(orderCountResult?.count ?? 0);
+      let previousOrderCount = 0;
+      let userTags: string[] = [];
+      if (ownsUser) {
+        const [orderCountResult] = await tx
+          .select({ count: count() })
+          .from(orders)
+          .where(eq(orders.userId, userId));
+        previousOrderCount = Number(orderCountResult?.count ?? 0);
 
-      const [userData] = await tx
-        .select({ tags: user.tags })
-        .from(user)
-        .where(eq(user.id, userId));
-      const userTags: string[] = userData?.tags
-        ? JSON.parse(userData.tags)
-        : [];
+        const [userData] = await tx
+          .select({ tags: user.tags })
+          .from(user)
+          .where(eq(user.id, userId));
+        userTags = userData?.tags ? JSON.parse(userData.tags) : [];
+      }
 
       // 3. Build rule context + fetch and apply rules
       const ruleContext: RuleContext = {
@@ -736,18 +741,20 @@ export async function POST(request: Request) {
         .where(eq(wardrobes.id, wardrobe.id));
 
       // 7. Update user shipping address + newsletter preference
-      await tx
-        .update(user)
-        .set({
-          shippingStreet,
-          shippingApartment: shippingApartment || null,
-          shippingCity,
-          shippingPostalCode,
-          phone: customerPhone || undefined,
-          ...(newsletter !== undefined && { receiveNewsletter: newsletter }),
-          updatedAt: now,
-        })
-        .where(eq(user.id, userId));
+      if (ownsUser) {
+        await tx
+          .update(user)
+          .set({
+            shippingStreet,
+            shippingApartment: shippingApartment || null,
+            shippingCity,
+            shippingPostalCode,
+            phone: customerPhone || undefined,
+            ...(newsletter !== undefined && { receiveNewsletter: newsletter }),
+            updatedAt: now,
+          })
+          .where(eq(user.id, userId));
+      }
 
       return {
         userId,

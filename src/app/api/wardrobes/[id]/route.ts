@@ -5,12 +5,12 @@ import { db } from "@/db/db";
 import { wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { isCurrentUserAdmin } from "@/lib/roles";
-import { updateWardrobeSchema, wardrobeIdSchema } from "@/lib/validation";
 import {
-  standardRateLimit,
+  checkRateLimit,
   getIdentifier,
-  rateLimitResponse,
+  standardRateLimit,
 } from "@/lib/upstash-rate-limit";
+import { updateWardrobeSchema, wardrobeIdSchema } from "@/lib/validation";
 
 export async function GET(
   _req: Request,
@@ -77,10 +77,8 @@ export async function PUT(
   try {
     // Rate limit - 30 wardrobe updates per minute per IP
     const identifier = getIdentifier(req);
-    const { success, reset } = await standardRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(standardRateLimit, identifier);
+    if (limited) return limited;
 
     const raw = ctx?.params;
     const id = raw instanceof Promise ? (await raw).id : raw.id;

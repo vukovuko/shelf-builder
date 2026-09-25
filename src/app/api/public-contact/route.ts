@@ -1,15 +1,15 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
 import { contactMessages, user } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
 import { sendEmail } from "@/lib/email-rate-limiter";
-import { escapeHtml } from "@/lib/utils";
 import {
-  strictRateLimit,
+  checkRateLimit,
   getIdentifier,
-  rateLimitResponse,
+  strictRateLimit,
 } from "@/lib/upstash-rate-limit";
+import { escapeHtml } from "@/lib/utils";
 
 const publicContactSchema = z.object({
   name: z
@@ -49,10 +49,8 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 contact messages per minute per IP
     const identifier = getIdentifier(request);
-    const { success, reset } = await strictRateLimit.limit(identifier);
-    if (!success) {
-      return rateLimitResponse(reset);
-    }
+    const limited = await checkRateLimit(strictRateLimit, identifier);
+    if (limited) return limited;
 
     const body = await request.json();
     const parsed = publicContactSchema.safeParse(body);
