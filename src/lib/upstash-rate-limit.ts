@@ -44,6 +44,13 @@ export const externalApiRateLimit = new Ratelimit({
   analytics: true,
 });
 
+// Photo/sketch import: each call is a paid Claude request, keyed by account
+export const designImportRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 d"),
+  prefix: "ratelimit:design-import",
+});
+
 // Rules preview: configurator re-prices after every change (250ms debounce)
 export const previewRateLimit = new Ratelimit({
   redis,
@@ -207,6 +214,7 @@ export async function guardPaidRoute(
   request: Request,
   limiter: Ratelimit,
   budget: { name: string; perDay: number },
+  identifier: string = getIdentifier(request),
 ): Promise<Response | null> {
   if (isCrossSiteRequest(request)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
@@ -215,9 +223,7 @@ export async function guardPaidRoute(
     });
   }
   try {
-    const { success, reset, reason } = await limiter.limit(
-      getIdentifier(request),
-    );
+    const { success, reset, reason } = await limiter.limit(identifier);
     if (reason === "timeout") return unavailableResponse();
     if (!success) return rateLimitResponse(reset);
     if (!(await withinDailyBudget(budget.name, budget.perDay))) {

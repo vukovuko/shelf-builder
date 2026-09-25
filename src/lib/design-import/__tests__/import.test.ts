@@ -169,6 +169,27 @@ describe("impossible requests are snapped to the rules", () => {
   });
 });
 
+describe("materials", () => {
+  it("keeps the customer's material choice", () => {
+    const material = (id: number, category: string) => ({
+      id,
+      name: `m${id}`,
+      productCode: null,
+      price: 1000,
+      costPrice: 800,
+      img: null,
+      thickness: 18,
+      stock: null,
+      categories: [category],
+      published: true,
+    });
+    state().setMaterials([material(3, "Korpus"), material(7, "Korpus")]);
+    state().setSelectedMaterialId(7);
+    importWardrobeDraft({ recognized: true, sections: [{}, {}] });
+    expect(state().selectedMaterialId).toBe(7);
+  });
+});
+
 describe("doors", () => {
   it("double doors start above external drawers", () => {
     const r = importWardrobeDraft({

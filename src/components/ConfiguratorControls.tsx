@@ -16,9 +16,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
 import posthog from "posthog-js";
+import React from "react";
 import { toast } from "sonner";
+import { DesignImportButton } from "@/components/DesignImportButton";
 import {
   Accordion,
   AccordionContent,
@@ -57,33 +58,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { signOut, useSession } from "@/lib/auth-client";
-import { captureThumbnail } from "@/lib/captureThumbnail";
-import { calculateCutList } from "@/lib/calcCutList";
+import { useRulePreview } from "@/hooks/use-rule-preview";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
+import { signOut, useSession } from "@/lib/auth-client";
+import { calculateCutList } from "@/lib/calcCutList";
+import { captureThumbnail } from "@/lib/captureThumbnail";
+import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import {
   isBackMaterialCategory,
   isEdgeTapeCategory,
   isFrontMaterialCategory,
   isKorpusMaterialCategory,
 } from "@/lib/material-categories";
-import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
-import { cn } from "@/lib/utils";
-import { useRulePreview } from "@/hooks/use-rule-preview";
-import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
 import { exportCutListPDF } from "@/lib/pdf/exportCutListPDF";
+import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
+import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
 import {
-  StepDimensions,
-  StepColumns,
-  StepMaterials,
-  StepBase,
-  StepDoors,
   StepAccessories,
   StepActions,
+  StepBase,
+  StepColumns,
+  StepDimensions,
+  StepDoors,
   StepFooter,
+  StepMaterials,
 } from "./configurator-steps";
 import { Button } from "./ui/button";
 
@@ -949,6 +951,9 @@ export function ConfiguratorControls({
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        {(DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : !!session) && (
+          <DesignImportButton />
+        )}
         {/* Back to Order banner - shown when editing from order context */}
         {fromOrderId && fromOrderNumber && (
           <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20">

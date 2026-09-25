@@ -142,12 +142,14 @@ export function importWardrobeDraft(
 
   const adjustments = [...result.adjustments];
   let status: ImportStatus = result.status;
+  const materials = currentMaterials(store);
   const reset = STRIP_STEPS[STRIP_STEPS.length - 1];
   try {
     applyPlan(result.plan, store);
   } catch {
     reset.strip(store);
     adjustments.push({ code: reset.code, message: reset.message });
+    restoreMaterials(store, materials);
     return { status: "fallback", adjustments, violations: safeValidate(store) };
   }
 
@@ -159,7 +161,31 @@ export function importWardrobeDraft(
     status = "fallback";
     violations = safeValidate(store);
   }
+  restoreMaterials(store, materials);
   return { status, adjustments, violations };
+}
+
+// A drawing carries no materials, so whatever the customer already picked
+// survives the reset that building a new layout starts with.
+function currentMaterials(store: Store) {
+  const s = store.getState();
+  return {
+    selectedMaterialId: s.selectedMaterialId,
+    selectedFrontMaterialId: s.selectedFrontMaterialId,
+    selectedBackMaterialId: s.selectedBackMaterialId,
+    selectedEdgeMaterialId: s.selectedEdgeMaterialId,
+    selectedFrontEdgeMaterialId: s.selectedFrontEdgeMaterialId,
+  };
+}
+
+function restoreMaterials(
+  store: Store,
+  materials: ReturnType<typeof currentMaterials>,
+) {
+  store.setState(materials);
+  // Re-validates the ids against the loaded catalogue, filling any gaps.
+  const st = store.getState();
+  st.setMaterials(st.materials);
 }
 
 function safeValidate(store: Store): Violation[] {
