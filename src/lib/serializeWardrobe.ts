@@ -1,7 +1,7 @@
-import { useShelfStore } from "./store";
+import { useShallow } from "zustand/react/shallow";
+import { type ShelfState, useShelfStore } from "./store";
 
-export function getWardrobeSnapshot() {
-  const s = useShelfStore.getState() as any;
+function selectWardrobeSnapshot(s: ShelfState) {
   return {
     width: s.width,
     height: s.height,
@@ -40,6 +40,21 @@ export function getWardrobeSnapshot() {
     // Sliding doors (klizeća vrata)
     slidingDoors: s.slidingDoors,
   };
+}
+
+/** The current design, read once. For event handlers and non-React code. */
+export function getWardrobeSnapshot() {
+  return selectWardrobeSnapshot(useShelfStore.getState());
+}
+
+/**
+ * The current design for render code; the component re-renders when any part
+ * of it changes. Don't use useMemo(() => getWardrobeSnapshot(), deps) in a
+ * component: React Compiler ignores that deps array (the call reads no
+ * props or state it can see) and keeps the value from the first render.
+ */
+export function useWardrobeSnapshot() {
+  return useShelfStore(useShallow(selectWardrobeSnapshot));
 }
 
 export function applyWardrobeSnapshot(data: any) {

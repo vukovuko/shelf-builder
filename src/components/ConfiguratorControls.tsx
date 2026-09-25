@@ -72,7 +72,10 @@ import {
 } from "@/lib/material-categories";
 import { exportCutListPDF } from "@/lib/pdf/exportCutListPDF";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
-import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import {
+  getWardrobeSnapshot,
+  useWardrobeSnapshot,
+} from "@/lib/serializeWardrobe";
 import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AuthForms } from "./AuthForms";
@@ -792,34 +795,7 @@ export function ConfiguratorControls({
     [],
   );
 
-  const wardrobeSnapshot = React.useMemo(
-    () => getWardrobeSnapshot(),
-    [
-      width,
-      height,
-      depth,
-      selectedMaterialId,
-      selectedFrontMaterialId,
-      selectedBackMaterialId,
-      selectedEdgeMaterialId,
-      selectedFrontEdgeMaterialId,
-      elementConfigs,
-      compartmentExtras,
-      doorSelections,
-      hasBase,
-      baseHeight,
-      verticalBoundaries,
-      columnHorizontalBoundaries,
-      columnModuleBoundaries,
-      columnTopModuleShelves,
-      slidingDoors,
-      doorGroups,
-      globalHandleId,
-      globalHandleFinish,
-      doorSettingsMode,
-      selectedAccessories,
-    ],
-  );
+  const wardrobeSnapshot = useWardrobeSnapshot();
 
   const { preview: pricePreview, loading: pricePreviewLoading } =
     useRulePreview(
@@ -1374,7 +1350,7 @@ export function ConfiguratorControls({
         open={checkoutDialogOpen}
         onOpenChange={setCheckoutDialogOpen}
         orderData={{
-          wardrobeSnapshot: getWardrobeSnapshot(),
+          wardrobeSnapshot,
           thumbnail: checkoutThumbnail,
           materialId: selectedMaterialId,
           materialName:

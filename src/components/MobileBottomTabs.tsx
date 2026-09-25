@@ -1,28 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
 import { Menu } from "lucide-react";
+import React, { useState } from "react";
 import { toast } from "sonner";
+import { useRulePreview } from "@/hooks/use-rule-preview";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
+import { calculateCutList } from "@/lib/calcCutList";
+import { captureThumbnail } from "@/lib/captureThumbnail";
 import {
   isBackMaterialCategory,
   isEdgeTapeCategory,
   isFrontMaterialCategory,
   isKorpusMaterialCategory,
 } from "@/lib/material-categories";
-import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
-import { calculateCutList } from "@/lib/calcCutList";
-import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
-import { captureThumbnail } from "@/lib/captureThumbnail";
-import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { useRulePreview } from "@/hooks/use-rule-preview";
+import { useWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
 import { CheckoutDialog } from "./CheckoutDialog";
 import {
-  StepDimensions,
-  StepColumns,
-  StepMaterials,
-  StepBase,
-  StepDoors,
   StepAccessories,
+  StepBase,
+  StepColumns,
+  StepDimensions,
+  StepDoors,
+  StepMaterials,
 } from "./configurator-steps";
 
 interface MobileBottomTabsProps {
@@ -321,34 +321,7 @@ export function MobileBottomTabs({
     [],
   );
 
-  const wardrobeSnapshot = React.useMemo(
-    () => getWardrobeSnapshot(),
-    [
-      width,
-      height,
-      depth,
-      selectedMaterialId,
-      selectedFrontMaterialId,
-      selectedBackMaterialId,
-      selectedEdgeMaterialId,
-      selectedFrontEdgeMaterialId,
-      elementConfigs,
-      compartmentExtras,
-      doorSelections,
-      hasBase,
-      baseHeight,
-      verticalBoundaries,
-      columnHorizontalBoundaries,
-      columnModuleBoundaries,
-      columnTopModuleShelves,
-      slidingDoors,
-      doorGroups,
-      globalHandleId,
-      globalHandleFinish,
-      doorSettingsMode,
-      selectedAccessories,
-    ],
-  );
+  const wardrobeSnapshot = useWardrobeSnapshot();
 
   const { preview: pricePreview, loading: pricePreviewLoading } =
     useRulePreview(
@@ -443,7 +416,7 @@ export function MobileBottomTabs({
         open={checkoutDialogOpen}
         onOpenChange={setCheckoutDialogOpen}
         orderData={{
-          wardrobeSnapshot: getWardrobeSnapshot(),
+          wardrobeSnapshot,
           thumbnail: checkoutThumbnail,
           materialId: selectedMaterialId,
           materialName:
