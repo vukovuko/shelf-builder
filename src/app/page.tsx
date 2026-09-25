@@ -26,11 +26,7 @@ const organizationJsonLd = {
   image: `${baseUrl}/ormani-po-meri-logo.webp`,
   description:
     "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
-  sameAs: [
-    "https://www.facebook.com/vuko.vukasinovic/",
-    "https://www.instagram.com/vuko_vukasinovic/",
-    "https://www.linkedin.com/in/vuko-vukasinovic/",
-  ],
+  sameAs: ["https://www.instagram.com/ormani_po_meri_com/"],
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Usluge",

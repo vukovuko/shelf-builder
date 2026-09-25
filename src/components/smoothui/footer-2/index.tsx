@@ -64,7 +64,7 @@ export function FooterComplex({
     {
       platform: "instagram",
       label: "Instagram",
-      url: "https://www.instagram.com/vuko_vukasinovic/",
+      url: "https://www.instagram.com/ormani_po_meri_com/",
     },
     {
       platform: "linkedin",
