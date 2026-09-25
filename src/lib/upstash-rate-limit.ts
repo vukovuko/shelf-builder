@@ -124,6 +124,25 @@ export const betterAuthRateLimitStorage = {
       // Unreachable Redis: the request goes through unlimited.
     }
   },
+  /**
+   * Atomic count-and-check, which Better Auth prefers over get/set: without
+   * it, simultaneous requests can each read the same count and all pass.
+   */
+  async consume(key: string, rule: { window: number; max: number }) {
+    const redisKey = `ratelimit:auth-window:${key}`;
+    try {
+      const [count] = await redis
+        .multi()
+        .incr(redisKey)
+        .expire(redisKey, rule.window, "NX")
+        .exec<[number, number]>();
+      if (count <= rule.max) return { allowed: true, retryAfter: null };
+      const ttl = await redis.ttl(redisKey);
+      return { allowed: false, retryAfter: ttl > 0 ? ttl : rule.window };
+    } catch {
+      return { allowed: true, retryAfter: null };
+    }
+  },
 };
 
 // Helper to get identifier (IP address)
