@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HeroHeader } from "../shared";
 import styles from "./hero-grid.module.css";
+import { LinkPending } from "@/components/PendingContent";
 
 const CELL_SIZE = 120; // px
 const COLORS = [
@@ -159,7 +160,9 @@ export function HeroGrid() {
                 <a href="#faq">Kako funkcioniše?</a>
               </Button>
               <Button asChild size="lg">
-                <Link href="/design">Započnite dizajn</Link>
+                <Link href="/design">
+                  <LinkPending>Započnite dizajn</LinkPending>
+                </Link>
               </Button>
             </div>
           </div>

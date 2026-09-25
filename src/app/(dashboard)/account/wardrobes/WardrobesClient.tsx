@@ -1,10 +1,11 @@
 "use client";
 
-import { FolderOpen, Lock, MoreVertical, Plus } from "lucide-react";
+import { FolderOpen, Loader2, Lock, MoreVertical, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { LinkPending } from "@/components/PendingContent";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +67,9 @@ interface WardrobesClientProps {
 
 export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
   const router = useRouter();
+  // The configurator takes a moment to load; mark which card is opening.
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [isOpening, startOpening] = useTransition();
   const [wardrobes, setWardrobes] = useState<Wardrobe[]>(initialWardrobes);
   const [wardrobeToDelete, setWardrobeToDelete] = useState<Wardrobe | null>(
     null,
@@ -86,7 +90,8 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
 
   // Handle load wardrobe (locked wardrobes open in preview mode)
   function handleLoad(wardrobe: Wardrobe) {
-    router.push(`/design?load=${wardrobe.id}`);
+    setOpeningId(wardrobe.id);
+    startOpening(() => router.push(`/design?load=${wardrobe.id}`));
   }
 
   // Handle duplicate wardrobe
@@ -196,7 +201,9 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           </p>
         </div>
         <Link href="/design">
-          <Button>Novi orman</Button>
+          <Button>
+            <LinkPending>Novi orman</LinkPending>
+          </Button>
         </Link>
       </div>
 
@@ -214,8 +221,10 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           <EmptyContent>
             <Link href="/design">
               <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Napravite prvi dizajn
+                <LinkPending>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Napravite prvi dizajn
+                </LinkPending>
               </Button>
             </Link>
           </EmptyContent>
@@ -229,6 +238,14 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
               className="group relative overflow-hidden hover:shadow-md transition-shadow cursor-pointer gap-0 py-0"
             >
               <div className="aspect-[4/3] bg-muted relative">
+                {isOpening && openingId === wardrobe.id && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+                    <Loader2
+                      aria-label="Učitavanje"
+                      className="size-6 animate-spin"
+                    />
+                  </div>
+                )}
                 {wardrobe.thumbnail ? (
                   <img
                     src={wardrobe.thumbnail}

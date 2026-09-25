@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { importWardrobeDraft } from "@/lib/design-import/apply";
+import { useDesignImportStatus } from "@/lib/design-import/import-status";
 import type { Adjustment } from "@/lib/design-import/plan";
 import {
   shrinkImageForUpload,
@@ -51,6 +52,7 @@ export function DesignImportButton() {
 
   async function handleFile(file: File) {
     setBusy(true);
+    useDesignImportStatus.getState().setPending(true);
     try {
       let image: Awaited<ReturnType<typeof shrinkImageForUpload>>;
       try {
@@ -111,6 +113,7 @@ export function DesignImportButton() {
       toast.error("Čitanje slike nije uspelo. Pokušajte ponovo.");
     } finally {
       setBusy(false);
+      useDesignImportStatus.getState().setPending(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }

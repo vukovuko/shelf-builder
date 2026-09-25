@@ -7,6 +7,7 @@ import { ArrowLeft, DoorOpen, DoorClosed, Ruler } from "lucide-react";
 import { LockedPreviewBar } from "@/components/LockedPreviewBar";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
+import { DesignImportOverlay } from "@/components/DesignImportOverlay";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -386,6 +387,7 @@ export function DesignLayoutClient({
       <main
         className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-24 md:pt-0 md:pb-0"}`}
       >
+        <DesignImportOverlay />
         {fromOrderId && fromOrderNumber && (
           <div className="absolute top-2 left-2 hidden md:block z-20">
             <Button

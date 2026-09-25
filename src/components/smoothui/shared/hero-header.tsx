@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { LinkPending } from "@/components/PendingContent";
 
 const menuItems: { id: string; name: string; href: string }[] = [
   { id: "home", name: "Početna", href: "/" },
@@ -108,7 +109,7 @@ export const HeroHeader = () => {
                             className="text-base hover:text-primary focus-visible:text-primary"
                             href={item.href}
                           >
-                            <span>{item.name}</span>
+                            <LinkPending>{item.name}</LinkPending>
                           </Link>
                         </Button>
                       </li>
@@ -168,11 +169,12 @@ export const HeroHeader = () => {
                     >
                       <Button
                         asChild
-                        onClick={() => setMenuState(false)}
                         size="sm"
                         type="button"
                       >
-                        <Link href="/design">Započnite dizajn</Link>
+                        <Link href="/design">
+                          <LinkPending>Započnite dizajn</LinkPending>
+                        </Link>
                       </Button>
                     </motion.div>
                   </motion.div>

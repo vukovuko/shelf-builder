@@ -13,6 +13,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { formatDateSrLatn } from "@/lib/date-format";
+import { LinkPending } from "@/components/PendingContent";
 
 interface Order {
   id: string;
@@ -130,7 +131,9 @@ export function OrdersClient({ orders }: OrdersClientProps) {
           </EmptyHeader>
           <EmptyContent>
             <Link href="/design">
-              <Button>Dizajnirajte orman</Button>
+              <Button>
+                <LinkPending>Dizajnirajte orman</LinkPending>
+              </Button>
             </Link>
           </EmptyContent>
         </Empty>

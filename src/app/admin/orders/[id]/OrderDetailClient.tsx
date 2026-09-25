@@ -46,6 +46,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { LinkPending } from "@/components/PendingContent";
 
 interface PriceBreakdown {
   korpus: { areaM2: number; price: number; materialName: string };
@@ -874,8 +875,10 @@ export function OrderDetailClient({
                       <Link
                         href={`/design?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Izmeni crtež
+                        <LinkPending>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Izmeni crtež
+                        </LinkPending>
                       </Link>
                     </Button>
                   </div>

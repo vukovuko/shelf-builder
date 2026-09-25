@@ -43,6 +43,7 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
+import { LinkPending } from "@/components/PendingContent";
 
 interface CutListItem {
   code: string;
@@ -705,8 +706,10 @@ export function WardrobePreviewClient({
               <Link
                 href={`/design?load=${wardrobe.id}&fromWardrobe=${wardrobe.id}&wardrobeName=${encodeURIComponent(wardrobe.name)}`}
               >
-                <Pencil className="h-4 w-4 mr-2" />
-                Izmeni dizajn
+                <LinkPending>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Izmeni dizajn
+                </LinkPending>
               </Link>
             </Button>
           )}

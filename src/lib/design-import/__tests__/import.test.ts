@@ -34,7 +34,7 @@ describe("rough sketches with no numbers", () => {
   it("an empty box becomes the standard wardrobe", () => {
     const r = importWardrobeDraft({ recognized: true });
     expect(r.status).toBe("ok");
-    expect(codes(r)).toContain("dimensions.defaulted");
+    expect(r.adjustments).toEqual([]);
     expect([state().width, state().height, state().depth]).toEqual([
       210, 240, 60,
     ]);

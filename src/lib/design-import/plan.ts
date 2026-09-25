@@ -220,21 +220,6 @@ export function planWardrobe(
     adjustments,
   );
   const widthCm = pickWidth(draft, overrides, heightCm, adjustments);
-  const noDimensions = [
-    overrides.widthCm,
-    overrides.heightCm,
-    overrides.depthCm,
-    draft.widthCm,
-    draft.heightCm,
-    draft.depthCm,
-  ].every((v) => v === undefined);
-  if (noDimensions) {
-    adjustments.push({
-      code: "dimensions.defaulted",
-      message: `Na slici nema mera, orman je ${widthCm} × ${heightCm} × ${depthCm} cm. Promenite mere u koraku 1.`,
-    });
-  }
-
   const hasBase = draft.base === true;
   const baseHeightCm = BASE_HEIGHT_RANGE_CM[0];
   const columnCount = Math.max(1, Math.ceil(widthCm / MAX_SEGMENT_X_CM));
@@ -601,9 +586,8 @@ export function planWardrobe(
     }
   }
 
-  const changed = adjustments.some((a) => a.code !== "dimensions.defaulted");
   return {
-    status: changed ? "adjusted" : "ok",
+    status: adjustments.length > 0 ? "adjusted" : "ok",
     plan: {
       widthCm,
       heightCm,

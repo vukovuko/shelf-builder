@@ -21,6 +21,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { LinkPending } from "@/components/PendingContent";
 
 const navItems = [
   {
@@ -92,7 +93,7 @@ export function UserSidebar() {
                     >
                       <Link href={item.href} onClick={handleLinkClick}>
                         <item.icon className="mr-2" />
-                        <span>{item.title}</span>
+                        <LinkPending>{item.title}</LinkPending>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

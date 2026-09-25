@@ -7,6 +7,7 @@ import { TestimonialsStars } from "@/components/smoothui/testimonials";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { faqJsonLd } from "@/lib/faq-data";
+import { LinkPending } from "@/components/PendingContent";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
@@ -92,7 +93,9 @@ export default function HomePage() {
             Spremni da započnete?
           </p>
           <Button asChild size="lg">
-            <Link href="/design">Pokrenite konfigurator</Link>
+            <Link href="/design">
+              <LinkPending>Pokrenite konfigurator</LinkPending>
+            </Link>
           </Button>
         </div>
       </section>

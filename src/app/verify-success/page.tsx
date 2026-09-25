@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useTransition } from "react";
+import { PendingContent } from "@/components/PendingContent";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function VerifySuccessPage() {
   const router = useRouter();
+  const [isOpening, startOpening] = useTransition();
 
   useEffect(() => {
     // Auto-redirect to design after 5 seconds
@@ -32,8 +34,13 @@ export default function VerifySuccessPage() {
           </p>
         </div>
         <div className="space-y-3">
-          <Button onClick={() => router.push("/design")} className="w-full">
-            Nastavi sa dizajnom
+          <Button
+            onClick={() => startOpening(() => router.push("/design"))}
+            className="w-full"
+          >
+            <PendingContent pending={isOpening}>
+              Nastavi sa dizajnom
+            </PendingContent>
           </Button>
           <p className="text-xs text-muted-foreground">
             Automatsko preusmeravanje za 5 sekundi...
