@@ -74,11 +74,27 @@ export const externalApiRateLimit = new Ratelimit({
   timeout,
 });
 
-// Photo/sketch import: each call is a paid Claude request, keyed by account
+// Photo/sketch import: each call is a paid Claude request. Per account per
+// day, a burst cap per account, and a daily cap per IP so one person can't
+// multiply their allowance with extra accounts.
 export const designImportRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "1 d"),
   prefix: "ratelimit:design-import",
+  timeout,
+});
+
+export const designImportBurstLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "1 m"),
+  prefix: "ratelimit:design-import-burst",
+  timeout,
+});
+
+export const designImportIpLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 d"),
+  prefix: "ratelimit:design-import-ip",
   timeout,
 });
 
@@ -314,5 +330,56 @@ export async function rememberCheckout(key: string, response: unknown) {
     });
   } catch (error) {
     console.error("Could not store checkout idempotency key:", error);
+  }
+}
+
+/**
+ * Sketch import memory. The same image (by content hash) gets the reading
+ * it got before, without another paid call; a re-upload after "Vrati
+ * prethodni" costs nothing, and neither does a bot resending one file.
+ */
+const DESIGN_IMPORT_CACHE_SECONDS = 60 * 60 * 24 * 7;
+
+export async function recallDesignImport(hash: string): Promise<unknown> {
+  try {
+    return await redis.get(`design-import:draft:${hash}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function rememberDesignImport(hash: string, draft: unknown) {
+  try {
+    await redis.set(`design-import:draft:${hash}`, draft, {
+      ex: DESIGN_IMPORT_CACHE_SECONDS,
+    });
+  } catch {
+    // The next upload of this image just pays again.
+  }
+}
+
+/**
+ * Uploads today that showed no wardrobe. Real users rarely send more than
+ * one or two; someone feeding random pictures gets paused for the day.
+ */
+function junkKey(userId: string) {
+  return `design-import:junk:${userId}:${new Date().toISOString().slice(0, 10)}`;
+}
+
+export async function designImportJunkCount(userId: string): Promise<number> {
+  try {
+    return (await redis.get<number>(junkKey(userId))) ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function addDesignImportJunk(userId: string) {
+  try {
+    const key = junkKey(userId);
+    const n = await redis.incr(key);
+    if (n === 1) await redis.expire(key, 60 * 60 * 48);
+  } catch {
+    // Without Redis the per-account and global limits still apply.
   }
 }

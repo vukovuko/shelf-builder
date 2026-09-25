@@ -3,10 +3,13 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { UploadMediaType } from "./image";
 import { draftOutputSchema, SYSTEM_PROMPT } from "./prompt";
 
-const MODEL = "claude-opus-5";
-// Claude Opus 5 list price per million tokens, for the usage log only.
-const INPUT_USD_PER_MTOK = 5;
-const OUTPUT_USD_PER_MTOK = 25;
+// Picked by running the test sketches through each model: as accurate as
+// Opus 5 and Fable 5.1, faster and steadier, and cheaper than Opus 5.
+// Haiku 4.5 misread the basic 2×2 sketch; Sonnet 5 is the budget option.
+const MODEL = "claude-opus-5-5";
+// Claude Opus 5.5 list price per million tokens, for the usage log only.
+const INPUT_USD_PER_MTOK = 4;
+const OUTPUT_USD_PER_MTOK = 20;
 
 export interface ImageReading {
   /** Draft for importWardrobeDraft; { recognized: false } when unreadable. */

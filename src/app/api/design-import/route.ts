@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -8,15 +9,25 @@ import { readWardrobeImage } from "@/lib/design-import/read-image";
 import { getPostHogServer } from "@/lib/posthog-server";
 import { isCurrentUserAdmin } from "@/lib/roles";
 import {
+  addDesignImportJunk,
+  checkRateLimit,
+  designImportBurstLimit,
+  designImportIpLimit,
+  designImportJunkCount,
   designImportRateLimit,
+  getIdentifier,
   guardPaidRoute,
+  recallDesignImport,
+  rememberDesignImport,
 } from "@/lib/upstash-rate-limit";
 
 // Claude usually answers in 3–10 s; leave room for one retry.
 export const maxDuration = 60;
 
-// Across all users: at ~$0.02–0.05 per image this bounds the worst day.
+// Across all users: at ~$0.02 per image this bounds the worst day at ~$2.
 const DAILY_BUDGET = 100;
+// "No wardrobe here" results per account per day before uploads pause.
+const JUNK_LIMIT = 3;
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -36,11 +47,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: image.error }, { status: 400 });
   }
 
+  const userId = session.user.id;
+  const hash = createHash("sha256").update(image.data).digest("hex");
+  const known = await recallDesignImport(hash);
+  if (known) return NextResponse.json({ draft: known });
+
+  if ((await designImportJunkCount(userId)) >= JUNK_LIMIT) {
+    return NextResponse.json(
+      {
+        error:
+          "Danas ste poslali više slika na kojima nismo prepoznali orman. Pokušajte ponovo sutra.",
+      },
+      { status: 429 },
+    );
+  }
+  const burst =
+    (await checkRateLimit(designImportBurstLimit, userId)) ??
+    (await checkRateLimit(designImportIpLimit, getIdentifier(request)));
+  if (burst) return burst;
+
   const blocked = await guardPaidRoute(
     request,
     designImportRateLimit,
     { name: "design-import", perDay: DAILY_BUDGET },
-    session.user.id,
+    userId,
   );
   if (blocked) return blocked;
 
@@ -64,15 +94,20 @@ export async function POST(request: Request) {
       imageBytes: Math.round((image.data.length * 3) / 4),
       durationMs: Date.now() - started,
     };
-    console.log(
-      "design-import",
-      JSON.stringify({ userId: session.user.id, ...usage }),
-    );
+    console.log("design-import", JSON.stringify({ userId, ...usage }));
     getPostHogServer()?.capture({
-      distinctId: session.user.id,
+      distinctId: userId,
       event: "design_import_api",
       properties: usage,
     });
+    // A refusal or cut-off reply isn't the image's fault; only a clean
+    // "no wardrobe" answer counts as junk, and only clean answers are kept.
+    if (reading.stopReason === "end_turn") {
+      await rememberDesignImport(hash, reading.draft);
+      if ((reading.draft as { recognized?: boolean }).recognized === false) {
+        await addDesignImportJunk(userId);
+      }
+    }
     return NextResponse.json({ draft: reading.draft });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) {
