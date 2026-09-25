@@ -52,7 +52,7 @@ export const HeroHeader = () => {
             <div className="relative flex flex-wrap items-center justify-between gap-6 py-6 transition-all duration-200 lg:gap-0">
               <div className="flex w-full justify-between gap-6 lg:w-auto">
                 <Link
-                  aria-label="Polica po meri"
+                  aria-label="Ormani po meri"
                   className="flex items-center gap-2"
                   href="/"
                 >

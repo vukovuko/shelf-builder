@@ -146,7 +146,7 @@ export function HeroGrid() {
           <div className="relative z-10 flex flex-col items-center gap-6 text-center">
             <div>
               <h1 className="mb-6 text-pretty font-bold text-3xl tracking-tight lg:text-5xl">
-                Polica <span className="text-primary">po meri</span>
+                Ormani <span className="text-primary">po meri</span>
               </h1>
               <p className="mx-auto max-w-3xl text-muted-foreground lg:text-xl">
                 Konfigurator koji vam omogućava da kreirate savršen orman za vaš
