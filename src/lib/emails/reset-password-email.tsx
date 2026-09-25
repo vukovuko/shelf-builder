@@ -45,7 +45,7 @@ export default function ResetPasswordEmail({
   baseUrl = getBaseUrl(),
 }: ResetPasswordEmailProps) {
   return (
-    <Html>
+    <Html lang="sr">
       <Head />
       <Preview>Postavite vašu lozinku - Ormani po meri</Preview>
       <Body style={main}>

@@ -68,7 +68,7 @@ export default function InvoiceEmail({
   baseUrl = getBaseUrl(),
 }: InvoiceEmailProps) {
   return (
-    <Html>
+    <Html lang="sr">
       <Head />
       <Preview>
         {`Faktura za porudžbinu #${orderNumber} — ${formatPrice(totalPrice)} RSD`}

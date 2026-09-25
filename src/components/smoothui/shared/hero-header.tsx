@@ -104,7 +104,6 @@ export const HeroHeader = () => {
                     </motion.div>
                   </div>
                 </button>
-
               </div>
 
               <div className="hidden items-center gap-6 lg:flex">

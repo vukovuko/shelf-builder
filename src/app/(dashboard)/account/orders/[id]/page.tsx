@@ -1,6 +1,6 @@
 import { eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { db } from "@/db/db";
 import { materials, orders, wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -19,9 +19,7 @@ export default async function UserOrderDetailPage({ params }: PageProps) {
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) return null; // the layout shows the sign-in form
 
   // Fetch order
   const [order] = await db

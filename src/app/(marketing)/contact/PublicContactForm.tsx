@@ -211,7 +211,7 @@ export function PublicContactForm({
       <Turnstile
         ref={turnstileRef}
         siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-        options={{ language: "sr" }}
+        options={{ language: "sr", appearance: "interaction-only" }}
         onSuccess={setTurnstileToken}
         onError={() => setTurnstileToken(null)}
         onExpire={() => setTurnstileToken(null)}

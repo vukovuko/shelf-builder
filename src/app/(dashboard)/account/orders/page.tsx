@@ -1,6 +1,5 @@
 import { desc, eq, or } from "drizzle-orm";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { orders } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -11,9 +10,7 @@ export default async function UserOrdersPage() {
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) return null; // the layout shows the sign-in form
 
   // Orders placed on this account, plus guest orders under the same email
   // once the email is verified. Phone numbers are self-set and unverified,

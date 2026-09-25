@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { AccountSignIn } from "./AccountSignIn";
 import { UserSidebar } from "./UserSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -18,10 +18,7 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
-  // Redirect to home if not logged in
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) return <AccountSignIn />;
 
   return (
     <SidebarProvider>

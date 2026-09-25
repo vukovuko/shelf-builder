@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/db";
@@ -11,9 +10,7 @@ export default async function AccountPage() {
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) return null; // the layout shows the sign-in form
 
   // Fetch full user data including shipping address
   const [userData] = await db

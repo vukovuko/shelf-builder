@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { wardrobes } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -8,7 +7,7 @@ import { ContactClient } from "./ContactClient";
 
 export default async function ContactPage() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/");
+  if (!session?.user) return null; // the layout shows the sign-in form
 
   // Fetch user's wardrobes for optional dropdown
   const userWardrobes = await db

@@ -45,7 +45,7 @@ export default function VerificationEmail({
   baseUrl = getBaseUrl(),
 }: VerificationEmailProps) {
   return (
-    <Html>
+    <Html lang="sr">
       <Head />
       <Preview>Verifikujte vašu email adresu - Ormani po meri</Preview>
       <Body style={main}>

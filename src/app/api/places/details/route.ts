@@ -6,6 +6,11 @@ const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 // One call per chosen address. 200/day stays inside Google's 10,000 free
 // monthly detail calls even when abused.
 const DAILY_BUDGET = 200;
+
+// Google bills a typed search plus the picked place as one session when both
+// carry the same token (a v4 UUID the checkout form generates).
+const SESSION_TOKEN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PLACE_ID_PATTERN = /^[A-Za-z0-9_-]{10,300}$/;
 
 interface NominatimResult {
@@ -63,6 +68,7 @@ async function fetchFromNominatim(address: string): Promise<NominatimResult> {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const placeId = searchParams.get("placeId") ?? "";
+  const session = searchParams.get("session") ?? "";
 
   // Place IDs are URL-safe tokens; anything else could rewrite the Google
   // request path or query (e.g. a pricier field mask).
@@ -85,7 +91,9 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetch(
-      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${
+        SESSION_TOKEN.test(session) ? `?sessionToken=${session}` : ""
+      }`,
       {
         method: "GET",
         headers: {

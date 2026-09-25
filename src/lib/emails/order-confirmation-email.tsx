@@ -1,5 +1,6 @@
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -14,6 +15,8 @@ import {
 } from "@react-email/components";
 
 interface OrderConfirmationEmailProps {
+  /** Links the email to the order in the customer's account. */
+  orderId?: string;
   orderNumber: number;
   customerName: string;
   totalPrice: number;
@@ -55,6 +58,7 @@ const formatPrice = (n: number) =>
   });
 
 export default function OrderConfirmationEmail({
+  orderId,
   orderNumber,
   customerName,
   totalPrice,
@@ -68,7 +72,7 @@ export default function OrderConfirmationEmail({
   const orderNumberLabel = `#${orderNumber}`;
 
   return (
-    <Html>
+    <Html lang="sr">
       <Head />
       <Preview>
         Vaša porudžbina {orderNumberLabel} je primljena - Ormani po meri
@@ -151,6 +155,17 @@ export default function OrderConfirmationEmail({
               {shippingPostalCode} {shippingCity}
             </Text>
           </Section>
+
+          {orderId && (
+            <Section style={buttonContainer}>
+              <Button
+                style={button}
+                href={`${baseUrl}/account/orders/${orderId}`}
+              >
+                Pogledajte porudžbinu
+              </Button>
+            </Section>
+          )}
 
           {/* Next Steps */}
           <Text style={textSmall}>
@@ -321,4 +336,21 @@ const footerSmall = {
   textAlign: "center" as const,
   margin: "0",
   opacity: 0.7,
+};
+
+const buttonContainer = {
+  textAlign: "center" as const,
+  margin: "28px 0",
+};
+
+const button = {
+  backgroundColor: colors.primary,
+  borderRadius: "6px",
+  color: "#2d2952",
+  fontSize: "15px",
+  fontWeight: "600",
+  textDecoration: "none",
+  textAlign: "center" as const,
+  display: "inline-block",
+  padding: "14px 32px",
 };

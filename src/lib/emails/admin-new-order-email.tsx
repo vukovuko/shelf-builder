@@ -16,6 +16,7 @@ import {
 
 interface AdminNewOrderEmailProps {
   orderId: string;
+  orderNumber?: number;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -57,6 +58,7 @@ const formatPrice = (n: number) =>
 
 export default function AdminNewOrderEmail({
   orderId,
+  orderNumber,
   customerName,
   customerEmail,
   customerPhone,
@@ -66,14 +68,17 @@ export default function AdminNewOrderEmail({
   shippingPostalCode,
   baseUrl = getBaseUrl(),
 }: AdminNewOrderEmailProps) {
-  const orderIdShort = orderId.slice(0, 8).toUpperCase();
+  // The customer and the admin panel both know the order by its number.
+  const orderLabel = orderNumber
+    ? String(orderNumber)
+    : orderId.slice(0, 8).toUpperCase();
   const orderUrl = `${baseUrl}/admin/orders/${orderId}`;
 
   return (
-    <Html>
+    <Html lang="sr">
       <Head />
       <Preview>
-        Nova porudžbina #{orderIdShort} - {formatPrice(totalPrice)} RSD
+        Nova porudžbina #{orderLabel} - {formatPrice(totalPrice)} RSD
       </Preview>
       <Body style={main}>
         <Container style={container}>
@@ -96,7 +101,7 @@ export default function AdminNewOrderEmail({
           </Section>
 
           {/* Main Content */}
-          <Heading style={h1}>Porudžbina #{orderIdShort}</Heading>
+          <Heading style={h1}>Porudžbina #{orderLabel}</Heading>
           <Text style={priceHighlight}>{formatPrice(totalPrice)} RSD</Text>
 
           {/* Customer Info */}

@@ -13,6 +13,7 @@ import { getPaymentConfig, formatAccountNumber } from "./payment-config";
 
 interface OrderConfirmationData {
   to: string;
+  orderId: string;
   orderNumber: number;
   customerName: string;
   totalPrice: number;
@@ -28,6 +29,7 @@ interface OrderConfirmationData {
 export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
   const html = await render(
     OrderConfirmationEmail({
+      orderId: data.orderId,
       orderNumber: data.orderNumber,
       customerName: data.customerName,
       totalPrice: data.totalPrice,
@@ -76,6 +78,7 @@ export async function sendAdminNewOrderEmail(data: AdminOrderNotificationData) {
   const html = await render(
     AdminNewOrderEmail({
       orderId: data.orderId,
+      orderNumber: data.orderNumber,
       customerName: data.customerName,
       customerEmail: data.customerEmail,
       customerPhone: data.customerPhone,

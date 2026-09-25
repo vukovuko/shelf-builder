@@ -285,7 +285,11 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             <Turnstile
               ref={turnstileRef}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-              options={{ language: "sr", size: "flexible" }}
+              options={{
+                language: "sr",
+                appearance: "interaction-only",
+                size: "flexible",
+              }}
               onSuccess={setTurnstileToken}
               onError={() => setTurnstileToken(null)}
               onExpire={() => setTurnstileToken(null)}
@@ -385,7 +389,11 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             <Turnstile
               ref={turnstileRef}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-              options={{ language: "sr", size: "flexible" }}
+              options={{
+                language: "sr",
+                appearance: "interaction-only",
+                size: "flexible",
+              }}
               onSuccess={setTurnstileToken}
               onError={() => setTurnstileToken(null)}
               onExpire={() => setTurnstileToken(null)}
@@ -567,7 +575,11 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           <Turnstile
             ref={turnstileRef}
             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-            options={{ language: "sr", size: "flexible" }}
+            options={{
+              language: "sr",
+              appearance: "interaction-only",
+              size: "flexible",
+            }}
             onSuccess={setTurnstileToken}
             onError={() => setTurnstileToken(null)}
             onExpire={() => setTurnstileToken(null)}

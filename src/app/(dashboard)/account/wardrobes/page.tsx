@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { wardrobes } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -13,9 +12,7 @@ export default async function WardrobesPage() {
   });
 
   // Redirect to home if not logged in
-  if (!session) {
-    redirect("/");
-  }
+  if (!session) return null; // the layout shows the sign-in form
 
   // Fetch wardrobes server-side
   const wardrobesList = await db

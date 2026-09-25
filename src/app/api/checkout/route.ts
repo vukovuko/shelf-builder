@@ -833,6 +833,7 @@ export async function POST(request: Request) {
         if (mayEmailCustomer) {
           await sendOrderConfirmationEmail({
             to: customerEmail,
+            orderId: txResult.orderId,
             orderNumber: txResult.orderNumber,
             customerName,
             totalPrice: finalPrice,

@@ -10,9 +10,15 @@ const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 // free autocomplete calls; real checkouts use a few dozen a day at most.
 const DAILY_BUDGET = 300;
 
+// Google bills a typed search plus the picked place as one session when both
+// carry the same token (a v4 UUID the checkout form generates).
+const SESSION_TOKEN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const input = searchParams.get("q")?.trim() ?? "";
+  const session = searchParams.get("session") ?? "";
 
   // Same minimum as the client, so short or junk queries never reach Google
   if (input.length < 3 || input.length > 100) {
@@ -45,6 +51,7 @@ export async function GET(request: Request) {
           input,
           includedRegionCodes: ["rs"],
           languageCode: "sr",
+          ...(SESSION_TOKEN.test(session) && { sessionToken: session }),
         }),
         // Suggestions are a convenience; a slow answer is worse than none.
         signal: AbortSignal.timeout(4000),

@@ -297,6 +297,10 @@ export function CheckoutDialog({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // One Google autocomplete session per address: the searches and the picked
+  // suggestion share a token, so Google bills them as one lookup.
+  const placesSessionRef = useRef<string | null>(null);
+
   // Fetch suggestions when street input changes
   const fetchSuggestions = async (query: string) => {
     if (query.length < 3) {
@@ -306,8 +310,9 @@ export function CheckoutDialog({
 
     setLoadingSuggestions(true);
     try {
+      placesSessionRef.current ??= globalThis.crypto?.randomUUID?.() ?? "";
       const res = await fetch(
-        `/api/places/autocomplete?q=${encodeURIComponent(query)}`,
+        `/api/places/autocomplete?q=${encodeURIComponent(query)}&session=${placesSessionRef.current}`,
       );
       const data = await res.json();
       setSuggestions(data.suggestions || []);
@@ -338,8 +343,11 @@ export function CheckoutDialog({
     setLoadingSuggestions(true);
 
     try {
+      const session = placesSessionRef.current ?? "";
+      // Picking a place ends the session; the next search starts a new one.
+      placesSessionRef.current = null;
       const res = await fetch(
-        `/api/places/details?placeId=${encodeURIComponent(suggestion.placeId)}`,
+        `/api/places/details?placeId=${encodeURIComponent(suggestion.placeId)}&session=${session}`,
       );
       const data = await res.json();
 
@@ -821,7 +829,7 @@ export function CheckoutDialog({
                 <Turnstile
                   ref={turnstileRef}
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                  options={{ language: "sr" }}
+                  options={{ language: "sr", appearance: "interaction-only" }}
                   onSuccess={setTurnstileToken}
                   onError={() => {
                     setTurnstileToken(null);
