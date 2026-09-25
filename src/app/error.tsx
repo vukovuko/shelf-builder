@@ -46,7 +46,7 @@ export default function Error({
       <div className="relative max-h-screen w-full p-2 max-lg:hidden">
         <div className="h-full w-full rounded-2xl bg-black"></div>
         <Image
-          src="https://cdn.shadcnstudio.com/ss-assets/blocks/marketing/error/image-1.png"
+          src="/error-illustration.webp"
           alt="greška ilustracija"
           width={406}
           height={406}

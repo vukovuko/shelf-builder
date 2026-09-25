@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
+import { SignInPanel } from "@/components/SignInPanel";
 import { auth } from "@/lib/auth";
 import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AccountSignIn } from "./AccountSignIn";
 import { UserSidebar } from "./UserSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -18,7 +18,7 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
-  if (!session) return <AccountSignIn />;
+  if (!session) return <SignInPanel guestHint />;
 
   return (
     <SidebarProvider>

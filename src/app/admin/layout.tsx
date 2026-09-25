@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { signInUrl } from "@/lib/return-to";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
 import {
   SidebarProvider,
@@ -15,12 +17,12 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
 
-  // Not logged in
+  // Not logged in: sign in, then come back to this page.
   if (!user) {
-    redirect("/");
+    redirect(signInUrl((await headers()).get("x-return-to")));
   }
 
-  // Not admin
+  // Logged in without the admin role: no access.
   if (!isAdmin(user.role)) {
     redirect("/");
   }

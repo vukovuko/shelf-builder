@@ -7,14 +7,10 @@ const nextConfig: NextConfig = {
   // Required for PostHog API compatibility (prevents trailing slash redirect issues)
   skipTrailingSlashRedirect: true,
 
+  // No remote image sources: every allowed remote URL is one more image
+  // anyone can push through our optimizer and bill to the Vercel quota.
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.shadcnstudio.com",
-        pathname: "/ss-assets/**",
-      },
-    ],
+    remotePatterns: [],
   },
 
   // PostHog reverse proxy — bypasses ad blockers by routing through our domain

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { user } from "@/db/schema";
 import { auth } from "./auth";
+import { signInUrl } from "./return-to";
 
 // Role types - expandable
 export type Role = "user" | "admin";
@@ -72,9 +73,14 @@ export async function setUserRole(userId: string, role: Role) {
 /**
  * Admin gate for admin pages. The admin layout's check does not re-run on
  * every navigation, so each page that renders admin data checks for itself.
+ * Signed out: to sign-in, then back here (the proxy supplies the path).
+ * Signed in without the admin role: home, as if the page didn't exist.
  */
 export async function requireAdminPage() {
   const currentUser = await getCurrentUser();
-  if (!currentUser || !isAdmin(currentUser.role)) redirect("/");
+  if (!currentUser) {
+    redirect(signInUrl((await headers()).get("x-return-to")));
+  }
+  if (!isAdmin(currentUser.role)) redirect("/");
   return currentUser;
 }
