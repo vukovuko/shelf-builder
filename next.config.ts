@@ -13,38 +13,44 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
 
-  // PostHog reverse proxy — bypasses ad blockers by routing through our domain
-  // Path must NOT be /ingest, /analytics, /tracking, /posthog (ad blockers target those)
-  // todo.ormanipomeri.com is the easy-to-remember address of the admin to-do
-  // board. It redirects rather than serving the board on the subdomain: the
-  // login cookie belongs to ormanipomeri.com, so the board stays behind the
-  // same admin login without widening the cookie for the whole store.
-  async redirects() {
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "todo.ormanipomeri.com" }],
-        destination: "https://ormanipomeri.com/admin/todo",
-        permanent: false,
-      },
-    ];
-  },
-
   async rewrites() {
-    return [
-      {
-        source: "/t/static/:path*",
-        destination: "https://eu-assets.i.posthog.com/static/:path*",
-      },
-      {
-        source: "/t/:path*",
-        destination: "https://eu.i.posthog.com/:path*",
-      },
-    ];
+    return {
+      // todo.ormanipomeri.com shows the admin to-do board (see
+      // src/lib/todo/host.ts) and tells every crawler to stay out.
+      beforeFiles: [
+        {
+          source: "/",
+          has: [{ type: "host", value: "todo.ormanipomeri.com" }],
+          destination: "/todo-board",
+        },
+        {
+          source: "/robots.txt",
+          has: [{ type: "host", value: "todo.ormanipomeri.com" }],
+          destination: "/todo-robots.txt",
+        },
+      ],
+      // PostHog reverse proxy — bypasses ad blockers by routing through our domain
+      // Path must NOT be /ingest, /analytics, /tracking, /posthog (ad blockers target those)
+      afterFiles: [
+        {
+          source: "/t/static/:path*",
+          destination: "https://eu-assets.i.posthog.com/static/:path*",
+        },
+        {
+          source: "/t/:path*",
+          destination: "https://eu.i.posthog.com/:path*",
+        },
+      ],
+    };
   },
 
   async headers() {
     return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "todo.ormanipomeri.com" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
       {
         source: "/:path*",
         headers: [

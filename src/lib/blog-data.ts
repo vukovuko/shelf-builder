@@ -65,12 +65,11 @@ U konfiguratoru možete prevlačenjem podesiti širinu svake kolone individualno
 
 ## 3. Izaberite materijal
 
-Materijal utiče na izgled, trajnost i cenu ormana. Nudimo preko 30 materijala:
+Materijal utiče na izgled, trajnost i cenu ormana. U konfiguratoru birate između više od 500 dekora:
 
 - **Iveral (iverica)** — najpopularniji izbor. Dostupan u mnogo dekora, od jednobojnih do imitacije drveta. Odličan odnos cene i kvaliteta.
 - **MDF (medijapan)** — glatka površina, idealan za lakiranje. Nešto skuplji od iverala.
-- **Furnir** — tanak sloj pravog drveta na podlozi. Prirodan izgled sa stabilnošću industrijske ploče.
-- **Masivno drvo** — premium opcija za one koji žele autentičnost i trajnost.
+- **Lesonit (HDF)** — tanka ploča za leđa ormana, u 15 boja.
 
 ## 4. Razmislite o vratima
 

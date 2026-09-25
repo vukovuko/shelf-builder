@@ -1,4 +1,13 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
+
+const PRIVATE = [
+  "/api/",
+  "/account/",
+  "/admin/",
+  "/prijava",
+  "/todo-board",
+  "/todo-auth",
+];
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl =
@@ -6,43 +15,37 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
+      // Search engines and AI assistants alike. Being read by AI is how the
+      // site gets named in ChatGPT, Claude, Gemini and Perplexity answers:
+      // Google-Extended also covers Gemini quoting the site live
+      // ("grounding"), not only training.
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/account/", "/admin/"],
+        disallow: PRIVATE,
       },
       {
-        // Block AI training crawlers
         userAgent: [
-          "GPTBot", // OpenAI training
-          "CCBot", // Common Crawl (training datasets)
-          "Google-Extended", // Gemini training (doesn't affect Google Search)
-          "anthropic-ai", // Anthropic training (legacy name)
-          "ClaudeBot", // Anthropic training
-          "Bytespider", // ByteDance/TikTok training
-          "Applebot-Extended", // Apple AI training
-          "Meta-ExternalAgent", // Meta AI training
-          "cohere-ai", // Cohere training
-          "PetalBot", // Huawei/Aspiegel AI training
-          "Diffbot", // AI scraping
-          "ImagesiftBot", // AI image training
-          "Omgilibot", // AI data aggregation
-          "img2dataset", // Image dataset scraping
-        ],
-        disallow: "/",
-      },
-      {
-        // Allow AI browsing/search bots (helps users find your site via AI)
-        userAgent: [
-          "ChatGPT-User", // ChatGPT browsing
-          "OAI-SearchBot", // OpenAI search
-          "Claude-User", // Claude browsing
-          "Claude-SearchBot", // Claude search
-          "PerplexityBot", // Perplexity search
-          "YouBot", // You.com search
+          "GPTBot", // OpenAI: training
+          "OAI-SearchBot", // OpenAI: ChatGPT search results
+          "ChatGPT-User", // OpenAI: pages fetched for a user's question
+          "ClaudeBot", // Anthropic: training
+          "Claude-SearchBot", // Anthropic: Claude search results
+          "Claude-User", // Anthropic: pages fetched for a user's question
+          "Google-Extended", // Gemini: training and live grounding
+          "Applebot-Extended", // Apple Intelligence
+          "PerplexityBot", // Perplexity search results
+          "Perplexity-User", // Perplexity: pages fetched for a user's question
+          "Meta-ExternalAgent", // Meta AI
+          "CCBot", // Common Crawl, which many AI models learn from
         ],
         allow: "/",
-        disallow: ["/api/", "/account/", "/admin/"],
+        disallow: PRIVATE,
+      },
+      {
+        // Bulk image and data harvesters: no visibility in return.
+        userAgent: ["img2dataset", "ImagesiftBot", "Diffbot", "Omgilibot"],
+        disallow: "/",
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

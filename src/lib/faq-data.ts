@@ -17,12 +17,12 @@ export const faqItems: FaqItem[] = [
   {
     question: "Koje materijale mogu da izaberem?",
     answer:
-      "Nudimo preko 30 premium materijala uključujući medijapan (MDF), iveral, furnir i masivno drvo u različitim bojama i teksturama. Svaki materijal ima definisanu debljinu i cenu po kvadratnom metru.",
+      "Za korpus i vrata birate između više od 500 dekora ploča debljine 18 mm, a za leđa ormana između 15 vrsta lesonita (HDF, 3 mm). Svaki materijal ima svoju cenu po kvadratnom metru, pa se cena menja čim promenite materijal.",
   },
   {
     question: "Koje su minimalne i maksimalne dimenzije?",
     answer:
-      "Širina ormana može biti od 40cm do 400cm, visina od 60cm do 260cm, a dubina od 30cm do 80cm. Svaka kolona može biti široka između 10cm i 100cm.",
+      "Širina ormana može biti od 50 cm do 400 cm, visina od 50 cm do 280 cm, a dubina od 20 cm do 100 cm. Jedna kolona može biti široka od 20 cm do 120 cm; širi orman se deli na više kolona.",
   },
   {
     question: "Da li mogu da dodam klizna vrata?",

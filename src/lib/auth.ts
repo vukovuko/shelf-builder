@@ -9,7 +9,7 @@ import {
   getSessionFromCtx,
 } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { admin, captcha } from "better-auth/plugins";
+import { admin, captcha, oneTimeToken } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
@@ -175,6 +175,13 @@ export const auth = betterAuth({
         "/sign-up/email",
         "/request-password-reset",
       ],
+    }),
+    // Login handoff to todo.ormanipomeri.com (see lib/todo/host). Tokens are
+    // minted only by our own server code, once per visit, and expire fast.
+    oneTimeToken({
+      disableClientRequest: true,
+      expiresIn: 1,
+      storeToken: "hashed",
     }),
     nextCookies(), // Must be last plugin
   ],

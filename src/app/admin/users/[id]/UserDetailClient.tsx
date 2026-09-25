@@ -624,12 +624,8 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                       <TableCell className="font-medium">
                         {wardrobe.name}
                       </TableCell>
-                      <TableCell>
-                        {formatDate(wardrobe.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(wardrobe.updatedAt)}
-                      </TableCell>
+                      <TableCell>{formatDate(wardrobe.createdAt)}</TableCell>
+                      <TableCell>{formatDate(wardrobe.updatedAt)}</TableCell>
                     </TableRow>
                   ))
                 )}

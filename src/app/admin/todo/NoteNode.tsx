@@ -195,6 +195,7 @@ function NoteEditor({ id, body }: { id: string; body: string }) {
   }, []);
 
   // Grow with the text instead of scrolling inside the note.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measures whenever the text changes
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
