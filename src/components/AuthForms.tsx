@@ -1,14 +1,15 @@
 "use client";
-import { useState } from "react";
-import { z } from "zod";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { Check, Eye, EyeOff, X } from "lucide-react";
+import posthog from "posthog-js";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Check, X } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import posthog from "posthog-js";
-import { signIn, authClient } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 import { validatePassword } from "@/lib/password-validation";
 
 interface AuthFormsProps {
@@ -25,6 +26,14 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  // Turnstile tokens are single-use: every attempt needs a fresh one.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
+  function resetTurnstile() {
+    setTurnstileToken(null);
+    turnstileRef.current?.reset();
+  }
 
   // Password requirements check for visual indicator
   const passwordRequirements = {
@@ -62,6 +71,12 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       }
     }
 
+    if (!turnstileToken) {
+      setError("Sačekajte da se verifikacija završi, pa pokušajte ponovo.");
+      setLoading(false);
+      return;
+    }
+
     try {
       if (mode === "register") {
         // Use custom signup endpoint that handles account linking for existing users
@@ -72,6 +87,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
             email,
             password,
             name: name || email.split("@")[0],
+            turnstileToken,
           }),
         });
 
@@ -82,44 +98,33 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           return;
         }
 
-        // Email already belongs to a passwordless account: not signed in,
-        // they finish through the set-password link we just emailed.
-        if (result.emailSent) {
-          toast.success(result.message, { duration: 10000 });
-          return;
+        // Nobody is signed in yet: a new account activates from the emailed
+        // link, an existing passwordless one from the set-password link.
+        if (result.verificationRequired) {
+          posthog.capture("signup_completed");
         }
-
-        if (!result.user?.emailVerified) {
-          toast("Proverite inbox za verifikacioni email", {
-            duration: 5000,
-          });
-        }
-
-        // User is signed in, call onSuccess
-        posthog.capture("signup_completed");
-        onSuccess?.();
+        toast.success(result.message, { duration: 10000 });
+        setMode("login");
       } else {
         const result = await signIn.email({
           email,
           password,
+          fetchOptions: { headers: { "x-captcha-response": turnstileToken } },
         });
 
         if (result.error) {
-          setError("Pogrešni kredencijali");
+          if (result.error.code === "EMAIL_NOT_VERIFIED") {
+            setError(
+              "Nalog još nije aktiviran. Poslali smo vam email sa linkom za aktivaciju.",
+            );
+          } else if (result.error.status === 429) {
+            setError("Previše pokušaja. Sačekajte minut pa pokušajte ponovo.");
+          } else {
+            setError("Pogrešni kredencijali");
+          }
           return;
         }
 
-        // If user is not verified, manually send verification email
-        const emailVerified = result.data?.user?.emailVerified;
-        if (!emailVerified) {
-          // Send verification email in background
-          authClient.sendVerificationEmail({ email }).catch(console.error);
-          toast("Proverite inbox za verifikacioni email", {
-            duration: 5000,
-          });
-        }
-
-        // Call onSuccess callback after successful login
         onSuccess?.();
       }
     } catch (err: any) {
@@ -130,6 +135,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       setError(errorMsg);
     } finally {
       setLoading(false);
+      resetTurnstile();
     }
   }
 
@@ -174,6 +180,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
       value={mode}
       onValueChange={(v) => {
         setMode(v as "login" | "register");
+        setTurnstileToken(null);
         setError(null);
         setPasswordError(null);
         setEmailError(null);
@@ -248,6 +255,14 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               </div>
             )}
           </div>
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            options={{ language: "sr", size: "flexible" }}
+            onSuccess={setTurnstileToken}
+            onError={() => setTurnstileToken(null)}
+            onExpire={() => setTurnstileToken(null)}
+          />
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Učitavanje..." : "Prijavi se"}
           </Button>
@@ -421,6 +436,14 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               </div>
             )}
           </div>
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            options={{ language: "sr", size: "flexible" }}
+            onSuccess={setTurnstileToken}
+            onError={() => setTurnstileToken(null)}
+            onExpire={() => setTurnstileToken(null)}
+          />
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Učitavanje..." : "Registruj se"}
           </Button>

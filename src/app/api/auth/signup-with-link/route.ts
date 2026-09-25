@@ -5,6 +5,8 @@ import { z } from "zod";
 import { db } from "@/db/db";
 import { account, orders, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { validatePassword } from "@/lib/password-validation";
+import { verifyTurnstile } from "@/lib/turnstile";
 import {
   checkRateLimit,
   getIdentifier,
@@ -60,7 +62,8 @@ async function copyShippingAddressFromOrders(userId: string, email: string) {
 const signupSchema = z.object({
   email: z.string().email("Neispravan email format"),
   password: z.string().min(8, "Lozinka mora imati najmanje 8 karaktera"),
-  name: z.string().min(1, "Ime je obavezno"),
+  name: z.string().trim().min(1, "Ime je obavezno").max(100),
+  turnstileToken: z.string().min(1, "Verifikacija je obavezna"),
 });
 
 export async function POST(request: Request) {
@@ -80,7 +83,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password, name } = validation.data;
+    const { email, password, name, turnstileToken } = validation.data;
+
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
+    }
+
+    if (!(await verifyTurnstile(turnstileToken, identifier))) {
+      return NextResponse.json(
+        { error: "Verifikacija nije uspela. Pokušajte ponovo." },
+        { status: 400 },
+      );
+    }
 
     // Check if user with this email exists
     const [existingUser] = await db
@@ -139,11 +154,12 @@ export async function POST(request: Request) {
         await copyShippingAddressFromOrders(result.user.id, email);
       }
 
+      // No session yet: the account activates from the emailed link.
       return NextResponse.json({
         success: true,
-        message: "Nalog uspešno kreiran",
-        linked: false,
-        user: result.user,
+        verificationRequired: true,
+        message:
+          "Nalog je kreiran. Poslali smo vam email sa linkom za aktivaciju naloga.",
       });
     } catch (signupError) {
       console.error("Signup error:", signupError);

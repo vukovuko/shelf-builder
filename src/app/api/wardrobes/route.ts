@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
@@ -10,8 +10,11 @@ import {
   checkRateLimit,
   getIdentifier,
   standardRateLimit,
+  wardrobeSaveRateLimit,
 } from "@/lib/upstash-rate-limit";
 import { createWardrobeSchema } from "@/lib/validation";
+
+const MAX_SAVED_DESIGNS = 50;
 
 export async function GET() {
   try {
@@ -64,6 +67,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userLimited = await checkRateLimit(
+      wardrobeSaveRateLimit,
+      session.user.id,
+    );
+    if (userLimited) return userLimited;
+
     const body = await req.json();
 
     // Validate input
@@ -86,6 +95,20 @@ export async function POST(req: Request) {
       if (!userIsAdmin) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+    }
+
+    // One account can't fill the database; admins keep saving models freely.
+    const [{ saved }] = await db
+      .select({ saved: count() })
+      .from(wardrobes)
+      .where(eq(wardrobes.userId, session.user.id));
+    if (saved >= MAX_SAVED_DESIGNS && !(await isCurrentUserAdmin())) {
+      return NextResponse.json(
+        {
+          error: `Dostigli ste maksimum od ${MAX_SAVED_DESIGNS} sačuvanih dizajna. Obrišite neki stariji dizajn.`,
+        },
+        { status: 400 },
+      );
     }
 
     // Calculate cut list if wardrobe data has required fields

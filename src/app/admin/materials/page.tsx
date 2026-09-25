@@ -1,6 +1,7 @@
+import { asc, count, ilike } from "drizzle-orm";
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
-import { asc, count, ilike } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { MaterialsClient } from "./MaterialsClient";
 
 const PAGE_SIZE = 20;
@@ -14,6 +15,7 @@ interface MaterialsPageProps {
 export default async function MaterialsPage({
   searchParams,
 }: MaterialsPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]

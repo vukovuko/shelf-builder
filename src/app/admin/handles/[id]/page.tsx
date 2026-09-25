@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/db/db";
-import { handles, handleFinishes } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { handleFinishes, handles } from "@/db/schema";
+import { requireAdminPage } from "@/lib/roles";
 import { HandleDetailClient } from "./HandleDetailClient";
 
 interface PageProps {
@@ -9,6 +10,7 @@ interface PageProps {
 }
 
 export default async function HandleDetailPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
   const handleId = Number.parseInt(id, 10);
 

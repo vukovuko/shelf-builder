@@ -9,6 +9,7 @@ import {
   checkRateLimit,
   getIdentifier,
   standardRateLimit,
+  wardrobeSaveRateLimit,
 } from "@/lib/upstash-rate-limit";
 import { updateWardrobeSchema, wardrobeIdSchema } from "@/lib/validation";
 
@@ -96,6 +97,12 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userLimited = await checkRateLimit(
+      wardrobeSaveRateLimit,
+      session.user.id,
+    );
+    if (userLimited) return userLimited;
 
     const body = await req.json();
 

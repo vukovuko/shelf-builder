@@ -1,9 +1,11 @@
+import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import { companySettings } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage() {
+  await requireAdminPage();
   const rows = await db
     .select()
     .from(companySettings)

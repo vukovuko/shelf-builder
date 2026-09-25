@@ -1,9 +1,23 @@
 import { z } from "zod";
 import { snapshotBoundsError } from "./snapshot-bounds";
 
-// Thumbnail: Max 5MB as base64 string
-// Base64 encoding adds ~33% overhead, so 5MB image = ~6.65MB string
-const MAX_THUMBNAIL_SIZE = 6_650_000; // characters
+// Thumbnails are ≤800 px JPEG screenshots (~50–100 KB); the largest ever
+// stored is ~300 KB. 450 KB keeps headroom without letting one save bloat
+// the database.
+const MAX_THUMBNAIL_SIZE = 600_000; // base64 characters ≈ 450 KB
+const THUMBNAIL_DATA_URL = /^data:image\/(jpeg|png|webp);base64,/;
+
+export const thumbnailSchema = z
+  .string()
+  .nullable()
+  .refine(
+    (val) => !val || val.length < MAX_THUMBNAIL_SIZE,
+    "Slika je prevelika",
+  )
+  .refine(
+    (val) => !val || THUMBNAIL_DATA_URL.test(val),
+    "Slika mora biti JPG, PNG ili WebP",
+  );
 
 // Wardrobe data: Max 500KB JSON
 const MAX_DATA_SIZE = 500_000; // characters
@@ -26,18 +40,7 @@ export const createWardrobeSchema = z.object({
       "Nevažeći podaci ormana",
     ),
 
-  thumbnail: z
-    .string()
-    .nullable()
-    .optional()
-    .refine(
-      (val) => !val || val.length < MAX_THUMBNAIL_SIZE,
-      "Slika je prevelika (max 5MB)",
-    )
-    .refine(
-      (val) => !val || val.startsWith("data:image/"),
-      "Slika mora biti data URL",
-    ),
+  thumbnail: thumbnailSchema.optional(),
 
   isModel: z.boolean().optional().default(false),
 });
@@ -62,18 +65,7 @@ export const updateWardrobeSchema = z.object({
     )
     .optional(),
 
-  thumbnail: z
-    .string()
-    .nullable()
-    .optional()
-    .refine(
-      (val) => !val || val.length < MAX_THUMBNAIL_SIZE,
-      "Slika je prevelika (max 5MB)",
-    )
-    .refine(
-      (val) => !val || val.startsWith("data:image/"),
-      "Slika mora biti data URL",
-    ),
+  thumbnail: thumbnailSchema.optional(),
 });
 
 export const wardrobeIdSchema = z.uuid({ message: "Nevažeći ID ormana" });

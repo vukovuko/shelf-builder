@@ -1,10 +1,11 @@
 import "server-only";
 
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { auth } from "./auth";
+import { redirect } from "next/navigation";
 import { db } from "@/db/db";
 import { user } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { auth } from "./auth";
 
 // Role types - expandable
 export type Role = "user" | "admin";
@@ -66,4 +67,14 @@ export async function requireAdmin() {
 // Set user role (admin only operation)
 export async function setUserRole(userId: string, role: Role) {
   await db.update(user).set({ role }).where(eq(user.id, userId));
+}
+
+/**
+ * Admin gate for admin pages. The admin layout's check does not re-run on
+ * every navigation, so each page that renders admin data checks for itself.
+ */
+export async function requireAdminPage() {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || !isAdmin(currentUser.role)) redirect("/");
+  return currentUser;
 }

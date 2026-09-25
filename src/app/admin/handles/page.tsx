@@ -1,6 +1,7 @@
+import { asc, count, eq, ilike } from "drizzle-orm";
 import { db } from "@/db/db";
-import { handles, handleFinishes } from "@/db/schema";
-import { asc, count, ilike, eq } from "drizzle-orm";
+import { handleFinishes, handles } from "@/db/schema";
+import { requireAdminPage } from "@/lib/roles";
 import { HandlesClient } from "./HandlesClient";
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ interface HandlesPageProps {
 }
 
 export default async function HandlesPage({ searchParams }: HandlesPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]

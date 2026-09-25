@@ -1,7 +1,8 @@
-import { db } from "@/db/db";
-import { rules } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { db } from "@/db/db";
+import { rules } from "@/db/schema";
+import { requireAdminPage } from "@/lib/roles";
 import { RuleFormClient } from "../RuleFormClient";
 
 interface RuleDetailPageProps {
@@ -9,6 +10,7 @@ interface RuleDetailPageProps {
 }
 
 export default async function RuleDetailPage({ params }: RuleDetailPageProps) {
+  await requireAdminPage();
   const { id } = await params;
 
   const [rule] = await db.select().from(rules).where(eq(rules.id, id));

@@ -1,3 +1,4 @@
+import { asc, count, eq, ilike } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/db/db";
 import {
@@ -6,10 +7,10 @@ import {
   handleFinishes,
   handles,
 } from "@/db/schema";
-import { asc, count, ilike, eq } from "drizzle-orm";
-import { AccessoriesClient } from "./AccessoriesClient";
-import { HandlesClient } from "../handles/HandlesClient";
+import { requireAdminPage } from "@/lib/roles";
 import { cn } from "@/lib/utils";
+import { HandlesClient } from "../handles/HandlesClient";
+import { AccessoriesClient } from "./AccessoriesClient";
 
 const PAGE_SIZE = 20;
 type OkovTab = "accessories" | "handles";
@@ -31,6 +32,7 @@ interface AccessoriesPageProps {
 export default async function AccessoriesPage({
   searchParams,
 }: AccessoriesPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]

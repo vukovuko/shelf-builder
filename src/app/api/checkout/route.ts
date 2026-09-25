@@ -43,26 +43,58 @@ import {
   type RuleContext,
 } from "@/lib/rules";
 import { snapshotBoundsError } from "@/lib/snapshot-bounds";
+import { verifyTurnstile } from "@/lib/turnstile";
 import {
+  allowEmailTo,
   checkRateLimit,
   getIdentifier,
   strictRateLimit,
 } from "@/lib/upstash-rate-limit";
+import { thumbnailSchema } from "@/lib/validation";
+
+// Everything typed here is echoed into emails sent from our domain, so
+// lengths are capped and the fields the customer sees can't carry links.
+const NO_URL = /(https?:\/\/|www\.)/i;
+const LOOKS_LIKE_DOMAIN =
+  /\b[a-z0-9-]+\.(com|net|org|rs|info|io|me|xyz|link|site|online|top|app|shop)\b/i;
+const tooLong = "Unos je predugačak";
+const noLinks = "Linkovi nisu dozvoljeni";
 
 const checkoutSchema = z
   .object({
     // Customer info
-    customerName: z.string().min(1, "Ime je obavezno"),
-    customerEmail: z.string().email().optional().or(z.literal("")),
-    customerPhone: z.string().min(6).optional().or(z.literal("")),
+    customerName: z
+      .string()
+      .trim()
+      .min(1, "Ime je obavezno")
+      .max(100, tooLong)
+      .refine((v) => !NO_URL.test(v) && !LOOKS_LIKE_DOMAIN.test(v), noLinks),
+    customerEmail: z.string().email().max(254).optional().or(z.literal("")),
+    customerPhone: z
+      .string()
+      .min(6)
+      .max(30, tooLong)
+      .optional()
+      .or(z.literal("")),
     // Shipping address
-    shippingStreet: z.string().min(1, "Ulica je obavezna"),
-    shippingApartment: z.string().optional().or(z.literal("")),
-    shippingCity: z.string().min(1, "Grad je obavezan"),
-    shippingPostalCode: z.string().min(1, "Poštanski broj je obavezan"),
+    shippingStreet: z
+      .string()
+      .min(1, "Ulica je obavezna")
+      .max(200, tooLong)
+      .refine((v) => !NO_URL.test(v), noLinks),
+    shippingApartment: z.string().max(50, tooLong).optional().or(z.literal("")),
+    shippingCity: z
+      .string()
+      .min(1, "Grad je obavezan")
+      .max(100, tooLong)
+      .refine((v) => !NO_URL.test(v), noLinks),
+    shippingPostalCode: z
+      .string()
+      .min(1, "Poštanski broj je obavezan")
+      .max(20, tooLong),
     installationService: z.enum(INSTALLATION_SERVICE_VALUES),
     // Optional customer note
-    notes: z.string().optional().or(z.literal("")),
+    notes: z.string().max(1000, tooLong).optional().or(z.literal("")),
     // Newsletter opt-in
     newsletter: z.boolean().optional(),
     // Wardrobe data
@@ -72,7 +104,7 @@ const checkoutSchema = z
         (snapshot) => snapshotBoundsError(snapshot) === null,
         "Nevažeći podaci ormana",
       ),
-    thumbnail: z.string().nullable(),
+    thumbnail: thumbnailSchema,
     materialId: z.number(),
     frontMaterialId: z.number(),
     backMaterialId: z.number().nullable(),
@@ -85,22 +117,6 @@ const checkoutSchema = z
   .refine((data) => data.customerEmail || data.customerPhone, {
     message: "Morate uneti email ili telefon",
   });
-
-async function verifyTurnstileToken(token: string): Promise<boolean> {
-  const response = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        secret: process.env.TURNSTILE_SECRET_KEY,
-        response: token,
-      }),
-    },
-  );
-  const data = await response.json();
-  return data.success === true;
-}
 
 export async function POST(request: Request) {
   try {
@@ -141,7 +157,7 @@ export async function POST(request: Request) {
     } = validation.data;
 
     // Verify Turnstile CAPTCHA token
-    const isValidToken = await verifyTurnstileToken(turnstileToken);
+    const isValidToken = await verifyTurnstile(turnstileToken, identifier);
     if (!isValidToken) {
       return NextResponse.json(
         { error: "Verifikacija nije uspela. Pokušajte ponovo." },
@@ -779,8 +795,10 @@ export async function POST(request: Request) {
 
     // Send emails (queue handles rate limiting automatically)
     const finalPrice = txResult.adjustedTotal ?? totalPrice;
+    const mayEmailCustomer =
+      !!customerEmail && (await allowEmailTo(customerEmail, "order"));
     try {
-      if (customerEmail && customerEmail.length > 0) {
+      if (mayEmailCustomer) {
         await sendOrderConfirmationEmail({
           to: customerEmail,
           orderNumber: txResult.orderNumber,
@@ -808,7 +826,7 @@ export async function POST(request: Request) {
       });
 
       // Send invoice with IPS QR code for payment
-      if (customerEmail && customerEmail.length > 0) {
+      if (mayEmailCustomer) {
         await sendInvoiceEmail({
           to: customerEmail,
           orderNumber: txResult.orderNumber,

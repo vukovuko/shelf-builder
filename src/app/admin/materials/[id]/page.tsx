@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { MaterialDetailClient } from "./MaterialDetailClient";
 
 interface PageProps {
@@ -9,6 +10,7 @@ interface PageProps {
 }
 
 export default async function MaterialDetailPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
   const materialId = Number.parseInt(id, 10);
 

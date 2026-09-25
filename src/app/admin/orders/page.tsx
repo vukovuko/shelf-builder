@@ -1,6 +1,7 @@
+import { count, desc, ilike, or } from "drizzle-orm";
 import { db } from "@/db/db";
 import { orders } from "@/db/schema";
-import { count, desc, ilike, or } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { OrdersClient } from "./OrdersClient";
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ interface OrdersPageProps {
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]

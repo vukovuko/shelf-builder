@@ -1,8 +1,9 @@
-import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { notFound } from "next/navigation";
 import { db } from "@/db/db";
-import { orders, materials, wardrobes, accessoryRules } from "@/db/schema";
+import { accessoryRules, materials, orders, wardrobes } from "@/db/schema";
 import { serializeRule } from "@/lib/accessory-rules/server";
+import { requireAdminPage } from "@/lib/roles";
 import { OrderDetailClient } from "./OrderDetailClient";
 
 // Disable caching to always show fresh wardrobe data
@@ -13,6 +14,7 @@ interface PageProps {
 }
 
 export default async function OrderDetailPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
 
   const [order] = await db

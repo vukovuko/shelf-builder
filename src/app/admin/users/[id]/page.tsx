@@ -1,7 +1,8 @@
+import { desc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/db/db";
-import { user, wardrobes, orders } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { orders, user, wardrobes } from "@/db/schema";
+import { requireAdminPage } from "@/lib/roles";
 import { UserDetailClient } from "./UserDetailClient";
 
 interface PageProps {
@@ -9,6 +10,7 @@ interface PageProps {
 }
 
 export default async function UserDetailPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
 
   // Fetch user

@@ -1,6 +1,7 @@
+import { asc, count, ilike } from "drizzle-orm";
 import { db } from "@/db/db";
 import { rules } from "@/db/schema";
-import { asc, count, ilike } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { RulesClient } from "./RulesClient";
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ interface RulesPageProps {
 }
 
 export default async function RulesPage({ searchParams }: RulesPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]

@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { ShoppingCart, Loader2 } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { Loader2, ShoppingCart } from "lucide-react";
+import type * as React from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface PlaceSuggestion {
   placeId: string;
@@ -12,6 +12,12 @@ interface PlaceSuggestion {
   mainText: string;
   secondaryText: string;
 }
+
+import posthog from "posthog-js";
+import { OrderSuccess } from "@/components/checkout/OrderSuccess";
+import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,11 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import posthog from "posthog-js";
 import { validateCheckoutForm } from "@/lib/checkoutValidation";
 import { INSTALLATION_SERVICE_OPTIONS } from "@/lib/installation-service";
-import { OrderSuccess } from "@/components/checkout/OrderSuccess";
-import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -451,6 +452,10 @@ export function CheckoutDialog({
           ? err.message
           : "Neočekivana greška. Proverite internet konekciju i pokušajte ponovo.",
       );
+      // The server spends the token even when the order fails; a retry needs
+      // a fresh one.
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
     } finally {
       setSubmitting(false);
     }

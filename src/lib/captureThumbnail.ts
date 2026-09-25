@@ -1,3 +1,7 @@
+// Thumbnails are only ever shown small; capping the width keeps each saved
+// design around 50–100 KB whatever the screen resolution.
+const MAX_THUMBNAIL_WIDTH = 800;
+
 /**
  * Captures the current canvas as a thumbnail image (JPEG base64 data URL)
  * @param canvasElement The canvas element to capture
@@ -26,9 +30,21 @@ export async function captureThumbnail(
         // Add a small delay to ensure WebGL has finished rendering
         setTimeout(() => {
           try {
-            // Capture canvas as JPEG with 70% quality (good balance of size/quality)
-            const dataUrl = canvasElement.toDataURL("image/jpeg", 0.7);
-            resolve(dataUrl);
+            const scale = Math.min(
+              1,
+              MAX_THUMBNAIL_WIDTH / canvasElement.width,
+            );
+            if (scale === 1) {
+              resolve(canvasElement.toDataURL("image/jpeg", 0.7));
+              return;
+            }
+            const out = document.createElement("canvas");
+            out.width = Math.round(canvasElement.width * scale);
+            out.height = Math.round(canvasElement.height * scale);
+            const ctx2d = out.getContext("2d");
+            if (!ctx2d) throw new Error("2D context not available");
+            ctx2d.drawImage(canvasElement, 0, 0, out.width, out.height);
+            resolve(out.toDataURL("image/jpeg", 0.75));
           } catch (err) {
             console.error("[captureThumbnail] toDataURL failed:", err);
             reject(err);

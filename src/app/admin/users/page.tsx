@@ -1,6 +1,7 @@
+import { count, desc, ilike, or } from "drizzle-orm";
 import { db } from "@/db/db";
 import { user } from "@/db/schema";
-import { count, desc, ilike, or } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { UsersClient } from "./UsersClient";
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ interface UsersPageProps {
 }
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
+  await requireAdminPage();
   // Layout already checks admin access
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)

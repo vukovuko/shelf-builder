@@ -52,6 +52,73 @@ export const previewRateLimit = new Ratelimit({
   analytics: true,
 });
 
+// Per-recipient caps: however many IPs trigger them, one inbox gets at most
+// this many auth emails (verification, password reset) and order emails.
+const authEmailLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "1 h"),
+  prefix: "ratelimit:email-auth",
+});
+
+const orderEmailLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 d"),
+  prefix: "ratelimit:email-order",
+});
+
+// Saving designs is login-only, so the limit follows the account, not the IP.
+export const wardrobeSaveRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  prefix: "ratelimit:wardrobe-save",
+});
+
+/**
+ * Whether another email of this kind may go to this address. If Redis is
+ * unreachable the email is sent: losing a real verification or order email
+ * is worse than a burst of spam.
+ */
+export async function allowEmailTo(
+  address: string,
+  kind: "auth" | "order",
+): Promise<boolean> {
+  const limiter = kind === "auth" ? authEmailLimit : orderEmailLimit;
+  try {
+    const { success } = await limiter.limit(address.trim().toLowerCase());
+    if (!success) console.warn(`Email cap reached (${kind}) for ${address}`);
+    return success;
+  } catch (error) {
+    console.error("Email cap unavailable, sending anyway:", error);
+    return true;
+  }
+}
+
+type AuthRateLimitEntry = { key: string; count: number; lastRequest: number };
+
+/**
+ * Storage for Better Auth's built-in limiter. Its default keeps counts in
+ * memory, i.e. per serverless instance, which does not limit anything.
+ */
+export const betterAuthRateLimitStorage = {
+  async get(key: string): Promise<AuthRateLimitEntry | undefined> {
+    try {
+      return (
+        (await redis.get<AuthRateLimitEntry>(`ratelimit:auth:${key}`)) ??
+        undefined
+      );
+    } catch {
+      return undefined;
+    }
+  },
+  async set(key: string, value: AuthRateLimitEntry) {
+    try {
+      await redis.set(`ratelimit:auth:${key}`, value, { ex: 60 * 60 * 24 });
+    } catch {
+      // Unreachable Redis: the request goes through unlimited.
+    }
+  },
+};
+
 // Helper to get identifier (IP address)
 export function getIdentifier(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");

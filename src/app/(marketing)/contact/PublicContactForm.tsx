@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
-import posthog from "posthog-js";
-import { toast } from "sonner";
-import { Send } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { Send } from "lucide-react";
+import posthog from "posthog-js";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 
 interface PublicContactFormProps {
   userName?: string;
@@ -93,6 +93,9 @@ export function PublicContactForm({
       );
     } finally {
       setSending(false);
+      // The server spends the token even when the send fails.
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
     }
   };
 

@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/db/db";
 import { accessories, accessoryVariants } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { AccessoryDetailClient } from "./AccessoryDetailClient";
 
 interface PageProps {
@@ -9,6 +10,7 @@ interface PageProps {
 }
 
 export default async function AccessoryDetailPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
   const accessoryId = Number.parseInt(id, 10);
 

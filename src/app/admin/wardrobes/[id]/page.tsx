@@ -1,15 +1,15 @@
-import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/db/db";
 import {
-  wardrobes,
-  user,
+  accessoryRules,
   materials,
   orders,
-  accessoryRules,
+  user,
+  wardrobes,
 } from "@/db/schema";
-import { getCurrentUser, isAdmin } from "@/lib/roles";
 import { serializeRule } from "@/lib/accessory-rules/server";
+import { getCurrentUser, isAdmin, requireAdminPage } from "@/lib/roles";
 import { WardrobePreviewClient } from "./WardrobePreviewClient";
 
 interface PageProps {
@@ -17,6 +17,7 @@ interface PageProps {
 }
 
 export default async function AdminWardrobePreviewPage({ params }: PageProps) {
+  await requireAdminPage();
   const { id } = await params;
 
   const currentUser = await getCurrentUser();

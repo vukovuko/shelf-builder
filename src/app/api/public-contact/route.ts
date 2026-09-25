@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db/db";
 import { contactMessages, user } from "@/db/schema";
 import { sendEmail } from "@/lib/email-rate-limiter";
+import { verifyTurnstile } from "@/lib/turnstile";
 import {
   checkRateLimit,
   getIdentifier,
@@ -29,22 +30,6 @@ const publicContactSchema = z.object({
   turnstileToken: z.string().min(1, "Verifikacija je obavezna"),
 });
 
-async function verifyTurnstileToken(token: string): Promise<boolean> {
-  const response = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        secret: process.env.TURNSTILE_SECRET_KEY,
-        response: token,
-      }),
-    },
-  );
-  const data = await response.json();
-  return data.success === true;
-}
-
 export async function POST(request: Request) {
   try {
     // Rate limit - 5 contact messages per minute per IP
@@ -66,7 +51,7 @@ export async function POST(request: Request) {
     const { name, email, phone, message, turnstileToken } = parsed.data;
 
     // Verify Turnstile token
-    const isValidToken = await verifyTurnstileToken(turnstileToken);
+    const isValidToken = await verifyTurnstile(turnstileToken, identifier);
     if (!isValidToken) {
       return NextResponse.json(
         { error: "Verifikacija nije uspela. Pokušajte ponovo." },

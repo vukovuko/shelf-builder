@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
-import posthog from "posthog-js";
-import { toast } from "sonner";
-import { Send, Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Check, ChevronsUpDown, Send } from "lucide-react";
+import posthog from "posthog-js";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -18,11 +14,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface ContactClientProps {
   wardrobes: { id: string; name: string }[];
@@ -106,6 +106,9 @@ export function ContactClient({
       );
     } finally {
       setSending(false);
+      // The server spends the token even when the send fails.
+      setTurnstileToken(null);
+      turnstileRef.current?.reset();
     }
   };
 

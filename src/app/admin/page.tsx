@@ -1,14 +1,14 @@
-import { getCurrentUser } from "@/lib/roles";
-import { AdminDashboard } from "./AdminDashboard";
-import { db } from "@/db/db";
-import { user as userTable, wardrobes, orders } from "@/db/schema";
-import { count, eq, gte, lte, and, sql } from "drizzle-orm";
-import { queryPostHog } from "@/lib/posthog-query";
-import {
-  parseDateRangeParams,
-  computePreviousPeriod,
-} from "@/lib/date-range-utils";
 import { format } from "date-fns";
+import { and, count, eq, gte, lte, sql } from "drizzle-orm";
+import { db } from "@/db/db";
+import { orders, user as userTable, wardrobes } from "@/db/schema";
+import {
+  computePreviousPeriod,
+  parseDateRangeParams,
+} from "@/lib/date-range-utils";
+import { queryPostHog } from "@/lib/posthog-query";
+import { requireAdminPage } from "@/lib/roles";
+import { AdminDashboard } from "./AdminDashboard";
 
 interface AdminPageProps {
   searchParams?:
@@ -25,8 +25,7 @@ interface AdminPageProps {
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireAdminPage();
 
   // --- Parse date range from URL ---
   const resolvedParams = (await searchParams) ?? {};

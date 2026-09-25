@@ -1,6 +1,7 @@
+import { count, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db/db";
 import { user, wardrobes } from "@/db/schema";
-import { count, desc, eq, ilike, or } from "drizzle-orm";
+import { requireAdminPage } from "@/lib/roles";
 import { WardrobesClient } from "./WardrobesClient";
 
 const PAGE_SIZE = 20;
@@ -14,6 +15,7 @@ interface WardrobesPageProps {
 export default async function WardrobesPage({
   searchParams,
 }: WardrobesPageProps) {
+  await requireAdminPage();
   // Layout already checks admin access
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)

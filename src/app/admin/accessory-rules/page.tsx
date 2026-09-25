@@ -2,6 +2,7 @@ import { asc, count, ilike } from "drizzle-orm";
 import { db } from "@/db/db";
 import { accessoryRules } from "@/db/schema";
 import { serializeRule } from "@/lib/accessory-rules/server";
+import { requireAdminPage } from "@/lib/roles";
 import { RulesClient } from "./RulesClient";
 
 const PAGE_SIZE = 20;
@@ -15,6 +16,7 @@ interface AccessoryRulesPageProps {
 export default async function AccessoryRulesPage({
   searchParams,
 }: AccessoryRulesPageProps) {
+  await requireAdminPage();
   const resolvedSearchParams = (await searchParams) ?? {};
   const pageParam = Array.isArray(resolvedSearchParams.page)
     ? resolvedSearchParams.page[0]
