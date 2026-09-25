@@ -93,7 +93,11 @@ describe("rough sketches with no numbers", () => {
   });
 
   it("a narrow two-section drawing still gets two columns", () => {
-    importWardrobeDraft({ recognized: true, aspectRatio: 0.4, sections: [{}, {}] });
+    importWardrobeDraft({
+      recognized: true,
+      aspectRatio: 0.4,
+      sections: [{}, {}],
+    });
     expect(columnWidthsCm()).toHaveLength(2);
   });
 

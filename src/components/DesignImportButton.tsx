@@ -147,7 +147,12 @@ export function DesignImportButton() {
         }}
       />
       {busy ? (
-        <Button type="button" variant="outline" className="w-full mb-4" disabled>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full mb-4"
+          disabled
+        >
           <Loader2 className="animate-spin" />
           Čitam skicu…
         </Button>
@@ -169,7 +174,9 @@ export function DesignImportButton() {
             onClick={() => inputRef.current?.click()}
           >
             <ImageUp />
-            <span className="pointer-coarse:hidden">Učitaj skicu ili sliku</span>
+            <span className="pointer-coarse:hidden">
+              Učitaj skicu ili sliku
+            </span>
             <span className="hidden pointer-coarse:inline">Iz galerije</span>
           </Button>
         </div>

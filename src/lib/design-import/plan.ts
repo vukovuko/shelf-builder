@@ -149,7 +149,8 @@ function pickWidth(
     ? Math.round((draft.aspectRatio * heightCm) / 10) * 10
     : null;
   const guess =
-    fromRatio !== null && Math.abs(fromRatio - expected) / expected > RATIO_TRUST
+    fromRatio !== null &&
+    Math.abs(fromRatio - expected) / expected > RATIO_TRUST
       ? clamp(fromRatio, WIDTH_RANGE_CM[0], WIDTH_RANGE_CM[1])
       : expected;
   return fitWidthToSections(guess, k);
