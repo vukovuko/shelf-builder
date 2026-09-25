@@ -8,7 +8,7 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import {
   checkRateLimit,
   getIdentifier,
-  strictRateLimit,
+  contactRateLimit,
 } from "@/lib/upstash-rate-limit";
 import { escapeHtml } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 contact messages per minute per IP
     const identifier = getIdentifier(request);
-    const limited = await checkRateLimit(strictRateLimit, identifier);
+    const limited = await checkRateLimit(contactRateLimit, identifier);
     if (limited) return limited;
 
     const body = await request.json();

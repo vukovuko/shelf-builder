@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Resend } from "resend";
+import { getPostHogServer } from "./posthog-server";
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -45,14 +46,43 @@ interface SendEmailParams {
   attachments?: EmailAttachment[];
 }
 
-export async function sendEmail(params: SendEmailParams) {
-  return enqueueResend(() =>
-    resend.emails.send({
-      from: params.from ?? FROM_EMAIL,
+/**
+ * Sends one email and returns whether Resend accepted it. Never throws:
+ * callers send several in a row (order, admin, invoice) and one failure
+ * must not stop the rest. Resend reports rejections (bad address, sending
+ * limits) in its result instead of throwing, so both paths are checked.
+ */
+export async function sendEmail(params: SendEmailParams): Promise<boolean> {
+  try {
+    const { error } = await enqueueResend(() =>
+      resend.emails.send({
+        from: params.from ?? FROM_EMAIL,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+        attachments: params.attachments,
+      }),
+    );
+    if (!error) return true;
+    reportEmailFailure(params, `${error.name}: ${error.message}`);
+  } catch (error) {
+    reportEmailFailure(params, String(error));
+  }
+  return false;
+}
+
+function reportEmailFailure(params: SendEmailParams, reason: string) {
+  console.error(
+    `Email to ${params.to} failed ("${params.subject}"): ${reason}`,
+  );
+  getPostHogServer()?.capture({
+    distinctId: "email",
+    event: "email_failed",
+    properties: {
       to: params.to,
       subject: params.subject,
-      html: params.html,
-      attachments: params.attachments,
-    }),
-  );
+      reason,
+      $process_person_profile: false,
+    },
+  });
 }

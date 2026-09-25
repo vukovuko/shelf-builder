@@ -48,7 +48,7 @@ import {
   allowEmailTo,
   checkRateLimit,
   getIdentifier,
-  strictRateLimit,
+  checkoutRateLimit,
 } from "@/lib/upstash-rate-limit";
 import { thumbnailSchema } from "@/lib/validation";
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
   try {
     // Rate limit - 5 checkout attempts per minute per IP
     const identifier = getIdentifier(request);
-    const limited = await checkRateLimit(strictRateLimit, identifier);
+    const limited = await checkRateLimit(checkoutRateLimit, identifier);
     if (limited) return limited;
 
     const body = await request.json();

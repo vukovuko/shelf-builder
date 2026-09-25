@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { rateLimitKey } from "./rate-limit-key";
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -8,12 +9,28 @@ const redis = new Redis({
   retry: { retries: 1, backoff: () => 100 },
 });
 
-// Strict: Auth/contact/checkout endpoints (5 req/min)
-// Allows for typos, retries, but prevents brute force
-export const strictRateLimit = new Ratelimit({
+// Customer forms, 5 req/min per client each: allows typos and retries but
+// not brute force. Each has its own counter, so a few contact messages
+// never block the same visitor's checkout.
+export const checkoutRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.fixedWindow(5, "1 m"),
-  prefix: "ratelimit:strict",
+  prefix: "ratelimit:checkout",
+  analytics: true,
+});
+
+// Shared by both contact forms: the same action on two pages.
+export const contactRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(5, "1 m"),
+  prefix: "ratelimit:contact",
+  analytics: true,
+});
+
+export const signupRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(5, "1 m"),
+  prefix: "ratelimit:signup",
   analytics: true,
 });
 
@@ -145,7 +162,10 @@ export const betterAuthRateLimitStorage = {
   },
 };
 
-// Helper to get identifier (IP address)
+/**
+ * The client's IP address, exact (Turnstile checks it as is). The limiters
+ * group it further via rateLimitKey.
+ */
 export function getIdentifier(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || "anonymous";
@@ -163,7 +183,7 @@ export async function checkRateLimit(
   identifier: string,
 ): Promise<Response | null> {
   try {
-    const { success, reset } = await limiter.limit(identifier);
+    const { success, reset } = await limiter.limit(rateLimitKey(identifier));
     return success ? null : rateLimitResponse(reset);
   } catch (error) {
     console.error("Rate limiter unavailable, allowing request:", error);
@@ -242,7 +262,9 @@ export async function guardPaidRoute(
     });
   }
   try {
-    const { success, reset, reason } = await limiter.limit(identifier);
+    const { success, reset, reason } = await limiter.limit(
+      rateLimitKey(identifier),
+    );
     if (reason === "timeout") return unavailableResponse();
     if (!success) return rateLimitResponse(reset);
     if (!(await withinDailyBudget(budget.name, budget.perDay))) {
