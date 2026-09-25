@@ -154,7 +154,7 @@ export function DesignImportButton() {
           disabled
         >
           <Loader2 className="animate-spin" />
-          Čitam skicu…
+          Učitavam skicu…
         </Button>
       ) : (
         <div className="mb-4 flex gap-2">

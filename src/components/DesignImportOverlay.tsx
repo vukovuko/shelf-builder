@@ -10,7 +10,7 @@ export function DesignImportOverlay() {
   return (
     <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-sm">
       <Loader2 className="size-8 animate-spin text-primary" />
-      <p className="text-sm font-medium">Čitam skicu…</p>
+      <p className="text-sm font-medium">Učitavam skicu…</p>
     </div>
   );
 }
