@@ -622,3 +622,37 @@ export const companySettings = pgTable("company_settings", {
   contactEmail: text("contact_email").notNull().default(""),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ── Admin to-do board (/admin/todo, todo.ormanipomeri.com) ──────────
+
+// A note on the board. The body is markdown-like text: "# " heading,
+// "- [ ] " / "- [x] " checkbox, "- " bullet; positions are canvas units.
+export const todoNotes = pgTable("todo_note", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  body: text("body").notNull().default(""),
+  color: text("color").notNull().default("yellow"),
+  x: real("x").notNull().default(0),
+  y: real("y").notNull().default(0),
+  width: integer("width").notNull().default(320),
+  createdBy: text("createdBy").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+// An arrow between two notes (e.g. "do this before that").
+export const todoLinks = pgTable("todo_link", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  sourceId: text("sourceId")
+    .notNull()
+    .references(() => todoNotes.id, { onDelete: "cascade" }),
+  targetId: text("targetId")
+    .notNull()
+    .references(() => todoNotes.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+});

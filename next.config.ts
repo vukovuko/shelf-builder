@@ -15,6 +15,21 @@ const nextConfig: NextConfig = {
 
   // PostHog reverse proxy — bypasses ad blockers by routing through our domain
   // Path must NOT be /ingest, /analytics, /tracking, /posthog (ad blockers target those)
+  // todo.ormanipomeri.com is the easy-to-remember address of the admin to-do
+  // board. It redirects rather than serving the board on the subdomain: the
+  // login cookie belongs to ormanipomeri.com, so the board stays behind the
+  // same admin login without widening the cookie for the whole store.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "todo.ormanipomeri.com" }],
+        destination: "https://ormanipomeri.com/admin/todo",
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {

@@ -13,6 +13,7 @@ import {
   Settings2,
   PanelsTopLeft,
   Building2,
+  ListTodo,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,11 @@ const navItems = [
     title: "Porudžbine",
     href: "/admin/orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Zadaci",
+    href: "/admin/todo",
+    icon: ListTodo,
   },
   {
     title: "Ormani",
