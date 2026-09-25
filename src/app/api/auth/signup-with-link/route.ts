@@ -5,7 +5,6 @@ import { user, account, orders } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hashPassword } from "better-auth/crypto";
 import {
   strictRateLimit,
   getIdentifier,
@@ -87,11 +86,7 @@ export async function POST(request: Request) {
 
     // Check if user with this email exists
     const [existingUser] = await db
-      .select({
-        id: user.id,
-        name: user.name,
-        emailVerified: user.emailVerified,
-      })
+      .select({ id: user.id })
       .from(user)
       .where(eq(user.email, email));
 
@@ -115,74 +110,23 @@ export async function POST(request: Request) {
         );
       }
 
-      // User exists but no credential account - create one
+      // Existing user without a password (Google login, guest checkout,
+      // admin-created). Setting a password requires proof of owning the inbox,
+      // so email a set-password link instead of trusting this request.
       try {
-        // Hash password using Better Auth's method
-        const hashedPassword = await hashPassword(password);
-
-        // Create credential account for existing user
-        const accountId = crypto.randomUUID();
-        const now = new Date();
-
-        await db.insert(account).values({
-          id: accountId,
-          accountId: existingUser.id, // For credential provider, accountId = userId
-          providerId: "credential",
-          userId: existingUser.id,
-          accessToken: null,
-          refreshToken: null,
-          idToken: null,
-          accessTokenExpiresAt: null,
-          refreshTokenExpiresAt: null,
-          scope: null,
-          password: hashedPassword,
-          createdAt: now,
-          updatedAt: now,
+        await auth.api.requestPasswordReset({
+          body: { email, redirectTo: "/reset-password" },
         });
-
-        // Update user name if they provided a different one
-        if (name !== existingUser.name) {
-          await db
-            .update(user)
-            .set({ name, updatedAt: now })
-            .where(eq(user.id, existingUser.id));
-        }
-
-        // Copy shipping address from most recent order if user doesn't have one
-        await copyShippingAddressFromOrders(existingUser.id, email);
-
-        // Sign in the user using Better Auth
-        const signInResult = await auth.api.signInEmail({
-          body: { email, password },
-          headers: await headers(),
-        });
-
-        // Send verification email only if not already verified
-        if (!existingUser.emailVerified) {
-          try {
-            await auth.api.sendVerificationEmail({
-              body: { email },
-              headers: await headers(),
-            });
-          } catch (emailError) {
-            // Non-critical - log but don't fail registration
-            console.error("Failed to send verification email:", emailError);
-          }
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: "Nalog uspešno kreiran",
-          linked: true, // Indicates we linked to existing user
-          user: signInResult.user,
-        });
-      } catch (linkError) {
-        console.error("Failed to link account:", linkError);
-        return NextResponse.json(
-          { error: "Greška pri kreiranju naloga" },
-          { status: 500 },
-        );
+      } catch (resetError) {
+        console.error("Failed to send set-password email:", resetError);
       }
+
+      return NextResponse.json({
+        success: true,
+        emailSent: true,
+        message:
+          "Poslali smo vam email sa linkom za postavljanje lozinke. Otvorite ga da biste pristupili nalogu.",
+      });
     }
 
     // User doesn't exist - use normal Better Auth signup

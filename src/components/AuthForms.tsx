@@ -82,22 +82,17 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
           return;
         }
 
-        // Show appropriate message based on whether account was linked
-        if (result.linked) {
-          toast.success(
-            "Nalog povezan! Sada možete pristupiti vašim porudžbinama.",
-            {
-              duration: 5000,
-            },
-          );
-        } else {
-          // New user - check email verification
-          const emailVerified = result.user?.emailVerified;
-          if (!emailVerified) {
-            toast("Proverite inbox za verifikacioni email", {
-              duration: 5000,
-            });
-          }
+        // Email already belongs to a passwordless account: not signed in,
+        // they finish through the set-password link we just emailed.
+        if (result.emailSent) {
+          toast.success(result.message, { duration: 10000 });
+          return;
+        }
+
+        if (!result.user?.emailVerified) {
+          toast("Proverite inbox za verifikacioni email", {
+            duration: 5000,
+          });
         }
 
         // User is signed in, call onSuccess
