@@ -10,6 +10,7 @@ import {
   shouldUseDrawerStack,
 } from "@/lib/drawer-layout";
 import { getDoorGroupBounds } from "@/lib/door-geometry";
+import { useShallow } from "zustand/react/shallow";
 import {
   useShelfStore,
   type DoorGroup,
@@ -49,7 +50,19 @@ export function BlueprintView() {
     baseHeight,
     selectedMaterialId,
     materials,
-  } = useShelfStore();
+  } = useShelfStore(
+    // Only these fields: a bare useShelfStore() re-renders on every store
+    // change, including each hover and drag tick in the 3D view.
+    useShallow((s) => ({
+      width: s.width,
+      height: s.height,
+      depth: s.depth,
+      hasBase: s.hasBase,
+      baseHeight: s.baseHeight,
+      selectedMaterialId: s.selectedMaterialId,
+      materials: s.materials,
+    })),
+  );
 
   // Get store state
   const verticalBoundaries = useShelfStore(

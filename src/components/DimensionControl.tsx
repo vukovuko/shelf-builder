@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,18 +24,22 @@ export function DimensionControl({
   max,
   step,
 }: DimensionControlProps) {
+  const inputId = useId();
   const handleDecrement = () => setValue(Math.max(min, value - step));
   const handleIncrement = () => setValue(Math.min(max, value + step));
 
   return (
     <div className="space-y-3">
-      <Label className="font-medium text-foreground">{label}</Label>
+      <Label htmlFor={inputId} className="font-medium text-foreground">
+        {label}
+      </Label>
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
           onClick={handleDecrement}
           className="group"
+          aria-label={`Smanji: ${label.toLowerCase()}`}
         >
           <Minus className="h-4 w-4 group-hover:text-primary" />
         </Button>
@@ -50,11 +55,13 @@ export function DimensionControl({
           size="icon"
           onClick={handleIncrement}
           className="group"
+          aria-label={`Povećaj: ${label.toLowerCase()}`}
         >
           <Plus className="h-4 w-4 group-hover:text-primary" />
         </Button>
         <div className="relative">
           <Input
+            id={inputId}
             type="number"
             value={value}
             min={min}

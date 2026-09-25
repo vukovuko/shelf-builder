@@ -2,6 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import React from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   useShelfStore,
   type ShelfState,
@@ -71,7 +72,16 @@ export type CarcassFrameHandle = {
  */
 const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
   function CarcassFrame({ materials }, ref) {
-    const { width, height, depth, selectedMaterialId } = useShelfStore();
+    const { width, height, depth, selectedMaterialId } = useShelfStore(
+      // Only these fields: a bare useShelfStore() re-renders on every store
+      // change, including each hover and drag tick in the 3D view.
+      useShallow((s) => ({
+        width: s.width,
+        height: s.height,
+        depth: s.depth,
+        selectedMaterialId: s.selectedMaterialId,
+      })),
+    );
     const verticalBoundaries = useShelfStore(
       (state: ShelfState) => state.verticalBoundaries,
     );

@@ -80,7 +80,9 @@ export function useRulePreview(
         }),
       ).then((data) => {
         if (stale) return;
-        if (data) setPreview(data);
+        // A failed request clears the old answer: it priced the previous
+        // design, and the plain price of the current one is closer.
+        setPreview(data);
         setLoading(false);
       });
     }, debounceMs);

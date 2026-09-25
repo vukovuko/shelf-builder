@@ -33,6 +33,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { formatDate } from "@/lib/format-date";
 
 interface Wardrobe {
   id: string;
@@ -58,7 +59,7 @@ function formatRelativeTime(date: Date): string {
   if (diffDay < 7) return `Pre ${diffDay} dan${diffDay !== 1 ? "a" : ""}`;
   if (diffDay < 30)
     return `Pre ${Math.floor(diffDay / 7)} nedelj${Math.floor(diffDay / 7) !== 1 ? "e" : "a"}`;
-  return new Date(date).toLocaleDateString("sr-RS");
+  return formatDate(date);
 }
 
 interface WardrobesClientProps {
@@ -269,7 +270,11 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                   <p className="text-base font-medium truncate">
                     {wardrobe.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  {/* "Pre 5 minuta" can tick over between server and browser. */}
+                  <p
+                    className="text-xs text-muted-foreground"
+                    suppressHydrationWarning
+                  >
                     {formatRelativeTime(wardrobe.updatedAt)}
                   </p>
                 </div>
@@ -280,6 +285,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                       onClick={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
                       className="p-1.5 hover:bg-accent rounded transition flex-shrink-0"
+                      aria-label={`Opcije za ${wardrobe.name}`}
                     >
                       <MoreVertical className="h-4 w-4" />
                     </button>

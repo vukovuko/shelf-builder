@@ -204,7 +204,15 @@ export async function POST(request: Request) {
     // PHASE A: Read-only data fetching + pricing (outside transaction)
     // =========================================================================
 
-    const [pricingMaterials, enabledAccessoryRules] = await Promise.all([
+    // Independent catalog reads: one round trip instead of five in a row.
+    const [
+      pricingMaterials,
+      enabledAccessoryRules,
+      pricingHandles,
+      allFinishes,
+      pricingAccessories,
+      allAccessoryVariants,
+    ] = await Promise.all([
       db
         .select({
           id: materials.id,
@@ -215,47 +223,42 @@ export async function POST(request: Request) {
         })
         .from(materials),
       db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
+      db
+        .select({
+          id: handles.id,
+          legacyId: handles.legacyId,
+          name: handles.name,
+        })
+        .from(handles)
+        .where(eq(handles.published, true)),
+      db
+        .select({
+          id: handleFinishes.id,
+          handleId: handleFinishes.handleId,
+          legacyId: handleFinishes.legacyId,
+          name: handleFinishes.name,
+          price: handleFinishes.price,
+        })
+        .from(handleFinishes),
+      db
+        .select({
+          id: accessories.id,
+          name: accessories.name,
+          category: accessories.category,
+          pricingRule: accessories.pricingRule,
+          qtyPerUnit: accessories.qtyPerUnit,
+        })
+        .from(accessories)
+        .where(eq(accessories.published, true)),
+      db
+        .select({
+          id: accessoryVariants.id,
+          accessoryId: accessoryVariants.accessoryId,
+          name: accessoryVariants.name,
+          price: accessoryVariants.price,
+        })
+        .from(accessoryVariants),
     ]);
-
-    // Fetch handles with finishes for pricing
-    const pricingHandles = await db
-      .select({
-        id: handles.id,
-        legacyId: handles.legacyId,
-        name: handles.name,
-      })
-      .from(handles)
-      .where(eq(handles.published, true));
-
-    const allFinishes = await db
-      .select({
-        id: handleFinishes.id,
-        handleId: handleFinishes.handleId,
-        legacyId: handleFinishes.legacyId,
-        name: handleFinishes.name,
-        price: handleFinishes.price,
-      })
-      .from(handleFinishes);
-
-    const pricingAccessories = await db
-      .select({
-        id: accessories.id,
-        name: accessories.name,
-        category: accessories.category,
-        pricingRule: accessories.pricingRule,
-        qtyPerUnit: accessories.qtyPerUnit,
-      })
-      .from(accessories)
-      .where(eq(accessories.published, true));
-
-    const allAccessoryVariants = await db
-      .select({
-        id: accessoryVariants.id,
-        accessoryId: accessoryVariants.accessoryId,
-        name: accessoryVariants.name,
-        price: accessoryVariants.price,
-      })
-      .from(accessoryVariants);
 
     // Group finishes by handle
     const handlesWithFinishes = pricingHandles.map((h) => ({

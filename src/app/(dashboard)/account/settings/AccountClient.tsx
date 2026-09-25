@@ -442,11 +442,15 @@ export function AccountClient({ user }: AccountClientProps) {
           <div className="px-5 py-4 border-b border-border">
             {isEditingName ? (
               <div>
-                <label className="text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="account-name"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Ime
                 </label>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Input
+                    id="account-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={isLoading}
@@ -463,6 +467,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     onClick={handleSaveName}
                     disabled={isLoading}
                     className="shrink-0"
+                    aria-label="Sačuvaj"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -476,6 +481,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     onClick={handleCancelEditName}
                     disabled={isLoading}
                     className="shrink-0"
+                    aria-label="Otkaži"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -522,11 +528,15 @@ export function AccountClient({ user }: AccountClientProps) {
           <div className="px-5 py-4 border-b border-border">
             {isEditingPhone ? (
               <div>
-                <label className="text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="account-phone"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Telefon
                 </label>
                 <div className="flex items-center gap-2 mt-1.5">
                   <Input
+                    id="account-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={isLoading}
@@ -544,6 +554,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     onClick={handleSavePhone}
                     disabled={isLoading}
                     className="shrink-0"
+                    aria-label="Sačuvaj"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -557,6 +568,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     onClick={handleCancelEditPhone}
                     disabled={isLoading}
                     className="shrink-0"
+                    aria-label="Otkaži"
                   >
                     <X className="h-4 w-4" />
                   </Button>

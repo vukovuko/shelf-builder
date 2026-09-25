@@ -51,6 +51,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatDate } from "@/lib/format-date";
 
 interface Wardrobe {
   id: string;
@@ -562,7 +563,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(lastOrder.createdAt).toLocaleDateString("sr-RS", {
+                  {formatDate(lastOrder.createdAt, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -624,14 +625,10 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                         {wardrobe.name}
                       </TableCell>
                       <TableCell>
-                        {new Date(wardrobe.createdAt).toLocaleDateString(
-                          "sr-RS",
-                        )}
+                        {formatDate(wardrobe.createdAt)}
                       </TableCell>
                       <TableCell>
-                        {new Date(wardrobe.updatedAt).toLocaleDateString(
-                          "sr-RS",
-                        )}
+                        {formatDate(wardrobe.updatedAt)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -650,7 +647,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
                 <div key={order.id} className="flex items-center gap-3 text-sm">
                   <div className="w-2 h-2 rounded-full bg-primary" />
                   <span className="text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString("sr-RS")}
+                    {formatDate(order.createdAt)}
                   </span>
                   <span>
                     Kreirana porudžbina{" "}
@@ -666,7 +663,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-muted-foreground" />
                 <span className="text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString("sr-RS")}
+                  {formatDate(user.createdAt)}
                 </span>
                 <span>Nalog kreiran</span>
               </div>

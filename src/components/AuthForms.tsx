@@ -350,6 +350,9 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={
+                    showPassword ? "Sakrij lozinku" : "Prikaži lozinku"
+                  }
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
@@ -494,6 +497,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Sakrij lozinku" : "Prikaži lozinku"}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
               >

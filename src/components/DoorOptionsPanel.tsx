@@ -335,6 +335,7 @@ export function DoorOptionsPanel({
           size="icon"
           onClick={clearDoorSelection}
           className="h-8 w-8"
+          aria-label="Poništi izbor"
         >
           <X size={18} />
         </Button>

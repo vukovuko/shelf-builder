@@ -72,6 +72,7 @@ export function OrderSuccess({
             size="icon"
             className="h-8 w-8"
             onClick={copyOrderNumber}
+            aria-label="Kopiraj broj porudžbine"
           >
             {copied ? (
               <Check className="h-4 w-4 text-green-600" />

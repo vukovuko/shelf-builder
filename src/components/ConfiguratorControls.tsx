@@ -76,6 +76,7 @@ import {
   getWardrobeSnapshot,
   useWardrobeSnapshot,
 } from "@/lib/serializeWardrobe";
+import { useShallow } from "zustand/react/shallow";
 import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AuthForms } from "./AuthForms";
@@ -524,7 +525,19 @@ export function ConfiguratorControls({
     setHeight,
     setDepth,
     numberOfColumns,
-  } = useShelfStore();
+  } = useShelfStore(
+    // Only these fields: a bare useShelfStore() re-renders on every store
+    // change, including each hover and drag tick in the 3D view.
+    useShallow((s) => ({
+      width: s.width,
+      height: s.height,
+      depth: s.depth,
+      setWidth: s.setWidth,
+      setHeight: s.setHeight,
+      setDepth: s.setDepth,
+      numberOfColumns: s.numberOfColumns,
+    })),
+  );
 
   // Add these if not already in your store:
   const selectedMaterialId = useShelfStore(

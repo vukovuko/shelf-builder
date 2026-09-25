@@ -47,6 +47,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { LinkPending } from "@/components/PendingContent";
+import { formatDate } from "@/lib/format-date";
 
 interface PriceBreakdown {
   korpus: { areaM2: number; price: number; materialName: string };
@@ -749,7 +750,7 @@ export function OrderDetailClient({
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {new Date(order.createdAt).toLocaleDateString("sr-RS", {
+            {formatDate(order.createdAt, {
               day: "numeric",
               month: "long",
               year: "numeric",
@@ -1184,7 +1185,7 @@ export function OrderDetailClient({
             <div>
               <Label className="text-muted-foreground">Kreirana</Label>
               <p className="font-medium">
-                {new Date(order.createdAt).toLocaleDateString("sr-RS", {
+                {formatDate(order.createdAt, {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
@@ -1197,7 +1198,7 @@ export function OrderDetailClient({
             <div>
               <Label className="text-muted-foreground">Azurirana</Label>
               <p className="font-medium">
-                {new Date(order.updatedAt).toLocaleDateString("sr-RS", {
+                {formatDate(order.updatedAt, {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",

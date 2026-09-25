@@ -246,6 +246,7 @@ export function CompartmentExtrasPanel({
           size="icon"
           onClick={() => setSelectedCompartmentKey(null)}
           className="h-8 w-8"
+          aria-label="Zatvori"
         >
           <X size={18} />
         </Button>

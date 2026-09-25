@@ -51,6 +51,13 @@ export function HandlesClient({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedHandles, setSelectedHandles] = useState<Handle[]>([]);
   const [searchInput, setSearchInput] = useState(search);
+  // Back/forward or a sidebar link changes `search`; follow it, or the
+  // debounced push would put the old search straight back into the URL.
+  const [syncedSearch, setSyncedSearch] = useState(search);
+  if (search !== syncedSearch) {
+    setSyncedSearch(search);
+    setSearchInput(search);
+  }
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));

@@ -33,6 +33,8 @@ export function CompartmentClickCircle({
   return (
     <Html position={position} center zIndexRange={[1, 10]}>
       <button
+        type="button"
+        aria-label={`Izaberi pregradu ${compartmentKey}`}
         onClick={() => setSelectedKey(compartmentKey)}
         onMouseEnter={() => setIsButtonHovered(true)}
         onMouseLeave={() => setIsButtonHovered(false)}

@@ -1,10 +1,20 @@
 "use client";
 
 import { Edges } from "@react-three/drei";
+import { useShallow } from "zustand/react/shallow";
 import { useShelfStore } from "@/lib/store";
 
 export function InteriorBack() {
-  const { width, height, depth, panelThickness } = useShelfStore();
+  const { width, height, depth, panelThickness } = useShelfStore(
+    // Only these fields: a bare useShelfStore() re-renders on every store
+    // change, including each hover and drag tick in the 3D view.
+    useShallow((s) => ({
+      width: s.width,
+      height: s.height,
+      depth: s.depth,
+      panelThickness: s.panelThickness,
+    })),
+  );
 
   const w = width / 100;
   const h = height / 100;
