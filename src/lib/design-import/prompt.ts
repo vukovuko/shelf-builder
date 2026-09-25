@@ -45,6 +45,8 @@ For a closed wardrobe where only doors are visible, treat each pair of doors as 
 
 base: true when a plinth or base is visible under the wardrobe. slidingDoors: true when the doors are sliding panels on rails rather than hinged.
 
-Sketches are rough: read the intent. A rectangle split by a cross is two sections, each with one shelf halfway up. Ignore perspective and describe the front view. Labels may be in Serbian: fioka/fioke = drawer(s), polica/police = shelf/shelves, šipka = hanging rail, vrata = doors, klizna = sliding, ogledalo = mirror, širina/visina/dubina = width/height/depth.
+Photos of a real wardrobe or shelving unit: read its front face even when the photo is taken at an angle. Full-height side and divider panels make the sections; horizontal boards are shelves. Things stored inside (clothes, boxes, books) are not furniture, except that clothes on hangers mean a hanging rail. Ignore the room, walls and other furniture.
+
+Sketches may be on paper, a napkin or a whiteboard, photographed at an angle. Sketches are rough: read the intent. A rectangle split by a cross is two sections, each with one shelf halfway up. Ignore perspective and describe the front view. Labels may be in Serbian: fioka/fioke = drawer(s), polica/police = shelf/shelves, šipka = hanging rail, vrata = doors, klizna = sliding, ogledalo = mirror, širina/visina/dubina = width/height/depth.
 
 Do not invent details the image does not show.`;

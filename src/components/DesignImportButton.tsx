@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageUp, Loader2 } from "lucide-react";
+import { Camera, ImageUp, Loader2 } from "lucide-react";
 import posthog from "posthog-js";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -44,6 +44,7 @@ function restore(previous: Previous) {
 /** Upload a photo or sketch and rebuild the configurator from it. */
 export function DesignImportButton() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{
     adjustments: Adjustment[];
@@ -114,7 +115,9 @@ export function DesignImportButton() {
     } finally {
       setBusy(false);
       useDesignImportStatus.getState().setPending(false);
-      if (inputRef.current) inputRef.current.value = "";
+      for (const input of [inputRef.current, cameraRef.current]) {
+        if (input) input.value = "";
+      }
     }
   }
 
@@ -130,25 +133,47 @@ export function DesignImportButton() {
           if (file) void handleFile(file);
         }}
       />
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full mb-4"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-      >
-        {busy ? (
-          <>
-            <Loader2 className="animate-spin" />
-            Čitam skicu…
-          </>
-        ) : (
-          <>
+      {/* Opens the phone's camera app directly; desktops ignore `capture`,
+          so this button only shows on touch screens. */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleFile(file);
+        }}
+      />
+      {busy ? (
+        <Button type="button" variant="outline" className="w-full mb-4" disabled>
+          <Loader2 className="animate-spin" />
+          Čitam skicu…
+        </Button>
+      ) : (
+        <div className="mb-4 flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="hidden flex-1 pointer-coarse:inline-flex"
+            onClick={() => cameraRef.current?.click()}
+          >
+            <Camera />
+            Uslikaj
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            onClick={() => inputRef.current?.click()}
+          >
             <ImageUp />
-            Učitaj skicu ili sliku
-          </>
-        )}
-      </Button>
+            <span className="pointer-coarse:hidden">Učitaj skicu ili sliku</span>
+            <span className="hidden pointer-coarse:inline">Iz galerije</span>
+          </Button>
+        </div>
+      )}
 
       <Dialog open={!!result} onOpenChange={(open) => !open && setResult(null)}>
         <DialogContent>

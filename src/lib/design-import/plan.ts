@@ -145,11 +145,28 @@ function pickWidth(
     k <= 2
       ? DEFAULT_WIDTH_CM
       : Math.min(WIDTH_RANGE_CM[1], k * WIDTH_PER_SECTION_CM);
-  if (!draft.aspectRatio) return expected;
-  const fromRatio = Math.round((draft.aspectRatio * heightCm) / 10) * 10;
-  return Math.abs(fromRatio - expected) / expected > RATIO_TRUST
-    ? clamp(fromRatio, WIDTH_RANGE_CM[0], WIDTH_RANGE_CM[1])
-    : expected;
+  const fromRatio = draft.aspectRatio
+    ? Math.round((draft.aspectRatio * heightCm) / 10) * 10
+    : null;
+  const guess =
+    fromRatio !== null && Math.abs(fromRatio - expected) / expected > RATIO_TRUST
+      ? clamp(fromRatio, WIDTH_RANGE_CM[0], WIDTH_RANGE_CM[1])
+      : expected;
+  return fitWidthToSections(guess, k);
+}
+
+/**
+ * An estimated width is only a guess, the drawn sections are not: pick the
+ * nearest width whose column count (one per 120 cm) equals the number of
+ * sections, so 4 drawn compartments become 4 columns rather than 3 columns
+ * plus an inner divider. Only for 2–4 sections; 400 cm fits at most 4.
+ */
+function fitWidthToSections(widthCm: number, sections: number): number {
+  const maxColumns = Math.ceil(WIDTH_RANGE_CM[1] / MAX_SEGMENT_X_CM);
+  if (sections < 2 || sections > maxColumns) return widthCm;
+  const lo = Math.ceil(((sections - 1) * MAX_SEGMENT_X_CM + 1) / 10) * 10;
+  const hi = Math.min(WIDTH_RANGE_CM[1], sections * MAX_SEGMENT_X_CM);
+  return clamp(widthCm, lo, hi);
 }
 
 /** Splits a section in two halves; a double door becomes one leaf each. */

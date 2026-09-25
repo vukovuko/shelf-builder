@@ -82,6 +82,21 @@ describe("rough sketches with no numbers", () => {
     expect(columnWidthsCm()).toHaveLength(3);
   });
 
+  it("four sections with only a drawn outline become four columns", () => {
+    importWardrobeDraft({
+      recognized: true,
+      aspectRatio: 1.5,
+      sections: [{}, {}, {}, {}],
+    });
+    expect(columnWidthsCm()).toHaveLength(4);
+    expect(state().elementConfigs.A1?.columns ?? 1).toBe(1);
+  });
+
+  it("a narrow two-section drawing still gets two columns", () => {
+    importWardrobeDraft({ recognized: true, aspectRatio: 0.4, sections: [{}, {}] });
+    expect(columnWidthsCm()).toHaveLength(2);
+  });
+
   it("a line drawn at the 200 cm split is the module split, not a shelf", () => {
     importWardrobeDraft({
       recognized: true,
