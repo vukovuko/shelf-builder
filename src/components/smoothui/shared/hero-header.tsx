@@ -49,22 +49,30 @@ export const HeroHeader = () => {
           aria-label="Glavna navigacija"
           className="absolute top-0 left-0 z-20 w-full transition-all duration-300"
         >
-          <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto max-w-6xl px-6">
             <div className="relative flex flex-wrap items-center justify-between gap-6 py-6 transition-all duration-200 lg:gap-0">
-              <div className="flex w-full justify-between gap-6 lg:w-auto">
+              <div className="flex w-full items-center justify-between gap-6 lg:w-auto">
                 <Link
                   aria-label="Ormani po meri"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-3"
                   href="/"
                 >
                   <Image
-                    alt="Ormani po meri logo"
-                    className="h-8 w-auto"
-                    height={32}
+                    alt=""
+                    className="h-10 w-auto sm:h-11 dark:hue-rotate-180 dark:invert"
+                    height={256}
                     priority
-                    src="/ormani-po-meri-logo.webp"
-                    width={120}
+                    src="/ormani-po-meri-mark.webp"
+                    width={209}
                   />
+                  <span className="flex flex-col">
+                    <span className="font-bold text-2xl leading-none tracking-tight sm:text-[1.75rem]">
+                      Ormani <span className="text-primary">po meri</span>
+                    </span>
+                    <span className="mt-1.5 font-medium text-[9px] text-muted-foreground uppercase leading-none tracking-[0.25em] sm:text-[10px] sm:tracking-[0.3em]">
+                      3D konfigurator ormana
+                    </span>
+                  </span>
                 </Link>
 
                 <button
@@ -97,32 +105,38 @@ export const HeroHeader = () => {
                   </div>
                 </button>
 
-                <div className="m-auto hidden size-fit lg:block">
-                  <ul className="flex gap-1">
-                    {menuItems.map((item) => (
-                      <li key={item.id}>
-                        <Button asChild size="sm" variant="ghost">
-                          <Link
-                            aria-current={
-                              isActive(item.href) ? "page" : undefined
-                            }
-                            className="text-base hover:text-primary focus-visible:text-primary"
-                            href={item.href}
-                          >
-                            <LinkPending>{item.name}</LinkPending>
-                          </Link>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              </div>
+
+              <div className="hidden items-center gap-6 lg:flex">
+                <ul className="flex gap-1">
+                  {menuItems.map((item) => (
+                    <li key={item.id}>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link
+                          aria-current={
+                            isActive(item.href) ? "page" : undefined
+                          }
+                          className="text-base hover:text-primary focus-visible:text-primary"
+                          href={item.href}
+                        >
+                          <LinkPending>{item.name}</LinkPending>
+                        </Link>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild>
+                  <Link href="/design">
+                    <LinkPending>Započnite dizajn</LinkPending>
+                  </Link>
+                </Button>
               </div>
 
               <AnimatePresence>
                 {menuState && (
                   <motion.div
                     animate={{ opacity: 1, y: 0, scale: SCALE_MAX }}
-                    className="mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent"
+                    className="mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:hidden dark:shadow-none"
                     exit={{ opacity: 0, y: TRANSLATE_Y_OFFSET, scale: 0.95 }}
                     initial={{ opacity: 0, y: TRANSLATE_Y_OFFSET, scale: 0.95 }}
                     transition={{
@@ -130,7 +144,7 @@ export const HeroHeader = () => {
                       ease: EASE_OUT_QUART,
                     }}
                   >
-                    <div className="lg:hidden">
+                    <div>
                       <ul className="space-y-6 text-base">
                         {menuItems.map((item, index) => (
                           <motion.li
