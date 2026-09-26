@@ -24,6 +24,7 @@ import {
   getWardrobeSnapshot,
 } from "@/lib/serializeWardrobe";
 import { useShelfStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 type Previous = {
   snapshot: ReturnType<typeof getWardrobeSnapshot>;
@@ -42,7 +43,7 @@ function restore(previous: Previous) {
 }
 
 /** Upload a photo or sketch and rebuild the configurator from it. */
-export function DesignImportButton() {
+export function DesignImportButton({ className }: { className?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -150,14 +151,14 @@ export function DesignImportButton() {
         <Button
           type="button"
           variant="outline"
-          className="w-full mb-4"
+          className={cn("w-full mb-4", className)}
           disabled
         >
           <Loader2 className="animate-spin" />
           Učitavam skicu…
         </Button>
       ) : (
-        <div className="mb-4 flex gap-2">
+        <div className={cn("mb-4 flex gap-2", className)}>
           <Button
             type="button"
             variant="outline"

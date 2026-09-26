@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { ImageUp, Menu } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { useRulePreview } from "@/hooks/use-rule-preview";
@@ -16,6 +16,7 @@ import {
 import { useWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
 import { CheckoutDialog } from "./CheckoutDialog";
+import { DesignImportButton } from "./DesignImportButton";
 import {
   StepAccessories,
   StepBase,
@@ -29,8 +30,10 @@ interface MobileBottomTabsProps {
   materials: Material[];
   accessoryRules: SerializedAccessoryRule[];
   onOpenDrawer: () => void;
+  canImportSketch: boolean;
 }
 
+const IMPORT_TAB = { key: "import", label: "Skica" } as const;
 const TABS = [
   { key: "item-1", label: "Dimenzije" },
   { key: "item-2", label: "Kolone" },
@@ -45,6 +48,7 @@ export function MobileBottomTabs({
   materials,
   accessoryRules,
   onOpenDrawer,
+  canImportSketch,
 }: MobileBottomTabsProps) {
   const activeTab = useShelfStore((s: ShelfState) => s.activeAccordionStep);
   const setActiveTab = useShelfStore(
@@ -348,7 +352,9 @@ export function MobileBottomTabs({
     setActiveTab(activeTab === key ? null : key);
   };
 
-  const isStepTab = activeTab !== null && activeTab !== "menu";
+  const isStepTab =
+    activeTab !== null && activeTab !== "menu" && activeTab !== "import";
+  const tabs = canImportSketch ? [IMPORT_TAB, ...TABS] : TABS;
 
   return (
     <div className="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col">
@@ -368,23 +374,43 @@ export function MobileBottomTabs({
         </div>
       )}
 
+      {/* Stays mounted while hidden, so an upload in progress still ends
+          in its result dialog after the user switches tabs. */}
+      {canImportSketch && (
+        <div
+          className={`bg-sidebar border-t border-sidebar-border px-3 py-2 ${
+            activeTab === "import" ? "" : "hidden"
+          }`}
+        >
+          <DesignImportButton className="mb-0" />
+        </div>
+      )}
+
       {/* Scrollable chip tab bar */}
       <div className="bg-sidebar border-t border-sidebar-border overflow-x-auto flex gap-1.5 px-2 py-1.5 [scrollbar-width:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
-        {TABS.map(({ key, label }) => {
+        {tabs.map(({ key, label }) => {
           const isActive = activeTab === key;
           const isMenu = key === "menu";
+          const isImport = key === "import";
           return (
             <button
               key={key}
               type="button"
               onClick={() => handleTabClick(key)}
-              className={`whitespace-nowrap px-3 py-1 rounded-full text-xs border transition-colors flex-shrink-0 ${
+              className={`whitespace-nowrap px-3 py-1 rounded-full text-xs border transition-colors flex-shrink-0 inline-flex items-center gap-1 ${
                 isActive
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-transparent text-muted-foreground border-border hover:text-foreground"
               }`}
             >
-              {isMenu ? <Menu className="h-3.5 w-3.5" /> : label}
+              {isMenu ? (
+                <Menu className="h-3.5 w-3.5" />
+              ) : (
+                <>
+                  {isImport && <ImageUp className="h-3.5 w-3.5" />}
+                  {label}
+                </>
+              )}
             </button>
           );
         })}

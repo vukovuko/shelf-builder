@@ -14,6 +14,7 @@ import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
+import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import {
   type Accessory,
@@ -361,6 +362,9 @@ export function DesignLayoutClient({
           materials={initialMaterials}
           accessoryRules={initialAccessoryRules}
           onOpenDrawer={() => setDrawerOpen(true)}
+          canImportSketch={
+            DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : Boolean(initialSession)
+          }
         />
       )}
 

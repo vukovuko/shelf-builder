@@ -940,8 +940,11 @@ export function ConfiguratorControls({
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        {/* Phones have it as the first chip of the bottom tab bar. */}
         {(DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : !!session) && (
-          <DesignImportButton />
+          <div className="max-md:hidden">
+            <DesignImportButton />
+          </div>
         )}
         {/* Back to Order banner - shown when editing from order context */}
         {fromOrderId && fromOrderNumber && (
