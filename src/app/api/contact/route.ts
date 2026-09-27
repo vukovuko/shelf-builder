@@ -118,6 +118,8 @@ export async function POST(request: Request) {
     for (const admin of admins) {
       await sendEmail({
         to: admin.email,
+        // Replying answers the customer directly.
+        ...(email && { replyTo: email }),
         subject: `Nova kontakt poruka - ${safeName}`,
         html: `
           <h2>Nova kontakt poruka</h2>

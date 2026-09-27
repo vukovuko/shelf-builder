@@ -6,6 +6,9 @@ import { getPostHogServer } from "./posthog-server";
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
+// noreply@ has no inbox; info@ is forwarded to the team (Cloudflare Email
+// Routing), so a customer who answers an order email reaches a person.
+export const REPLY_TO_EMAIL = "Ormani po meri <info@ormanipomeri.com>";
 
 // Serial queue for all Resend calls from this instance, spaced to stay under
 // Resend's 10 requests/second per team. Other instances can still collide,
@@ -44,6 +47,8 @@ interface SendEmailParams {
   subject: string;
   html: string;
   attachments?: EmailAttachment[];
+  /** Where "Reply" goes; defaults to REPLY_TO_EMAIL. */
+  replyTo?: string;
   /**
    * Resend sends at most once per key within 24 hours, so retries (ours or
    * a repeated request) never duplicate the email. Format: "<kind>/<id>".
@@ -100,6 +105,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
             subject: params.subject,
             html: params.html,
             attachments: params.attachments,
+            replyTo: params.replyTo ?? REPLY_TO_EMAIL,
           },
           params.idempotencyKey
             ? { idempotencyKey: params.idempotencyKey }
