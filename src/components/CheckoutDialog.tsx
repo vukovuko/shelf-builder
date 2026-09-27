@@ -566,15 +566,6 @@ export function CheckoutDialog({
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 min-w-0">
-              {/* Order Summary */}
-              <OrderSummaryTable
-                orderData={orderData}
-                visibleAdjustments={rulePreview?.visibleAdjustments}
-                adjustedTotal={rulePreview?.adjustedTotal}
-                isCalculating={rulePreviewLoading}
-                formatPrice={formatPrice}
-              />
-
               {/* Customer Info */}
               <div className="space-y-1">
                 <h3 className="font-medium text-sm mb-2">Kontakt podaci</h3>
@@ -823,6 +814,15 @@ export function CheckoutDialog({
                   </Label>
                 </div>
               )}
+
+              {/* Order Summary */}
+              <OrderSummaryTable
+                orderData={orderData}
+                visibleAdjustments={rulePreview?.visibleAdjustments}
+                adjustedTotal={rulePreview?.adjustedTotal}
+                isCalculating={rulePreviewLoading}
+                formatPrice={formatPrice}
+              />
 
               {/* Turnstile CAPTCHA */}
               <div className="relative pb-5">
