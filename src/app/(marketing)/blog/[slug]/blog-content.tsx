@@ -83,7 +83,8 @@ function sanitizeHref(href: string): string {
   if (
     href.startsWith("/") ||
     href.startsWith("https://") ||
-    href.startsWith("http://")
+    href.startsWith("http://") ||
+    href.startsWith("mailto:")
   ) {
     return href;
   }

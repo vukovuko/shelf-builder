@@ -37,9 +37,7 @@ export interface BlogPost {
 // Shown once sketch upload is open to customers (design-import/config).
 const sketchUploadSection = DESIGN_IMPORT_ADMIN_ONLY
   ? ""
-  : `### Brže: učitajte fotografiju skice
-
-Skicu možete i da uslikate i učitate u [konfigurator](/design). Prepoznaje kolone, police, fioke, šipke i vrata, a mere uzima ako ste ih napisali na papiru. Ono što ne može da se izradi uskladi sa pravilima izrade i pokaže vam šta je promenio. Za učitavanje skice treba da budete prijavljeni.
+  : `Ako ste prijavljeni, skicu možete i da uslikate i učitate pravo u [konfigurator](/design). Prepoznaje kolone, police, fioke, šipke i vrata, a mere uzima ako ste ih napisali na papiru. Ono što ne može da se izradi uskladi sa pravilima izrade i pokaže vam šta je promenio.
 
 `;
 
@@ -446,7 +444,7 @@ Dodatnu opremu birate iz kataloga, a njena cena se odmah dodaje na ukupnu.
 - **Tehnički crtež 2D**: preuzimate ga kao sliku, za sebe ili za majstora.
 - **Porudžbinu bez naloga**: posle porudžbine stižu potvrda i faktura sa IPS QR kodom za plaćanje.
 
-Imate već skicu na papiru? Kako da je pretvorite u nacrt za izradu objasnili smo u tekstu [Skica ormara: od crteža na papiru do nacrta za izradu](/blog/skica-ormara-nacrt-za-izradu).
+Imate već skicu na papiru? Pošaljite je nama, a mi od nje napravimo orman. Kako to ide piše u tekstu [Skica ormara: od crteža na papiru do gotovog ormana po meri](/blog/skica-ormara-nacrt-za-izradu).
 
 ## Česta pitanja
 
@@ -470,15 +468,22 @@ Zavisi od mera, materijala i opreme. Najbrže je da u [konfigurator](/design) up
   },
   {
     slug: "skica-ormara-nacrt-za-izradu",
-    title: "Skica ormara: od crteža na papiru do nacrta za izradu",
+    title: "Skica ormara: od crteža na papiru do gotovog ormana po meri",
     description:
-      "Šta mora da piše na skici ormara da bi je stolar razumeo, na šta da pazite kod skice ugradnog ormara i kako od skice dobiti nacrt za izradu sa cenom.",
+      "Imate skicu ormara? Pošaljite nam crtež ili ga prepišite u konfigurator. Vidite orman u 3D i tačnu cenu, a mi ga izradimo po meri i dopremimo.",
     date: "2026-10-02",
     readTime: "4 min",
     image: "/blog/skica-ormara-nacrt-za-izradu.png",
-    content: `Dobra skica ormara staje na jedan papir. Na njoj su spoljne mere, kolone i ono što ide u svaku kolonu. Nacrt za izradu, sa tačnim merama svake ploče, posle toga ne morate da crtate ručno.
+    content: `Skica ormara na papiru je dovoljna da dobijete gotov orman. Od vaše skice napravimo dizajn sa tačnim merama, vi vidite orman u 3D i cenu, a mi ga izradimo po meri i dopremimo. Nacrt za izradu i spisak ploča ne morate da crtate, to je naš posao.
 
-![Skica ormara na papiru i nacrt istog ormara u konfiguratoru](/blog/skica-ormara-nacrt-za-izradu.webp)
+![Skica ormara na papiru i isti orman u konfiguratoru, spreman za izradu](/blog/skica-ormara-nacrt-za-izradu.webp)
+
+## Od skice do ormana: dva načina
+
+- **Pošaljite skicu nama**: uslikajte crtež i pošaljite ga na [info@ormanipomeri.com](mailto:info@ormanipomeri.com), sa merama ako ih imate. Skicu prepišemo u konfigurator i javimo vam se sa dizajnom i cenom.
+- **Prepišite je sami**: u [konfigurator ormana](/design) upišite mere, kolone i unutrašnjost sa skice. Cena se pojavi odmah i orman možete odmah da poručite.
+
+${sketchUploadSection}Kad poručite, dobijate potvrdu i fakturu sa IPS QR kodom za plaćanje. Naš tim pregleda porudžbinu i kontaktira vas pre izrade.
 
 ## Šta mora da piše na skici ormara
 
@@ -488,44 +493,39 @@ Zavisi od mera, materijala i opreme. Najbrže je da u [konfigurator](/design) up
 - **Vrata**: krilna, klizna ili bez vrata.
 - **Prepreke**: utičnice, prekidači, radijator, kosi plafon i lajsne. Sve to menja mere ormana, pa mora da bude na skici.
 
+Ne mora da bude lepo nacrtano. Ako nešto na skici nije jasno, pitaćemo vas pre nego što počnemo.
+
 ## Skica ugradnog ormara
 
 Izmerite nišu na tri visine (pri dnu, na sredini i pri vrhu) i upišite najmanju meru. Orman napravljen po najvećoj meri neće ući u nišu. Isto uradite i sa dubinom.
 
-Visok orman ima još jedan problem: sklapa se dok leži, pa mora da se podigne. Dok se podiže, bočna stranica dijagonalom zakači plafon. Za plafon od 270 cm i dubinu od 60 cm, jedan komad može biti visok najviše 263 cm, jer mu je dijagonala tada oko 270 cm. Kod nas se orman viši od 200 cm uvek pravi iz dva modula, donjeg i gornjeg, pa se svaki podiže posebno.
+Visok orman ima još jedan problem: sklapa se dok leži, pa mora da se podigne. Dok se podiže, bočna stranica dijagonalom zakači plafon. Za plafon od 270 cm i dubinu od 60 cm, jedan komad može biti visok najviše 263 cm, jer mu je dijagonala tada oko 270 cm. Mi orman viši od 200 cm uvek pravimo iz dva modula, donjeg i gornjeg, pa se svaki podiže posebno.
 
-## Od skice do nacrta za izradu
+## Mere koje možemo da izradimo
 
-Nacrt za izradu je crtež sa tačnim merama svake kolone, police i fioke, po kome se seku ploče. Umesto da ga crtate, prepišite skicu u [konfigurator ormana](/design):
+Ceo orman može biti širok od 50 do 400 cm, visok od 50 do 280 cm i dubok od 20 do 100 cm. Jedna kolona je široka od 20 do 120 cm. Ako vam na skici kolona ispadne šira, podelimo je na dve uže.
 
-- **Mere**: upišite spoljne mere sa skice.
-- **Kolone**: prevucite granice kolona dok raspored ne liči na skicu.
-- **Unutrašnjost**: dodajte police, fioke i šipke u iste kolone kao na papiru.
-- **Vrata i materijal**: izaberite vrata i dekor ploča.
+Za ploče birate između više od 500 dekora debljine 18 mm. Kako da sami nacrtate orman korak po korak opisali smo u tekstu [Program za crtanje ormara](/blog/program-za-crtanje-ormara).
 
-Cenu vidite odmah, a mere kolona u prikazu Kotiranje. Tehnički crtež 2D preuzimate kao sliku. Kad orman poručite, spisak ploča za sečenje pravimo mi iz vašeg dizajna.
+## Isporuka i montaža
 
-${sketchUploadSection}## Mere koje ne mogu da se izrade
-
-Konfigurator dozvoljava samo mere koje mogu da se izrade. Kolona je široka od 20 do 120 cm, a ceo orman od 50 do 400 cm. Ako vam na skici kolona ispadne šira od 120 cm, podelite je na dve uže.
-
-Ceo postupak, korak po korak, opisali smo u tekstu [Program za crtanje ormara](/blog/program-za-crtanje-ormara).
+Orman izrađujemo i isporučujemo u Srbiji. Možete ga dobiti spreman za montažu, sa pripremljenim materijalom (slično IKEA sistemu), ili sa montažom i transportom na teritoriji Beograda i okoline.
 
 ## Česta pitanja
 
-### Da li stolaru treba skica ili nacrt?
+### Da li mi treba nacrt ili je dovoljna skica?
 
-Za procenu cene dovoljna je skica sa merama. Za izradu treba nacrt sa tačnom merom svake ploče.
+Dovoljna je skica sa merama. Nacrt za izradu i spisak ploča za sečenje pravimo mi.
 
-### Mogu li da nacrtam skicu ormara na telefonu?
+### Kako da pošaljem skicu ormara?
 
-Možete da je nacrtate direktno u [konfiguratoru](/design), radi i na telefonu. Tako odmah dobijate i cenu.
+Uslikajte je telefonom i pošaljite na [info@ormanipomeri.com](mailto:info@ormanipomeri.com). Napišite i gde orman ide i da li vam treba montaža.
 
 ### Koliko košta orman sa moje skice?
 
-Prepišite mere sa skice u konfigurator i cena se pojavi odmah, pre bilo kakve porudžbine.
+Najbrže je da mere sa skice upišete u [konfigurator](/design), cena se pojavi odmah. Ako skicu pošaljete nama, cenu vam javimo uz dizajn.
 
-[Prepišite svoju skicu u konfigurator](/design).`,
+Pošaljite skicu na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili je [prepišite u konfigurator](/design).`,
   },
 ];
 
