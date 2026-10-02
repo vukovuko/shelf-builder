@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export function BlogContent({ content }: { content: string }) {
   const paragraphs = content.split("\n\n");
 
@@ -5,6 +7,23 @@ export function BlogContent({ content }: { content: string }) {
     <div className="space-y-6 text-foreground/70 leading-relaxed">
       {paragraphs.map((block, i) => {
         const trimmed = block.trim();
+
+        // ![alt](/path) on its own line. Article images are exported at
+        // 1600×840 (the share-image ratio) and only from this site.
+        const image = trimmed.match(/^!\[(.+?)\]\((\/[^)\s]+)\)$/);
+        if (image) {
+          return (
+            <Image
+              key={i}
+              src={image[2]}
+              alt={image[1]}
+              width={1600}
+              height={840}
+              sizes="(min-width: 768px) 768px, 100vw"
+              className="h-auto w-full rounded-xl border"
+            />
+          );
+        }
 
         if (trimmed.startsWith("### ")) {
           return (

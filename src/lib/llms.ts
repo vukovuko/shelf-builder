@@ -43,7 +43,7 @@ function facts() {
 - Cena se računa odmah, dok se orman menja: materijali po kvadratnom metru, okov i dodaci.
 - Mere: širina ${WIDTH_RANGE_CM[0]}–${WIDTH_RANGE_CM[1]} cm, visina ${HEIGHT_RANGE_CM[0]}–${HEIGHT_RANGE_CM[1]} cm, dubina ${DEPTH_RANGE_CM[0]}–${DEPTH_RANGE_CM[1]} cm. Jedna kolona je široka ${MIN_COLUMN_WIDTH_CM}–${MAX_SEGMENT_X_CM} cm.
 - Ormani viši od 200 cm prave se od dva modula, donjeg i gornjeg.
-- Uz dizajn se preuzima tehnički crtež i PDF specifikacija.
+- Uz dizajn se preuzima tehnički crtež 2D sa merama.
 - Načini isporuke:
 ${services}
 - Posle porudžbine stiže potvrda i faktura sa IPS QR kodom za plaćanje. Tim pregleda porudžbinu i javlja se kupcu pre izrade.`;
