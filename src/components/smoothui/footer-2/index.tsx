@@ -69,7 +69,7 @@ export function FooterComplex({
     {
       platform: "linkedin",
       label: "LinkedIn",
-      url: "https://www.linkedin.com/in/vuko-vukasinovic/",
+      url: "https://www.linkedin.com/company/ormani-po-meri/",
     },
   ],
   copyright = `© ${new Date().getFullYear()} Ormani po meri. Sva prava zadržana.`,
