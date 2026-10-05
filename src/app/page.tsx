@@ -7,6 +7,7 @@ import { StatsCards } from "@/components/smoothui/stats-2";
 import { TestimonialsStars } from "@/components/smoothui/testimonials";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { COMPANY_SOCIALS } from "@/lib/company-socials";
 import { faqJsonLd } from "@/lib/faq-data";
 import { LinkPending } from "@/components/PendingContent";
 
@@ -26,10 +27,7 @@ const organizationJsonLd = {
   image: `${baseUrl}/ormani-po-meri-logo.webp`,
   description:
     "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
-  sameAs: [
-    "https://www.instagram.com/ormani_po_meri_com/",
-    "https://www.linkedin.com/company/ormani-po-meri/",
-  ],
+  sameAs: COMPANY_SOCIALS.map((profile) => profile.url),
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Usluge",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SocialIcon, type SocialLink } from "@/components/SocialIcons";
+import { COMPANY_SOCIALS } from "@/lib/company-socials";
 
 interface FooterComplexProps {
   companyName?: string;
@@ -55,23 +56,7 @@ export function FooterComplex({
       { name: "Uslovi korišćenja", url: "/terms" },
     ],
   },
-  social = [
-    {
-      platform: "facebook",
-      label: "Facebook",
-      url: "https://www.facebook.com/vuko.vukasinovic/",
-    },
-    {
-      platform: "instagram",
-      label: "Instagram",
-      url: "https://www.instagram.com/ormani_po_meri_com/",
-    },
-    {
-      platform: "linkedin",
-      label: "LinkedIn",
-      url: "https://www.linkedin.com/company/ormani-po-meri/",
-    },
-  ],
+  social = COMPANY_SOCIALS,
   copyright = `© ${new Date().getFullYear()} Ormani po meri. Sva prava zadržana.`,
 }: FooterComplexProps) {
   return (
