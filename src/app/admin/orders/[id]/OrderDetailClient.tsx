@@ -363,6 +363,9 @@ export function OrderDetailClient({
   const doorSettingsMode = useShelfStore(
     (state: ShelfState) => state.doorSettingsMode,
   );
+  // Sliding door panels are cut from boards, so the cut list (CSV, PDF) needs
+  // this flag just like checkout's pricing does.
+  const slidingDoors = useShelfStore((state: ShelfState) => state.slidingDoors);
 
   // Calculate cut list from store state for PDF export (has grouped property)
   const calculatedCutList = useMemo(
@@ -392,6 +395,7 @@ export function OrderDetailClient({
           globalHandleId,
           globalHandleFinish,
           doorSettingsMode,
+          slidingDoors,
         },
         materials,
         [],
@@ -422,6 +426,7 @@ export function OrderDetailClient({
       doorSettingsMode,
       materials,
       accessoryRules,
+      slidingDoors,
     ],
   );
 

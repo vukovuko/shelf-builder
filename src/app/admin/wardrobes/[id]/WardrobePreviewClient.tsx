@@ -306,6 +306,9 @@ export function WardrobePreviewClient({
   const doorSettingsMode = useShelfStore(
     (state: ShelfState) => state.doorSettingsMode,
   );
+  // Sliding door panels are cut from boards, so the cut list (CSV, PDF) needs
+  // this flag just like checkout's pricing does.
+  const slidingDoors = useShelfStore((state: ShelfState) => state.slidingDoors);
 
   // Calculate cut list from store state for PDF export
   const cutList = useMemo(
@@ -333,6 +336,7 @@ export function WardrobePreviewClient({
           globalHandleId,
           globalHandleFinish,
           doorSettingsMode,
+          slidingDoors,
         },
         materials,
         [],
@@ -361,6 +365,7 @@ export function WardrobePreviewClient({
       doorSettingsMode,
       materials,
       accessoryRules,
+      slidingDoors,
     ],
   );
 
