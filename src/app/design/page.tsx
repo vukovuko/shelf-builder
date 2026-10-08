@@ -6,9 +6,18 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import {
+  autosaveDesignDraft,
+  clearDesignDraft,
+  readDesignDraft,
+} from "@/lib/design-draft";
 import { type ShelfState, useShelfStore } from "@/lib/store";
 
 // Separate component for URL param handling - wrapped in Suspense
+// A quick reload brings the design back silently; after a longer break the
+// toast also offers a fresh start.
+const DRAFT_NOTICE_AFTER_MS = 60 * 60 * 1000;
+
 function LoadFromUrl() {
   const searchParams = useSearchParams();
   const loadId = searchParams.get("load");
@@ -133,6 +142,7 @@ export default function DesignPage({
   // State persistence: Restore from localStorage on mount
   // Priority: 1. URL load param (handled by LoadFromUrl)
   //           2. pendingWardrobeState (login flow)
+  //           3. the autosaved draft (lib/design-draft)
   useEffect(() => {
     if (hasRestoredState) return;
 
@@ -162,8 +172,32 @@ export default function DesignPage({
       }
     }
 
+    const draft = readDesignDraft();
+    if (draft) {
+      // The store can still hold a design from another page (order previews
+      // use it), so start clean before applying the draft.
+      useShelfStore.getState().resetToDefaults();
+      applyWardrobeSnapshot(draft.snapshot);
+      if (Date.now() - draft.savedAt > DRAFT_NOTICE_AFTER_MS) {
+        toast("Vraćen je vaš poslednji dizajn", {
+          action: {
+            label: "Novi dizajn",
+            onClick: () => {
+              useShelfStore.getState().resetToDefaults();
+              clearDesignDraft();
+            },
+          },
+        });
+      }
+    }
+
     setHasRestoredState(true);
   }, [hasRestoredState, isLoggedIn]);
+
+  useEffect(() => {
+    if (!hasRestoredState) return;
+    return autosaveDesignDraft();
+  }, [hasRestoredState]);
 
   // The overlay lifts on the scene's first frame (onReady below); this only
   // guarantees it never hides a WebGL error screen.
