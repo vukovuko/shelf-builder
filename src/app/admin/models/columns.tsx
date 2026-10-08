@@ -177,4 +177,29 @@ export const columns: ColumnDef<Model>[] = [
     },
     enableSorting: false,
   },
+  {
+    id: "cutList",
+    header: () => <div className="text-center">Daske</div>,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as
+        | { onExportCutList?: (id: string) => void }
+        | undefined;
+
+      return (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              meta?.onExportCutList?.(row.original.id);
+            }}
+          >
+            CSV
+          </Button>
+        </div>
+      );
+    },
+    enableSorting: false,
+  },
 ];

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { Download, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { exportCutListAsCsv, exportDesignsCutListAsCsv } from "@/lib/exportCsv";
+import { cutListForSavedDesign } from "@/lib/model-cut-list";
 import { cn } from "@/lib/utils";
 import { columns, type Model } from "./columns";
 
@@ -44,6 +46,7 @@ export function ModelsClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedModels, setSelectedModels] = useState<Model[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -123,6 +126,42 @@ export function ModelsClient({
     }
   }
 
+  // Boards of the given models (all models without ids) in the CNC CSV
+  // format, for checking against known-good exports. One model gives exactly
+  // the order page's file; several share one file with a "Model" column.
+  async function exportCutLists(ids?: string[]) {
+    setIsExporting(true);
+    try {
+      const query = ids?.length ? `?ids=${ids.join(",")}` : "";
+      const res = await fetch(`/api/admin/models/cut-list-data${query}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { models: designs, materials, accessoryRules } = await res.json();
+      const cutLists = designs.map(
+        (design: { name: string; data: unknown }) => ({
+          name: design.name,
+          items: cutListForSavedDesign(design.data, materials, accessoryRules)
+            .items,
+        }),
+      );
+      if (cutLists.length === 0) {
+        toast.error("Nema modela za izvoz");
+      } else if (cutLists.length === 1) {
+        exportCutListAsCsv(
+          cutLists[0].items,
+          `${cutLists[0].name}-cut-list.csv`,
+        );
+      } else {
+        const day = new Date().toISOString().slice(0, 10);
+        exportDesignsCutListAsCsv(cutLists, `modeli-cut-list-${day}.csv`);
+      }
+    } catch (error) {
+      console.error("Cut list export failed:", error);
+      toast.error("Izvoz nije uspeo");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   async function handleTogglePublish(id: string, value: boolean) {
     try {
       const res = await fetch(`/api/admin/wardrobes/${id}`, {
@@ -145,11 +184,21 @@ export function ModelsClient({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold">Modeli</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Predlošci ormana za korisnike
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Modeli</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Predlošci ormana za korisnike
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => exportCutLists()}
+          disabled={isExporting}
+        >
+          <Download className="h-4 w-4" />
+          {isExporting ? "Izvozim…" : "Daske svih modela (CSV)"}
+        </Button>
       </div>
       <DataTable
         columns={columns}
@@ -165,7 +214,10 @@ export function ModelsClient({
         onRowClick={(model) => router.push(`/design?load=${model.id}`)}
         enableRowSelection
         getRowId={(model) => model.id}
-        meta={{ onTogglePublish: handleTogglePublish }}
+        meta={{
+          onTogglePublish: handleTogglePublish,
+          onExportCutList: (id: string) => exportCutLists([id]),
+        }}
         bulkActions={(selected) => (
           <div
             className={cn(
@@ -185,6 +237,11 @@ export function ModelsClient({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => exportCutLists(selected.map((m) => m.id))}
+                >
+                  Izvezi daske (CSV)
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
                   onClick={() => {

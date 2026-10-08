@@ -145,29 +145,22 @@ function buildGroupedCncRows(items: CutListItem[]): GroupedCncRow[] {
     });
 }
 
-/**
- * Export cut list items to CSV file
- * @param items - Array of cut list items
- * @param filename - Output filename (default: "cut-list.csv")
- */
-export function exportCutListAsCsv(
-  items: CutListItem[],
-  filename = "cut-list.csv",
-): void {
-  const headers = [
-    "Šifra",
-    "Naziv",
-    "Dužina",
-    "KD1",
-    "KD2",
-    "Širina",
-    "KŠ1",
-    "KŠ2",
-    "Kom",
-    "T",
-    "Napomena",
-  ];
-  const rows = buildGroupedCncRows(items).map((row) => [
+const CNC_HEADERS = [
+  "Šifra",
+  "Naziv",
+  "Dužina",
+  "KD1",
+  "KD2",
+  "Širina",
+  "KŠ1",
+  "KŠ2",
+  "Kom",
+  "T",
+  "Napomena",
+];
+
+function cncRowValues(row: GroupedCncRow): string[] {
+  return [
     row.sifra,
     row.naziv,
     formatDimension(row.duzina),
@@ -179,15 +172,51 @@ export function exportCutListAsCsv(
     String(row.kom),
     String(row.t),
     row.napomena,
-  ]);
+  ];
+}
 
+function toCsv(headers: string[], rows: string[][]): string {
   // Add BOM for Excel UTF-8 compatibility
   const bom = "\uFEFF";
-  const csv =
+  return (
     bom +
     [
       headers.join(";"),
       ...rows.map((row) => row.map((value) => escapeCsvValue(value)).join(";")),
-    ].join("\n");
-  downloadFile(csv, filename, "text/csv;charset=utf-8;");
+    ].join("\n")
+  );
+}
+
+/**
+ * Export cut list items to CSV file
+ * @param items - Array of cut list items
+ * @param filename - Output filename (default: "cut-list.csv")
+ */
+export function exportCutListAsCsv(
+  items: CutListItem[],
+  filename = "cut-list.csv",
+): void {
+  const rows = buildGroupedCncRows(items).map(cncRowValues);
+  downloadFile(toCsv(CNC_HEADERS, rows), filename, "text/csv;charset=utf-8;");
+}
+
+/**
+ * Several designs in one file: the same columns as exportCutListAsCsv with a
+ * leading "Model" column, designs in the order given.
+ */
+export function exportDesignsCutListAsCsv(
+  designs: { name: string; items: CutListItem[] }[],
+  filename: string,
+): void {
+  const rows = designs.flatMap((design) =>
+    buildGroupedCncRows(design.items).map((row) => [
+      design.name,
+      ...cncRowValues(row),
+    ]),
+  );
+  downloadFile(
+    toCsv(["Model", ...CNC_HEADERS], rows),
+    filename,
+    "text/csv;charset=utf-8;",
+  );
 }
