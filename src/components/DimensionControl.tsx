@@ -1,11 +1,12 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { useTypedNumber } from "@/hooks/use-typed-number";
 
 interface DimensionControlProps {
   label: string;
@@ -25,18 +26,7 @@ export function DimensionControl({
   step,
 }: DimensionControlProps) {
   const inputId = useId();
-  // What the user is typing. Clamping every keystroke made typing impossible
-  // ("1" of "150" became the minimum), so the field holds the raw text while
-  // focused and clamps only on blur or Enter.
-  const [draft, setDraft] = useState<string | null>(null);
-
-  const commit = (raw: string) => {
-    const typed = Number(raw);
-    if (raw.trim() !== "" && Number.isFinite(typed)) {
-      setValue(Math.max(min, Math.min(max, Math.round(typed))));
-    }
-    setDraft(null);
-  };
+  const field = useTypedNumber({ value, min, max, onValue: setValue });
   const handleDecrement = () => setValue(Math.max(min, value - step));
   const handleIncrement = () => setValue(Math.min(max, value + step));
 
@@ -74,28 +64,8 @@ export function DimensionControl({
         <div className="relative">
           <Input
             id={inputId}
-            type="number"
-            inputMode="numeric"
-            value={draft ?? value}
-            min={min}
-            max={max}
+            {...field}
             step={step}
-            onFocus={(e) => {
-              setDraft(String(value));
-              e.target.select();
-            }}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setDraft(raw);
-              // A valid number shows up in 3D right away; out-of-range ones
-              // wait for blur so "1" on the way to "150" doesn't jump to 50.
-              const typed = Number(raw);
-              if (raw !== "" && typed >= min && typed <= max) setValue(typed);
-            }}
-            onBlur={(e) => commit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
             className="w-24 text-center pr-8 bg-input border-border"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

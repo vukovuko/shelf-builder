@@ -2,6 +2,7 @@
 
 import { Html } from "@react-three/drei";
 import { useRef, useState, useEffect, useCallback } from "react";
+import { TypedNumberInput } from "@/components/TypedNumberInput";
 import { useShelfStore, type ShelfState, type Material } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
@@ -608,15 +609,9 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   >
                     -
                   </button>
-                  <input
-                    type="number"
+                  <TypedNumberInput
                     value={bottomModuleHeightCm}
-                    onChange={(e) =>
-                      handleModuleHeightChange(
-                        "bottom",
-                        parseInt(e.target.value) || 0,
-                      )
-                    }
+                    onValue={(cm) => handleModuleHeightChange("bottom", cm)}
                     min={minModuleHeightCm}
                     max={Math.min(
                       maxModuleHeightCm,
@@ -767,15 +762,9 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   >
                     -
                   </button>
-                  <input
-                    type="number"
+                  <TypedNumberInput
                     value={topModuleHeightCm}
-                    onChange={(e) =>
-                      handleModuleHeightChange(
-                        "top",
-                        parseInt(e.target.value) || 0,
-                      )
-                    }
+                    onValue={(cm) => handleModuleHeightChange("top", cm)}
                     min={minModuleHeightCm}
                     max={Math.min(
                       maxModuleHeightCm,
