@@ -15,6 +15,11 @@ interface DimensionLines3DProps {
   columnModuleBoundaries: Record<number, number | null>;
 }
 
+// The width lines sit below floor level (y < 0), where the floor hid them.
+// Dimension lines skip the depth test and draw last, so they stay visible
+// like their HTML labels.
+const ON_TOP = { depthTest: false, renderOrder: 10 } as const;
+
 /**
  * 3D Dimension Lines (Kotiranje)
  * Shows outer dimensions with white lines and labels
@@ -62,6 +67,7 @@ export function DimensionLines3D({
       <group>
         {/* Main vertical line */}
         <Line
+          {...ON_TOP}
           points={[
             [-w / 2 - mainOffset, 0, zFront] as Vector3Tuple,
             [-w / 2 - mainOffset, h, zFront] as Vector3Tuple,
@@ -71,6 +77,7 @@ export function DimensionLines3D({
         />
         {/* Bottom tick */}
         <Line
+          {...ON_TOP}
           points={[
             [-w / 2 - mainOffset - tickSize, 0, zFront] as Vector3Tuple,
             [-w / 2 - mainOffset + tickSize, 0, zFront] as Vector3Tuple,
@@ -80,6 +87,7 @@ export function DimensionLines3D({
         />
         {/* Top tick */}
         <Line
+          {...ON_TOP}
           points={[
             [-w / 2 - mainOffset - tickSize, h, zFront] as Vector3Tuple,
             [-w / 2 - mainOffset + tickSize, h, zFront] as Vector3Tuple,
@@ -116,6 +124,7 @@ export function DimensionLines3D({
         <group>
           {/* Vertical line for base */}
           <Line
+            {...ON_TOP}
             points={[
               [-w / 2 - baseOffset, 0, zFront] as Vector3Tuple,
               [-w / 2 - baseOffset, baseH, zFront] as Vector3Tuple,
@@ -125,6 +134,7 @@ export function DimensionLines3D({
           />
           {/* Bottom tick */}
           <Line
+            {...ON_TOP}
             points={[
               [-w / 2 - baseOffset - tickSize / 2, 0, zFront] as Vector3Tuple,
               [-w / 2 - baseOffset + tickSize / 2, 0, zFront] as Vector3Tuple,
@@ -134,6 +144,7 @@ export function DimensionLines3D({
           />
           {/* Top tick */}
           <Line
+            {...ON_TOP}
             points={[
               [
                 -w / 2 - baseOffset - tickSize / 2,
@@ -176,6 +187,7 @@ export function DimensionLines3D({
       <group>
         {/* Main horizontal line */}
         <Line
+          {...ON_TOP}
           points={[
             [-w / 2, -bottomOffset, zFront] as Vector3Tuple,
             [w / 2, -bottomOffset, zFront] as Vector3Tuple,
@@ -185,6 +197,7 @@ export function DimensionLines3D({
         />
         {/* Left tick */}
         <Line
+          {...ON_TOP}
           points={[
             [-w / 2, -bottomOffset - tickSize, zFront] as Vector3Tuple,
             [-w / 2, -bottomOffset + tickSize, zFront] as Vector3Tuple,
@@ -194,6 +207,7 @@ export function DimensionLines3D({
         />
         {/* Right tick */}
         <Line
+          {...ON_TOP}
           points={[
             [w / 2, -bottomOffset - tickSize, zFront] as Vector3Tuple,
             [w / 2, -bottomOffset + tickSize, zFront] as Vector3Tuple,
@@ -234,6 +248,7 @@ export function DimensionLines3D({
             return (
               <group key={`col-width-${index}`}>
                 <Line
+                  {...ON_TOP}
                   points={[
                     [x0, -columnOffset, zFront] as Vector3Tuple,
                     [x1, -columnOffset, zFront] as Vector3Tuple,
@@ -242,6 +257,7 @@ export function DimensionLines3D({
                   lineWidth={1}
                 />
                 <Line
+                  {...ON_TOP}
                   points={[
                     [x0, -columnOffset - tickSize / 2, zFront] as Vector3Tuple,
                     [x0, -columnOffset + tickSize / 2, zFront] as Vector3Tuple,
@@ -250,6 +266,7 @@ export function DimensionLines3D({
                   lineWidth={1}
                 />
                 <Line
+                  {...ON_TOP}
                   points={[
                     [x1, -columnOffset - tickSize / 2, zFront] as Vector3Tuple,
                     [x1, -columnOffset + tickSize / 2, zFront] as Vector3Tuple,
@@ -354,6 +371,7 @@ export function DimensionLines3D({
       <group>
         {/* Main horizontal line (along Z axis) */}
         <Line
+          {...ON_TOP}
           points={[
             [w / 2 + sideOffset, 0, -d / 2] as Vector3Tuple,
             [w / 2 + sideOffset, 0, d / 2] as Vector3Tuple,
@@ -363,6 +381,7 @@ export function DimensionLines3D({
         />
         {/* Back tick */}
         <Line
+          {...ON_TOP}
           points={[
             [w / 2 + sideOffset - tickSize, 0, -d / 2] as Vector3Tuple,
             [w / 2 + sideOffset + tickSize, 0, -d / 2] as Vector3Tuple,
@@ -372,6 +391,7 @@ export function DimensionLines3D({
         />
         {/* Front tick */}
         <Line
+          {...ON_TOP}
           points={[
             [w / 2 + sideOffset - tickSize, 0, d / 2] as Vector3Tuple,
             [w / 2 + sideOffset + tickSize, 0, d / 2] as Vector3Tuple,
