@@ -6,8 +6,8 @@ import { getPostHogServer } from "./posthog-server";
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
-// noreply@ has no inbox; info@ is forwarded to the team (Cloudflare Email
-// Routing), so a customer who answers an order email reaches a person.
+// noreply@ has no inbox; info@ is the team's shared address in Zoho Mail, so
+// a customer who answers an order email reaches a person.
 export const REPLY_TO_EMAIL = "Ormani po meri <info@ormanipomeri.com>";
 
 // Serial queue for all Resend calls from this instance, spaced to stay under
