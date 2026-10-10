@@ -6,20 +6,40 @@ import {
   materialSlug,
 } from "@/lib/material-pages";
 
-export function MaterialCard({ material }: { material: MaterialPageData }) {
-  const name = cleanMaterialName(material.name);
+/** What a material card shows, ready to render on the server or the client. */
+export interface MaterialCardData {
+  id: number;
+  href: string;
+  name: string;
+  code: string | null;
+  price: number;
+  img: string | null;
+}
+
+export function toMaterialCard(material: MaterialPageData): MaterialCardData {
+  return {
+    id: material.id,
+    href: `/materijali/${materialSlug(material)}`,
+    name: cleanMaterialName(material.name),
+    code: material.productCode,
+    price: material.price,
+    img: material.img,
+  };
+}
+
+export function MaterialCard({ card }: { card: MaterialCardData }) {
   return (
     <Link
-      href={`/materijali/${materialSlug(material)}`}
-      className="group block"
+      href={card.href}
+      className="group block [contain-intrinsic-size:auto_260px] [content-visibility:auto]"
     >
       <div className="aspect-square overflow-hidden rounded-xl border bg-muted">
-        {material.img && (
+        {card.img && (
           // Straight from R2 like the configurator's picker: 500+ decors
           // through the Next optimizer would use up the Vercel image quota.
           <img
-            src={material.img}
-            alt={`Dekor ${name}`}
+            src={card.img}
+            alt={`Dekor ${card.name}`}
             width={1000}
             height={1000}
             loading="lazy"
@@ -29,11 +49,11 @@ export function MaterialCard({ material }: { material: MaterialPageData }) {
         )}
       </div>
       <p className="mt-2 text-sm font-medium leading-snug group-hover:text-primary">
-        {name}
+        {card.name}
       </p>
-      <p className="text-xs text-muted-foreground">{material.productCode}</p>
+      <p className="text-xs text-muted-foreground">{card.code}</p>
       <p className="text-xs text-muted-foreground">
-        {formatPricePerM2(material.price)}
+        {formatPricePerM2(card.price)}
       </p>
     </Link>
   );

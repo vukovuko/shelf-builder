@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { MaterialCard } from "@/components/MaterialCard";
+import { MaterialCard, toMaterialCard } from "@/components/MaterialCard";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,7 @@ export default async function MaterialPage({ params }: Props) {
               <h2 className="text-xl font-semibold">Slični dekori</h2>
               <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
                 {similar.map((m) => (
-                  <MaterialCard key={m.id} material={m} />
+                  <MaterialCard key={m.id} card={toMaterialCard(m)} />
                 ))}
               </div>
             </section>

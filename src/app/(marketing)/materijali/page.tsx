@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
-import { MaterialCard } from "@/components/MaterialCard";
+import { toMaterialCard } from "@/components/MaterialCard";
+import {
+  type BrowserMaterial,
+  MaterialsBrowser,
+} from "@/components/MaterialsBrowser";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
-import { MATERIAL_PAGES_INDEXED, materialKind } from "@/lib/material-pages";
+import {
+  foldForSearch,
+  MATERIAL_PAGES_INDEXED,
+  materialBrand,
+  materialKind,
+} from "@/lib/material-pages";
 import { getPublicMaterials } from "@/lib/material-pages-data";
 
 // Materials change from the admin; an hour old is fine for these pages.
@@ -20,13 +29,19 @@ export const metadata: Metadata = {
 
 export default async function MaterialsPage() {
   const all = await getPublicMaterials();
-  const sections = [
-    { title: "Ploče", items: all.filter((m) => materialKind(m) === "board") },
-    {
-      title: "Leđa ormana",
-      items: all.filter((m) => materialKind(m) === "back"),
-    },
-  ].filter((section) => section.items.length > 0);
+  const items: BrowserMaterial[] = all.flatMap((material) => {
+    const kind = materialKind(material);
+    if (!kind) return [];
+    const card = toMaterialCard(material);
+    const brand = materialBrand(material) ?? "";
+    return [
+      {
+        ...card,
+        kind,
+        search: foldForSearch(`${card.name} ${card.code ?? ""} ${brand}`),
+      },
+    ];
+  });
 
   return (
     <div className="relative">
@@ -36,21 +51,7 @@ export default async function MaterialsPage() {
           <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">
             Materijali
           </h1>
-          {sections.map((section) => (
-            <section key={section.title} className="mt-12">
-              <h2 className="text-xl font-semibold">
-                {section.title}{" "}
-                <span className="font-normal text-muted-foreground">
-                  ({section.items.length})
-                </span>
-              </h2>
-              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                {section.items.map((material) => (
-                  <MaterialCard key={material.id} material={material} />
-                ))}
-              </div>
-            </section>
-          ))}
+          <MaterialsBrowser items={items} />
         </div>
       </main>
       <FooterComplex />

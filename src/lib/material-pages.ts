@@ -46,12 +46,17 @@ export function cleanMaterialName(raw: string): string {
   return kept.map(titleWord).join(" ");
 }
 
-function slugify(text: string): string {
+/** Lowercase without diacritics, so "šerman" matches "serman". */
+export function foldForSearch(text: string): string {
   return text
     .toLowerCase()
     .replace(/đ/g, "dj")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{M}/gu, "");
+}
+
+function slugify(text: string): string {
+  return foldForSearch(text)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
