@@ -12,6 +12,7 @@ import { LinkPending } from "@/components/PendingContent";
 const menuItems: { id: string; name: string; href: string }[] = [
   { id: "home", name: "Početna", href: "/" },
   { id: "design", name: "Konfigurator", href: "/design" },
+  { id: "materials", name: "Materijali", href: "/materijali" },
   { id: "blog", name: "Blog", href: "/blog" },
   { id: "contact", name: "Kontakt", href: "/contact" },
 ];

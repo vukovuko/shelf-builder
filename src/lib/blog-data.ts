@@ -80,7 +80,7 @@ U konfiguratoru možete prevlačenjem podesiti širinu svake kolone individualno
 
 ## 3. Izaberite materijal
 
-Materijal utiče na izgled, trajnost i cenu ormana. U konfiguratoru birate između više od 500 dekora:
+Materijal utiče na izgled, trajnost i cenu ormana. U konfiguratoru birate između [više od 500 dekora](/materijali):
 
 - **Iveral (iverica)** — najpopularniji izbor. Dostupan u mnogo dekora, od jednobojnih do imitacije drveta. Odličan odnos cene i kvaliteta.
 - **MDF (medijapan)** — glatka površina, idealan za lakiranje. Nešto skuplji od iverala.
@@ -430,7 +430,7 @@ Orman se deli na kolone široke od 20 do 120 cm. Granicu između dve kolone pome
 
 ### 3. Materijal
 
-Za korpus i vrata birate između više od 500 dekora ploča debljine 18 mm, a za leđa između 15 vrsta lesonita. Svaki dekor ima svoju cenu po kvadratnom metru, pa se ukupna cena promeni čim promenite materijal.
+Za korpus i vrata birate između [više od 500 dekora](/materijali) ploča debljine 18 mm, a za leđa između 15 vrsta lesonita. Svaki dekor ima svoju cenu po kvadratnom metru, pa se ukupna cena promeni čim promenite materijal.
 
 ### 4. Baza
 
@@ -512,7 +512,7 @@ Visok orman ima još jedan problem: sklapa se dok leži, pa mora da se podigne. 
 
 Ceo orman može biti širok od 50 do 400 cm, visok od 50 do 280 cm i dubok od 20 do 100 cm. Jedna kolona je široka od 20 do 120 cm. Ako vam na skici kolona ispadne šira, podelimo je na dve uže.
 
-Za ploče birate između više od 500 dekora debljine 18 mm. Kako da sami nacrtate orman korak po korak opisali smo u tekstu [Program za crtanje ormara](/blog/program-za-crtanje-ormara).
+Za ploče birate između [više od 500 dekora](/materijali) debljine 18 mm. Kako da sami nacrtate orman korak po korak opisali smo u tekstu [Program za crtanje ormara](/blog/program-za-crtanje-ormara).
 
 ## Isporuka i montaža
 
