@@ -5,12 +5,18 @@ import type React from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scene } from "@/components/Scene";
-import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import {
   autosaveDesignDraft,
   clearDesignDraft,
   readDesignDraft,
 } from "@/lib/design-draft";
+import {
+  isBackMaterialCategory,
+  isFrontMaterialCategory,
+  isKorpusMaterialCategory,
+} from "@/lib/material-categories";
+import { cleanMaterialName } from "@/lib/material-pages";
+import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { type ShelfState, useShelfStore } from "@/lib/store";
 
 // Separate component for URL param handling - wrapped in Suspense
@@ -198,6 +204,38 @@ export default function DesignPage({
     if (!hasRestoredState) return;
     return autosaveDesignDraft();
   }, [hasRestoredState]);
+
+  // Material pages (/materijali) link here with ?material=<id>: the restored
+  // design switches to that decor. Waits for the material list, which the
+  // layout puts in the store after this page's first effects run.
+  const storeMaterials = useShelfStore((s: ShelfState) => s.materials);
+  const materialParamHandled = useRef(false);
+  useEffect(() => {
+    if (!hasRestoredState || materialParamHandled.current) return;
+    if (storeMaterials.length === 0) return;
+    materialParamHandled.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("material"));
+    if (!id) return;
+    const material = storeMaterials.find((m) => m.id === id);
+    if (material) {
+      const st = useShelfStore.getState();
+      if (material.categories.some(isBackMaterialCategory)) {
+        st.setSelectedBackMaterialId(id);
+      } else {
+        if (material.categories.some(isKorpusMaterialCategory)) {
+          st.setSelectedMaterialId(id);
+        }
+        if (material.categories.some(isFrontMaterialCategory)) {
+          st.setSelectedFrontMaterialId(id);
+        }
+      }
+      toast.success(`Izabran dekor ${cleanMaterialName(material.name)}`);
+    }
+    params.delete("material");
+    const rest = params.toString();
+    window.history.replaceState({}, "", rest ? `/design?${rest}` : "/design");
+  }, [hasRestoredState, storeMaterials]);
 
   // The overlay lifts on the scene's first frame (onReady below); this only
   // guarantees it never hides a WebGL error screen.

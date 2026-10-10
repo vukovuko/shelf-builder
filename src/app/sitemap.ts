@@ -1,7 +1,37 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
+import { MATERIAL_PAGES_INDEXED, materialSlug } from "@/lib/material-pages";
+import { getPublicMaterials } from "@/lib/material-pages-data";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// Picks up materials added in the admin.
+export const revalidate = 3600;
+
+async function materialEntries(
+  baseUrl: string,
+): Promise<MetadataRoute.Sitemap> {
+  if (!MATERIAL_PAGES_INDEXED) return [];
+  try {
+    const all = await getPublicMaterials();
+    return [
+      {
+        url: `${baseUrl}/materijali`,
+        changeFrequency: "weekly",
+        priority: 0.7,
+      },
+      ...all.map((material) => ({
+        url: `${baseUrl}/materijali/${materialSlug(material)}`,
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
+      })),
+    ];
+  } catch (error) {
+    // A database hiccup shouldn't drop the rest of the sitemap.
+    console.error("sitemap: materials unavailable", error);
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
 
@@ -36,6 +66,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     ...blogEntries,
+    ...(await materialEntries(baseUrl)),
     {
       url: `${baseUrl}/contact`,
       lastModified: new Date("2026-03-10"),
