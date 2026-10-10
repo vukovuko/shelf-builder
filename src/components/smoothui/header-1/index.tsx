@@ -62,7 +62,7 @@ function SubGrid() {
   );
 
   return (
-    <div className={styles.subgrid} style={{ pointerEvents: "none" }}>
+    <div className={styles.subgrid}>
       {[0, 1, 2, 3].map((cellIdx) => (
         <div
           className={styles.cell}
@@ -94,15 +94,19 @@ function InteractiveGrid() {
   }, []);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
     updateGrid();
+    // The hero's size changes without a window resize too (fonts loading,
+    // the mobile address bar changing the viewport height).
     let rafId = 0;
-    function onResize() {
+    const observer = new ResizeObserver(() => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(updateGrid);
-    }
-    window.addEventListener("resize", onResize);
+    });
+    observer.observe(container);
     return () => {
-      window.removeEventListener("resize", onResize);
+      observer.disconnect();
       cancelAnimationFrame(rafId);
     };
   }, [updateGrid]);
@@ -112,7 +116,7 @@ function InteractiveGrid() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-0"
+      className="absolute inset-0 z-0"
       ref={containerRef}
       style={{ width: "100%", height: "100%" }}
     >
@@ -141,10 +145,12 @@ export function HeroGrid() {
     <div className="relative">
       <HeroHeader />
       <div>
-        <section className="relative overflow-hidden py-24 lg:py-36">
+        <section className="relative flex min-h-svh items-center overflow-hidden py-24 lg:py-36">
           {/* Interactive animated grid background */}
           <InteractiveGrid />
-          <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+          {/* The text lets the pointer through to the grid behind it; only
+              the buttons take clicks. */}
+          <div className="pointer-events-none relative z-10 flex w-full flex-col items-center gap-6 text-center">
             <div>
               <h1 className="mb-6 text-pretty font-bold text-3xl tracking-tight lg:text-5xl">
                 Ormani <span className="text-primary">po meri</span>
@@ -155,7 +161,7 @@ export function HeroGrid() {
                 na jednom mestu.
               </p>
             </div>
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="pointer-events-auto mt-6 flex justify-center gap-3">
               <Button asChild variant="outline" size="lg">
                 <a href="#faq">Kako funkcioniše?</a>
               </Button>
