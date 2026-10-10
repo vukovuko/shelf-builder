@@ -41,6 +41,13 @@ const sketchUploadSection = DESIGN_IMPORT_ADMIN_ONLY
 
 `;
 
+// Shown once the written-description import is open to customers.
+const descriptionSection = DESIGN_IMPORT_ADMIN_ONLY
+  ? ""
+  : `Ako ste prijavljeni, opis možete da upišete i pravo u [konfigurator](/design), u polje "Ili opišite orman". Orman se napravi za nekoliko sekundi, a opis može biti na srpskom ili engleskom. Ono što ne može da se izradi konfigurator uskladi sa pravilima izrade i pokaže vam šta je promenio.
+
+`;
+
 export const blogPosts: BlogPost[] = [
   {
     slug: "kako-izabrati-orman-po-meri",
@@ -415,7 +422,7 @@ Koraci su poređani isto kao u [konfiguratoru](/design). Na računaru su u menij
 
 Upišite širinu, visinu i dubinu u centimetrima. Širina može biti od 50 do 400 cm, visina od 50 do 280 cm, a dubina od 20 do 100 cm. Orman viši od 200 cm konfigurator deli na dva modula, donji i gornji.
 
-Pre toga izmerite zid na tri visine i uzmite najmanju meru. Ostale greške pri merenju opisali smo u tekstu [7 grešaka pri naručivanju ormana po meri](/blog/greske-pri-narucivanju-ormana-po-meri).
+Pre toga izmerite zid na tri visine i uzmite najmanju meru. Ostale greške pri merenju opisali smo u tekstu [7 grešaka pri naručivanju ormana po meri](/blog/greske-pri-narucivanju-ormana-po-meri). Koliko dubok treba da bude orman i koliko prostora treba ispod šipke piše u tekstu [Dimenzije ormana](/blog/dimenzije-ormana).
 
 ### 2. Kolone i pregrade
 
@@ -493,7 +500,7 @@ ${sketchUploadSection}Kad poručite, dobijate potvrdu i fakturu sa IPS QR kodom 
 - **Vrata**: krilna, klizna ili bez vrata.
 - **Prepreke**: utičnice, prekidači, radijator, kosi plafon i lajsne. Sve to menja mere ormana, pa mora da bude na skici.
 
-Ne mora da bude lepo nacrtano. Ako nešto na skici nije jasno, pitaćemo vas pre nego što počnemo.
+Ne mora da bude lepo nacrtano. Ako nešto na skici nije jasno, pitaćemo vas pre nego što počnemo. Standardne mere za dubinu, šipku i police su u tekstu [Dimenzije ormana](/blog/dimenzije-ormana).
 
 ## Skica ugradnog ormara
 
@@ -526,6 +533,79 @@ Uslikajte je telefonom i pošaljite na [info@ormanipomeri.com](mailto:info@orman
 Najbrže je da mere sa skice upišete u [konfigurator](/design), cena se pojavi odmah. Ako skicu pošaljete nama, cenu vam javimo uz dizajn.
 
 Pošaljite skicu na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili je [prepišite u konfigurator](/design).`,
+  },
+  {
+    slug: "dimenzije-ormana",
+    title: "Dimenzije ormana: standardne mere i kako da opišete orman po meri",
+    description:
+      "Standardne dimenzije ormana: dubina 60 cm, 130–150 cm ispod šipke, 30–38 cm između polica. I kako da opišete orman u dve rečenice, a mi ga napravimo po meri.",
+    date: "2026-10-10",
+    readTime: "4 min",
+    image: "/blog/dimenzije-ormana.png",
+    content: `Standardni orman je dubok 60 cm, ispod šipke ima 130 do 150 cm za haljine i kapute, a police stoje na 30 do 38 cm jedna od druge. Sa tim merama svoj orman možete da opišete u dve rečenice, a mi ga od tog opisa napravimo po meri.
+
+![Opis ormana od 200 × 240 × 60 cm i isti orman napravljen u konfiguratoru](/blog/dimenzije-ormana.webp)
+
+## Standardne dimenzije ormana
+
+![Skica ormana sa standardnim merama: dubina 60 cm, 130–150 cm ispod šipke, 30–38 cm između polica, fioke 10–40 cm](/blog/dimenzije-ormana-mere.webp)
+
+- **Dubina**: 60 cm za orman u koji kačite odeću. Toliko treba da ofinger stane popreko, a da odeća ne zapinje za vrata. IKEA PAX je dubok 58 cm, a sa vratima 60. Ormanu samo sa policama dovoljno je 30 do 35 cm.
+- **Prostor ispod šipke**: 130 do 150 cm za haljine i kapute, 90 do 100 cm za košulje i sakoe.
+- **Razmak između polica**: 30 do 38 cm za presavijenu odeću. Police za cipele mogu biti gušće, a konfigurator dozvoljava razmak od najmanje 10 cm.
+- **Fioke**: front je visok od 10 do 40 cm. Fioke idu na dno kolone, a police iznad njih.
+- **Širina**: ceo orman od 50 do 400 cm, jedna kolona od 20 do 120 cm. Zato orman od 240 cm ima najmanje dve kolone, a orman od 300 cm najmanje tri.
+- **Visina**: najčešće do plafona, kod nas najviše 280 cm. Orman viši od 200 cm pravimo iz dva modula, donjeg i gornjeg. Zašto, objasnili smo u tekstu [Skica ormara](/blog/skica-ormara-nacrt-za-izradu).
+- **Prostor ispred ormana**: krilnim vratima treba 50 do 60 cm slobodnog poda ispred ormana. Ako ga nemate, izaberite klizna vrata. Orman sa kliznim vratima mora imati najmanje dve kolone.
+
+## Kako da opišete orman
+
+Opis ima dva dela: mere celog ormana i šta ide u koju kolonu. Orman sa slike na početku teksta opisan je ovako: "Orman 200 × 240 × 60 cm, 2 kolone. U levoj šipka za ofingere, u desnoj 5 polica. Dvokrilna vrata."
+
+- **Mere**: širina × visina × dubina, u centimetrima.
+- **Kolone**: koliko ih ima, brojano s leva. Ako nisu iste širine, napišite širinu svake.
+- **Unutrašnjost**: za svaku kolonu napišite koliko polica ima, da li ima šipku i koliko fioka.
+- **Vrata**: krilna, dvokrilna, klizna ili bez vrata.
+
+Kolona koju ne opišete ostaje prazna, pa je posle dopunite u konfiguratoru.
+
+### Orman sa fiokama i kliznim vratima
+
+![Opis ormana sa fiokama i kliznim vratima i orman napravljen po tom opisu](/blog/dimenzije-ormana-fioke.webp)
+
+Širina od 240 cm se deli na dve kolone od po 120 cm. U levoj su fioke na dnu i police iznad njih, a desna je cela za šipku. Orman je visok 260 cm, pa ima gornji modul od 60 cm. Ploča između modula, na 200 cm, služi i kao polica.
+
+### Plitka polica za knjige
+
+![Opis police za knjige dubine 30 cm i polica napravljena po tom opisu](/blog/dimenzije-ormana-polica.webp)
+
+Za knjige je dovoljno 30 cm dubine. Šest polica u visini od 200 cm daje oko 28 cm između polica.
+
+## Pošaljite opis, mi napravimo orman
+
+Opis pošaljite na [info@ormanipomeri.com](mailto:info@ormanipomeri.com). Od njega napravimo orman u konfiguratoru i javimo vam se sa dizajnom i cenom. Mere i raspored možete i sami da upišete u [konfigurator](/design), cena se pojavi odmah.
+
+${descriptionSection}Imate skicu umesto opisa? Pošaljite i nju, kako piše u tekstu [Skica ormara: od crteža na papiru do gotovog ormana po meri](/blog/skica-ormara-nacrt-za-izradu).
+
+## Česta pitanja
+
+### Koja je standardna dubina ormana?
+
+60 cm za orman sa šipkom za ofingere. Orman samo sa policama može biti dubok 30 do 35 cm.
+
+### Koliko prostora treba ispod šipke?
+
+130 do 150 cm za haljine i kapute, 90 do 100 cm za košulje i sakoe.
+
+### Koliko kolona ima orman od 200 cm?
+
+Najčešće dve kolone od po 100 cm. Jedna kolona može biti široka najviše 120 cm, pa orman od 200 cm ne može imati samo jednu.
+
+### Koliko košta orman po meri?
+
+Zavisi od mera, materijala i opreme. Upišite mere u [konfigurator](/design) i cena se pojavi odmah.
+
+Pošaljite opis na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili upišite mere u [konfigurator](/design).`,
   },
 ];
 
