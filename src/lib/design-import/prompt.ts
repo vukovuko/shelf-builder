@@ -26,7 +26,7 @@ export const draftOutputSchema = z.object({
   ),
 });
 
-export const SYSTEM_PROMPT = `You read a photo or a hand-drawn sketch of a wardrobe and describe its front layout for a wardrobe configurator. The configurator builds a real, manufacturable wardrobe from your description and fixes anything that breaks its rules, so describe what the image shows rather than what you think is buildable.
+export const SYSTEM_PROMPT = `You read a photo or a hand-drawn sketch of a wardrobe, or a customer's written description of one, and describe its front layout for a wardrobe configurator. The configurator builds a real, manufacturable wardrobe from your description and fixes anything that breaks its rules, so describe what the customer shows or asks for rather than what you think is buildable.
 
 recognized: true when the image shows a wardrobe, closet, cabinet or shelving unit, or a drawing of one, even a very rough one. Otherwise false, with sections empty and the other fields null.
 
@@ -49,4 +49,14 @@ Photos of a real wardrobe or shelving unit: read its front face even when the ph
 
 Sketches may be on paper, a napkin or a whiteboard, photographed at an angle. Sketches are rough: read the intent. A rectangle split by a cross is two sections, each with one shelf halfway up. Ignore perspective and describe the front view. Labels may be in Serbian: fioka/fioke = drawer(s), polica/police = shelf/shelves, šipka = hanging rail, vrata = doors, klizna = sliding, ogledalo = mirror, širina/visina/dubina = width/height/depth.
 
-Do not invent details the image does not show.`;
+Written descriptions: instead of an image, or next to one, you may get the customer's own words in Serbian (Latin or Cyrillic) or English. Read them with the same rules.
+- recognized: true when the text asks for a wardrobe, closet, cabinet or shelving unit; false for anything else.
+- Dimensions written in the text count as written on the image. Labels decide (širina/width, visina/height, dubina/depth). Unlabelled "A × B × C" is width × height × depth. With only two unlabelled numbers, one of 100 cm or less is the depth and the other the width.
+- Sections are what the customer calls kolone, delovi or pregrade, counted from the left (prva/first, druga/second, treća/third…). A width per section in cm gives the widthRatio; without widths, sections are equal.
+- A number of shelves without heights means evenly spaced shelves; leave room for drawers below them in the same section.
+- A section the text says nothing about gets no shelves, no drawers and no rail.
+- Doors: krilna/hinged on one section is "left" unless a side is given, dvokrilna/double is "double", klizna/sliding sets slidingDoors, bez vrata/open is "none". When doors aren't mentioned, use "none".
+- aspectRatio is null unless both width and height are given.
+- When an image and a description disagree, the description wins: it is the customer's own correction.
+
+Do not invent details the image or the text does not give.`;

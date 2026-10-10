@@ -3,9 +3,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
-import { checkUploadedImage } from "@/lib/design-import/image";
-import { readWardrobeImage } from "@/lib/design-import/read-image";
+import {
+  DESIGN_IMPORT_ADMIN_ONLY,
+  MAX_DESCRIPTION_CHARS,
+} from "@/lib/design-import/config";
+import {
+  checkUploadedImage,
+  type UploadMediaType,
+} from "@/lib/design-import/image";
+import { readWardrobe } from "@/lib/design-import/read-wardrobe";
 import { getPostHogServer } from "@/lib/posthog-server";
 import { isCurrentUserAdmin } from "@/lib/roles";
 import {
@@ -26,7 +32,7 @@ export const maxDuration = 60;
 
 // Across all users: at ~$0.02 per image this bounds the worst day at ~$2.
 const DAILY_BUDGET = 100;
-// "No wardrobe here" results per account per day before uploads pause.
+// "No wardrobe here" results per account per day before requests pause.
 const JUNK_LIMIT = 3;
 
 export async function POST(request: Request) {
@@ -42,13 +48,34 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const image = checkUploadedImage(body?.data, body?.mediaType);
-  if (!image.ok) {
-    return NextResponse.json({ error: image.error }, { status: 400 });
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  if (text.length > MAX_DESCRIPTION_CHARS) {
+    return NextResponse.json(
+      { error: `Opis može imati najviše ${MAX_DESCRIPTION_CHARS} znakova` },
+      { status: 400 },
+    );
   }
+  let image: { data: string; mediaType: UploadMediaType } | undefined;
+  if (body?.data != null) {
+    const checked = checkUploadedImage(body.data, body.mediaType);
+    if (!checked.ok) {
+      return NextResponse.json({ error: checked.error }, { status: 400 });
+    }
+    image = { data: checked.data, mediaType: checked.mediaType };
+  } else if (text.length < 3) {
+    return NextResponse.json(
+      { error: "Pošaljite sliku ili opišite orman" },
+      { status: 400 },
+    );
+  }
+  const failed = image
+    ? "Čitanje slike nije uspelo. Pokušajte ponovo."
+    : "Pravljenje ormana nije uspelo. Pokušajte ponovo.";
 
   const userId = session.user.id;
-  const hash = createHash("sha256").update(image.data).digest("hex");
+  const hash = createHash("sha256")
+    .update(`${image?.data ?? ""}\n${text}`)
+    .digest("hex");
   const known = await recallDesignImport(hash);
   if (known) return NextResponse.json({ draft: known });
 
@@ -56,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Danas ste poslali više slika na kojima nismo prepoznali orman. Pokušajte ponovo sutra.",
+          "Danas ste više puta poslali nešto u čemu nismo prepoznali orman. Pokušajte ponovo sutra.",
       },
       { status: 429 },
     );
@@ -84,14 +111,15 @@ export async function POST(request: Request) {
 
   const started = Date.now();
   try {
-    const reading = await readWardrobeImage(image);
+    const reading = await readWardrobe({ image, text: text || undefined });
     const usage = {
       model: reading.model,
       stopReason: reading.stopReason,
       inputTokens: reading.inputTokens,
       outputTokens: reading.outputTokens,
       estimatedCostUsd: Number(reading.estimatedCostUsd.toFixed(4)),
-      imageBytes: Math.round((image.data.length * 3) / 4),
+      imageBytes: image ? Math.round((image.data.length * 3) / 4) : 0,
+      textChars: text.length,
       durationMs: Date.now() - started,
     };
     console.log("design-import", JSON.stringify({ userId, ...usage }));
@@ -100,7 +128,7 @@ export async function POST(request: Request) {
       event: "design_import_api",
       properties: usage,
     });
-    // A refusal or cut-off reply isn't the image's fault; only a clean
+    // A refusal or cut-off reply isn't the customer's fault; only a clean
     // "no wardrobe" answer counts as junk, and only clean answers are kept.
     if (reading.stopReason === "end_turn") {
       await rememberDesignImport(hash, reading.draft);
@@ -121,9 +149,6 @@ export async function POST(request: Request) {
     } else {
       console.error("design-import failed:", error);
     }
-    return NextResponse.json(
-      { error: "Čitanje slike nije uspelo. Pokušajte ponovo." },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: failed }, { status: 502 });
   }
 }

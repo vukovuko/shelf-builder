@@ -33,7 +33,7 @@ interface MobileBottomTabsProps {
   canImportSketch: boolean;
 }
 
-const IMPORT_TAB = { key: "import", label: "Skica" } as const;
+const IMPORT_TAB = { key: "import", label: "Skica ili opis" } as const;
 const TABS = [
   { key: "item-1", label: "Dimenzije" },
   { key: "item-2", label: "Kolone" },

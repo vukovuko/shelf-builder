@@ -10,3 +10,6 @@ export const UPLOAD_MAX_EDGE_PX = 2000;
 
 /** Hard server-side ceiling on the decoded image. */
 export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+
+/** Longest written description accepted, in characters. */
+export const MAX_DESCRIPTION_CHARS = 1000;

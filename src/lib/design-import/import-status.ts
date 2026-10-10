@@ -1,10 +1,12 @@
 import { create } from "zustand";
 
-/** Whether an uploaded sketch is being read, so the 3D view can show it. */
+/** What is being turned into a wardrobe right now, so the 3D view can show it. */
+export type ImportSource = "image" | "text";
+
 export const useDesignImportStatus = create<{
-  pending: boolean;
-  setPending: (pending: boolean) => void;
+  pending: ImportSource | null;
+  setPending: (pending: ImportSource | null) => void;
 }>((set) => ({
-  pending: false,
+  pending: null,
   setPending: (pending) => set({ pending }),
 }));

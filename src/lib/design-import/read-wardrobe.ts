@@ -23,11 +23,16 @@ export interface ImageReading {
 
 let client: Anthropic | null = null;
 
-/** Asks Claude to describe the wardrobe in an image as a draft. */
-export async function readWardrobeImage(image: {
-  data: string;
-  mediaType: UploadMediaType;
+/**
+ * Asks Claude to describe a wardrobe as a draft, from a photo or sketch, from
+ * the customer's written description, or from both (the text then adds what
+ * the drawing leaves out, such as measurements).
+ */
+export async function readWardrobe(input: {
+  image?: { data: string; mediaType: UploadMediaType };
+  text?: string;
 }): Promise<ImageReading> {
+  const { image, text } = input;
   // Created lazily so a missing key surfaces as a handled error, not at import.
   client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 });
 
@@ -47,17 +52,23 @@ export async function readWardrobeImage(image: {
       {
         role: "user",
         content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: image.mediaType,
-              data: image.data,
-            },
-          },
+          ...(image
+            ? [
+                {
+                  type: "image" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: image.mediaType,
+                    data: image.data,
+                  },
+                },
+              ]
+            : []),
           {
             type: "text",
-            text: "Describe this wardrobe for the configurator.",
+            text: text
+              ? `The customer's description:\n<description>\n${text}\n</description>\nDescribe this wardrobe for the configurator.`
+              : "Describe this wardrobe for the configurator.",
           },
         ],
       },

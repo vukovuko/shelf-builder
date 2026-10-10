@@ -1,14 +1,16 @@
 /**
- * Sends sketches through the real prompt and the real import engine, and
- * prints what came out. Each image is one paid Claude call (~$0.05–0.10).
+ * Sends sketches or written descriptions through the real prompt and the
+ * real import engine, and prints what came out. Each one is a paid Claude
+ * call (~$0.02–0.10).
  *
  *   npx tsx --env-file=.env scripts/try-design-import.ts            # built-in synthetic sketches
  *   npx tsx --env-file=.env scripts/try-design-import.ts a.jpg b.png # your own images
+ *   npx tsx --env-file=.env scripts/try-design-import.ts --text "orman 240 × 260 × 60, 4 kolone"
  */
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import { importWardrobeDraft } from "@/lib/design-import/apply";
-import { readWardrobeImage } from "@/lib/design-import/read-image";
+import { readWardrobe } from "@/lib/design-import/read-wardrobe";
 import { useShelfStore } from "@/lib/store";
 import { buildBlocksX } from "@/lib/wardrobe-utils";
 
@@ -88,8 +90,14 @@ const SKETCHES: Record<string, string> = {
   ),
 };
 
-async function imagesToTry(): Promise<{ name: string; data: string }[]> {
-  const files = process.argv.slice(2);
+type Sample = { name: string; data?: string; text?: string };
+
+async function samplesToTry(): Promise<Sample[]> {
+  const args = process.argv.slice(2);
+  if (args[0] === "--text") {
+    return args.slice(1).map((text) => ({ name: text, text }));
+  }
+  const files = args;
   if (files.length > 0) {
     return Promise.all(
       files.map(async (file) => ({
@@ -147,9 +155,12 @@ function describeStore() {
 
 async function main() {
   let total = 0;
-  for (const { name, data } of await imagesToTry()) {
+  for (const { name, data, text } of await samplesToTry()) {
     const started = Date.now();
-    const reading = await readWardrobeImage({ data, mediaType: "image/jpeg" });
+    const reading = await readWardrobe({
+      image: data ? { data, mediaType: "image/jpeg" } : undefined,
+      text,
+    });
     const result = importWardrobeDraft(reading.draft);
     total += reading.estimatedCostUsd;
     const s = useShelfStore.getState();
