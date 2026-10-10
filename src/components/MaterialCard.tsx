@@ -14,6 +14,7 @@ export interface MaterialCardData {
   code: string | null;
   price: number;
   img: string | null;
+  popular: boolean;
 }
 
 export function toMaterialCard(material: MaterialPageData): MaterialCardData {
@@ -24,6 +25,7 @@ export function toMaterialCard(material: MaterialPageData): MaterialCardData {
     code: material.productCode,
     price: material.price,
     img: material.img,
+    popular: material.popularRank !== null,
   };
 }
 
@@ -33,7 +35,12 @@ export function MaterialCard({ card }: { card: MaterialCardData }) {
       href={card.href}
       className="group block [contain-intrinsic-size:auto_260px] [content-visibility:auto]"
     >
-      <div className="aspect-square overflow-hidden rounded-xl border bg-muted">
+      <div className="relative aspect-square overflow-hidden rounded-xl border bg-muted">
+        {card.popular && (
+          <span className="absolute top-2 left-2 z-10 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium shadow-sm">
+            Popularno
+          </span>
+        )}
         {card.img && (
           // Straight from R2 like the configurator's picker: 500+ decors
           // through the Next optimizer would use up the Vercel image quota.

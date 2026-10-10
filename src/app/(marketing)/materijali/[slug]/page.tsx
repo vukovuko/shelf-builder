@@ -88,6 +88,10 @@ export default async function MaterialPage({ params }: Props) {
     { label: "Cena", value: formatPricePerM2(material.price) },
   ].filter((fact) => fact.value);
   const similar = similarMaterials(material, all);
+  const paragraphs = (material.description ?? "")
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
 
@@ -131,6 +135,11 @@ export default async function MaterialPage({ params }: Props) {
             </div>
 
             <div>
+              {material.popularRank !== null && (
+                <span className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  Popularno
+                </span>
+              )}
               <h1 className="text-3xl font-bold tracking-tight lg:text-4xl">
                 {name}{" "}
                 <span className="block text-lg font-medium tracking-wide text-muted-foreground lg:text-xl">
@@ -149,6 +158,14 @@ export default async function MaterialPage({ params }: Props) {
                   </div>
                 ))}
               </dl>
+
+              {paragraphs.length > 0 && (
+                <div className="mt-6 space-y-3 leading-relaxed text-foreground/80">
+                  {paragraphs.map((text) => (
+                    <p key={text}>{text}</p>
+                  ))}
+                </div>
+              )}
 
               <Button asChild size="lg" className="mt-6 w-full sm:w-auto">
                 <Link href={`/design?material=${material.id}`}>

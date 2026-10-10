@@ -20,6 +20,8 @@ const updateMaterialSchema = z.object({
   thickness: z.number().int().positive().nullable().optional(),
   stock: z.number().int().min(0).optional(),
   published: z.boolean().optional(),
+  description: z.string().max(3000).nullable().optional(),
+  popularRank: z.number().int().min(1).max(999).nullable().optional(),
 });
 
 export async function PATCH(

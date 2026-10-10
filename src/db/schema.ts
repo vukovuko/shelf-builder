@@ -211,6 +211,10 @@ export const materials = pgTable("material", {
   stock: integer("stock").default(0),
   categories: text("categories").array().notNull(), // ["Materijal za Korpus (18mm)", "Materijal za Lica/Vrata (18mm)"]
   published: boolean("published").notNull().default(false),
+  // Shown on the public /materijali page; plain text, blank line = new paragraph.
+  description: text("description"),
+  // 1 = most popular; empty for most decors. Puts the decor first on /materijali.
+  popularRank: integer("popularRank"),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });

@@ -22,6 +22,8 @@ const material = (
   productCode,
   price,
   img: null,
+  description: null,
+  popularRank: null,
   thickness: 18,
   categories,
 });

@@ -13,6 +13,8 @@ export interface MaterialPageData {
   img: string | null;
   thickness: number | null;
   categories: string[];
+  description: string | null;
+  popularRank: number | null;
 }
 
 export type MaterialKind = "board" | "back";
@@ -178,7 +180,8 @@ export function materialJsonLd(material: MaterialPageData, baseUrl: string) {
     "@type": "Product",
     name: `${cleanMaterialName(material.name)} ${material.productCode ?? ""}`.trim(),
     sku: material.productCode ?? undefined,
-    description: materialMetaDescription(material),
+    description:
+      material.description?.trim() || materialMetaDescription(material),
     image: material.img ?? undefined,
     url,
     category: materialSummary(material),

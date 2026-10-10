@@ -1,21 +1,10 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, Loader2, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Upload, X, Loader2 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import MultipleSelector, { type Option } from "@/components/ui/multi-select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +16,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import MultipleSelector, { type Option } from "@/components/ui/multi-select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { AVAILABLE_MATERIAL_CATEGORIES } from "@/lib/material-categories";
 
 const AVAILABLE_CATEGORIES: Option[] = AVAILABLE_MATERIAL_CATEGORIES.map(
@@ -44,6 +45,8 @@ interface Material {
   stock: number | null;
   categories: string[];
   published: boolean;
+  description: string | null;
+  popularRank: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +84,12 @@ export function MaterialDetailClient({
     initialMaterial.categories.map((c) => ({ value: c, label: c })),
   );
   const [published, setPublished] = useState(initialMaterial.published);
+  const [description, setDescription] = useState(
+    initialMaterial.description ?? "",
+  );
+  const [popularRank, setPopularRank] = useState(
+    initialMaterial.popularRank ? String(initialMaterial.popularRank) : "",
+  );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,6 +154,11 @@ export function MaterialDetailClient({
     if ((stock === "" ? null : Number(stock)) !== material.stock) return true;
     if ((img || null) !== material.img) return true;
     if (published !== material.published) return true;
+    if ((description.trim() || null) !== material.description) return true;
+    if (
+      (popularRank === "" ? null : Number(popularRank)) !== material.popularRank
+    )
+      return true;
 
     const currentCategories = categories.map((c) => c.value).sort();
     const materialCategories = [...material.categories].sort();
@@ -162,6 +176,8 @@ export function MaterialDetailClient({
     stock,
     img,
     published,
+    description,
+    popularRank,
     categories,
     material,
   ]);
@@ -187,6 +203,8 @@ export function MaterialDetailClient({
       img: img || null,
       thickness: thickness ? Number(thickness) : null,
       stock: stock ? Number(stock) : null,
+      description: description.trim() || null,
+      popularRank: popularRank ? Number(popularRank) : null,
     };
 
     try {
@@ -216,6 +234,8 @@ export function MaterialDetailClient({
       setStock(updated.stock ? String(updated.stock) : "");
       setImg(updated.img ?? "");
       setPublished(updated.published);
+      setDescription(updated.description ?? "");
+      setPopularRank(updated.popularRank ? String(updated.popularRank) : "");
       setCategories(
         updated.categories.map((c: string) => ({ value: c, label: c })),
       );
@@ -420,6 +440,30 @@ export function MaterialDetailClient({
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 placeholder="npr. 50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="popularRank">Popularno (redosled)</Label>
+              <Input
+                id="popularRank"
+                type="number"
+                min={1}
+                max={999}
+                value={popularRank}
+                onChange={(e) => setPopularRank(e.target.value)}
+                placeholder="npr. 1"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="description">Opis na stranici materijala</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={3000}
+                rows={6}
               />
             </div>
 

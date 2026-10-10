@@ -19,10 +19,12 @@ export interface BrowserMaterial extends MaterialCardData {
   kind: MaterialKind;
   /** Name, code and brand, lowercased without diacritics. */
   search: string;
+  /** popularRank from the admin; null for most decors. */
+  rank: number | null;
 }
 
 type KindFilter = "all" | MaterialKind;
-type Sort = "name" | "price-asc" | "price-desc";
+type Sort = "popular" | "price-asc" | "price-desc";
 
 const KIND_LABELS: Record<KindFilter, string> = {
   all: "Sve",
@@ -31,7 +33,7 @@ const KIND_LABELS: Record<KindFilter, string> = {
 };
 
 const SORT_LABELS: Record<Sort, string> = {
-  name: "Naziv",
+  popular: "Popularno",
   "price-asc": "Cena: od najniže",
   "price-desc": "Cena: od najviše",
 };
@@ -49,7 +51,7 @@ function decorCount(n: number): string {
 export function MaterialsBrowser({ items }: { items: BrowserMaterial[] }) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
-  const [sort, setSort] = useState<Sort>("name");
+  const [sort, setSort] = useState<Sort>("popular");
   const [urlRead, setUrlRead] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
@@ -68,7 +70,7 @@ export function MaterialsBrowser({ items }: { items: BrowserMaterial[] }) {
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (kind !== "all") params.set("vrsta", kind);
-    if (sort !== "name") params.set("sort", sort);
+    if (sort !== "popular") params.set("sort", sort);
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
   }, [urlRead, query, kind, sort]);
@@ -96,6 +98,11 @@ export function MaterialsBrowser({ items }: { items: BrowserMaterial[] }) {
       const compact = m.search.replace(/\s+/g, "");
       return tokens.every((t) => m.search.includes(t) || compact.includes(t));
     });
+    // Items arrive sorted by name; the stable sort keeps that order after
+    // the ranked decors.
+    if (sort === "popular") {
+      result.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+    }
     if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
     return result;

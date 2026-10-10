@@ -21,6 +21,8 @@ export const getPublicMaterials = cache(
         img: materials.img,
         thickness: materials.thickness,
         categories: materials.categories,
+        description: materials.description,
+        popularRank: materials.popularRank,
       })
       .from(materials)
       .where(eq(materials.published, true));
