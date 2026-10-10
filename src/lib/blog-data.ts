@@ -562,12 +562,12 @@ Pošaljite skicu na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili je
 
 Opis ima dva dela: mere celog ormana i šta ide u koju kolonu. Orman sa slike na početku teksta opisan je ovako: "Orman 200 × 240 × 60 cm, 2 kolone. U levoj šipka za ofingere, u desnoj 5 polica. Dvokrilna vrata."
 
-- **Mere**: širina × visina × dubina, u centimetrima.
+- **Mere**: širina × visina × dubina, u centimetrima. Zid izmerite na tri visine i upišite najmanju meru.
 - **Kolone**: koliko ih ima, brojano s leva. Ako nisu iste širine, napišite širinu svake.
 - **Unutrašnjost**: za svaku kolonu napišite koliko polica ima, da li ima šipku i koliko fioka.
 - **Vrata**: krilna, dvokrilna, klizna ili bez vrata.
 
-Kolona koju ne opišete ostaje prazna, pa je posle dopunite u konfiguratoru.
+Kolona koju ne opišete ostaje prazna, pa je posle dopunite u konfiguratoru. Ostale greške koje se prave pri merenju i naručivanju opisali smo u tekstu [7 grešaka pri naručivanju ormana po meri](/blog/greske-pri-narucivanju-ormana-po-meri).
 
 ### Orman sa fiokama i kliznim vratima
 
