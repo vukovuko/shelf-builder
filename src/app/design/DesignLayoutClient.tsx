@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import React, { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ConfiguratorControls } from "@/components/ConfiguratorControls";
+import { StepPanel } from "@/components/configurator-steps/StepPanel";
 import { DesignImportOverlay } from "@/components/DesignImportOverlay";
 import { LockedPreviewBar } from "@/components/LockedPreviewBar";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
@@ -13,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
@@ -254,6 +256,10 @@ export function DesignLayoutClient({
     }
   }, [pendingNavigation, router, fromWardrobeName, fromOrderNumber]);
 
+  // From 1280px the steps sit on the left and the open step on the right of
+  // the 3D view; narrower screens keep the accordion in the sidebar.
+  const wideLayout = useMediaQuery("(min-width: 1280px)");
+
   // Dimensions visibility toggle
   const showDimensions = useShelfStore(
     (state: ShelfState) => state.showDimensions,
@@ -287,13 +293,16 @@ export function DesignLayoutClient({
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* Desktop aside - hidden in preview mode */}
       {!isPreviewMode && (
-        <aside className="hidden md:flex w-96 flex-col border-r border-sidebar-border bg-sidebar h-screen">
+        <aside
+          className={`hidden md:flex ${wideLayout ? "w-72" : "w-96"} shrink-0 flex-col border-r border-sidebar-border bg-sidebar h-screen`}
+        >
           <ConfiguratorControls
             wardrobeRef={wardrobeRef}
             initialSession={initialSession}
             materials={initialMaterials}
             accessoryRules={initialAccessoryRules}
             isAdmin={isAdmin}
+            layout={wideLayout ? "steps" : "accordion"}
           />
         </aside>
       )}
@@ -449,6 +458,10 @@ export function DesignLayoutClient({
         </div>
         {childrenWithProps}
       </main>
+
+      {wideLayout && !isPreviewMode && (
+        <StepPanel materials={initialMaterials} />
+      )}
 
       {/* Unsaved changes confirmation dialog - skip in preview mode */}
       {!isPreviewMode && (

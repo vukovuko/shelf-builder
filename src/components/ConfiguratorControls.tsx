@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import React from "react";
 import { toast } from "sonner";
+import { useShallow } from "zustand/react/shallow";
 import { DesignImportButton } from "@/components/DesignImportButton";
 import {
   Accordion,
@@ -76,21 +77,13 @@ import {
   getWardrobeSnapshot,
   useWardrobeSnapshot,
 } from "@/lib/serializeWardrobe";
-import { useShallow } from "zustand/react/shallow";
 import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AuthForms } from "./AuthForms";
 import { CheckoutDialog } from "./CheckoutDialog";
-import {
-  StepAccessories,
-  StepActions,
-  StepBase,
-  StepColumns,
-  StepDimensions,
-  StepDoors,
-  StepFooter,
-  StepMaterials,
-} from "./configurator-steps";
+import { StepActions, StepFooter } from "./configurator-steps";
+import { StepNav } from "./configurator-steps/StepNav";
+import { CONFIGURATOR_STEPS, StepContent } from "./configurator-steps/steps";
 import { Button } from "./ui/button";
 
 // Helper function to get initials from name/email
@@ -120,12 +113,15 @@ export function ConfiguratorControls({
   materials,
   accessoryRules,
   isAdmin = false,
+  layout = "accordion",
 }: {
   wardrobeRef: React.RefObject<any>;
   initialSession?: InitialSession | null;
   materials: Material[];
   accessoryRules: SerializedAccessoryRule[];
   isAdmin?: boolean;
+  /** "steps": wide screens list the steps here and open them in StepPanel. */
+  layout?: "accordion" | "steps";
 }) {
   // Auth state - use initialSession from server, useSession for reactivity after login/logout
   const { data: clientSession, isPending } = useSession();
@@ -971,155 +967,63 @@ export function ConfiguratorControls({
           </div>
         )}
 
-        <Accordion
-          type="single"
-          collapsible
-          value={activeAccordionStep ?? undefined}
-          onValueChange={(value) => setActiveAccordionStep(value || null)}
-          className="w-full space-y-2"
-        >
-          <AccordionItem
-            value="item-1"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-1"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
+        {layout === "steps" ? (
+          <>
+            <StepNav />
+            <StepActions
+              isAdmin={isAdmin}
+              onSaveClick={handleSaveClick}
+              onShowCutList={() => setShowCutList(true)}
+              onExportElementSpecs={handleExportElementSpecs}
+              onDownloadFrontView={handleDownloadFrontView}
+              onDownloadFrontEdges={handleDownloadFrontEdges}
+              onDownloadTechnical2D={handleDownloadTechnical2D}
+            />
+          </>
+        ) : (
+          <Accordion
+            type="single"
+            collapsible
+            value={activeAccordionStep ?? undefined}
+            onValueChange={(value) => setActiveAccordionStep(value || null)}
+            className="w-full space-y-2"
           >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-1" && "text-primary",
-              )}
-            >
-              1. Definiši spoljašnje dimenzije
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepDimensions />
-            </AccordionContent>
-          </AccordionItem>
+            {CONFIGURATOR_STEPS.map((step) => (
+              <AccordionItem
+                key={step.id}
+                value={step.id}
+                className={cn(
+                  "border-border rounded-xl border px-3 transition-colors duration-200",
+                  activeAccordionStep === step.id
+                    ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
+                    : "bg-card",
+                )}
+              >
+                <AccordionTrigger
+                  className={cn(
+                    "text-base font-bold hover:no-underline",
+                    activeAccordionStep === step.id && "text-primary",
+                  )}
+                >
+                  {step.title}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <StepContent step={step.id} materials={materials} />
+                </AccordionContent>
+              </AccordionItem>
+            ))}
 
-          <AccordionItem
-            value="item-2"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-2"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
-          >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-2" && "text-primary",
-              )}
-            >
-              2. Kolone i Pregrade
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepColumns materials={materials} />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem
-            value="item-3"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-3"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
-          >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-3" && "text-primary",
-              )}
-            >
-              3. Izbor materijala
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepMaterials materials={materials} />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem
-            value="item-4"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-4"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
-          >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-4" && "text-primary",
-              )}
-            >
-              4. Baza
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepBase />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem
-            value="item-5"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-5"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
-          >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-5" && "text-primary",
-              )}
-            >
-              5. Vrata
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepDoors />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem
-            value="item-6"
-            className={cn(
-              "border-border rounded-xl border px-3 transition-colors duration-200",
-              activeAccordionStep === "item-6"
-                ? "border-primary/20 bg-primary/8 shadow-sm ring-1 ring-primary/15"
-                : "bg-card",
-            )}
-          >
-            <AccordionTrigger
-              className={cn(
-                "text-base font-bold hover:no-underline",
-                activeAccordionStep === "item-6" && "text-primary",
-              )}
-            >
-              6. Dodaci
-            </AccordionTrigger>
-            <AccordionContent>
-              <StepAccessories />
-            </AccordionContent>
-          </AccordionItem>
-
-          <StepActions
-            isAdmin={isAdmin}
-            onSaveClick={handleSaveClick}
-            onShowCutList={() => setShowCutList(true)}
-            onExportElementSpecs={handleExportElementSpecs}
-            onDownloadFrontView={handleDownloadFrontView}
-            onDownloadFrontEdges={handleDownloadFrontEdges}
-            onDownloadTechnical2D={handleDownloadTechnical2D}
-          />
-        </Accordion>
+            <StepActions
+              isAdmin={isAdmin}
+              onSaveClick={handleSaveClick}
+              onShowCutList={() => setShowCutList(true)}
+              onExportElementSpecs={handleExportElementSpecs}
+              onDownloadFrontView={handleDownloadFrontView}
+              onDownloadFrontEdges={handleDownloadFrontEdges}
+              onDownloadTechnical2D={handleDownloadTechnical2D}
+            />
+          </Accordion>
+        )}
       </div>
 
       <StepFooter
