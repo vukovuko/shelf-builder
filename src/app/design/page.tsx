@@ -10,6 +10,7 @@ import {
   clearDesignDraft,
   readDesignDraft,
 } from "@/lib/design-draft";
+import { modelForHandle } from "@/lib/handle-models";
 import {
   isBackMaterialCategory,
   isFrontMaterialCategory,
@@ -205,37 +206,65 @@ export default function DesignPage({
     return autosaveDesignDraft();
   }, [hasRestoredState]);
 
-  // Material pages (/materijali) link here with ?material=<id>: the restored
-  // design switches to that decor. Waits for the material list, which the
-  // layout puts in the store after this page's first effects run.
+  // Catalog pages link here to start from one of their products:
+  // /materijali with ?material=<id>, /rucke with ?rucka=<handle>&zavrsna=<finish>
+  // (the store's handle and finish keys). Applied on top of the restored
+  // design once the layout has put the catalogs in the store, which happens
+  // after this page's first effects run.
   const storeMaterials = useShelfStore((s: ShelfState) => s.materials);
-  const materialParamHandled = useRef(false);
+  const storeHandles = useShelfStore((s: ShelfState) => s.handles);
+  const catalogParamsHandled = useRef(false);
   useEffect(() => {
-    if (!hasRestoredState || materialParamHandled.current) return;
-    if (storeMaterials.length === 0) return;
-    materialParamHandled.current = true;
+    if (!hasRestoredState || catalogParamsHandled.current) return;
+    if (storeMaterials.length === 0 || storeHandles.length === 0) return;
+    catalogParamsHandled.current = true;
     const params = new URLSearchParams(window.location.search);
-    const id = Number(params.get("material"));
-    if (!id) return;
-    const material = storeMaterials.find((m) => m.id === id);
+    const st = useShelfStore.getState();
+
+    const materialId = Number(params.get("material"));
+    const material = materialId
+      ? storeMaterials.find((m) => m.id === materialId)
+      : undefined;
     if (material) {
-      const st = useShelfStore.getState();
       if (material.categories.some(isBackMaterialCategory)) {
-        st.setSelectedBackMaterialId(id);
+        st.setSelectedBackMaterialId(material.id);
       } else {
         if (material.categories.some(isKorpusMaterialCategory)) {
-          st.setSelectedMaterialId(id);
+          st.setSelectedMaterialId(material.id);
         }
         if (material.categories.some(isFrontMaterialCategory)) {
-          st.setSelectedFrontMaterialId(id);
+          st.setSelectedFrontMaterialId(material.id);
         }
       }
       toast.success(`Izabran dekor ${cleanMaterialName(material.name)}`);
     }
-    params.delete("material");
-    const rest = params.toString();
-    window.history.replaceState({}, "", rest ? `/design?${rest}` : "/design");
-  }, [hasRestoredState, storeMaterials]);
+
+    const handleKey = params.get("rucka");
+    const handle = handleKey
+      ? storeHandles.find((h) => (h.legacyId || String(h.id)) === handleKey)
+      : undefined;
+    if (handle && handleKey) {
+      const finishKey = params.get("zavrsna");
+      const finish =
+        handle.finishes.find(
+          (f) => (f.legacyId || String(f.id)) === finishKey,
+        ) ?? handle.finishes[0];
+      st.setGlobalHandle(handleKey);
+      if (finish)
+        st.setGlobalHandleFinish(finish.legacyId || String(finish.id));
+      st.setActiveAccordionStep("item-5");
+      toast.success(
+        `Izabrano: ${modelForHandle(handle.id)?.name ?? handle.name}`,
+      );
+    }
+
+    const catalogKeys = ["material", "rucka", "zavrsna"];
+    if (catalogKeys.some((key) => params.has(key))) {
+      for (const key of catalogKeys) params.delete(key);
+      const rest = params.toString();
+      window.history.replaceState({}, "", rest ? `/design?${rest}` : "/design");
+    }
+  }, [hasRestoredState, storeMaterials, storeHandles]);
 
   // The overlay lifts on the scene's first frame (onReady below); this only
   // guarantees it never hides a WebGL error screen.

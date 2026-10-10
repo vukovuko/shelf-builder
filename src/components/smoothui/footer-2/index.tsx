@@ -46,6 +46,7 @@ export function FooterComplex({
     product: [
       { name: "Konfigurator", url: "/design" },
       { name: "Materijali", url: "/materijali" },
+      { name: "Ručke", url: "/rucke" },
       { name: "Česta pitanja", url: "/faq" },
       { name: "Blog", url: "/blog" },
       { name: "Kontakt", url: "/contact" },

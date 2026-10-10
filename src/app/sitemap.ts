@@ -1,10 +1,28 @@
 import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
+import { getPublicHandleModels } from "@/lib/handle-pages-data";
 import { MATERIAL_PAGES_INDEXED, materialSlug } from "@/lib/material-pages";
 import { getPublicMaterials } from "@/lib/material-pages-data";
 
 // Picks up materials added in the admin.
 export const revalidate = 3600;
+
+async function handleEntries(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+  try {
+    const models = await getPublicHandleModels();
+    return [
+      { url: `${baseUrl}/rucke`, changeFrequency: "weekly", priority: 0.6 },
+      ...models.map((model) => ({
+        url: `${baseUrl}/rucke/${model.slug}`,
+        changeFrequency: "monthly" as const,
+        priority: 0.4,
+      })),
+    ];
+  } catch (error) {
+    console.error("sitemap: handles unavailable", error);
+    return [];
+  }
+}
 
 async function materialEntries(
   baseUrl: string,
@@ -67,6 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...blogEntries,
     ...(await materialEntries(baseUrl)),
+    ...(await handleEntries(baseUrl)),
     {
       url: `${baseUrl}/contact`,
       lastModified: new Date("2026-03-10"),
