@@ -45,9 +45,11 @@ export const HeroHeader = () => {
   return (
     <div className="relative">
       <header>
+        {/* Lies over the hero grid; only its links, buttons and the open
+            menu take the pointer, so the boxes underneath still light up. */}
         <nav
           aria-label="Glavna navigacija"
-          className="absolute top-0 left-0 z-20 w-full transition-all duration-300"
+          className="pointer-events-none absolute top-0 left-0 z-20 w-full transition-all duration-300 [&_a]:pointer-events-auto [&_button]:pointer-events-auto"
         >
           <div className="mx-auto max-w-6xl px-6">
             <div className="relative flex flex-wrap items-center justify-between gap-6 py-6 transition-all duration-200 lg:gap-0">
@@ -135,7 +137,7 @@ export const HeroHeader = () => {
                 {menuState && (
                   <motion.div
                     animate={{ opacity: 1, y: 0, scale: SCALE_MAX }}
-                    className="mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:hidden dark:shadow-none"
+                    className="pointer-events-auto mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:hidden dark:shadow-none"
                     exit={{ opacity: 0, y: TRANSLATE_Y_OFFSET, scale: 0.95 }}
                     initial={{ opacity: 0, y: TRANSLATE_Y_OFFSET, scale: 0.95 }}
                     transition={{

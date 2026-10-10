@@ -145,7 +145,7 @@ export function HeroGrid() {
     <div className="relative">
       <HeroHeader />
       <div>
-        <section className="relative flex min-h-svh items-center overflow-hidden py-24 lg:py-36">
+        <section className="relative overflow-hidden py-24 lg:py-36">
           {/* Interactive animated grid background */}
           <InteractiveGrid />
           {/* The text lets the pointer through to the grid behind it; only
