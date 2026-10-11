@@ -611,7 +611,7 @@ Pošaljite opis na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili upi
     slug: "plakar-po-meri",
     title: "Plakar po meri: 5 rasporeda sa merama i cenama",
     description:
-      "Plakar po meri za spavaću sobu, hodnik, nišu, dečju sobu i ostavu: 5 rasporeda sa merama, skicom i cenom, od oko 39.500 do 112.500 dinara.",
+      "Plakar po meri za spavaću sobu, hodnik, nišu, dečju sobu i ostavu: 5 rasporeda sa merama, skicom i cenom, od oko 41.500 do 118.500 dinara.",
     date: "2026-10-11",
     readTime: "5 min",
     image: "/blog/plakar-po-meri.png",
@@ -665,11 +665,11 @@ Opis: "Plitki plakar za ostavu 200 × 240 × 35 cm, 2 kolone, samo police, po 7 
 
 Ovo su cene iz [konfiguratora](/design) u oktobru 2026, za belu ivericu Opak bela, sa vratima, okovom i ručkama gde ih plakar ima:
 
-- **Plakar za spavaću sobu, 300 × 260 cm**: oko 112.500 dinara.
-- **Ugradni plakar u niši, 240 × 270 cm**: oko 93.000 dinara.
-- **Plakar u hodniku, 160 × 250 cm**: oko 61.000 dinara.
-- **Plakar za dečju sobu, 180 × 200 cm**: oko 52.000 dinara.
-- **Plitki plakar bez vrata, 200 × 240 cm**: oko 39.500 dinara.
+- **Plakar za spavaću sobu, 300 × 260 cm**: oko 118.500 dinara.
+- **Ugradni plakar u niši, 240 × 270 cm**: oko 98.000 dinara.
+- **Plakar u hodniku, 160 × 250 cm**: oko 64.000 dinara.
+- **Plakar za dečju sobu, 180 × 200 cm**: oko 54.500 dinara.
+- **Plitki plakar bez vrata, 200 × 240 cm**: oko 41.500 dinara.
 
 Cenu najviše menjaju materijal i vrata. Svaki od [više od 500 dekora](/materijali) ima svoju cenu po kvadratnom metru, a klizna vrata dodaju okov za klizanje. Ručke birate iz [kataloga ručki](/rucke). Tačnu cenu za svoje mere vidite u konfiguratoru čim ih upišete.
 
