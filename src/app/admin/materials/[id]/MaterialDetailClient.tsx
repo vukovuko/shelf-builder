@@ -47,6 +47,7 @@ interface Material {
   published: boolean;
   description: string | null;
   popularRank: number | null;
+  marginPercent: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +90,11 @@ export function MaterialDetailClient({
   );
   const [popularRank, setPopularRank] = useState(
     initialMaterial.popularRank ? String(initialMaterial.popularRank) : "",
+  );
+  const [marginPercent, setMarginPercent] = useState(
+    initialMaterial.marginPercent === null
+      ? ""
+      : String(initialMaterial.marginPercent),
   );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,6 +165,11 @@ export function MaterialDetailClient({
       (popularRank === "" ? null : Number(popularRank)) !== material.popularRank
     )
       return true;
+    if (
+      (marginPercent === "" ? null : Number(marginPercent)) !==
+      material.marginPercent
+    )
+      return true;
 
     const currentCategories = categories.map((c) => c.value).sort();
     const materialCategories = [...material.categories].sort();
@@ -178,6 +189,7 @@ export function MaterialDetailClient({
     published,
     description,
     popularRank,
+    marginPercent,
     categories,
     material,
   ]);
@@ -205,6 +217,7 @@ export function MaterialDetailClient({
       stock: stock ? Number(stock) : null,
       description: description.trim() || null,
       popularRank: popularRank ? Number(popularRank) : null,
+      marginPercent: marginPercent === "" ? null : Number(marginPercent),
     };
 
     try {
@@ -236,6 +249,9 @@ export function MaterialDetailClient({
       setPublished(updated.published);
       setDescription(updated.description ?? "");
       setPopularRank(updated.popularRank ? String(updated.popularRank) : "");
+      setMarginPercent(
+        updated.marginPercent === null ? "" : String(updated.marginPercent),
+      );
       setCategories(
         updated.categories.map((c: string) => ({ value: c, label: c })),
       );
@@ -440,6 +456,20 @@ export function MaterialDetailClient({
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 placeholder="npr. 50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="marginPercent">Marža (%)</Label>
+              <Input
+                id="marginPercent"
+                type="number"
+                min={0}
+                max={300}
+                step={1}
+                value={marginPercent}
+                onChange={(e) => setMarginPercent(e.target.value)}
+                placeholder="globalna"
               />
             </div>
 

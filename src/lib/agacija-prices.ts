@@ -8,12 +8,21 @@ export const AGACIJA_INDEX_URL =
 /** Fewer items than this means the list didn't load, not that prices are gone. */
 export const AGACIJA_MIN_ITEMS = 100;
 
+/** Agacija's product photo; we keep a copy in R2 as materials/<code>.jpg. */
+export function agacijaImageUrl(code: string): string {
+  return `https://www.agacija.com/img/paleta-materijala/tmp/${encodeURIComponent(code)}.jpg`;
+}
+
 export interface AgacijaItem {
   code: string;
   name: string;
   price: number;
   /** "m2" for boards; edge bands and worktops use "m". */
   unit: string;
+  /** Agacija's group: "Pločasti" for boards, "Radna ploča" for worktops… */
+  category: string | null;
+  /** Board thickness in mm when the name states it ("… 18 MM"). */
+  thickness: number | null;
 }
 
 export function normalizeCode(code: string): string {
@@ -36,16 +45,20 @@ export function parseAgacijaIndex(raw: unknown): Map<string, AgacijaItem> {
     if (!price) continue;
     const code = normalizeCode(entry.itemData.split("|")[0] ?? "");
     if (!code) continue;
+    const name = text
+      .split(" - ")
+      .slice(1)
+      .join(" - ")
+      .replace(/\s*cena:.*$/i, "")
+      .trim();
+    const thickness = name.match(/(\d+)\s*MM\b/i);
     items.set(code, {
       code,
-      name: text
-        .split(" - ")
-        .slice(1)
-        .join(" - ")
-        .replace(/\s*cena:.*$/i, "")
-        .trim(),
+      name: name.replace(/\s*\([^)]*\)\s*$/, ""),
       price: Number(price[1]),
       unit: price[2].toLowerCase(),
+      category: name.match(/\(([^)]+)\)\s*$/)?.[1] ?? null,
+      thickness: thickness ? Number(thickness[1]) : null,
     });
   }
   return items;
@@ -57,6 +70,8 @@ export interface PricedMaterial {
   productCode: string | null;
   price: number;
   costPrice: number;
+  /** Per-material override; null = the global margin. */
+  marginPercent: number | null;
 }
 
 export interface PriceChange {
@@ -67,6 +82,9 @@ export interface PriceChange {
   oldCost: number;
   supplierPrice: number;
   newPrice: number;
+  marginPercent: number;
+  /** True when the material's own margin was used, not the global one. */
+  ownMargin: boolean;
 }
 
 export interface PricePlan {
@@ -75,14 +93,19 @@ export interface PricePlan {
   notFound: { id: number; name: string; code: string | null }[];
 }
 
+export function priceWithMargin(cost: number, marginPercent: number): number {
+  return Math.round(cost * (1 + marginPercent / 100));
+}
+
 /**
  * New prices from the supplier list: costPrice = Agacija's price per m²,
- * price = that plus the margin, both rounded to whole dinars.
+ * price = that plus the material's own margin, or the global one when it has
+ * none, both rounded to whole dinars.
  */
 export function planPriceSync(
   materials: PricedMaterial[],
   index: Map<string, AgacijaItem>,
-  marginPercent: number,
+  globalMarginPercent: number,
 ): PricePlan {
   const plan: PricePlan = { changes: [], unchanged: 0, notFound: [] };
   for (const material of materials) {
@@ -95,8 +118,9 @@ export function planPriceSync(
       });
       continue;
     }
+    const marginPercent = material.marginPercent ?? globalMarginPercent;
     const newCost = Math.round(item.price);
-    const newPrice = Math.round(newCost * (1 + marginPercent / 100));
+    const newPrice = priceWithMargin(newCost, marginPercent);
     if (newPrice === material.price && newCost === material.costPrice) {
       plan.unchanged++;
       continue;
@@ -109,7 +133,40 @@ export function planPriceSync(
       oldCost: material.costPrice,
       supplierPrice: newCost,
       newPrice,
+      marginPercent,
+      ownMargin: material.marginPercent !== null,
     });
   }
   return plan;
+}
+
+// Raw boards, plywood, solid-wood panels and compact laminate: Agacija sells
+// them in the same group, but they aren't decor boards for wardrobes.
+const NOT_DECOR_BOARD =
+  /^(MMDF|MDF SIROVI|SIROVA IVERICA|PANEL|ŠPER|VODOOTPORNI|OSB)\b|KOMPAKT/i;
+
+/**
+ * Agacija decor boards (18–19 mm, priced per m²) that the catalog doesn't
+ * have yet. Boards whose name gives no thickness are included, as most of
+ * the catalog's are.
+ */
+export function findNewProducts(
+  index: Map<string, AgacijaItem>,
+  existingCodes: Iterable<string | null>,
+): AgacijaItem[] {
+  const have = new Set(
+    [...existingCodes].map((c) => normalizeCode(c ?? "")).filter(Boolean),
+  );
+  return [...index.values()]
+    .filter(
+      (item) =>
+        item.unit === "m2" &&
+        item.category === "Pločasti" &&
+        (item.thickness === null ||
+          item.thickness === 18 ||
+          item.thickness === 19) &&
+        !NOT_DECOR_BOARD.test(item.name) &&
+        !have.has(item.code),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, "sr"));
 }

@@ -17,12 +17,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PricePlan } from "@/lib/agacija-prices";
+import type { AgacijaItem, PricePlan } from "@/lib/agacija-prices";
 import { cn } from "@/lib/utils";
 
-type Result = PricePlan & { applied: boolean; supplierItems: number };
+type Action = "preview" | "apply-prices" | "add-products";
+type NewProduct = AgacijaItem & { image: string };
+type Result = PricePlan & {
+  supplierItems: number;
+  added: number;
+  newProducts: NewProduct[];
+};
 
 const fmt = (n: number) => n.toLocaleString("sr-RS");
 
@@ -40,34 +47,45 @@ export function PriceSyncClient({
   const router = useRouter();
   const [margin, setMargin] = useState(String(initialMargin));
   const [result, setResult] = useState<Result | null>(null);
-  const [loading, setLoading] = useState<"preview" | "apply" | null>(null);
+  const [loading, setLoading] = useState<Action | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const marginNumber = Number(margin.replace(",", "."));
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const marginNumber = Number(margin);
   const marginValid =
     margin.trim() !== "" &&
-    Number.isFinite(marginNumber) &&
+    Number.isInteger(marginNumber) &&
     marginNumber >= 0 &&
     marginNumber <= 300;
 
-  async function run(apply: boolean) {
-    setLoading(apply ? "apply" : "preview");
+  async function run(action: Action) {
+    setLoading(action);
     try {
       const res = await fetch("/api/admin/materials/agacija-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ marginPercent: marginNumber, apply }),
+        body: JSON.stringify({
+          marginPercent: marginNumber,
+          action,
+          codes: action === "add-products" ? [...selected] : undefined,
+        }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Greška");
-      if (apply) {
+      const body: Result = await res.json();
+      if (!res.ok) {
+        throw new Error((body as { error?: string }).error ?? "Greška");
+      }
+      if (action === "apply-prices") {
         toast.success(`Cene ažurirane za ${body.changes.length} materijala`);
-        router.refresh();
         setResult({
           ...body,
           changes: [],
           unchanged: body.unchanged + body.changes.length,
         });
+        router.refresh();
       } else {
+        if (action === "add-products") {
+          toast.success(`Dodato kao draft: ${body.added}`);
+          setSelected(new Set());
+        }
         setResult(body);
       }
     } catch (error) {
@@ -78,11 +96,21 @@ export function PriceSyncClient({
     }
   }
 
+  function toggle(code: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }
+
   const changes = [...(result?.changes ?? [])].sort(
     (a, b) =>
       Math.abs(changePercent(b.oldPrice, b.newPrice)) -
       Math.abs(changePercent(a.oldPrice, a.newPrice)),
   );
+  const ownMargins = changes.filter((c) => c.ownMargin).length;
 
   return (
     <div className="space-y-6">
@@ -105,13 +133,13 @@ export function PriceSyncClient({
       <Card className="space-y-4 p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="space-y-2">
-            <Label htmlFor="margin">Marža (%)</Label>
+            <Label htmlFor="margin">Globalna marža (%)</Label>
             <Input
               id="margin"
               type="number"
               min={0}
               max={300}
-              step={0.5}
+              step={1}
               value={margin}
               onChange={(e) => {
                 setMargin(e.target.value);
@@ -121,7 +149,7 @@ export function PriceSyncClient({
             />
           </div>
           <Button
-            onClick={() => run(false)}
+            onClick={() => run("preview")}
             disabled={!marginValid || loading !== null}
           >
             {loading === "preview" && <Loader2 className="animate-spin" />}
@@ -131,7 +159,8 @@ export function PriceSyncClient({
         {/* Says what the margin is applied to, since both prices change. */}
         <p className="text-sm text-muted-foreground">
           Nabavna cena = cena sa Agacije. Prodajna cena = cena sa Agacije +
-          marža.
+          marža. Materijal sa svojom maržom (u formi materijala) koristi nju
+          umesto globalne.
         </p>
       </Card>
 
@@ -147,6 +176,9 @@ export function PriceSyncClient({
             <span className="rounded-full bg-muted px-3 py-1">
               Nema na Agaciji: {result.notFound.length}
             </span>
+            <span className="rounded-full bg-muted px-3 py-1">
+              Novo na Agaciji: {result.newProducts.length}
+            </span>
           </div>
 
           {changes.length > 0 && (
@@ -158,6 +190,9 @@ export function PriceSyncClient({
                       <th className="px-4 py-2 font-medium">Materijal</th>
                       <th className="px-4 py-2 text-right font-medium">
                         Agacija
+                      </th>
+                      <th className="px-4 py-2 text-right font-medium">
+                        Marža
                       </th>
                       <th className="px-4 py-2 text-right font-medium">
                         Stara cena
@@ -186,6 +221,14 @@ export function PriceSyncClient({
                           <td className="px-4 py-2 text-right tabular-nums">
                             {fmt(c.supplierPrice)}
                           </td>
+                          <td
+                            className={cn(
+                              "px-4 py-2 text-right tabular-nums",
+                              c.ownMargin && "font-medium text-primary",
+                            )}
+                          >
+                            {c.marginPercent}%
+                          </td>
                           <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                             {fmt(c.oldPrice)}
                           </td>
@@ -209,6 +252,13 @@ export function PriceSyncClient({
                 </table>
               </div>
             </Card>
+          )}
+
+          {ownMargins > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Sopstvenu maržu ima {ownMargins} materijala (istaknuto u koloni
+              Marža).
+            </p>
           )}
 
           {result.notFound.length > 0 && (
@@ -243,6 +293,67 @@ export function PriceSyncClient({
               Primeni na {result.changes.length} materijala
             </Button>
           )}
+
+          {result.newProducts.length > 0 && (
+            <section className="space-y-3 pt-4">
+              <h2 className="text-lg font-semibold">
+                Novo na Agaciji ({result.newProducts.length})
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Izabrani se dodaju kao draft, sa cenom sa Agacije + globalnom
+                maržom. Kupci ih vide tek kad ih objavite.
+              </p>
+              <Card className="overflow-hidden p-0">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y">
+                    {result.newProducts.map((p) => (
+                      <tr key={p.code} className="hover:bg-muted/40">
+                        <td className="w-10 px-4 py-2">
+                          <Checkbox
+                            id={`new-${p.code}`}
+                            checked={selected.has(p.code)}
+                            onCheckedChange={() => toggle(p.code)}
+                          />
+                        </td>
+                        <td className="w-14 py-2">
+                          <img
+                            src={p.image}
+                            alt=""
+                            loading="lazy"
+                            className="size-10 rounded border object-cover"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <label
+                            htmlFor={`new-${p.code}`}
+                            className="cursor-pointer"
+                          >
+                            {p.name}
+                            <span className="ml-2 text-muted-foreground">
+                              {p.code}
+                            </span>
+                          </label>
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {fmt(Math.round(p.price))} RSD/m²
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+              <Button
+                variant="outline"
+                onClick={() => run("add-products")}
+                disabled={selected.size === 0 || loading !== null}
+              >
+                {loading === "add-products" && (
+                  <Loader2 className="animate-spin" />
+                )}
+                Dodaj izabrane kao draft ({selected.size})
+              </Button>
+            </section>
+          )}
         </>
       )}
 
@@ -253,8 +364,9 @@ export function PriceSyncClient({
               Promeni cene za {result?.changes.length} materijala?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Nove cene važe na sajtu odmah, uz maržu od {marginNumber}%.
-              Postojeće porudžbine zadržavaju stare cene.
+              Nove cene važe na sajtu odmah, uz globalnu maržu od {marginNumber}
+              % (materijali sa svojom maržom zadržavaju nju). Postojeće
+              porudžbine zadržavaju stare cene.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -264,11 +376,13 @@ export function PriceSyncClient({
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                run(true);
+                run("apply-prices");
               }}
               disabled={loading !== null}
             >
-              {loading === "apply" && <Loader2 className="animate-spin" />}
+              {loading === "apply-prices" && (
+                <Loader2 className="animate-spin" />
+              )}
               Primeni
             </AlertDialogAction>
           </AlertDialogFooter>

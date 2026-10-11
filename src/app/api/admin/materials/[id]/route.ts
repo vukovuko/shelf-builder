@@ -1,9 +1,9 @@
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/db/db";
 import { materials } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/roles";
-import { z } from "zod";
 
 const materialIdSchema = z.coerce
   .number()
@@ -22,6 +22,7 @@ const updateMaterialSchema = z.object({
   published: z.boolean().optional(),
   description: z.string().max(3000).nullable().optional(),
   popularRank: z.number().int().min(1).max(999).nullable().optional(),
+  marginPercent: z.number().int().min(0).max(300).nullable().optional(),
 });
 
 export async function PATCH(

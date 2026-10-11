@@ -5,20 +5,47 @@ import { companySettings, materials } from "@/db/schema";
 import {
   AGACIJA_INDEX_URL,
   AGACIJA_MIN_ITEMS,
+  agacijaImageUrl,
+  findNewProducts,
   parseAgacijaIndex,
   planPriceSync,
+  priceWithMargin,
 } from "@/lib/agacija-prices";
 import { updatePricesSql } from "@/lib/agacija-prices-sql";
+import {
+  MATERIAL_CATEGORY_FRONT,
+  MATERIAL_CATEGORY_KORPUS,
+} from "@/lib/material-categories";
+import { putR2Object } from "@/lib/r2";
 import { requireAdmin } from "@/lib/roles";
 
-// The fetch takes well under a second; this is headroom, not the norm.
+// The Agacija fetch takes well under a second; this is headroom for copying
+// images of newly added products.
 export const maxDuration = 60;
 
 const bodySchema = z.object({
-  marginPercent: z.number().min(0).max(300),
-  /** false: only show what would change. */
-  apply: z.boolean(),
+  /** Global margin; materials with their own margin keep it. */
+  marginPercent: z.number().int().min(0).max(300),
+  action: z.enum(["preview", "apply-prices", "add-products"]),
+  /** add-products: Agacija codes of the new products to add as drafts. */
+  codes: z.array(z.string()).max(200).optional(),
 });
+
+/** Copies Agacija's photo to R2 (materials/<code>.jpg, like the catalog). */
+async function copyImage(code: string): Promise<string | null> {
+  try {
+    const res = await fetch(agacijaImageUrl(code), {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok || !res.headers.get("content-type")?.startsWith("image/"))
+      return null;
+    const body = new Uint8Array(await res.arrayBuffer());
+    return await putR2Object(`materials/${code}.jpg`, body, "image/jpeg");
+  } catch (error) {
+    console.error(`agacija-sync: image ${code} not copied`, error);
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -31,9 +58,12 @@ export async function POST(request: Request) {
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Neispravna marža" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Marža mora biti ceo broj od 0 do 300" },
+      { status: 400 },
+    );
   }
-  const { marginPercent, apply } = parsed.data;
+  const { marginPercent, action, codes = [] } = parsed.data;
 
   let index: ReturnType<typeof parseAgacijaIndex>;
   try {
@@ -62,11 +92,17 @@ export async function POST(request: Request) {
       productCode: materials.productCode,
       price: materials.price,
       costPrice: materials.costPrice,
+      marginPercent: materials.marginPercent,
     })
     .from(materials);
   const plan = planPriceSync(rows, index, marginPercent);
+  let newProducts = findNewProducts(
+    index,
+    rows.map((r) => r.productCode),
+  );
+  let added = 0;
 
-  if (apply) {
+  if (action === "apply-prices") {
     await db.transaction(async (tx) => {
       if (plan.changes.length > 0) {
         await tx.execute(updatePricesSql(plan.changes));
@@ -87,13 +123,40 @@ export async function POST(request: Request) {
         });
     });
     console.log(
-      `agacija-sync: ${plan.changes.length} prices updated, margin ${marginPercent}%`,
+      `agacija-sync: ${plan.changes.length} prices updated, global margin ${marginPercent}%`,
     );
   }
 
+  if (action === "add-products") {
+    const wanted = new Set(codes);
+    const toAdd = newProducts.filter((p) => wanted.has(p.code));
+    // New products start as drafts: nobody sees them until they're published.
+    for (const product of toAdd) {
+      const cost = Math.round(product.price);
+      await db.insert(materials).values({
+        name: product.name,
+        productCode: product.code,
+        price: priceWithMargin(cost, marginPercent),
+        costPrice: cost,
+        img: await copyImage(product.code),
+        thickness: product.thickness ?? 18,
+        categories: [MATERIAL_CATEGORY_KORPUS, MATERIAL_CATEGORY_FRONT],
+        published: false,
+      });
+      added++;
+    }
+    newProducts = newProducts.filter((p) => !wanted.has(p.code));
+    console.log(`agacija-sync: ${added} new products added as drafts`);
+  }
+
   return NextResponse.json({
-    applied: apply,
+    action,
     supplierItems: index.size,
+    added,
     ...plan,
+    newProducts: newProducts.map((p) => ({
+      ...p,
+      image: agacijaImageUrl(p.code),
+    })),
   });
 }

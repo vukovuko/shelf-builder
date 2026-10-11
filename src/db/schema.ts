@@ -215,6 +215,9 @@ export const materials = pgTable("material", {
   description: text("description"),
   // 1 = most popular; empty for most decors. Puts the decor first on /materijali.
   popularRank: integer("popularRank"),
+  // Overrides the global margin (company_settings) when prices sync from
+  // Agacija; empty = global.
+  marginPercent: integer("marginPercent"),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
