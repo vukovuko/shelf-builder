@@ -579,7 +579,7 @@ Kolona koju ne opišete ostaje prazna, pa je posle dopunite u konfiguratoru. Ost
 
 ![Opis police za knjige dubine 30 cm i polica napravljena po tom opisu](/blog/dimenzije-ormana-polica.webp)
 
-Za knjige je dovoljno 30 cm dubine. Šest polica u visini od 200 cm daje oko 28 cm između polica.
+Za knjige je dovoljno 30 cm dubine. Šest polica u visini od 200 cm daje oko 28 cm između polica. Još pet rasporeda sa merama i cenama je u tekstu [Plakar po meri](/blog/plakar-po-meri).
 
 ## Pošaljite opis, mi napravimo orman
 
@@ -604,6 +604,92 @@ Najčešće dve kolone od po 100 cm. Jedna kolona može biti široka najviše 12
 ### Koliko košta orman po meri?
 
 Zavisi od mera, materijala i opreme. Upišite mere u [konfigurator](/design) i cena se pojavi odmah.
+
+Pošaljite opis na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili upišite mere u [konfigurator](/design).`,
+  },
+  {
+    slug: "plakar-po-meri",
+    title: "Plakar po meri: 5 rasporeda sa merama i cenama",
+    description:
+      "Plakar po meri za spavaću sobu, hodnik, nišu, dečju sobu i ostavu: 5 rasporeda sa merama, skicom i cenom, od oko 39.500 do 112.500 dinara.",
+    date: "2026-10-11",
+    readTime: "5 min",
+    image: "/blog/plakar-po-meri.png",
+    content: `Pet rasporeda plakara po meri, svaki sa merama, skicom, gotovim ormanom iz konfiguratora i cenom. Ispod svakog stoji opis od dve rečenice. Kopirajte ga, promenite mere i pošaljite nama, a mi od njega napravimo vaš plakar.
+
+## Plakar za spavaću sobu sa kliznim vratima
+
+![Skica plakara 300 × 260 × 60 cm sa tri kolone i isti plakar napravljen u konfiguratoru](/blog/plakar-po-meri.webp)
+
+Širina od 300 cm se deli na tri kolone od po 100 cm, jer jedna kolona može biti široka najviše 120 cm. Leva kolona je cela za šipku, pa ispod nje ostaje oko 190 cm za haljine i kapute. U srednjoj su police, a u desnoj fioke na dnu i šipka iznad njih.
+
+Plakar je visok 260 cm, pa ima gornji modul od 60 cm za stvari koje vadite jednom godišnje. Klizna vrata ne traže prostor ispred plakara, što je bitno kad je krevet blizu.
+
+Opis: "Plakar 300 × 260 × 60 cm, 3 kolone, klizna vrata. Prva kolona šipka za haljine i kapute, druga 6 polica, treća 3 fioke dole i šipka iznad."
+
+## Plakar u hodniku
+
+![Skica plakara za hodnik 160 × 250 × 60 cm i isti plakar napravljen u konfiguratoru](/blog/plakar-po-meri-hodnik.webp)
+
+U levoj koloni je šipka za jakne, a u desnoj šest polica za cipele i torbe. Dubina od 60 cm je tu zbog jakni na ofingerima. Ako u hodniku nemate toliko mesta, pogledajte plitki plakar na kraju teksta.
+
+Kolone su široke po 80 cm, pa je i svako krilo vrata široko 80 cm. Toliko slobodnog prostora treba ispred plakara da se vrata otvore do kraja. U uskom hodniku su bolja klizna vrata.
+
+Opis: "Plakar za hodnik 160 × 250 × 60 cm, 2 kolone. Leva: šipka za jakne i jedna polica iznad. Desna: 6 polica za cipele i torbe. Krilna vrata."
+
+## Ugradni plakar u niši, do plafona
+
+![Skica ugradnog plakara 240 × 270 × 60 cm i isti plakar napravljen u konfiguratoru](/blog/plakar-po-meri-ugradni.webp)
+
+Nišu izmerite na tri visine, pri dnu, na sredini i pri vrhu, i upišite najmanju meru. Ista stvar važi za visinu do plafona. Plakar od 270 cm se pravi iz dva modula, donjeg i gornjeg, jer bi se jedan komad te visine zaglavio o plafon dok ga podižete. Zašto je tako, objasnili smo u tekstu [Skica ormara](/blog/skica-ormara-nacrt-za-izradu).
+
+Opis: "Ugradni plakar u niši 240 × 270 × 60 cm, 2 kolone, do plafona. Leva: šipka i 2 police iznad nje. Desna: 3 fioke dole i police iznad. Klizna vrata."
+
+## Plakar za dečju sobu
+
+![Skica plakara za dečju sobu 180 × 200 × 55 cm i isti plakar napravljen u konfiguratoru](/blog/plakar-po-meri-decja-soba.webp)
+
+Visok je 200 cm, pa je ceo jedan modul, bez gornjeg dela. Leva kolona ima šipku sa dve police iznad, a desna četiri fioke za sitnu odeću i igračke i tri police iznad njih.
+
+Opis: "Orman za dečju sobu 180 × 200 × 55 cm, 2 kolone. Leva: šipka i dve police iznad. Desna: 4 fioke dole, iznad 3 police. Krilna vrata."
+
+## Plitki plakar za ostavu ili hodnik
+
+![Skica plitkog plakara 200 × 240 × 35 cm sa policama i isti plakar napravljen u konfiguratoru](/blog/plakar-po-meri-plitki.webp)
+
+Dubina od 35 cm je premala za ofingere, ali je dovoljna za police. U svakoj koloni je sedam polica na oko 30 cm razmaka, za kutije, posteljinu ili cipele. Bez vrata je i najjeftiniji od pet rasporeda.
+
+Opis: "Plitki plakar za ostavu 200 × 240 × 35 cm, 2 kolone, samo police, po 7 u svakoj koloni, bez vrata."
+
+## Koliko košta plakar po meri
+
+Ovo su cene iz [konfiguratora](/design) u oktobru 2026, za belu ivericu Opak bela, sa vratima, okovom i ručkama gde ih plakar ima:
+
+- **Plakar za spavaću sobu, 300 × 260 cm**: oko 112.500 dinara.
+- **Ugradni plakar u niši, 240 × 270 cm**: oko 93.000 dinara.
+- **Plakar u hodniku, 160 × 250 cm**: oko 61.000 dinara.
+- **Plakar za dečju sobu, 180 × 200 cm**: oko 52.000 dinara.
+- **Plitki plakar bez vrata, 200 × 240 cm**: oko 39.500 dinara.
+
+Cenu najviše menjaju materijal i vrata. Svaki od [više od 500 dekora](/materijali) ima svoju cenu po kvadratnom metru, a klizna vrata dodaju okov za klizanje. Ručke birate iz [kataloga ručki](/rucke). Tačnu cenu za svoje mere vidite u konfiguratoru čim ih upišete.
+
+## Kako da pošaljete svoj raspored
+
+Uzmite opis koji vam je najbliži, promenite mere i pošaljite ga na [info@ormanipomeri.com](mailto:info@ormanipomeri.com). Od njega napravimo plakar u konfiguratoru i javimo vam se sa dizajnom i cenom. Kako se piše opis i koje su standardne mere za dubinu, šipku i police, piše u tekstu [Dimenzije ormana](/blog/dimenzije-ormana).
+
+${descriptionSection}## Česta pitanja
+
+### Da li plakar mora da ide do plafona?
+
+Ne mora. Plakar može biti visok od 50 do 280 cm. Do plafona dobijate više mesta i nema prašine na vrhu, a sve preko 200 cm pravimo kao poseban gornji modul.
+
+### Koliko dubok treba da bude plakar?
+
+60 cm ako u njemu kačite odeću, 30 do 35 cm ako ima samo police.
+
+### Mogu li da naručim plakar sa kliznim vratima?
+
+Možete, ako plakar ima najmanje dve kolone. Za jednu kolonu idu krilna vrata.
 
 Pošaljite opis na [info@ormanipomeri.com](mailto:info@ormanipomeri.com) ili upišite mere u [konfigurator](/design).`,
   },
