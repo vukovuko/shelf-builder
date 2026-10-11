@@ -1,3 +1,8 @@
+import {
+  MIN_TOP_HEIGHT_CM,
+  TARGET_BOTTOM_HEIGHT_CM,
+} from "../wardrobe-constants";
+
 type ShelfSnapshot = {
   height?: number;
   hasBase?: boolean;
@@ -9,8 +14,6 @@ type ShelfSnapshot = {
   columnModuleBoundaries?: Record<number, number | null | undefined>;
   columnTopModuleShelves?: Record<number, number[] | null | undefined>;
 };
-
-const SPLIT_THRESHOLD_CM = 200;
 
 function getReferencedColumnCount(snapshot: ShelfSnapshot): number {
   const referencedIndexes = [
@@ -63,14 +66,22 @@ export function computeShelfCount(snapshot: ShelfSnapshot | null | undefined) {
       : tCm;
     const innerTop = colHeightCm - tCm;
 
+    // A column over 200 cm is two modules even without a stored joint; the
+    // cut list then splits it at the default height, so count the same way.
     const rawModuleBoundary = snapshot.columnModuleBoundaries?.[colIdx];
+    const defaultBoundaryCm =
+      colHeightCm - TARGET_BOTTOM_HEIGHT_CM < MIN_TOP_HEIGHT_CM
+        ? colHeightCm - MIN_TOP_HEIGHT_CM
+        : TARGET_BOTTOM_HEIGHT_CM;
     const moduleBoundaryCm =
       rawModuleBoundary !== null && rawModuleBoundary !== undefined
         ? rawModuleBoundary * 100
-        : null;
+        : colHeightCm > TARGET_BOTTOM_HEIGHT_CM
+          ? defaultBoundaryCm
+          : null;
     const hasValidModuleBoundary =
       moduleBoundaryCm !== null &&
-      colHeightCm > SPLIT_THRESHOLD_CM &&
+      colHeightCm > TARGET_BOTTOM_HEIGHT_CM &&
       moduleBoundaryCm > innerBottom + tCm &&
       moduleBoundaryCm < innerTop - tCm;
 

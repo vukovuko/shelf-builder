@@ -10,6 +10,7 @@ describe("computeShelfCount", () => {
   it("counts bottom module shelves across all columns", () => {
     expect(
       computeShelfCount({
+        height: 200,
         columnHorizontalBoundaries: {
           0: [0.5, 1.0],
           1: [0.75],
@@ -35,6 +36,16 @@ describe("computeShelfCount", () => {
         },
       }),
     ).toBe(4);
+  });
+
+  it("counts top module shelves of a tall column without a stored joint, like the cut list", () => {
+    expect(
+      computeShelfCount({
+        height: 240,
+        columnHorizontalBoundaries: { 0: [0.5, 1.0] },
+        columnTopModuleShelves: { 0: [2.2] },
+      }),
+    ).toBe(3);
   });
 
   it("ignores malformed shelf collections", () => {
