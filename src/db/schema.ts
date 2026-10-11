@@ -125,6 +125,52 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updatedAt"),
 });
 
+// OAuth for AI assistants (Better Auth's mcp plugin, /api/mcp): the apps that
+// registered, their tokens, and consents. Column names are Better Auth's.
+export const oauthApplication = pgTable("oauthApplication", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  icon: text("icon"),
+  metadata: text("metadata"),
+  clientId: text("clientId").notNull().unique(),
+  clientSecret: text("clientSecret"),
+  redirectUrls: text("redirectUrls").notNull(),
+  type: text("type").notNull(),
+  disabled: boolean("disabled").default(false),
+  userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+});
+
+export const oauthAccessToken = pgTable("oauthAccessToken", {
+  id: text("id").primaryKey(),
+  accessToken: text("accessToken").notNull().unique(),
+  refreshToken: text("refreshToken").notNull().unique(),
+  accessTokenExpiresAt: timestamp("accessTokenExpiresAt").notNull(),
+  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt").notNull(),
+  clientId: text("clientId")
+    .notNull()
+    .references(() => oauthApplication.clientId, { onDelete: "cascade" }),
+  userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
+  scopes: text("scopes").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+});
+
+export const oauthConsent = pgTable("oauthConsent", {
+  id: text("id").primaryKey(),
+  clientId: text("clientId")
+    .notNull()
+    .references(() => oauthApplication.clientId, { onDelete: "cascade" }),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  scopes: text("scopes").notNull(),
+  consentGiven: boolean("consentGiven").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull(),
+});
+
 // App-specific tables
 export const wardrobes = pgTable(
   "wardrobe",

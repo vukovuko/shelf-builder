@@ -9,17 +9,21 @@ import {
   getSessionFromCtx,
 } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { admin, captcha, oneTimeToken } from "better-auth/plugins";
+import { admin, captcha, mcp, oneTimeToken } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
 import { sendEmail } from "./email-rate-limiter";
 import ResetPasswordEmail from "./emails/reset-password-email";
 import VerificationEmail from "./emails/verification-email";
+import { isAllowedMcpRedirect } from "./mcp/redirects";
 import { validatePassword } from "./password-validation";
 import { allowEmailTo, betterAuthRateLimitStorage } from "./upstash-rate-limit";
 
 export const auth = betterAuth({
+  // The same value Better Auth reads by default; the mcp plugin needs it set
+  // here to advertise its OAuth issuer.
+  baseURL: process.env.BETTER_AUTH_URL,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
@@ -111,6 +115,31 @@ export const auth = betterAuth({
   hooks: {
     // The strength rules the signup form shows, enforced for direct API calls.
     before: createAuthMiddleware(async (ctx) => {
+      // AI assistants (/api/mcp) may only receive codes at Claude's own
+      // callbacks; see lib/mcp/redirects.
+      if (ctx.path === "/mcp/register") {
+        const uris = ctx.body?.redirect_uris;
+        if (
+          !Array.isArray(uris) ||
+          uris.length === 0 ||
+          !uris.every(isAllowedMcpRedirect)
+        ) {
+          throw new APIError("BAD_REQUEST", {
+            error: "invalid_redirect_uri",
+            error_description: "This redirect URI is not allowed",
+          });
+        }
+        return;
+      }
+      if (ctx.path === "/mcp/authorize") {
+        if (!isAllowedMcpRedirect(ctx.query?.redirect_uri)) {
+          throw new APIError("BAD_REQUEST", {
+            error: "invalid_request",
+            error_description: "This redirect URI is not allowed",
+          });
+        }
+        return;
+      }
       // Better Auth mails any unverified address when asked without a session.
       // Our only caller is account settings (logged in), and signup/sign-in
       // send their own emails, so a logged-out request here is only abuse:
@@ -183,6 +212,9 @@ export const auth = betterAuth({
       expiresIn: 1,
       storeToken: "hashed",
     }),
+    // OAuth for AI assistants (Claude etc.) reading the admin data over
+    // /api/mcp. The route only answers admins; see src/app/api/mcp.
+    mcp({ loginPage: "/mcp/prijava" }),
     nextCookies(), // Must be last plugin
   ],
 });
