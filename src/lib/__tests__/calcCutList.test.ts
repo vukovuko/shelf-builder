@@ -896,14 +896,18 @@ describe("calculateCutList", () => {
       expect(result.grouped.A).toBeDefined();
       expect(result.grouped.A1).toBeDefined();
 
-      const bottomCodes = (result.grouped.A ?? []).map((item) => item.code);
-      const topCodes = (result.grouped.A1 ?? []).map((item) => item.code);
-
-      expect(bottomCodes).toContain("A-DON");
-      expect(bottomCodes).toContain("A-MB1");
-      expect(topCodes).toContain("A-GOR");
-      expect(topCodes).toContain("A-MB2");
-      expect(topCodes).toContain("A-ZG");
+      // Each board keeps its own code in `items`; `grouped` may merge
+      // identical boards into one row, so check the group per board.
+      const groupOf = (code: string) => {
+        const item = result.items.find((it) => it.code === code);
+        expect(item, code).toBeDefined();
+        return getCutListGroupKey(item?.element ?? "");
+      };
+      expect(groupOf("A-DON")).toBe("A");
+      expect(groupOf("A-MB1")).toBe("A");
+      expect(groupOf("A-GOR")).toBe("A1");
+      expect(groupOf("A-MB2")).toBe("A1");
+      expect(groupOf("A-ZG")).toBe("A1");
     });
 
     it("groups items by element", () => {
@@ -927,12 +931,50 @@ describe("calculateCutList", () => {
       // Should have grouped property
       expect(result.grouped).toBeDefined();
 
-      // Items in grouped should match items array
-      const groupedCount = Object.values(result.grouped).reduce(
-        (sum, arr) => sum + arr.length,
+      // Grouped rows merge identical boards; their quantities add up to
+      // every board in `items`, and area and cost stay the same.
+      const groupedRows = Object.values(result.grouped).flat();
+      const pieces = groupedRows.reduce(
+        (sum, it) => sum + (it.quantity ?? 1),
         0,
       );
-      expect(groupedCount).toBe(result.items.length);
+      expect(pieces).toBe(result.items.length);
+      expect(groupedRows.reduce((sum, it) => sum + it.areaM2, 0)).toBeCloseTo(
+        result.items.reduce((sum, it) => sum + it.areaM2, 0),
+      );
+      expect(groupedRows.reduce((sum, it) => sum + it.cost, 0)).toBeCloseTo(
+        result.items.reduce((sum, it) => sum + it.cost, 0),
+      );
+    });
+
+    it("merges identical boards of a column into one row with a quantity", () => {
+      const snapshot: WardrobeSnapshot = {
+        width: 100,
+        height: 200,
+        depth: 60,
+        selectedMaterialId: 1,
+        selectedFrontMaterialId: 2,
+        selectedBackMaterialId: 3,
+        elementConfigs: {},
+        compartmentExtras: {},
+        doorSelections: {},
+        hasBase: false,
+        baseHeight: 0,
+      };
+
+      const result = calculateCutList(snapshot, mockMaterials);
+      const bottom = result.items.find((it) => it.code === "A-DON");
+      const top = result.items.find((it) => it.code === "A-GOR");
+      expect(bottom?.widthCm).toBe(top?.widthCm);
+      expect(bottom?.heightCm).toBe(top?.heightCm);
+
+      // Top and bottom are the same piece, so they share one row.
+      const row = (result.grouped.A ?? []).find((it) => it.code === "A-DON");
+      expect(row?.quantity).toBe(2);
+      expect(row?.areaM2).toBeCloseTo((bottom?.areaM2 ?? 0) * 2);
+      expect((result.grouped.A ?? []).some((it) => it.code === "A-GOR")).toBe(
+        false,
+      );
     });
 
     it("preserves explicit top-module element keys during grouping", () => {
@@ -959,15 +1001,13 @@ describe("calculateCutList", () => {
       };
 
       const result = calculateCutList(snapshot, mockMaterials);
-      const elementAItems = result.grouped.A ?? [];
-      const elementACodes = elementAItems.map((item) => item.code);
 
       expect(result.grouped.KORPUS).toBeUndefined();
-      expect(elementACodes).toContain("SL");
-      expect(elementACodes).toContain("A-DON");
-      expect(elementACodes).toContain("A-GOR");
-      expect(elementACodes).toContain("A-P1");
-      expect(elementACodes).toContain("A-Z");
+      for (const code of ["SL", "A-DON", "A-GOR", "A-P1", "A-Z"]) {
+        const item = result.items.find((it) => it.code === code);
+        expect(item, code).toBeDefined();
+        expect(getCutListGroupKey(item?.element ?? ""), code).toBe("A");
+      }
     });
   });
 
