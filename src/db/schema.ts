@@ -624,6 +624,12 @@ export const companySettings = pgTable("company_settings", {
   paymentCode: text("payment_code").notNull().default("289"), // Šifra plaćanja
   contactPhone: text("contact_phone").notNull().default(""),
   contactEmail: text("contact_email").notNull().default(""),
+  // Material prices follow supplier Agacija's list: costPrice = their price,
+  // price = their price + this margin (admin → Materijali → Cene sa Agacije).
+  materialMarginPercent: integer("material_margin_percent")
+    .notNull()
+    .default(0),
+  materialPricesSyncedAt: timestamp("material_prices_synced_at"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

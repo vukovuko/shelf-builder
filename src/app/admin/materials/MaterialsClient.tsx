@@ -207,9 +207,14 @@ export function MaterialsClient({
             Upravljanje materijalima za konfigurator
           </p>
         </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/admin/materials/new">Dodaj materijal</Link>
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/materials/cene">Cene sa Agacije</Link>
+          </Button>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/admin/materials/new">Dodaj materijal</Link>
+          </Button>
+        </div>
       </div>
 
       <DataTable
