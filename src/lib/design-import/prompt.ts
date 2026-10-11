@@ -57,6 +57,7 @@ Written descriptions: instead of an image, or next to one, you may get the custo
 - A section the text says nothing about gets no shelves, no drawers and no rail.
 - Doors: krilna/hinged on one section is "left" unless a side is given, dvokrilna/double is "double", klizna/sliding sets slidingDoors, bez vrata/open is "none". When doors aren't mentioned, use "none".
 - aspectRatio is null unless both width and height are given.
+- rodHeight is null unless the text gives the rail's height.
 - When an image and a description disagree, the description wins: it is the customer's own correction.
 
 Do not invent details the image or the text does not give.`;

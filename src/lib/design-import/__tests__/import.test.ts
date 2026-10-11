@@ -201,6 +201,17 @@ describe("impossible requests are snapped to the rules", () => {
     expect(state().compartmentExtras.A1?.rod).toBe(true);
   });
 
+  it("a rail guessed into the short top module goes to the tall space below", () => {
+    importWardrobeDraft({
+      recognized: true,
+      widthCm: 300,
+      heightCm: 260,
+      sections: [{ rod: true, rodHeight: 0.8 }, {}, {}],
+    });
+    expect(state().compartmentExtras.A1?.rod).toBe(true);
+    expect(state().compartmentExtras.A2?.rod).toBeFalsy();
+  });
+
   it("sliding doors on a one-column wardrobe are dropped", () => {
     const r = importWardrobeDraft({
       recognized: true,

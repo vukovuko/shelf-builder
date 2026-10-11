@@ -218,6 +218,9 @@ function columnDoorType(sections: Section[]): DoorOption | null {
     : "double";
 }
 
+/** Below this a compartment can't hold hanging clothes (shirts need 90–100 cm). */
+const MIN_HANGING_SPACE_CM = 80;
+
 export function planWardrobe(
   draft: WardrobeDraft,
   overrides: DimensionOverrides = {},
@@ -580,7 +583,13 @@ export function planWardrobe(
       const tallest = clean
         .filter(({ idx }) => idx < bottomCount)
         .sort((a, b) => heightCmOf(b.idx) - heightCmOf(a.idx))[0];
-      compartmentAt((drawnAt ?? tallest ?? clean[0]).idx).rod = true;
+      // A guessed rail height can land in the short top module over 200 cm,
+      // where nothing hangs; there the tallest space wins.
+      const hangs =
+        drawnAt && heightCmOf(drawnAt.idx) >= MIN_HANGING_SPACE_CM
+          ? drawnAt
+          : undefined;
+      compartmentAt((hangs ?? tallest ?? drawnAt ?? clean[0]).idx).rod = true;
     });
 
     // Doors: one group over the bottom module above the drawers, one over the top.
