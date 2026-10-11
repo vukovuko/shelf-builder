@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db/db";
@@ -9,7 +8,11 @@ import {
   parseAgacijaIndex,
   planPriceSync,
 } from "@/lib/agacija-prices";
+import { updatePricesSql } from "@/lib/agacija-prices-sql";
 import { requireAdmin } from "@/lib/roles";
+
+// The fetch takes well under a second; this is headroom, not the norm.
+export const maxDuration = 60;
 
 const bodySchema = z.object({
   marginPercent: z.number().min(0).max(300),
@@ -65,15 +68,8 @@ export async function POST(request: Request) {
 
   if (apply) {
     await db.transaction(async (tx) => {
-      for (const change of plan.changes) {
-        await tx
-          .update(materials)
-          .set({
-            price: change.newPrice,
-            costPrice: change.supplierPrice,
-            updatedAt: new Date(),
-          })
-          .where(eq(materials.id, change.id));
+      if (plan.changes.length > 0) {
+        await tx.execute(updatePricesSql(plan.changes));
       }
       await tx
         .insert(companySettings)
