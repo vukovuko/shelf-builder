@@ -1,4 +1,5 @@
 import { blogPosts } from "@/lib/blog-data";
+import { COMPANY_CONTACT } from "@/lib/company-contact";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import {
   DEPTH_RANGE_CM,
@@ -46,7 +47,8 @@ function facts() {
 - Uz dizajn se preuzima tehnički crtež 2D sa merama.
 - Načini isporuke:
 ${services}
-- Posle porudžbine stiže potvrda i faktura sa IPS QR kodom za plaćanje. Tim pregleda porudžbinu i javlja se kupcu pre izrade.`;
+- Posle porudžbine stiže potvrda i faktura sa IPS QR kodom za plaćanje. Tim pregleda porudžbinu i javlja se kupcu pre izrade.
+- Kontakt: telefon ${COMPANY_CONTACT.phone} (radno vreme ${COMPANY_CONTACT.hours}), email ${COMPANY_CONTACT.email}. Firma: ${COMPANY_CONTACT.legalName}.`;
 }
 
 export function buildLlmsTxt(): string {

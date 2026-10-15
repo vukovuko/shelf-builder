@@ -12,6 +12,11 @@ export const COMPANY_SOCIALS = [
     url: "https://www.instagram.com/ormani_po_meri_com/",
   },
   {
+    platform: "facebook",
+    label: "Facebook",
+    url: "https://www.facebook.com/profile.php?id=61594335825651",
+  },
+  {
     platform: "linkedin",
     label: "LinkedIn",
     url: "https://www.linkedin.com/company/ormani-po-meri/",

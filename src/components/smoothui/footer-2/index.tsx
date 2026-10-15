@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SocialIcon, type SocialLink } from "@/components/SocialIcons";
+import { COMPANY_CONTACT, COMPANY_PHONE_HREF } from "@/lib/company-contact";
 import { COMPANY_SOCIALS } from "@/lib/company-socials";
 
 interface FooterComplexProps {
@@ -17,6 +18,16 @@ interface FooterComplexProps {
 
 function FooterLink({ name, url }: { name: string; url: string }) {
   const isExternal = url.startsWith("http");
+  if (url.startsWith("tel:") || url.startsWith("mailto:")) {
+    return (
+      <a
+        className="inline-block py-1 text-foreground/70 text-sm transition-colors hover:text-primary focus-visible:text-primary"
+        href={url}
+      >
+        {name}
+      </a>
+    );
+  }
   if (isExternal) {
     return (
       <a
@@ -111,6 +122,28 @@ export function FooterComplex({
                 </ul>
               </div>
             )}
+
+            <div>
+              <p className="mb-4 font-semibold text-foreground text-sm uppercase tracking-wide">
+                Kontakt
+              </p>
+              <ul className="space-y-1 text-foreground/70 text-sm">
+                <li className="py-1">{COMPANY_CONTACT.legalName}</li>
+                <li>
+                  <FooterLink
+                    name={COMPANY_CONTACT.phone}
+                    url={COMPANY_PHONE_HREF}
+                  />
+                </li>
+                <li className="py-1">Radno vreme {COMPANY_CONTACT.hours}</li>
+                <li className="break-words">
+                  <FooterLink
+                    name={COMPANY_CONTACT.email}
+                    url={`mailto:${COMPANY_CONTACT.email}`}
+                  />
+                </li>
+              </ul>
+            </div>
 
             {links.company && links.company.length > 0 && (
               <div>
