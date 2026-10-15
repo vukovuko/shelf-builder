@@ -128,7 +128,7 @@ export function FooterComplex({
                 Kontakt
               </p>
               <ul className="space-y-1 text-foreground/70 text-sm">
-                <li className="py-1">{COMPANY_CONTACT.legalName}</li>
+                <li className="py-1">{COMPANY_CONTACT.name}</li>
                 <li>
                   <FooterLink
                     name={COMPANY_CONTACT.phone}

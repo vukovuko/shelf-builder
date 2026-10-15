@@ -3,7 +3,7 @@
  * contact page, the homepage Organization schema and llms.txt.
  */
 export const COMPANY_CONTACT = {
-  legalName: "Ormani po meri doo Beograd",
+  name: "Ormani po meri, Beograd",
   phone: "062 351 598",
   phoneIntl: "+38162351598",
   email: "info@ormanipomeri.com",

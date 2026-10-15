@@ -48,7 +48,7 @@ function facts() {
 - Načini isporuke:
 ${services}
 - Posle porudžbine stiže potvrda i faktura sa IPS QR kodom za plaćanje. Tim pregleda porudžbinu i javlja se kupcu pre izrade.
-- Kontakt: telefon ${COMPANY_CONTACT.phone} (radno vreme ${COMPANY_CONTACT.hours}), email ${COMPANY_CONTACT.email}. Firma: ${COMPANY_CONTACT.legalName}.`;
+- Kontakt: telefon ${COMPANY_CONTACT.phone} (radno vreme ${COMPANY_CONTACT.hours}), email ${COMPANY_CONTACT.email}..`;
 }
 
 export function buildLlmsTxt(): string {

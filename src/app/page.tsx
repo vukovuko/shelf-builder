@@ -29,7 +29,6 @@ const organizationJsonLd = {
   description:
     "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.",
   sameAs: COMPANY_SOCIALS.map((profile) => profile.url),
-  legalName: COMPANY_CONTACT.legalName,
   telephone: COMPANY_CONTACT.phoneIntl,
   email: COMPANY_CONTACT.email,
   contactPoint: {
