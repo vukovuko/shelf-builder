@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
+import { withDoorRemovalNotice } from "@/lib/door-removal-notice";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import {
   getValidDrawerCountRange,
@@ -54,11 +55,11 @@ export function CompartmentExtrasPanel({
   const baseHeight = useShelfStore((s: ShelfState) => s.baseHeight);
 
   const elementConfigs = useShelfStore((s: ShelfState) => s.elementConfigs);
-  const setElementColumns = useShelfStore(
-    (s: ShelfState) => s.setElementColumns,
+  const setElementColumns = withDoorRemovalNotice(
+    useShelfStore((s: ShelfState) => s.setElementColumns),
   );
-  const setElementRowCount = useShelfStore(
-    (s: ShelfState) => s.setElementRowCount,
+  const setElementRowCount = withDoorRemovalNotice(
+    useShelfStore((s: ShelfState) => s.setElementRowCount),
   );
   const setElementDrawerCount = useShelfStore(
     (s: ShelfState) => s.setElementDrawerCount,

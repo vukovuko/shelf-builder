@@ -3,6 +3,7 @@
 import { Html } from "@react-three/drei";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { TypedNumberInput } from "@/components/TypedNumberInput";
+import { withDoorRemovalNotice } from "@/lib/door-removal-notice";
 import { useShelfStore, type ShelfState, type Material } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
 import {
@@ -47,8 +48,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
     (s: ShelfState) => s.columnModuleBoundaries,
   );
   const setColumnHeight = useShelfStore((s: ShelfState) => s.setColumnHeight);
-  const setColumnShelfCount = useShelfStore(
-    (s: ShelfState) => s.setColumnShelfCount,
+  const setColumnShelfCount = withDoorRemovalNotice(
+    useShelfStore((s: ShelfState) => s.setColumnShelfCount),
   );
   const setVerticalBoundary = useShelfStore(
     (s: ShelfState) => s.setVerticalBoundary,
@@ -63,8 +64,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
   const columnTopModuleShelves = useShelfStore(
     (s: ShelfState) => s.columnTopModuleShelves,
   );
-  const setColumnTopModuleShelfCount = useShelfStore(
-    (s: ShelfState) => s.setColumnTopModuleShelfCount,
+  const setColumnTopModuleShelfCount = withDoorRemovalNotice(
+    useShelfStore((s: ShelfState) => s.setColumnTopModuleShelfCount),
   );
   const moveColumnModuleBoundary = useShelfStore(
     (s: ShelfState) => s.moveColumnModuleBoundary,

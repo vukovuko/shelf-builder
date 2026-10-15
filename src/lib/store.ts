@@ -180,6 +180,45 @@ export function parseSubCompKey(key: string): ParsedSubCompKey | null {
   return null; // Invalid format
 }
 
+/**
+ * Removes every door touching a compartment that `covers` matches, from both
+ * doorGroups and the legacy doorSelections map. Doors are stored by position
+ * ("A2" = second compartment of column A, "A1.0.2" = third space of A1), so
+ * once shelves are added or removed those keys point at different spaces.
+ */
+function withoutDoorsCovering(
+  state: Pick<
+    ShelfState,
+    "doorGroups" | "doorSelections" | "selectedDoorCompartments"
+  >,
+  covers: (compKey: string) => boolean,
+): Partial<ShelfState> {
+  const removed = state.doorGroups.filter((g) => g.compartments.some(covers));
+  const staleSelections = Object.keys(state.doorSelections).filter(covers);
+  if (removed.length === 0 && staleSelections.length === 0) return {};
+
+  const doorSelections = { ...state.doorSelections };
+  for (const key of staleSelections) delete doorSelections[key];
+  for (const group of removed) {
+    for (const key of group.compartments) delete doorSelections[key];
+  }
+  return {
+    doorGroups: state.doorGroups.filter((g) => !removed.includes(g)),
+    doorSelections,
+    selectedDoorCompartments: state.selectedDoorCompartments.filter(
+      (key) => !covers(key),
+    ),
+  };
+}
+
+const inColumn = (colLetter: string) => (key: string) =>
+  parseSubCompKey(key)?.column === colLetter;
+
+const insideCompartment = (compKey: string) => (key: string) => {
+  const parsed = parseSubCompKey(key);
+  return parsed?.isSubComp === true && parsed.compKey === compKey;
+};
+
 interface ElementConfig {
   columns: number; // number of compartments in this element (dividers + 1)
   rowCounts: number[]; // shelves per compartment
@@ -1013,6 +1052,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
           },
         },
         compartmentExtras,
+        ...(columns !== (current.columns ?? 1) &&
+          withoutDoorsCovering(state, insideCompartment(key))),
       };
     }),
   setElementRowCount: (key, index, count) =>
@@ -1029,6 +1070,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
         ? 0
         : Math.max(0, Math.floor(compHeightCm / MIN_SHELF_HEIGHT_CM) - 1);
       const clampedCount = Math.min(count, maxShelves);
+      const previousCount = current.rowCounts[index] ?? 0;
 
       const rowCounts = [...current.rowCounts];
       const sectionShelfRatios = [...(current.sectionShelfRatios ?? [])];
@@ -1077,6 +1119,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
           [key]: updatedConfig,
         },
         compartmentExtras,
+        ...(clampedCount !== previousCount &&
+          withoutDoorsCovering(state, insideCompartment(key))),
       };
     }),
   moveElementShelf: (key, sectionIndex, shelfIndex, ratio) =>
@@ -1813,6 +1857,10 @@ export const useShelfStore = create<ShelfState>((set) => ({
           ...state.columnHorizontalBoundaries,
           [colIndex]: newBoundaries,
         },
+        ...withoutDoorsCovering(
+          state,
+          inColumn(String.fromCharCode(65 + colIndex)),
+        ),
       };
     }),
   removeColumnShelf: (colIndex, shelfIndex) =>
@@ -1824,6 +1872,11 @@ export const useShelfStore = create<ShelfState>((set) => ({
           ...state.columnHorizontalBoundaries,
           [colIndex]: newBoundaries,
         },
+        ...(newBoundaries.length !== existing.length &&
+          withoutDoorsCovering(
+            state,
+            inColumn(String.fromCharCode(65 + colIndex)),
+          )),
       };
     }),
   moveColumnShelf: (colIndex, shelfIndex, newY) =>
@@ -1899,6 +1952,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         },
         elementConfigs: newElementConfigs,
         compartmentExtras: newCompartmentExtras,
+        ...(oldBoundaries.length !== clampedCount &&
+          withoutDoorsCovering(state, inColumn(colLetter))),
       };
     }),
   resetColumnHorizontalBoundaries: () =>
@@ -2412,6 +2467,8 @@ export const useShelfStore = create<ShelfState>((set) => ({
         },
         elementConfigs: newElementConfigs,
         compartmentExtras: newCompartmentExtras,
+        ...(oldShelves.length !== clampedCount &&
+          withoutDoorsCovering(state, inColumn(colLetter))),
       };
     }),
   moveTopModuleShelf: (colIndex, shelfIndex, newY) =>
