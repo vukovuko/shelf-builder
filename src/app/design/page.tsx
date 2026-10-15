@@ -10,6 +10,7 @@ import {
   clearDesignDraft,
   readDesignDraft,
 } from "@/lib/design-draft";
+import { resetDesignHistory, startDesignHistory } from "@/lib/design-history";
 import { modelForHandle } from "@/lib/handle-models";
 import {
   isBackMaterialCategory,
@@ -81,6 +82,8 @@ function LoadFromUrl() {
         }
 
         applyWardrobeSnapshot(wardrobe.data);
+        // Undo starts from the loaded design, not from what was on screen before.
+        resetDesignHistory();
 
         // Track loaded wardrobe for update functionality
         setLoadedWardrobe(wardrobe.id, wardrobe.isModel ?? false);
@@ -203,7 +206,12 @@ export default function DesignPage({
 
   useEffect(() => {
     if (!hasRestoredState) return;
-    return autosaveDesignDraft();
+    const stopAutosave = autosaveDesignDraft();
+    const stopHistory = startDesignHistory();
+    return () => {
+      stopAutosave();
+      stopHistory();
+    };
   }, [hasRestoredState]);
 
   // Catalog pages link here to start from one of their products:

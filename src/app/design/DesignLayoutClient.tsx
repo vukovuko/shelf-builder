@@ -11,6 +11,7 @@ import { DesignImportOverlay } from "@/components/DesignImportOverlay";
 import { LockedPreviewBar } from "@/components/LockedPreviewBar";
 import { MobileBottomTabs } from "@/components/MobileBottomTabs";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UndoButton } from "@/components/UndoButton";
 import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -335,6 +336,7 @@ export function DesignLayoutClient({
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-2 justify-end ">
+          {!isPreviewMode && <UndoButton />}
           <Button
             variant="ghost"
             size="icon"
@@ -428,6 +430,7 @@ export function DesignLayoutClient({
           </div>
         )}
         <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20 ">
+          {!isPreviewMode && <UndoButton />}
           <Button
             variant="ghost"
             size="icon"
