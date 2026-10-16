@@ -10,12 +10,18 @@ import { useShelfStore } from "./store";
  * snapshot only holds references to slices that already exist and an entry
  * costs almost nothing; undo puts those references straight back.
  *
- * A change becomes one undo step once the design has been still for
- * COMMIT_DELAY_MS and nothing is being dragged. A shelf drag, a slider pull or
- * typing "150" into a field therefore undoes in one go.
+ * One user action is one step:
+ * - a click, tap or key press: everything it changed, closed at the end of
+ *   that event (setTimeout 0, so an action that calls several store setters
+ *   is still one step);
+ * - a press-and-drag (shelf, divider, slider): closed when the last pointer is
+ *   released;
+ * - typing into a number field: closed when the field loses focus or after
+ *   TYPING_COMMIT_MS without a keystroke, so "150" isn't three steps.
+ * Hover and selection updates never touch the design and are ignored.
  */
 export const HISTORY_LIMIT = 100;
-export const COMMIT_DELAY_MS = 500;
+export const TYPING_COMMIT_MS = 800;
 
 type Snapshot = ReturnType<typeof getWardrobeSnapshot>;
 
@@ -23,8 +29,11 @@ let past: Snapshot[] = [];
 let future: Snapshot[] = [];
 // The design as of the last committed step; undo returns to the entry before it.
 let baseline: Snapshot | null = null;
+// The design the subscriber saw last, to tell design changes from hover noise.
+let latest: Snapshot | null = null;
 let pending = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
+const pressedPointers = new Set<number>();
 
 export const useDesignHistory = create(() => ({
   canUndo: false,
@@ -60,23 +69,57 @@ function commit() {
     future = [];
   }
   baseline = current;
+  latest = current;
   publish();
+}
+
+const TEXT_INPUT_TYPES = new Set([
+  "text",
+  "number",
+  "email",
+  "search",
+  "tel",
+  "url",
+  "password",
+]);
+
+// Text fields keep the browser's own undo for what was typed.
+function isTextEditing(target: unknown) {
+  if (typeof HTMLElement === "undefined") return false;
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || target instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  return (
+    target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
+  );
+}
+
+/** Closes the pending step once the action that made it is over. */
+function settle() {
+  if (!pending || pressedPointers.size > 0) return;
+  const typing =
+    typeof document !== "undefined" && isTextEditing(document.activeElement);
+  clearTimeout(timer);
+  timer = setTimeout(commit, typing ? TYPING_COMMIT_MS : 0);
 }
 
 function onStoreChange() {
-  const state = useShelfStore.getState();
-  if (state.isPreviewMode || !baseline) return;
-  if (sameRefs(getWardrobeSnapshot(), baseline)) return;
-  clearTimeout(timer);
-  timer = undefined;
+  if (useShelfStore.getState().isPreviewMode || !baseline) return;
+  const current = getWardrobeSnapshot();
+  if (latest && sameRefs(current, latest)) return;
+  latest = current;
   pending = true;
-  // The step is committed when the drag ends (that update lands here too).
-  if (!state.isDragging) timer = setTimeout(commit, COMMIT_DELAY_MS);
   publish();
+  settle();
 }
 
 function restore(snapshot: Snapshot) {
+  clearTimeout(timer);
+  timer = undefined;
+  pending = false;
   baseline = snapshot;
+  latest = snapshot;
   useShelfStore.setState({
     ...snapshot,
     // A door selection can name compartments the restored design doesn't have.
@@ -90,7 +133,12 @@ function restore(snapshot: Snapshot) {
 
 function canTravel() {
   const state = useShelfStore.getState();
-  return baseline !== null && !state.isDragging && !state.isPreviewMode;
+  return (
+    baseline !== null &&
+    pressedPointers.size === 0 &&
+    !state.isDragging &&
+    !state.isPreviewMode
+  );
 }
 
 export function undoDesign() {
@@ -120,6 +168,7 @@ export function resetDesignHistory() {
   past = [];
   future = [];
   baseline = getWardrobeSnapshot();
+  latest = baseline;
   publish();
 }
 
@@ -148,27 +197,6 @@ export function historyShortcut(e: KeyInput): "undo" | "redo" | null {
   return null;
 }
 
-const TEXT_INPUT_TYPES = new Set([
-  "text",
-  "number",
-  "email",
-  "search",
-  "tel",
-  "url",
-  "password",
-]);
-
-// Text fields keep the browser's own undo for what was typed.
-function isTextEditing(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable || target instanceof HTMLTextAreaElement) {
-    return true;
-  }
-  return (
-    target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
-  );
-}
-
 function onKeyDown(e: KeyboardEvent) {
   const action = historyShortcut(e);
   if (!action || isTextEditing(e.target)) return;
@@ -179,20 +207,56 @@ function onKeyDown(e: KeyboardEvent) {
   else redoDesign();
 }
 
+function onPointerDown(e: PointerEvent) {
+  pressedPointers.add(e.pointerId);
+}
+
+function onPointerUp(e: PointerEvent) {
+  pressedPointers.delete(e.pointerId);
+  settle();
+}
+
+// A release outside the window never sends pointerup; the next move does
+// arrive with no buttons pressed.
+function onPointerMove(e: PointerEvent) {
+  if (e.buttons === 0 && pressedPointers.delete(e.pointerId)) settle();
+}
+
+// Leaving a number field ends the typing step right away.
+function onFocusOut() {
+  setTimeout(settle, 0);
+}
+
+const LISTENERS = [
+  ["keydown", onKeyDown],
+  ["pointerdown", onPointerDown],
+  ["pointerup", onPointerUp],
+  ["pointercancel", onPointerUp],
+  ["pointermove", onPointerMove],
+  ["focusout", onFocusOut],
+] as const;
+
 /** Starts recording steps from the current design; returns the cleanup. */
 export function startDesignHistory(): () => void {
   resetDesignHistory();
+  pressedPointers.clear();
   const unsubscribe = useShelfStore.subscribe(onStoreChange);
-  window.addEventListener("keydown", onKeyDown);
+  for (const [type, listener] of LISTENERS) {
+    window.addEventListener(type, listener as EventListener, true);
+  }
   return () => {
     unsubscribe();
-    window.removeEventListener("keydown", onKeyDown);
+    for (const [type, listener] of LISTENERS) {
+      window.removeEventListener(type, listener as EventListener, true);
+    }
     clearTimeout(timer);
     timer = undefined;
     pending = false;
     baseline = null;
+    latest = null;
     past = [];
     future = [];
+    pressedPointers.clear();
     publish();
   };
 }

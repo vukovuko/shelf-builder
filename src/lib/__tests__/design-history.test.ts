@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  COMMIT_DELAY_MS,
   HISTORY_LIMIT,
+  TYPING_COMMIT_MS,
   historyShortcut,
   redoDesign,
   startDesignHistory,
@@ -11,15 +11,22 @@ import {
 import { useShelfStore } from "../store";
 
 const store = () => useShelfStore.getState();
-const settle = () => vi.advanceTimersByTime(COMMIT_DELAY_MS);
+// Lets the step of the current event close (it commits on setTimeout 0).
+const endOfEvent = () => vi.advanceTimersByTime(0);
 
 describe("design history", () => {
   let stop: () => void;
+  let listeners: Record<string, (e: unknown) => void>;
+  const pointer = (type: string, buttons = 0) =>
+    listeners[type]({ pointerId: 1, buttons });
 
   beforeEach(() => {
     vi.useFakeTimers();
+    listeners = {};
     vi.stubGlobal("window", {
-      addEventListener: () => {},
+      addEventListener: (type: string, listener: (e: unknown) => void) => {
+        listeners[type] = listener;
+      },
       removeEventListener: () => {},
     });
     store().resetToDefaults();
@@ -35,55 +42,103 @@ describe("design history", () => {
 
   it("undoes and redoes a change", () => {
     store().setWidth(240);
-    settle();
+    endOfEvent();
     undoDesign();
     expect(store().width).toBe(200);
     redoDesign();
     expect(store().width).toBe(240);
   });
 
-  it("merges quick changes into one step", () => {
-    store().setWidth(210);
-    store().setWidth(220);
-    store().setWidth(230);
-    settle();
-    undoDesign();
-    expect(store().width).toBe(200);
+  it("undoes five changes one at a time, with hover updates in between", () => {
+    for (const width of [210, 220, 230, 240, 250]) {
+      store().setWidth(width);
+      // Moving the mouse over the model updates the store all the time.
+      store().setShowDoors(width % 20 === 0);
+      store().setShowDoors(width % 20 !== 0);
+      endOfEvent();
+    }
+    for (const width of [240, 230, 220, 210, 200]) {
+      undoDesign();
+      expect(store().width).toBe(width);
+    }
+    expect(useDesignHistory.getState().canUndo).toBe(false);
   });
 
-  it("undoes a change that hasn't settled yet", () => {
+  it("keeps one action that sets several things as one step", () => {
+    store().setWidth(260);
+    store().setHeight(230);
+    endOfEvent();
+    undoDesign();
+    expect(store().width).toBe(200);
+    expect(store().height).not.toBe(230);
+  });
+
+  it("undoes a change before its event has finished", () => {
     store().setWidth(260);
     expect(useDesignHistory.getState().canUndo).toBe(true);
     undoDesign();
     expect(store().width).toBe(200);
   });
 
-  it("records a drag as one step when it ends", () => {
-    store().setIsDragging(true);
+  it("records a press-and-drag as one step when released", () => {
+    pointer("pointerdown", 1);
     store().setWidth(210);
-    settle();
+    vi.advanceTimersByTime(2000);
     store().setWidth(250);
-    settle();
-    store().setIsDragging(false);
-    settle();
+    vi.advanceTimersByTime(2000);
+    pointer("pointerup");
+    endOfEvent();
     undoDesign();
     expect(store().width).toBe(200);
     expect(useDesignHistory.getState().canUndo).toBe(false);
   });
 
+  it("ends a drag released outside the window on the next move", () => {
+    pointer("pointerdown", 1);
+    store().setWidth(230);
+    pointer("pointermove", 0);
+    endOfEvent();
+    store().setWidth(240);
+    endOfEvent();
+    undoDesign();
+    expect(store().width).toBe(230);
+  });
+
+  it("waits for a pause before closing a typed number", () => {
+    class FakeElement {
+      isContentEditable = false;
+    }
+    class FakeInput extends FakeElement {
+      type = "number";
+    }
+    vi.stubGlobal("HTMLElement", FakeElement);
+    vi.stubGlobal("HTMLInputElement", FakeInput);
+    vi.stubGlobal("HTMLTextAreaElement", class {});
+    vi.stubGlobal("document", { activeElement: new FakeInput() });
+
+    store().setWidth(201);
+    endOfEvent();
+    store().setWidth(215);
+    endOfEvent();
+    store().setWidth(215.5);
+    vi.advanceTimersByTime(TYPING_COMMIT_MS);
+    undoDesign();
+    expect(store().width).toBe(200);
+  });
+
   it("ignores updates that don't change the design", () => {
     store().setShowDoors(false);
     store().setWidth(200);
-    settle();
+    endOfEvent();
     expect(useDesignHistory.getState().canUndo).toBe(false);
   });
 
   it("drops redo once a new change is made", () => {
     store().setWidth(240);
-    settle();
+    endOfEvent();
     undoDesign();
     store().setHeight(220);
-    settle();
+    endOfEvent();
     redoDesign();
     expect(store().width).toBe(200);
     expect(store().height).toBe(220);
@@ -92,7 +147,7 @@ describe("design history", () => {
   it(`keeps at most ${HISTORY_LIMIT} steps`, () => {
     for (let i = 1; i <= HISTORY_LIMIT + 5; i++) {
       store().setWidth(200 + i);
-      settle();
+      endOfEvent();
     }
     for (let i = 0; i < HISTORY_LIMIT + 5; i++) undoDesign();
     expect(store().width).toBe(205);
