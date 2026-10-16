@@ -36,14 +36,19 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 const pressedPointers = new Set<number>();
 
 export const useDesignHistory = create(() => ({
+  // True once there is anything to undo or redo; the buttons show from then on.
+  hasHistory: false,
   canUndo: false,
   canRedo: false,
 }));
 
 function publish() {
+  const canUndo = past.length > 0 || pending;
+  const canRedo = future.length > 0 && !pending;
   useDesignHistory.setState({
-    canUndo: past.length > 0 || pending,
-    canRedo: future.length > 0 && !pending,
+    hasHistory: canUndo || canRedo,
+    canUndo,
+    canRedo,
   });
 }
 
