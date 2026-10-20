@@ -368,14 +368,7 @@ export function MobileBottomTabs({
             <StepColumns materials={materials} compact />
           )}
           {isStepLocked(designerMode, activeTab) ? (
-            <LockedStep>
-              {activeTab === "item-3" && (
-                <StepMaterials materials={materials} compact />
-              )}
-              {activeTab === "item-4" && <StepBase compact />}
-              {activeTab === "item-5" && <StepDoors compact />}
-              {activeTab === "item-6" && <StepAccessories compact />}
-            </LockedStep>
+            <LockedStep />
           ) : (
             <>
               {activeTab === "item-3" && (

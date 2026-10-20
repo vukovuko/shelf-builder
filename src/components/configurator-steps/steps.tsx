@@ -33,13 +33,7 @@ export function StepContent({
   materials: Material[];
 }) {
   const mode = useDesignerMode();
-  if (isStepLocked(mode, step)) {
-    return (
-      <LockedStep>
-        <StepControls step={step} materials={materials} />
-      </LockedStep>
-    );
-  }
+  if (isStepLocked(mode, step)) return <LockedStep />;
   return <StepControls step={step} materials={materials} />;
 }
 

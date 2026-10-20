@@ -40,21 +40,13 @@ export function isStepLocked(mode: DesignerMode, stepId: string | null) {
   return mode === "basic" && stepId !== null && LOCKED_IN_BASIC.has(stepId);
 }
 
-/** A step's controls, greyed out and unclickable, under an "in progress" label. */
-export function LockedStep({ children }: { children: ReactNode }) {
+/** Stands in for a step's controls while the step isn't public yet. */
+export function LockedStep() {
   return (
-    <div className="relative">
-      <div
-        inert
-        className="pointer-events-none select-none opacity-40 blur-[1px]"
-      >
-        {children}
-      </div>
-      <div className="absolute inset-0 flex items-start justify-center p-4 pt-8">
-        <p className="rounded-xl bg-background px-5 py-3 text-center text-lg font-bold text-foreground shadow-lg">
-          U izradi
-        </p>
-      </div>
+    <div className="flex justify-center py-8">
+      <p className="rounded-xl border border-border bg-card px-5 py-3 text-lg font-bold text-foreground">
+        U izradi
+      </p>
     </div>
   );
 }
