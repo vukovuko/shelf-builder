@@ -46,7 +46,7 @@ export function LockedPreviewBar() {
       const { id: newId } = await createRes.json();
       setIsPreviewMode(false);
       // Use window.location.href to reset hasLoadedRef in LoadFromUrl
-      window.location.href = `/design?load=${newId}`;
+      window.location.href = `${window.location.pathname}?load=${newId}`;
       toast.success("Kopija je napravljena! Možete je slobodno menjati.");
     } catch (e) {
       console.error("Duplicate failed:", e);

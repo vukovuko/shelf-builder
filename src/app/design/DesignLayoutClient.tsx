@@ -18,6 +18,11 @@ import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
+import {
+  type DesignerMode,
+  DesignerModeProvider,
+  lockedStepsFor,
+} from "@/lib/designer-mode";
 import { getWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import {
   type Accessory,
@@ -62,6 +67,7 @@ interface DesignLayoutClientProps {
   initialAccessories: Accessory[];
   initialAccessoryRules: SerializedAccessoryRule[];
   isAdmin?: boolean;
+  mode: DesignerMode;
 }
 
 export function DesignLayoutClient({
@@ -72,6 +78,7 @@ export function DesignLayoutClient({
   initialAccessories,
   initialAccessoryRules,
   isAdmin = false,
+  mode,
 }: DesignLayoutClientProps) {
   const wardrobeRef = React.useRef<any>(null);
   const [hasHydrated, setHasHydrated] = React.useState(false);
@@ -81,6 +88,11 @@ export function DesignLayoutClient({
   React.useEffect(() => {
     setHasHydrated(true);
   }, []);
+
+  // The 3D view runs outside this React tree, so it reads the locks from the store.
+  React.useEffect(() => {
+    useShelfStore.setState({ lockedSteps: lockedStepsFor(mode) });
+  }, [mode]);
 
   // Set materials and handles in store on mount
   const setMaterials = useShelfStore((state: ShelfState) => state.setMaterials);
@@ -291,194 +303,197 @@ export function DesignLayoutClient({
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Desktop aside - hidden in preview mode */}
-      {!isPreviewMode && (
-        <aside
-          className={`hidden md:flex ${wideLayout ? "w-72" : "w-96"} shrink-0 flex-col border-r border-sidebar-border bg-sidebar h-screen`}
-        >
-          <ConfiguratorControls
-            wardrobeRef={wardrobeRef}
-            initialSession={initialSession}
-            materials={initialMaterials}
-            accessoryRules={initialAccessoryRules}
-            isAdmin={isAdmin}
-            layout={wideLayout ? "steps" : "accordion"}
-          />
-        </aside>
-      )}
-
-      {/* Mobile header */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-10 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-2">
-          {fromOrderId && fromOrderNumber && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Nazad na #{fromOrderNumber}</span>
-            </Button>
-          )}
-          {fromWardrobeId && fromWardrobeName && !fromOrderId && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                handleBackClick(`/admin/wardrobes/${fromWardrobeId}`)
-              }
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Nazad na {fromWardrobeName}</span>
-            </Button>
-          )}
-        </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2 justify-end ">
-          {!isPreviewMode && <HistoryButtons />}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowDimensions(!showDimensions)}
-            title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
+    <DesignerModeProvider mode={mode}>
+      <div className="flex h-screen bg-background text-foreground overflow-hidden">
+        {/* Desktop aside - hidden in preview mode */}
+        {!isPreviewMode && (
+          <aside
+            className={`hidden md:flex ${wideLayout ? "w-72" : "w-96"} shrink-0 flex-col border-r border-sidebar-border bg-sidebar h-screen`}
           >
-            <Ruler
-              className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
-              stroke="#4c4f69"
-            />
-          </Button>
-          {hasDoors && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDoors(!showDoors)}
-              title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
-            >
-              {showDoors ? (
-                <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
-              ) : (
-                <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
-              )}
-            </Button>
-          )}
-          <ViewModeToggle />
-          <ThemeToggle />
-        </div>
-      </div>
-
-      {/* Mobile bottom tabs - hidden in preview mode */}
-      {!isPreviewMode && (
-        <MobileBottomTabs
-          materials={initialMaterials}
-          accessoryRules={initialAccessoryRules}
-          onOpenDrawer={() => setDrawerOpen(true)}
-          canImportSketch={
-            DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : Boolean(initialSession)
-          }
-        />
-      )}
-
-      {/* Drawer overlay - hidden in preview mode */}
-      {!isPreviewMode && drawerOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
-            onKeyDown={(e) => e.key === "Escape" && setDrawerOpen(false)}
-          />
-          <div className="absolute inset-y-0 left-0 w-[85vw] max-w-xs bg-sidebar border-r border-sidebar-border overflow-y-auto flex flex-col">
             <ConfiguratorControls
               wardrobeRef={wardrobeRef}
               initialSession={initialSession}
               materials={initialMaterials}
               accessoryRules={initialAccessoryRules}
               isAdmin={isAdmin}
+              layout={wideLayout ? "steps" : "accordion"}
             />
-          </div>
-        </div>
-      )}
+          </aside>
+        )}
 
-      <main
-        className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-24 md:pt-0 md:pb-0"}`}
-      >
-        <DesignImportOverlay />
-        {fromOrderId && fromOrderNumber && (
-          <div className="absolute top-2 left-2 hidden md:block z-20">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Nazad na #{fromOrderNumber}
-            </Button>
+        {/* Mobile header */}
+        <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between h-10 px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-2">
+            {fromOrderId && fromOrderNumber && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Nazad na #{fromOrderNumber}</span>
+              </Button>
+            )}
+            {fromWardrobeId && fromWardrobeName && !fromOrderId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleBackClick(`/admin/wardrobes/${fromWardrobeId}`)
+                }
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Nazad na {fromWardrobeName}</span>
+              </Button>
+            )}
           </div>
-        )}
-        {fromWardrobeId && fromWardrobeName && !fromOrderId && (
-          <div className="absolute top-2 left-2 hidden md:block z-20">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                handleBackClick(`/admin/wardrobes/${fromWardrobeId}`)
-              }
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Nazad na {fromWardrobeName}
-            </Button>
-          </div>
-        )}
-        <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20 ">
-          {!isPreviewMode && <HistoryButtons />}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowDimensions(!showDimensions)}
-            title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
-          >
-            <Ruler
-              className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
-              stroke="#4c4f69"
-            />
-          </Button>
-          {hasDoors && (
+          <div className="flex-1" />
+          <div className="flex items-center gap-2 justify-end ">
+            {!isPreviewMode && <HistoryButtons />}
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowDoors(!showDoors)}
-              title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+              onClick={() => setShowDimensions(!showDimensions)}
+              title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
             >
-              {showDoors ? (
-                <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
-              ) : (
-                <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
-              )}
+              <Ruler
+                className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+                stroke="#4c4f69"
+              />
             </Button>
-          )}
-          <ViewModeToggle />
-          <ThemeToggle />
+            {hasDoors && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDoors(!showDoors)}
+                title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+              >
+                {showDoors ? (
+                  <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
+                ) : (
+                  <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
+                )}
+              </Button>
+            )}
+            <ViewModeToggle />
+            <ThemeToggle />
+          </div>
         </div>
-        {childrenWithProps}
-      </main>
 
-      {wideLayout && !isPreviewMode && (
-        <StepPanel materials={initialMaterials} />
-      )}
+        {/* Mobile bottom tabs - hidden in preview mode */}
+        {!isPreviewMode && (
+          <MobileBottomTabs
+            materials={initialMaterials}
+            accessoryRules={initialAccessoryRules}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            canImportSketch={
+              mode === "full" &&
+              (DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : Boolean(initialSession))
+            }
+          />
+        )}
 
-      {/* Unsaved changes confirmation dialog - skip in preview mode */}
-      {!isPreviewMode && (
-        <UnsavedChangesDialog
-          open={showUnsavedDialog}
-          onOpenChange={setShowUnsavedDialog}
-          onDiscard={handleDiscard}
-          onSave={handleSaveAndNavigate}
-          isSaving={isSaving}
-        />
-      )}
+        {/* Drawer overlay - hidden in preview mode */}
+        {!isPreviewMode && drawerOpen && (
+          <div className="md:hidden fixed inset-0 z-40">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setDrawerOpen(false)}
+              onKeyDown={(e) => e.key === "Escape" && setDrawerOpen(false)}
+            />
+            <div className="absolute inset-y-0 left-0 w-[85vw] max-w-xs bg-sidebar border-r border-sidebar-border overflow-y-auto flex flex-col">
+              <ConfiguratorControls
+                wardrobeRef={wardrobeRef}
+                initialSession={initialSession}
+                materials={initialMaterials}
+                accessoryRules={initialAccessoryRules}
+                isAdmin={isAdmin}
+              />
+            </div>
+          </div>
+        )}
 
-      {/* Locked wardrobe preview bar */}
-      {isPreviewMode && <LockedPreviewBar />}
-    </div>
+        <main
+          className={`flex-1 relative overflow-hidden h-screen ${isPreviewMode ? "pt-10 pb-16 md:pt-0 md:pb-16" : "pt-10 pb-24 md:pt-0 md:pb-0"}`}
+        >
+          <DesignImportOverlay />
+          {fromOrderId && fromOrderNumber && (
+            <div className="absolute top-2 left-2 hidden md:block z-20">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBackClick(`/admin/orders/${fromOrderId}`)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Nazad na #{fromOrderNumber}
+              </Button>
+            </div>
+          )}
+          {fromWardrobeId && fromWardrobeName && !fromOrderId && (
+            <div className="absolute top-2 left-2 hidden md:block z-20">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleBackClick(`/admin/wardrobes/${fromWardrobeId}`)
+                }
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Nazad na {fromWardrobeName}
+              </Button>
+            </div>
+          )}
+          <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 z-20 ">
+            {!isPreviewMode && <HistoryButtons />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDimensions(!showDimensions)}
+              title={showDimensions ? "Sakrij mere" : "Prikaži mere"}
+            >
+              <Ruler
+                className={`h-4 w-4${showDimensions ? "" : " opacity-50"}`}
+                stroke="#4c4f69"
+              />
+            </Button>
+            {hasDoors && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDoors(!showDoors)}
+                title={showDoors ? "Sakrij vrata" : "Prikaži vrata"}
+              >
+                {showDoors ? (
+                  <DoorOpen className="h-4 w-4" stroke="#4c4f69" />
+                ) : (
+                  <DoorClosed className="h-4 w-4 opacity-50" stroke="#4c4f69" />
+                )}
+              </Button>
+            )}
+            <ViewModeToggle />
+            <ThemeToggle />
+          </div>
+          {childrenWithProps}
+        </main>
+
+        {wideLayout && !isPreviewMode && (
+          <StepPanel materials={initialMaterials} />
+        )}
+
+        {/* Unsaved changes confirmation dialog - skip in preview mode */}
+        {!isPreviewMode && (
+          <UnsavedChangesDialog
+            open={showUnsavedDialog}
+            onOpenChange={setShowUnsavedDialog}
+            onDiscard={handleDiscard}
+            onSave={handleSaveAndNavigate}
+            isSaving={isSaving}
+          />
+        )}
+
+        {/* Locked wardrobe preview bar */}
+        {isPreviewMode && <LockedPreviewBar />}
+      </div>
+    </DesignerModeProvider>
   );
 }

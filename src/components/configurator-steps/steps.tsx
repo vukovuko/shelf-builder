@@ -1,5 +1,6 @@
 "use client";
 
+import { isStepLocked, LockedStep, useDesignerMode } from "@/lib/designer-mode";
 import type { Material } from "@/lib/store";
 import { StepAccessories } from "./StepAccessories";
 import { StepBase } from "./StepBase";
@@ -25,6 +26,24 @@ export const CONFIGURATOR_STEPS = [
 export type ConfiguratorStepId = (typeof CONFIGURATOR_STEPS)[number]["id"];
 
 export function StepContent({
+  step,
+  materials,
+}: {
+  step: ConfiguratorStepId;
+  materials: Material[];
+}) {
+  const mode = useDesignerMode();
+  if (isStepLocked(mode, step)) {
+    return (
+      <LockedStep>
+        <StepControls step={step} materials={materials} />
+      </LockedStep>
+    );
+  }
+  return <StepControls step={step} materials={materials} />;
+}
+
+function StepControls({
   step,
   materials,
 }: {

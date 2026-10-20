@@ -361,6 +361,8 @@ export interface ShelfState {
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
   activeAccordionStep: string | null;
   setActiveAccordionStep: (step: string | null) => void;
+  // Steps shown as under construction (the public /design); see lib/designer-mode.
+  lockedSteps: string[];
   // Track loaded wardrobe for update functionality
   loadedWardrobeId: string | null;
   loadedWardrobeIsModel: boolean;
@@ -1750,6 +1752,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
   setShowInfoButtons: (show) => set({ showInfoButtons: show }),
   // Track which accordion step is open (for Step 2 mode: hide labels, show circles)
   activeAccordionStep: "item-1", // Default to Step 1 open
+  lockedSteps: [],
   setActiveAccordionStep: (step) => {
     const stepNames: Record<string, string> = {
       "item-1": "Dimenzije",

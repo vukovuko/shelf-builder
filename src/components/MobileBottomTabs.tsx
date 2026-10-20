@@ -1,5 +1,6 @@
 "use client";
 
+import { isStepLocked, LockedStep, useDesignerMode } from "@/lib/designer-mode";
 import { ImageUp, Menu } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export function MobileBottomTabs({
   canImportSketch,
 }: MobileBottomTabsProps) {
   const activeTab = useShelfStore((s: ShelfState) => s.activeAccordionStep);
+  const designerMode = useDesignerMode();
   const setActiveTab = useShelfStore(
     (s: ShelfState) => s.setActiveAccordionStep,
   );
@@ -365,12 +367,25 @@ export function MobileBottomTabs({
           {activeTab === "item-2" && (
             <StepColumns materials={materials} compact />
           )}
-          {activeTab === "item-3" && (
-            <StepMaterials materials={materials} compact />
+          {isStepLocked(designerMode, activeTab) ? (
+            <LockedStep>
+              {activeTab === "item-3" && (
+                <StepMaterials materials={materials} compact />
+              )}
+              {activeTab === "item-4" && <StepBase compact />}
+              {activeTab === "item-5" && <StepDoors compact />}
+              {activeTab === "item-6" && <StepAccessories compact />}
+            </LockedStep>
+          ) : (
+            <>
+              {activeTab === "item-3" && (
+                <StepMaterials materials={materials} compact />
+              )}
+              {activeTab === "item-4" && <StepBase compact />}
+              {activeTab === "item-5" && <StepDoors compact />}
+              {activeTab === "item-6" && <StepAccessories compact />}
+            </>
           )}
-          {activeTab === "item-4" && <StepBase compact />}
-          {activeTab === "item-5" && <StepDoors compact />}
-          {activeTab === "item-6" && <StepAccessories compact />}
         </div>
       )}
 

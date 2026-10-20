@@ -181,7 +181,9 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
     // Check if Step 2 is active (for hiding labels and showing circles)
     const isStep2Active = activeAccordionStep === "item-2";
     // Check if Step 5 is active (for door selection)
-    const isStep5Active = activeAccordionStep === "item-5";
+    const lockedSteps = useShelfStore((state: ShelfState) => state.lockedSteps);
+    const isStep5Active =
+      activeAccordionStep === "item-5" && !lockedSteps.includes("item-5");
     // Combined check for hiding UI elements (including preview mode)
     const hideUIForSteps = isStep2Active || isStep5Active || isPreviewMode;
 

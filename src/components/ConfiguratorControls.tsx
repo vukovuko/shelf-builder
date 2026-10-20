@@ -65,6 +65,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { calculateCutList } from "@/lib/calcCutList";
 import { captureThumbnail } from "@/lib/captureThumbnail";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
+import { useDesignerMode } from "@/lib/designer-mode";
 import {
   isBackMaterialCategory,
   isEdgeTapeCategory,
@@ -128,6 +129,7 @@ export function ConfiguratorControls({
   // Use initialSession while client is loading, then switch to client session (even if null after logout)
   const session = isPending ? initialSession : clientSession;
   const router = useRouter();
+  const designerMode = useDesignerMode();
   const [authDialogOpen, setAuthDialogOpen] = React.useState(false);
   const [loginAlertOpen, setLoginAlertOpen] = React.useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
@@ -937,11 +939,12 @@ export function ConfiguratorControls({
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
         {/* Phones have it as the first chip of the bottom tab bar. */}
-        {(DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : !!session) && (
-          <div className="max-md:hidden">
-            <DesignImportButton />
-          </div>
-        )}
+        {designerMode === "full" &&
+          (DESIGN_IMPORT_ADMIN_ONLY ? isAdmin : !!session) && (
+            <div className="max-md:hidden">
+              <DesignImportButton />
+            </div>
+          )}
         {/* Back to Order banner - shown when editing from order context */}
         {fromOrderId && fromOrderNumber && (
           <div className="mb-4 p-3 rounded-lg bg-accent/10 border border-accent/20">

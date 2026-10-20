@@ -879,7 +879,7 @@ export function OrderDetailClient({
                       className="w-fit border-accent text-accent hover:bg-accent/90 hover:text-white"
                     >
                       <Link
-                        href={`/design?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
+                        href={`/design-test?load=${order.wardrobeId}&fromOrder=${order.id}&orderNum=${order.orderNumber}`}
                       >
                         <LinkPending>
                           <Pencil className="h-3.5 w-3.5" />

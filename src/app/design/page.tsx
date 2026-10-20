@@ -109,7 +109,7 @@ function LoadFromUrl() {
 
         toast.success(`Učitano: ${wardrobe.name}`);
 
-        window.history.replaceState({}, "", "/design");
+        window.history.replaceState({}, "", window.location.pathname);
       } catch (e) {
         console.error("Failed to load wardrobe", e);
         toast.error(
@@ -270,7 +270,8 @@ export default function DesignPage({
     if (catalogKeys.some((key) => params.has(key))) {
       for (const key of catalogKeys) params.delete(key);
       const rest = params.toString();
-      window.history.replaceState({}, "", rest ? `/design?${rest}` : "/design");
+      const path = window.location.pathname;
+      window.history.replaceState({}, "", rest ? `${path}?${rest}` : path);
     }
   }, [hasRestoredState, storeMaterials, storeHandles]);
 

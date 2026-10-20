@@ -211,7 +211,7 @@ export function ModelsClient({
         pageCount={pageCount}
         totalCount={totalCount}
         onPageChange={handlePageChange}
-        onRowClick={(model) => router.push(`/design?load=${model.id}`)}
+        onRowClick={(model) => router.push(`/design-test?load=${model.id}`)}
         enableRowSelection
         getRowId={(model) => model.id}
         meta={{

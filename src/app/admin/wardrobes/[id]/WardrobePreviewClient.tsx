@@ -709,7 +709,7 @@ export function WardrobePreviewClient({
           ) : (
             <Button variant="default" asChild disabled={isLocked}>
               <Link
-                href={`/design?load=${wardrobe.id}&fromWardrobe=${wardrobe.id}&wardrobeName=${encodeURIComponent(wardrobe.name)}`}
+                href={`/design-test?load=${wardrobe.id}&fromWardrobe=${wardrobe.id}&wardrobeName=${encodeURIComponent(wardrobe.name)}`}
               >
                 <LinkPending>
                   <Pencil className="h-4 w-4 mr-2" />
