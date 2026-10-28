@@ -1,11 +1,12 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { useRepeatPress } from "@/hooks/use-repeat-press";
 import { useTypedNumber } from "@/hooks/use-typed-number";
 
 interface DimensionControlProps {
@@ -36,15 +37,13 @@ export function DimensionControl({
         {label}
       </Label>
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleDecrement}
-          className="group"
-          aria-label={`Smanji: ${label.toLowerCase()}`}
+        <StepButton
+          onStep={handleDecrement}
+          disabled={value <= min}
+          label={`Smanji: ${label.toLowerCase()}`}
         >
           <Minus className="h-4 w-4 group-hover:text-primary" />
-        </Button>
+        </StepButton>
         <Slider
           value={[value]}
           onValueChange={(vals) => setValue(vals[0])}
@@ -52,15 +51,13 @@ export function DimensionControl({
           max={max}
           step={step}
         />
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleIncrement}
-          className="group"
-          aria-label={`Povećaj: ${label.toLowerCase()}`}
+        <StepButton
+          onStep={handleIncrement}
+          disabled={value >= max}
+          label={`Povećaj: ${label.toLowerCase()}`}
         >
           <Plus className="h-4 w-4 group-hover:text-primary" />
-        </Button>
+        </StepButton>
         <div className="relative">
           <Input
             id={inputId}
@@ -74,5 +71,31 @@ export function DimensionControl({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Hold to keep stepping the value. */
+function StepButton({
+  onStep,
+  disabled,
+  label,
+  children,
+}: {
+  onStep: () => void;
+  disabled: boolean;
+  label: string;
+  children: ReactNode;
+}) {
+  const press = useRepeatPress(onStep, disabled);
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      className="group touch-manipulation"
+      aria-label={label}
+      {...press}
+    >
+      {children}
+    </Button>
   );
 }

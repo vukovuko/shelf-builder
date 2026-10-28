@@ -1,8 +1,15 @@
 "use client";
 
 import { Html } from "@react-three/drei";
-import { useRef, useState, useEffect, useCallback } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { TypedNumberInput } from "@/components/TypedNumberInput";
+import { useRepeatPress } from "@/hooks/use-repeat-press";
 import { withDoorRemovalNotice } from "@/lib/door-removal-notice";
 import { useShelfStore, type ShelfState, type Material } from "@/lib/store";
 import { buildBlocksX, getDefaultBoundariesX } from "@/lib/wardrobe-utils";
@@ -447,25 +454,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               <span style={{ fontSize: 11, color: "#666" }}>
                 Ukupna visina:
               </span>
-              <button
-                style={{
-                  width: 22,
-                  height: 22,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid #ccc",
-                  borderRadius: 4,
-                  background: "#f5f5f5",
-                  fontSize: 13,
-                  cursor: canDecreaseHeight ? "pointer" : "not-allowed",
-                  opacity: canDecreaseHeight ? 1 : 0.4,
-                }}
-                onClick={() => handleHeightChange(-1)}
+              <BarStepButton
+                onStep={() => handleHeightChange(-1)}
                 disabled={!canDecreaseHeight}
               >
                 -
-              </button>
+              </BarStepButton>
               <span
                 style={{
                   fontSize: 11,
@@ -476,25 +470,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
               >
                 {Math.round(currentHeightCm)}cm
               </span>
-              <button
-                style={{
-                  width: 22,
-                  height: 22,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid #ccc",
-                  borderRadius: 4,
-                  background: "#f5f5f5",
-                  fontSize: 13,
-                  cursor: canIncreaseHeight ? "pointer" : "not-allowed",
-                  opacity: canIncreaseHeight ? 1 : 0.4,
-                }}
-                onClick={() => handleHeightChange(1)}
+              <BarStepButton
+                onStep={() => handleHeightChange(1)}
                 disabled={!canIncreaseHeight}
               >
                 +
-              </button>
+              </BarStepButton>
             </div>
 
             {/* Two modules side by side */}
@@ -528,25 +509,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     <span style={{ fontSize: 11, color: "#666", width: 42 }}>
                       Širina
                     </span>
-                    <button
-                      style={{
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1px solid #ccc",
-                        borderRadius: 4,
-                        background: "#f5f5f5",
-                        fontSize: 13,
-                        cursor: canDecreaseWidth ? "pointer" : "not-allowed",
-                        opacity: canDecreaseWidth ? 1 : 0.4,
-                      }}
-                      onClick={() => handleWidthChange(-1)}
+                    <BarStepButton
+                      onStep={() => handleWidthChange(-1)}
                       disabled={!canDecreaseWidth}
                     >
                       -
-                    </button>
+                    </BarStepButton>
                     <span
                       style={{
                         width: 42,
@@ -557,25 +525,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     >
                       {currentWidthCm}cm
                     </span>
-                    <button
-                      style={{
-                        width: 22,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1px solid #ccc",
-                        borderRadius: 4,
-                        background: "#f5f5f5",
-                        fontSize: 13,
-                        cursor: canIncreaseWidth ? "pointer" : "not-allowed",
-                        opacity: canIncreaseWidth ? 1 : 0.4,
-                      }}
-                      onClick={() => handleWidthChange(1)}
+                    <BarStepButton
+                      onStep={() => handleWidthChange(1)}
                       disabled={!canIncreaseWidth}
                     >
                       +
-                    </button>
+                    </BarStepButton>
                   </div>
                 )}
 
@@ -584,23 +539,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   <span style={{ fontSize: 11, color: "#666", width: 42 }}>
                     Visina
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canDecreaseBottomHeight
-                        ? "pointer"
-                        : "not-allowed",
-                      opacity: canDecreaseBottomHeight ? 1 : 0.4,
-                    }}
-                    onClick={() =>
+                  <BarStepButton
+                    onStep={() =>
                       handleModuleHeightChange(
                         "bottom",
                         bottomModuleHeightCm - 1,
@@ -609,7 +549,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     disabled={!canDecreaseBottomHeight}
                   >
                     -
-                  </button>
+                  </BarStepButton>
                   <TypedNumberInput
                     value={bottomModuleHeightCm}
                     onValue={(cm) => handleModuleHeightChange("bottom", cm)}
@@ -630,23 +570,8 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                       padding: "2px 4px",
                     }}
                   />
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canIncreaseBottomHeight
-                        ? "pointer"
-                        : "not-allowed",
-                      opacity: canIncreaseBottomHeight ? 1 : 0.4,
-                    }}
-                    onClick={() =>
+                  <BarStepButton
+                    onStep={() =>
                       handleModuleHeightChange(
                         "bottom",
                         bottomModuleHeightCm + 1,
@@ -655,7 +580,7 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                     disabled={!canIncreaseBottomHeight}
                   >
                     +
-                  </button>
+                  </BarStepButton>
                 </div>
 
                 {/* Bottom module shelves */}
@@ -663,25 +588,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   <span style={{ fontSize: 11, color: "#666", width: 42 }}>
                     Police
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canDecreaseShelves ? "pointer" : "not-allowed",
-                      opacity: canDecreaseShelves ? 1 : 0.4,
-                    }}
-                    onClick={() => handleShelfCountChange(-1)}
+                  <BarStepButton
+                    onStep={() => handleShelfCountChange(-1)}
                     disabled={!canDecreaseShelves}
                   >
                     -
-                  </button>
+                  </BarStepButton>
                   <span
                     style={{
                       width: 42,
@@ -692,25 +604,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   >
                     {shelfCount}
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canIncreaseShelves ? "pointer" : "not-allowed",
-                      opacity: canIncreaseShelves ? 1 : 0.4,
-                    }}
-                    onClick={() => handleShelfCountChange(1)}
+                  <BarStepButton
+                    onStep={() => handleShelfCountChange(1)}
                     disabled={!canIncreaseShelves}
                   >
                     +
-                  </button>
+                  </BarStepButton>
                 </div>
               </div>
 
@@ -735,34 +634,23 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                 </span>
 
                 {/* Placeholder row for alignment (matches width row on left) */}
-                {hasMultipleColumns && <div style={{ height: 22 }} />}
+                {hasMultipleColumns && (
+                  <div className="h-[22px] pointer-coarse:h-9" />
+                )}
 
                 {/* Top module height */}
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ fontSize: 11, color: "#666", width: 42 }}>
                     Visina
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canDecreaseTopHeight ? "pointer" : "not-allowed",
-                      opacity: canDecreaseTopHeight ? 1 : 0.4,
-                    }}
-                    onClick={() =>
+                  <BarStepButton
+                    onStep={() =>
                       handleModuleHeightChange("top", topModuleHeightCm - 1)
                     }
                     disabled={!canDecreaseTopHeight}
                   >
                     -
-                  </button>
+                  </BarStepButton>
                   <TypedNumberInput
                     value={topModuleHeightCm}
                     onValue={(cm) => handleModuleHeightChange("top", cm)}
@@ -783,27 +671,14 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                       padding: "2px 4px",
                     }}
                   />
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canIncreaseTopHeight ? "pointer" : "not-allowed",
-                      opacity: canIncreaseTopHeight ? 1 : 0.4,
-                    }}
-                    onClick={() =>
+                  <BarStepButton
+                    onStep={() =>
                       handleModuleHeightChange("top", topModuleHeightCm + 1)
                     }
                     disabled={!canIncreaseTopHeight}
                   >
                     +
-                  </button>
+                  </BarStepButton>
                 </div>
 
                 {/* Top module shelves */}
@@ -811,25 +686,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   <span style={{ fontSize: 11, color: "#666", width: 42 }}>
                     Police
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canDecreaseTopShelves ? "pointer" : "not-allowed",
-                      opacity: canDecreaseTopShelves ? 1 : 0.4,
-                    }}
-                    onClick={() => handleTopModuleShelfCountChange(-1)}
+                  <BarStepButton
+                    onStep={() => handleTopModuleShelfCountChange(-1)}
                     disabled={!canDecreaseTopShelves}
                   >
                     -
-                  </button>
+                  </BarStepButton>
                   <span
                     style={{
                       width: 42,
@@ -840,25 +702,12 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
                   >
                     {topModuleShelfCount}
                   </span>
-                  <button
-                    style={{
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: 4,
-                      background: "#f5f5f5",
-                      fontSize: 13,
-                      cursor: canIncreaseTopShelves ? "pointer" : "not-allowed",
-                      opacity: canIncreaseTopShelves ? 1 : 0.4,
-                    }}
-                    onClick={() => handleTopModuleShelfCountChange(1)}
+                  <BarStepButton
+                    onStep={() => handleTopModuleShelfCountChange(1)}
                     disabled={!canIncreaseTopShelves}
                   >
                     +
-                  </button>
+                  </BarStepButton>
                 </div>
               </div>
             </div>
@@ -1079,5 +928,27 @@ export function ColumnControlsBar3D({ depth }: ColumnControlsBar3DProps) {
         )}
       </div>
     </Html>
+  );
+}
+
+/** The bar's +/− buttons: hold to keep stepping; finger-sized on touch screens. */
+function BarStepButton({
+  onStep,
+  disabled,
+  children,
+}: {
+  onStep: () => void;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  const press = useRepeatPress(onStep, disabled);
+  return (
+    <button
+      type="button"
+      {...press}
+      className="flex size-[22px] shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded border border-[#ccc] bg-[#f5f5f5] text-[13px] leading-none disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:size-9 pointer-coarse:text-lg"
+    >
+      {children}
+    </button>
   );
 }
