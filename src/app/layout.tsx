@@ -94,6 +94,28 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Chrome's page translation swaps text nodes for <font> elements behind
+ * React's back; React then calls removeChild / insertBefore on nodes that have
+ * moved and the whole page crashes (facebook/react#11538). Visitors whose
+ * browser isn't in Serbian hit this on /design. Skipping the impossible DOM
+ * call keeps the page alive; live numbers are marked translate="no" so they
+ * keep updating.
+ */
+const TRANSLATION_GUARD = `(function(){
+  if (typeof Node !== "function" || !Node.prototype) return;
+  var removeChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function (child) {
+    if (child.parentNode !== this) return child;
+    return removeChild.apply(this, arguments);
+  };
+  var insertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function (node, reference) {
+    if (reference && reference.parentNode !== this) return node;
+    return insertBefore.apply(this, arguments);
+  };
+})();`;
+
 export default function RootLayout({
   children,
 }: {
@@ -114,6 +136,8 @@ export default function RootLayout({
           media="(prefers-color-scheme: light)"
         />
         <meta name="color-scheme" content="light dark" />
+        {/* Runs before React so a page Chrome auto-translates can't crash it. */}
+        <script dangerouslySetInnerHTML={{ __html: TRANSLATION_GUARD }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

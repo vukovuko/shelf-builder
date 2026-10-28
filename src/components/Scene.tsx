@@ -405,7 +405,7 @@ export function Scene({
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div translate="no" className="relative w-full h-full">
       <Canvas3DErrorBoundary>
         <Canvas
           className="w-full h-full"

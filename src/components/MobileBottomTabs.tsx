@@ -426,7 +426,10 @@ export function MobileBottomTabs({
 
       {/* 50:50 price | order footer */}
       <div className="bg-sidebar border-t border-sidebar-border grid grid-cols-2 safe-area-bottom">
-        <div className="flex flex-col justify-center px-3 py-1.5">
+        <div
+          translate="no"
+          className="flex flex-col justify-center px-3 py-1.5"
+        >
           <span className="text-sm font-bold">
             {fmt2(displayTotalCost)} RSD
           </span>

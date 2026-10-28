@@ -22,7 +22,9 @@ export function StepFooter({
         <span className="text-base text-muted-foreground">
           Ukupna kvadratura
         </span>
-        <span className="text-lg font-bold">{fmt2(totalArea)} m²</span>
+        <span translate="no" className="text-lg font-bold">
+          {fmt2(totalArea)} m²
+        </span>
       </div>
 
       {/* Poruči button with price */}
@@ -35,7 +37,9 @@ export function StepFooter({
           {isCalculating && (
             <span className="text-xs font-medium opacity-80">Računam...</span>
           )}
-          <span className="text-xl font-bold">{fmt2(totalCost)} RSD</span>
+          <span translate="no" className="text-xl font-bold">
+            {fmt2(totalCost)} RSD
+          </span>
         </span>
       </button>
     </div>
