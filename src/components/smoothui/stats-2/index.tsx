@@ -25,9 +25,9 @@ const steps = [
   {
     number: "04",
     icon: Truck,
-    title: "Isporuka",
+    title: "Isporuka i montaža",
     description:
-      "Izrađujemo orman po vašoj specifikaciji i dostavljamo na adresu.",
+      "Izrađujemo orman po vašoj specifikaciji i dostavljamo na adresu. Po želji ga i montiramo, u Beogradu i okolini.",
   },
 ];
 
