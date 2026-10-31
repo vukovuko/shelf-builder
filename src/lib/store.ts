@@ -406,6 +406,9 @@ export interface ShelfState {
   ) => void;
   addColumnShelf: (colIndex: number, y: number) => void;
   removeColumnShelf: (colIndex: number, shelfIndex: number) => void;
+  // Removes the column shelf on top of a compartment, merging it with the one above.
+  // The merged compartment starts empty; compartments above keep their contents.
+  removeShelfAboveCompartment: (compKey: string) => void;
   moveColumnShelf: (colIndex: number, shelfIndex: number, newY: number) => void;
   setColumnShelfCount: (
     colIndex: number,
@@ -1880,6 +1883,75 @@ export const useShelfStore = create<ShelfState>((set) => ({
             state,
             inColumn(String.fromCharCode(65 + colIndex)),
           )),
+      };
+    }),
+  removeShelfAboveCompartment: (compKey) =>
+    set((state) => {
+      const parsed = parseSubCompKey(compKey);
+      if (!parsed || parsed.isSubComp) return {};
+      const colLetter = parsed.column;
+      const colIdx = colLetter.charCodeAt(0) - 65;
+      // Compartments are numbered bottom to top, through the bottom module and then the top module
+      const merged = parsed.compIdx;
+
+      const shelves = state.columnHorizontalBoundaries[colIdx] || [];
+      const bottomCompCount = shelves.length + 1;
+      let layout: Partial<ShelfState>;
+      if (merged < bottomCompCount) {
+        layout = {
+          columnHorizontalBoundaries: {
+            ...state.columnHorizontalBoundaries,
+            [colIdx]: shelves.filter((_, i) => i !== merged - 1),
+          },
+        };
+      } else {
+        // The last bottom compartment sits under the module split or the top panel, neither removable
+        const colH = (state.columnHeights[colIdx] ?? state.height) / 100;
+        const moduleBoundary = state.columnModuleBoundaries[colIdx] ?? null;
+        const hasModule =
+          moduleBoundary !== null && colH > TARGET_BOTTOM_HEIGHT;
+        const topShelves = state.columnTopModuleShelves[colIdx] || [];
+        const topIdx = merged - bottomCompCount - 1;
+        if (!hasModule || topIdx < 0 || topIdx >= topShelves.length) return {};
+        layout = {
+          columnTopModuleShelves: {
+            ...state.columnTopModuleShelves,
+            [colIdx]: topShelves.filter((_, i) => i !== topIdx),
+          },
+        };
+      }
+
+      // Compartment `merged` absorbs `merged + 1`; everything above moves down one number
+      const renumber = (key: string): string | null => {
+        const p = parseSubCompKey(key);
+        if (!p || p.column !== colLetter || p.compIdx < merged) return key;
+        if (p.compIdx <= merged + 1) return null;
+        return `${colLetter}${p.compIdx - 1}${key.slice(p.compKey.length)}`;
+      };
+      const renumbered = <T>(record: Record<string, T>) => {
+        const out: Record<string, T> = {};
+        for (const [key, value] of Object.entries(record)) {
+          const next = renumber(key);
+          if (next !== null) out[next] = value;
+        }
+        return out;
+      };
+      const selected = state.selectedCompartmentKey;
+      const selectedParsed = selected ? parseSubCompKey(selected) : null;
+
+      return {
+        ...layout,
+        elementConfigs: renumbered(state.elementConfigs),
+        compartmentExtras: renumbered(state.compartmentExtras),
+        ...withoutDoorsCovering(state, (key) => {
+          const p = parseSubCompKey(key);
+          return p?.column === colLetter && p.compIdx >= merged;
+        }),
+        selectedCompartmentKey:
+          selected && selectedParsed?.column === colLetter
+            ? (renumber(selected) ?? `${colLetter}${merged}`)
+            : selected,
+        hoveredCompartmentKey: null,
       };
     }),
   moveColumnShelf: (colIndex, shelfIndex, newY) =>

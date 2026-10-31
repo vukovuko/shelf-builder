@@ -240,7 +240,7 @@ export function CompartmentExtrasPanel({
             compact ? "font-semibold text-sm" : "font-semibold text-lg"
           }
         >
-          Pregrada
+          Pretinac
         </span>
         <Button
           variant="ghost"

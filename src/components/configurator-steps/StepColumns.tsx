@@ -25,7 +25,7 @@ export function StepColumns({ materials, compact }: StepColumnsProps) {
         <div className={compact ? "space-y-1" : "space-y-3"}>
           {!compact && <CompartmentSchematic />}
           <p className="text-xs text-center text-muted-foreground">
-            Kliknite na pregradu u 3D prikazu
+            Kliknite na pretinac u 3D prikazu
           </p>
         </div>
       ) : (

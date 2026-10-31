@@ -53,6 +53,7 @@ import { TopHeightHandle } from "./TopHeightHandle";
 import { ColumnControlsBar3D } from "./ColumnControlsBar3D";
 import { ModuleBoundaryHandle } from "./ModuleBoundaryHandle";
 import { CompartmentClickCircle } from "./CompartmentClickCircle";
+import { ShelfRemoveChip } from "./ShelfRemoveChip";
 import { DoorClickCircle } from "./DoorClickCircle";
 import { SelectionBorderLines } from "./SelectionBorderLines";
 import { DimensionLines3D } from "../DimensionLines3D";
@@ -492,6 +493,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
           // Column letter: 0=A, 1=B, 2=C...
           const colLetter = String.fromCharCode(65 + colIdx);
 
+          // Step 2: trash buttons on the column shelves of the hovered column, or of the
+          // column holding the selected compartment (touch screens have no hover)
+          const showShelfRemoveChips =
+            isStep2Active &&
+            !isPreviewMode &&
+            (hoveredColumnIndex === colIdx ||
+              (selectedCompartmentKey !== null &&
+                parseSubCompKey(selectedCompartmentKey)?.column === colLetter));
+
           // Helper: get minY for a shelf (accounts for inner elements in compartment below)
           // Shelf at shelfIdx affects compartment below it (compIdx = shelfIdx)
           const getMinYForShelf = (shelfIdx: number): number => {
@@ -700,6 +710,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                       colWidth={colInnerW}
                       minY={getMinYForShelf(shelfIdx)}
                       maxY={getMaxYForShelf(shelfIdx)}
+                    />
+                  )}
+                  {showShelfRemoveChips && (
+                    <ShelfRemoveChip
+                      compartmentKey={`${colLetter}${shelfIdx + 1}`}
+                      shelfX={colCenterX}
+                      shelfWidth={colInnerW}
+                      y={shelfY}
+                      z={d / 2}
                     />
                   )}
                 </React.Fragment>
@@ -1826,6 +1845,15 @@ const CarcassFrame = React.forwardRef<CarcassFrameHandle, CarcassFrameProps>(
                               minY={shelfMinY}
                               maxY={shelfMaxY}
                               isTopModule={true}
+                            />
+                          )}
+                          {showShelfRemoveChips && (
+                            <ShelfRemoveChip
+                              compartmentKey={`${colLetter}${bottomModuleCompartments + shelfIdx + 1}`}
+                              shelfX={colCenterX}
+                              shelfWidth={colInnerW}
+                              y={shelfY}
+                              z={d / 2}
                             />
                           )}
                         </React.Fragment>
