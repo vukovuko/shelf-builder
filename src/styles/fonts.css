@@ -1,0 +1,6 @@
+/* Self-hosted Poppins; each file carries every subset with its unicode-range,
+   so the browser downloads only Latin and Latin Extended (č, ć, đ, š, ž). */
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";

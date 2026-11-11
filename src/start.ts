@@ -1,9 +1,9 @@
+import { env } from "cloudflare:workers";
 import {
   createCsrfMiddleware,
   createMiddleware,
   createStart,
 } from "@tanstack/react-start";
-import { env } from "cloudflare:workers";
 import { runWithDb } from "@/db/db";
 
 const dbScope = createMiddleware().server(({ next }) =>

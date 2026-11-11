@@ -25,6 +25,13 @@ the production database.
   `git merge main` brings shared changes over. A change on `main` to a file
   already deleted here shows up as a conflict: port that change by hand.
 - `tsconfig.json` includes only ported files. Add a folder there when it moves.
+- Shared components keep `import Link from "next/link"` and friends. Vite and
+  tsconfig point those imports at `src/compat/next`, so one component file
+  works in both apps. New code in `src/routes` uses TanStack Router directly.
+  The stand-ins go away after the cutover.
+- A page is ported when its route in `src/routes` matches the live page
+  (same sections, headings, links, title, description, canonical, JSON-LD);
+  then its file in `src/app` is deleted.
 - Vercel does not build this branch (`vercel.json`).
 
 ## Conventions
@@ -47,8 +54,10 @@ the production database.
 
 - [x] 0. Skeleton, per-request database, Better Auth handler, dev deploy
 - [x] 0b. Neon branch `dev` + Hyperdrive binding (query caching off)
-- [ ] 1. Shared code off `next/*` (link, navigation, image, font)
-- [ ] 2. Public pages and SEO (home, blog, FAQ, contact, materijali, ručke)
+- [x] 1. Shared components run unchanged: `next/link`, `next/navigation` and
+  `next/image` resolve to stand-ins in `src/compat/next`; Poppins is self-hosted
+- [ ] 2. Public pages and SEO: home done; blog, FAQ, contact, materijali,
+  ručke, privacy, terms, sitemap, robots, llms.txt to do
 - [ ] 3. Configurator (`/design`, `/design-test`), saving designs
 - [ ] 4. Sign-in and customer account
 - [ ] 5. Checkout and emails

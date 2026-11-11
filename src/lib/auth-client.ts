@@ -2,11 +2,12 @@ import { createAuthClient } from "better-auth/react";
 import { adminClient, inferAdditionalFields } from "better-auth/client/plugins";
 import type { auth } from "./auth";
 
-// Handle different environments: production, preview (Vercel), localhost
+// In the browser auth is always same-origin, whatever host serves the app
+// (production, a workers.dev build, localhost). The env value only matters
+// while rendering on the server.
 const getBaseURL = () => {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   if (typeof window !== "undefined") return window.location.origin;
-  return "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 };
 
 export const authClient = createAuthClient({

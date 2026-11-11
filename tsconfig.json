@@ -15,7 +15,10 @@
     "incremental": true,
     "types": ["vite/client", "node", "./worker-configuration.d.ts"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "next/link": ["./src/compat/next/link.tsx"],
+      "next/navigation": ["./src/compat/next/navigation.ts"],
+      "next/image": ["./src/compat/next/image.tsx"]
     }
   },
   // Only the TanStack Start app and what it imports. src/app and the other
@@ -24,6 +27,7 @@
   "include": [
     "src/routes",
     "src/server",
+    "src/compat",
     "src/router.tsx",
     "src/start.ts",
     "src/routeTree.gen.ts",
