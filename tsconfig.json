@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -13,21 +13,22 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "types": ["vite/client", "node", "./worker-configuration.d.ts"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
+  // Only the TanStack Start app and what it imports. src/app and the other
+  // Next.js files stay for reference until each route is ported, and are
+  // added here as they move over.
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "src/routes",
+    "src/server",
+    "src/router.tsx",
+    "src/start.ts",
+    "src/routeTree.gen.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
   ],
   "exclude": ["node_modules"]
 }

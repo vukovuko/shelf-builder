@@ -45,3 +45,10 @@ docs/
 next-env.d.ts
 
 material-images/
+
+# cloudflare / tanstack start
+.wrangler/
+.dev.vars*
+/dist/
+.tanstack/
+worker-configuration.d.ts

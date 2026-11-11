@@ -8,8 +8,8 @@ import {
   createAuthMiddleware,
   getSessionFromCtx,
 } from "better-auth/api";
-import { nextCookies } from "better-auth/next-js";
 import { admin, captcha, mcp, oneTimeToken } from "better-auth/plugins";
+import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/db";
 import * as schema from "@/db/schema";
@@ -215,6 +215,6 @@ export const auth = betterAuth({
     // OAuth for AI assistants (Claude etc.) reading the admin data over
     // /api/mcp. The route only answers admins; see src/app/api/mcp.
     mcp({ loginPage: "/mcp/prijava" }),
-    nextCookies(), // Must be last plugin
+    tanstackStartCookies(), // Must be last plugin
   ],
 });
