@@ -65,13 +65,6 @@ function RuntimeChecks() {
 
 function DbChecks() {
   const { data } = useSuspenseQuery(dbProofQuery);
-  if (!data.configured) {
-    return (
-      <Card title="Baza">
-        <Row label="Veza" value="nije podešena" ok={false} />
-      </Card>
-    );
-  }
   return (
     <Card title="Baza">
       <Row label="Materijali" value={String(data.materials)} ok />

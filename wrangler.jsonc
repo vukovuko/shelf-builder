@@ -4,5 +4,11 @@
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Neon branch "dev". Query caching is off: an admin edit must show up in
+  // the very next read. Local dev reads the connection string from
+  // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE in .env.
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "6e574ae7840d4de893cbf0f5300bc102" }
+  ]
 }

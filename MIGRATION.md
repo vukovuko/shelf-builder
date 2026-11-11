@@ -5,11 +5,14 @@ Vercel serves at ormanipomeri.com until the domain is moved over.
 
 Dev build: https://ormanipomeri-dev.vukasinovicvuko5.workers.dev
 
+The dev build and local dev on this branch use the Neon branch `dev`, never
+the production database.
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Local dev on the Workers runtime, port 3000. Secrets come from `.dev.vars` (copy your `.env`). |
+| `npm run dev` | Local dev on the Workers runtime, port 3000. Secrets come from `.dev.vars` (copy your `.env`). `.env` also needs `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` set to the Neon `dev` branch string. |
 | `npm run deploy` | Build and deploy the `ormanipomeri-dev` Worker. |
 | `npm run typecheck` | Generates Worker types, then checks the ported files. |
 | `npm run test:run` | Same vitest suite as `main`. |
@@ -43,7 +46,7 @@ Dev build: https://ormanipomeri-dev.vukasinovicvuko5.workers.dev
 ## Phases
 
 - [x] 0. Skeleton, per-request database, Better Auth handler, dev deploy
-- [ ] 0b. Neon dev branch + Hyperdrive binding for the deployed Worker
+- [x] 0b. Neon branch `dev` + Hyperdrive binding (query caching off)
 - [ ] 1. Shared code off `next/*` (link, navigation, image, font)
 - [ ] 2. Public pages and SEO (home, blog, FAQ, contact, materijali, ručke)
 - [ ] 3. Configurator (`/design`, `/design-test`), saving designs

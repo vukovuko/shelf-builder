@@ -55,8 +55,6 @@ class Rollback extends Error {}
 
 /** Reads only: three parallel counts and a transaction that is rolled back. */
 export async function runDbProof() {
-  if (!process.env.DATABASE_URL) return { configured: false as const };
-
   const started = Date.now();
   const [[m], [h], [r]] = await Promise.all([
     db.select({ n: count() }).from(materials),
@@ -82,7 +80,6 @@ export async function runDbProof() {
   const users = await authContext.adapter.count({ model: "user" });
 
   return {
-    configured: true as const,
     authReads: users > 0,
     materials: m.n,
     handles: h.n,

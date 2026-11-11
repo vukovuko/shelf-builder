@@ -3,10 +3,11 @@ import {
   createMiddleware,
   createStart,
 } from "@tanstack/react-start";
+import { env } from "cloudflare:workers";
 import { runWithDb } from "@/db/db";
 
 const dbScope = createMiddleware().server(({ next }) =>
-  runWithDb(process.env.DATABASE_URL, () => next()),
+  runWithDb(env.HYPERDRIVE.connectionString, () => next()),
 );
 
 export const startInstance = createStart(() => ({
