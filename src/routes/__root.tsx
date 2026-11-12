@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import ErrorPage from "@/app/error";
 import appCss from "@/app/globals.css?url";
 import NotFound from "@/app/not-found";
+import { SessionSync } from "@/components/SessionSync";
 import { Toaster } from "@/components/ui/sonner";
 import {
   jsonLd,
@@ -114,6 +115,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         >
           {children}
           <Toaster position="bottom-center" />
+          <SessionSync />
         </ThemeProvider>
         {import.meta.env.DEV && <ReactQueryDevtools />}
         <Scripts />

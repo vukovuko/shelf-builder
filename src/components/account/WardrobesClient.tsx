@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { FolderOpen, Loader2, Lock, MoreVertical, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,15 +39,18 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { formatDate } from "@/lib/format-date";
+import { cn } from "@/lib/utils";
+import { type MyWardrobe, myWardrobesQuery } from "@/server/account.functions";
 
-interface Wardrobe {
-  id: string;
-  name: string;
-  thumbnail: string | null;
-  isLocked: boolean | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+type Wardrobe = MyWardrobe;
+
+/** A failure whose message is already written for the customer. */
+class Refused extends Error {}
+
+// The card shown while a copy is being made has no saved design behind it yet.
+const PENDING_ID_PREFIX = "pending:";
+const isPending = (wardrobe: Wardrobe) =>
+  wardrobe.id.startsWith(PENDING_ID_PREFIX);
 
 // Simple relative time formatter
 function formatRelativeTime(date: Date): string {
@@ -62,59 +70,46 @@ function formatRelativeTime(date: Date): string {
   return formatDate(date);
 }
 
-interface WardrobesClientProps {
-  initialWardrobes: Wardrobe[];
-}
-
-export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
+export function WardrobesClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data } = useSuspenseQuery(myWardrobesQuery);
+  const wardrobes = data ?? [];
   // The configurator takes a moment to load; mark which card is opening.
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [isOpening, startOpening] = useTransition();
-  const [wardrobes, setWardrobes] = useState<Wardrobe[]>(initialWardrobes);
   const [wardrobeToDelete, setWardrobeToDelete] = useState<Wardrobe | null>(
     null,
   );
 
-  // Fetch wardrobes function (for refresh after actions)
-  async function fetchWardrobes() {
-    try {
-      const res = await fetch("/api/wardrobes");
-      if (res.ok) {
-        const data = await res.json();
-        setWardrobes(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch wardrobes:", error);
-    }
+  const listKey = myWardrobesQuery.queryKey;
+
+  // Shows a change at once; returns the list to put back if the server
+  // refuses it.
+  async function showAtOnce(change: (list: Wardrobe[]) => Wardrobe[]) {
+    await queryClient.cancelQueries({ queryKey: listKey });
+    const previous = queryClient.getQueryData(listKey);
+    queryClient.setQueryData(listKey, (list) => list && change(list));
+    return { previous };
   }
 
-  // Handle load wardrobe (locked wardrobes open in preview mode)
-  function handleLoad(wardrobe: Wardrobe) {
-    setOpeningId(wardrobe.id);
-    startOpening(() => router.push(`/design?load=${wardrobe.id}`));
-  }
+  // Saved designs also fill the dropdown of the account's contact form.
+  const refetchWardrobes = () =>
+    queryClient.invalidateQueries({ queryKey: ["account", "wardrobes"] });
 
-  // Handle duplicate wardrobe
-  async function handleDuplicate(id: string) {
-    const original = wardrobes.find((w) => w.id === id);
-    if (!original) return;
-
-    try {
-      // Fetch full wardrobe data first
-      const res = await fetch(`/api/wardrobes/${id}`);
+  const duplicate = useMutation({
+    mutationFn: async (original: Wardrobe) => {
+      const res = await fetch(`/api/wardrobes/${original.id}`);
       if (!res.ok) {
-        const errorMsg =
+        throw new Refused(
           res.status === 404
             ? "Orman nije pronađen. Možda je već obrisan."
-            : "Nije moguće učitati podatke ormana. Proverite internet konekciju.";
-        toast.error(errorMsg);
-        return;
+            : "Nije moguće učitati podatke ormana. Proverite internet konekciju.",
+        );
       }
       const fullWardrobe = await res.json();
 
-      // Create duplicate
-      const duplicateRes = await fetch("/api/wardrobes", {
+      const created = await fetch("/api/wardrobes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -123,23 +118,72 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
           thumbnail: original.thumbnail,
         }),
       });
-
-      if (duplicateRes.ok) {
-        toast.success("Orman je dupliran!");
-        await fetchWardrobes();
-      } else {
-        const errorMsg =
-          duplicateRes.status === 401
+      if (!created.ok) {
+        throw new Refused(
+          created.status === 401
             ? "Niste prijavljeni. Prijavite se i pokušajte ponovo."
-            : "Nije moguće duplirati orman. Pokušajte ponovo.";
-        toast.error(errorMsg);
+            : "Nije moguće duplirati orman. Pokušajte ponovo.",
+        );
       }
-    } catch (error) {
-      console.error("Failed to duplicate:", error);
+    },
+    onMutate: (original) => {
+      const now = new Date();
+      const copy: Wardrobe = {
+        ...original,
+        id: `${PENDING_ID_PREFIX}${crypto.randomUUID()}`,
+        name: `${original.name} (Kopija)`,
+        isLocked: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return showAtOnce((list) => [copy, ...list]);
+    },
+    onError: (error, _original, context) => {
+      queryClient.setQueryData(listKey, context?.previous);
       toast.error(
-        "Neočekivana greška pri dupliciranju. Proverite internet konekciju.",
+        error instanceof Refused
+          ? error.message
+          : "Neočekivana greška pri dupliciranju. Proverite internet konekciju.",
       );
-    }
+    },
+    onSuccess: () => toast.success("Orman je dupliran!"),
+    onSettled: refetchWardrobes,
+  });
+
+  const remove = useMutation({
+    mutationFn: async (wardrobe: Wardrobe) => {
+      const res = await fetch(`/api/wardrobes/${wardrobe.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Refused(
+          res.status === 404
+            ? "Orman nije pronađen. Možda je već obrisan."
+            : res.status === 403
+              ? "Nemate dozvolu za brisanje ovog ormana."
+              : "Nije moguće obrisati orman. Pokušajte ponovo.",
+        );
+      }
+    },
+    onMutate: (wardrobe) =>
+      showAtOnce((list) => list.filter((item) => item.id !== wardrobe.id)),
+    onError: (error, _wardrobe, context) => {
+      queryClient.setQueryData(listKey, context?.previous);
+      toast.error(
+        error instanceof Refused
+          ? error.message
+          : "Neočekivana greška pri brisanju. Proverite internet konekciju.",
+      );
+    },
+    onSuccess: () => toast.success("Orman je obrisan"),
+    onSettled: refetchWardrobes,
+  });
+
+  // Handle load wardrobe (locked wardrobes open in preview mode)
+  function handleLoad(wardrobe: Wardrobe) {
+    if (isPending(wardrobe)) return;
+    setOpeningId(wardrobe.id);
+    startOpening(() => router.push(`/design?load=${wardrobe.id}`));
   }
 
   // Handle share wardrobe
@@ -156,40 +200,10 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
     }
   }
 
-  // Handle delete wardrobe - open confirmation dialog
-  function handleDeleteClick(wardrobe: Wardrobe) {
-    setWardrobeToDelete(wardrobe);
-  }
-
-  // Confirm and execute delete
-  async function confirmDelete() {
+  function confirmDelete() {
     if (!wardrobeToDelete) return;
-
-    try {
-      const res = await fetch(`/api/wardrobes/${wardrobeToDelete.id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        toast.success("Orman je obrisan");
-        await fetchWardrobes();
-      } else {
-        const errorMsg =
-          res.status === 404
-            ? "Orman nije pronađen. Možda je već obrisan."
-            : res.status === 403
-              ? "Nemate dozvolu za brisanje ovog ormana."
-              : "Nije moguće obrisati orman. Pokušajte ponovo.";
-        toast.error(errorMsg);
-      }
-    } catch (error) {
-      console.error("Failed to delete:", error);
-      toast.error(
-        "Neočekivana greška pri brisanju. Proverite internet konekciju.",
-      );
-    } finally {
-      setWardrobeToDelete(null);
-    }
+    remove.mutate(wardrobeToDelete);
+    setWardrobeToDelete(null);
   }
 
   return (
@@ -236,7 +250,10 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
             <Card
               key={wardrobe.id}
               onClick={() => handleLoad(wardrobe)}
-              className="group relative overflow-hidden hover:shadow-md transition-shadow cursor-pointer gap-0 py-0"
+              className={cn(
+                "group relative overflow-hidden hover:shadow-md transition-shadow cursor-pointer gap-0 py-0",
+                isPending(wardrobe) && "pointer-events-none opacity-60",
+              )}
             >
               <div className="aspect-[4/3] bg-muted relative">
                 {isOpening && openingId === wardrobe.id && (
@@ -282,6 +299,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
+                      type="button"
                       onClick={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
                       className="p-1.5 hover:bg-accent rounded transition flex-shrink-0"
@@ -298,7 +316,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                       {wardrobe.isLocked ? "Pregled" : "Učitaj"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => handleDuplicate(wardrobe.id)}
+                      onSelect={() => duplicate.mutate(wardrobe)}
                     >
                       Dupliraj
                     </DropdownMenuItem>
@@ -310,7 +328,7 @@ export function WardrobesClient({ initialWardrobes }: WardrobesClientProps) {
                       onSelect={() =>
                         wardrobe.isLocked
                           ? toast.info("Zaključan orman ne može se obrisati.")
-                          : handleDeleteClick(wardrobe)
+                          : setWardrobeToDelete(wardrobe)
                       }
                       disabled={!!wardrobe.isLocked}
                       className="text-destructive"

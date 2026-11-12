@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { auth } from "@/lib/auth";
@@ -16,3 +16,14 @@ export const currentUserQuery = queryOptions({
   queryFn: () => getCurrentUser(),
   staleTime: 60_000,
 });
+
+/**
+ * Who is signed in, for a route that decides what to show by it. A cached
+ * "nobody" is never reused: the visitor may have signed in a moment ago.
+ */
+export function loadCurrentUser(queryClient: QueryClient) {
+  const cached = queryClient.getQueryData(currentUserQuery.queryKey);
+  return queryClient.fetchQuery(
+    cached ? currentUserQuery : { ...currentUserQuery, staleTime: 0 },
+  );
+}

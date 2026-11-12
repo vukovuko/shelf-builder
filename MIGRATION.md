@@ -59,7 +59,9 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 (`wrangler secret put`).
 
 A test customer exists only in the Neon branch `dev`. Its email and password
-are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`.
+are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`. It has one
+saved design and one order (#1032, a copy of a real order's design and prices
+with made-up contact details).
 
 Not set on the dev Worker yet, so these do nothing there: `ANTHROPIC_API_KEY`
 (sketch import), the Google sign-in keys, Upstash.
@@ -90,6 +92,26 @@ rewritten. A route file in `src/routes/api` wins over the bridge (auth has
 one). When the last caller of a handler moves to a server function, delete the
 handler; the bridge goes away with the last of them.
 
+## Signed-in pages
+
+- A route that depends on who is signed in calls `loadCurrentUser` in
+  `beforeLoad` (`src/server/session.functions.ts`). It reuses a cached user
+  but always asks the server again when the cache says nobody is signed in.
+- `/account/*` has one layout (`src/routes/account/route.tsx`). Signed out, it
+  shows the sign-in form in place, with no redirect, so a link from an order
+  email works after signing in. Its child loaders skip their data when
+  `context.user` is empty.
+- Every function in `src/server/account.server.ts` checks the session itself
+  and returns `null` when nobody is signed in.
+- When someone signs in, signs out or edits their profile, the auth client
+  tells `SessionSync` (in the root) and every cached query is marked stale.
+  The link between the two is `src/lib/session-events.ts`, so pages without a
+  sign-in form do not load the auth client.
+- "Moji ormani" is the model for writes: `useMutation`, the change shown at
+  once, put back if the server refuses, then `invalidateQueries`. The other
+  account forms still post to the old handlers and call `router.refresh()`,
+  which here means "refetch every query".
+
 ## Configurator
 
 `/design` and `/design-test` draw in the browser only: the server sends the
@@ -109,7 +131,8 @@ for it, so the data arrives in the same response as the page.
   purge the pages it affects.
 - The HTML of `/design` has no step list or price before JavaScript runs; Next
   sent the sidebar markup. Title, description and canonical are the same.
-- The Worker upload is 1.8 MB gzip. Cloudflare's limit is 3 MB on the free
+- `/account` goes to `/account/wardrobes`; on the live site it is a 404.
+- The Worker upload is 1.9 MB gzip. Cloudflare's limit is 3 MB on the free
   plan and 10 MB on the paid one.
 
 ## Phases
@@ -122,7 +145,8 @@ for it, so the data arrives in the same response as the page.
   privacy, terms, sitemap.xml, robots.txt, llms.txt
 - [x] 3. Configurator (`/design`, `/design-test`), saving and loading designs;
   the remaining API handlers run through the bridge
-- [ ] 4. Sign-in and customer account
+- [x] 4. Sign-in pages (`/prijava`, `/reset-password`, `/verify-success`) and
+  the customer account (`/account/*`)
 - [ ] 5. Checkout and emails
 - [ ] 6. Admin
 - [ ] 7. MCP server, AI sketch import, todo board, PostHog proxy, CSP

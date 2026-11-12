@@ -10,16 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteRouteImport } from './routes/account/route'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as DesignTestRouteImport } from './routes/design-test'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as PrijavaRouteImport } from './routes/prijava'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as VerifySuccessRouteImport } from './routes/verify-success'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as AccountContactRouteImport } from './routes/account/contact'
+import { Route as AccountSettingsRouteImport } from './routes/account/settings'
+import { Route as AccountWardrobesRouteImport } from './routes/account/wardrobes'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
@@ -28,11 +36,18 @@ import { Route as MaterijaliIndexRouteImport } from './routes/materijali/index'
 import { Route as MaterijaliSlugRouteImport } from './routes/materijali/$slug'
 import { Route as RuckeIndexRouteImport } from './routes/rucke/index'
 import { Route as RuckeSlugRouteImport } from './routes/rucke/$slug'
+import { Route as AccountOrdersIndexRouteImport } from './routes/account/orders/index'
+import { Route as AccountOrdersIdRouteImport } from './routes/account/orders/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRouteRoute = AccountRouteRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -65,9 +80,19 @@ const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrijavaRoute = PrijavaRouteImport.update({
+  id: '/prijava',
+  path: '/prijava',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -84,6 +109,31 @@ const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
   getParentRoute: () => rootRouteImport,
+} as any)
+const VerifySuccessRoute = VerifySuccessRouteImport.update({
+  id: '/verify-success',
+  path: '/verify-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountContactRoute = AccountContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountSettingsRoute = AccountSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountWardrobesRoute = AccountWardrobesRouteImport.update({
+  id: '/wardrobes',
+  path: '/wardrobes',
+  getParentRoute: () => AccountRouteRoute,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
@@ -125,6 +175,16 @@ const RuckeSlugRoute = RuckeSlugRouteImport.update({
   path: '/rucke/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountOrdersIndexRoute = AccountOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
+const AccountOrdersIdRoute = AccountOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => AccountRouteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -133,25 +193,35 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/design': typeof DesignRoute
   '/design-test': typeof DesignTestRoute
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
+  '/prijava': typeof PrijavaRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/verify-success': typeof VerifySuccessRoute
+  '/account/contact': typeof AccountContactRoute
+  '/account/settings': typeof AccountSettingsRoute
+  '/account/wardrobes': typeof AccountWardrobesRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/account/': typeof AccountIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
+  '/account/orders/$id': typeof AccountOrdersIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -161,66 +231,95 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
+  '/prijava': typeof PrijavaRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/verify-success': typeof VerifySuccessRoute
+  '/account/contact': typeof AccountContactRoute
+  '/account/settings': typeof AccountSettingsRoute
+  '/account/wardrobes': typeof AccountWardrobesRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/account': typeof AccountIndexRoute
   '/blog': typeof BlogIndexRoute
   '/materijali': typeof MaterijaliIndexRoute
   '/rucke': typeof RuckeIndexRoute
+  '/account/orders/$id': typeof AccountOrdersIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/account/orders': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/design': typeof DesignRoute
   '/design-test': typeof DesignTestRoute
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
+  '/prijava': typeof PrijavaRoute
   '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/verify-success': typeof VerifySuccessRoute
+  '/account/contact': typeof AccountContactRoute
+  '/account/settings': typeof AccountSettingsRoute
+  '/account/wardrobes': typeof AccountWardrobesRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/account/': typeof AccountIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
+  '/account/orders/$id': typeof AccountOrdersIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/contact'
     | '/design'
     | '/design-test'
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
+    | '/prijava'
     | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/verify-success'
+    | '/account/contact'
+    | '/account/settings'
+    | '/account/wardrobes'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/account/'
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
+    | '/account/orders/$id'
     | '/api/auth/$'
+    | '/account/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -230,55 +329,78 @@ export interface FileRouteTypes {
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
+    | '/prijava'
     | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/verify-success'
+    | '/account/contact'
+    | '/account/settings'
+    | '/account/wardrobes'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/account'
     | '/blog'
     | '/materijali'
     | '/rucke'
+    | '/account/orders/$id'
     | '/api/auth/$'
+    | '/account/orders'
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/contact'
     | '/design'
     | '/design-test'
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
+    | '/prijava'
     | '/privacy'
+    | '/reset-password'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/verify-success'
+    | '/account/contact'
+    | '/account/settings'
+    | '/account/wardrobes'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/account/'
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
+    | '/account/orders/$id'
     | '/api/auth/$'
+    | '/account/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRouteRoute: typeof AccountRouteRouteWithChildren
   ContactRoute: typeof ContactRoute
   DesignRoute: typeof DesignRoute
   DesignTestRoute: typeof DesignTestRoute
   FaqRoute: typeof FaqRoute
   LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
+  PrijavaRoute: typeof PrijavaRoute
   PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  VerifySuccessRoute: typeof VerifySuccessRoute
   ApiSplatRoute: typeof ApiSplatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DevStatusRoute: typeof DevStatusRoute
@@ -297,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -341,11 +470,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prijava': {
+      id: '/prijava'
+      path: '/prijava'
+      fullPath: '/prijava'
+      preLoaderRoute: typeof PrijavaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -368,6 +511,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/verify-success': {
+      id: '/verify-success'
+      path: '/verify-success'
+      fullPath: '/verify-success'
+      preLoaderRoute: typeof VerifySuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/contact': {
+      id: '/account/contact'
+      path: '/contact'
+      fullPath: '/account/contact'
+      preLoaderRoute: typeof AccountContactRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/settings': {
+      id: '/account/settings'
+      path: '/settings'
+      fullPath: '/account/settings'
+      preLoaderRoute: typeof AccountSettingsRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/wardrobes': {
+      id: '/account/wardrobes'
+      path: '/wardrobes'
+      fullPath: '/account/wardrobes'
+      preLoaderRoute: typeof AccountWardrobesRouteImport
+      parentRoute: typeof AccountRouteRoute
     }
     '/api/$': {
       id: '/api/$'
@@ -425,6 +603,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RuckeSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/orders/': {
+      id: '/account/orders/'
+      path: '/orders'
+      fullPath: '/account/orders/'
+      preLoaderRoute: typeof AccountOrdersIndexRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
+    '/account/orders/$id': {
+      id: '/account/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/account/orders/$id'
+      preLoaderRoute: typeof AccountOrdersIdRouteImport
+      parentRoute: typeof AccountRouteRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -435,18 +627,44 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AccountRouteRouteChildren {
+  AccountContactRoute: typeof AccountContactRoute
+  AccountSettingsRoute: typeof AccountSettingsRoute
+  AccountWardrobesRoute: typeof AccountWardrobesRoute
+  AccountIndexRoute: typeof AccountIndexRoute
+  AccountOrdersIdRoute: typeof AccountOrdersIdRoute
+  AccountOrdersIndexRoute: typeof AccountOrdersIndexRoute
+}
+
+const AccountRouteRouteChildren: AccountRouteRouteChildren = {
+  AccountContactRoute: AccountContactRoute,
+  AccountSettingsRoute: AccountSettingsRoute,
+  AccountWardrobesRoute: AccountWardrobesRoute,
+  AccountIndexRoute: AccountIndexRoute,
+  AccountOrdersIdRoute: AccountOrdersIdRoute,
+  AccountOrdersIndexRoute: AccountOrdersIndexRoute,
+}
+
+const AccountRouteRouteWithChildren = AccountRouteRoute._addFileChildren(
+  AccountRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRouteRoute: AccountRouteRouteWithChildren,
   ContactRoute: ContactRoute,
   DesignRoute: DesignRoute,
   DesignTestRoute: DesignTestRoute,
   FaqRoute: FaqRoute,
   LlmsFullDottxtRoute: LlmsFullDottxtRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
+  PrijavaRoute: PrijavaRoute,
   PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  VerifySuccessRoute: VerifySuccessRoute,
   ApiSplatRoute: ApiSplatRoute,
   BlogSlugRoute: BlogSlugRoute,
   DevStatusRoute: DevStatusRoute,

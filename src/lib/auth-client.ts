@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 import { adminClient, inferAdditionalFields } from "better-auth/client/plugins";
 import type { auth } from "./auth";
+import { emitSessionChange } from "./session-events";
 
 // In the browser auth is always same-origin, whatever host serves the app
 // (production, a workers.dev build, localhost). The env value only matters
@@ -16,3 +17,5 @@ export const authClient = createAuthClient({
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
+
+authClient.$store.atoms.$sessionSignal.listen(emitSessionChange);

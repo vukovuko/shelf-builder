@@ -1,24 +1,27 @@
-"use client";
-
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 import { PendingContent } from "@/components/PendingContent";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export default function VerifySuccessPage() {
-  const router = useRouter();
+export const Route = createFileRoute("/verify-success")({
+  component: VerifySuccessPage,
+});
+
+const REDIRECT_AFTER_MS = 5000;
+
+function VerifySuccessPage() {
+  const navigate = useNavigate();
   const [isOpening, startOpening] = useTransition();
 
   useEffect(() => {
-    // Auto-redirect to design after 5 seconds
-    const timeout = setTimeout(() => {
-      router.push("/design");
-    }, 5000);
-
+    const timeout = setTimeout(
+      () => navigate({ to: "/design" }),
+      REDIRECT_AFTER_MS,
+    );
     return () => clearTimeout(timeout);
-  }, [router]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -35,7 +38,11 @@ export default function VerifySuccessPage() {
         </div>
         <div className="space-y-3">
           <Button
-            onClick={() => startOpening(() => router.push("/design"))}
+            onClick={() =>
+              startOpening(async () => {
+                await navigate({ to: "/design" });
+              })
+            }
             className="w-full"
           >
             <PendingContent pending={isOpening}>
