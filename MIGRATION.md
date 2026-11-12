@@ -64,7 +64,8 @@ The dev build must not reach real people or real analytics:
 Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 (`wrangler secret put`).
 
-A test customer exists only in the Neon branch `dev`. Its email and password
+A test account exists only in the Neon branch `dev`; there it also has the
+admin role, so the admin can be tested without a real admin's password. Its email and password
 are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`. It has one
 saved design and four orders: #1032 (a copy of a real order's design and
 prices with made-up contact details) and #1033 to #1035 (placed through the
@@ -120,6 +121,34 @@ handler; the bridge goes away with the last of them.
   account forms still post to the old handlers and call `router.refresh()`,
   which here means "refetch every query".
 
+## Admin
+
+- `/admin` is not rendered on the server (`ssr: false` on its layout), and
+  every page imports its component behind `import.meta.env.SSR ? null :
+  lazy(...)`, so tables, charts, the to-do board and the 3D view stay out of
+  the Worker. The components are the old ones, moved to
+  `src/components/admin` with their folders unchanged.
+- The layout's `beforeLoad` asks the server who is asking: signed out goes to
+  `/prijava?return_to=…`, signed in without the role goes home.
+- Each page's data is one function in `src/server/admin/*.server.ts` that
+  starts with `requireAdmin()`. The functions and their queries are in
+  `src/server/admin/admin.functions.ts`.
+- Forms still save through the old `/api/admin/*` handlers and then call
+  `router.refresh()`. Until they are mutations that update the cache, loaders
+  fetch fresh data on every visit (`fetchQuery`, `staleTime: 0`) and pages
+  read `Route.useLoaderData()`: a form opened on cached values would save
+  them back.
+
+## Search params and errors
+
+- The address carries plain query strings (`?search=1035&page=2`), as on the
+  live site. The router's default writes JSON (`?search=%221035%22`), which
+  the shared components, built on `URLSearchParams`, would misread. Every
+  value arrives as text, so `validateSearch` converts what it needs.
+- A server function that throws sends only "Server error" to the browser
+  (`hideServerErrors` in `src/start.ts`); the real error is in the Worker
+  log. Redirects and not-found pass through.
+
 ## Configurator
 
 `/design` and `/design-test` draw in the browser only: the server sends the
@@ -140,7 +169,13 @@ for it, so the data arrives in the same response as the page.
 - The HTML of `/design` has no step list or price before JavaScript runs; Next
   sent the sidebar markup. Title, description and canonical are the same.
 - `/account` goes to `/account/wardrobes`; on the live site it is a 404.
-- The Worker upload is 1.9 MB gzip. Cloudflare's limit is 3 MB on the free
+- A signed-out visit to `/admin` is redirected by the browser after the page
+  loads; Next redirected on the server.
+- The admin's order search works. On the live site it fails for every term
+  (`ILIKE` on the integer order number).
+- The admin dashboard shows zero visits without PostHog keys instead of
+  failing.
+- The Worker upload is 1.9 MB gzip (the admin added 38 KB). Cloudflare's limit is 3 MB on the free
   plan and 10 MB on the paid one.
 
 ## Phases
@@ -160,7 +195,10 @@ for it, so the data arrives in the same response as the page.
   rules, the transaction, the order in the account, and all five emails
   (confirmation, invoice with the IPS QR code, three admin notices) delivered
   to the redirect address only. Later: move the handler to a server function
-- [ ] 6. Admin
+- [x] 6. Admin: all 29 pages, reading through server functions and saving
+  through the bridge
+- [ ] 6b. Admin saves as mutations with optimistic updates, section by
+  section; then cached reads and edge caching of catalog pages with purge
 - [ ] 7. MCP server, AI sketch import, todo board, PostHog proxy, CSP
 - [ ] 8. Domain cutover. The production Worker needs its own wrangler
   environment without `EMAIL_MODE`, built with `VITE_INDEXABLE=true`

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteRouteImport } from './routes/account/route'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as DesignTestRouteImport } from './routes/design-test'
@@ -28,6 +29,8 @@ import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountContactRouteImport } from './routes/account/contact'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountWardrobesRouteImport } from './routes/account/wardrobes'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
@@ -38,6 +41,33 @@ import { Route as RuckeIndexRouteImport } from './routes/rucke/index'
 import { Route as RuckeSlugRouteImport } from './routes/rucke/$slug'
 import { Route as AccountOrdersIndexRouteImport } from './routes/account/orders/index'
 import { Route as AccountOrdersIdRouteImport } from './routes/account/orders/$id'
+import { Route as AdminAccessoriesIndexRouteImport } from './routes/admin/accessories/index'
+import { Route as AdminAccessoriesIdRouteImport } from './routes/admin/accessories/$id'
+import { Route as AdminAccessoriesNewRouteImport } from './routes/admin/accessories/new'
+import { Route as AdminAccessoryRulesIndexRouteImport } from './routes/admin/accessory-rules/index'
+import { Route as AdminAccessoryRulesIdRouteImport } from './routes/admin/accessory-rules/$id'
+import { Route as AdminAccessoryRulesNewRouteImport } from './routes/admin/accessory-rules/new'
+import { Route as AdminHandlesIndexRouteImport } from './routes/admin/handles/index'
+import { Route as AdminHandlesIdRouteImport } from './routes/admin/handles/$id'
+import { Route as AdminHandlesNewRouteImport } from './routes/admin/handles/new'
+import { Route as AdminMaterialsIndexRouteImport } from './routes/admin/materials/index'
+import { Route as AdminMaterialsIdRouteImport } from './routes/admin/materials/$id'
+import { Route as AdminMaterialsCeneRouteImport } from './routes/admin/materials/cene'
+import { Route as AdminMaterialsNewRouteImport } from './routes/admin/materials/new'
+import { Route as AdminModelsIndexRouteImport } from './routes/admin/models/index'
+import { Route as AdminOrdersIndexRouteImport } from './routes/admin/orders/index'
+import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders/$id'
+import { Route as AdminOrdersNewRouteImport } from './routes/admin/orders/new'
+import { Route as AdminRulesIndexRouteImport } from './routes/admin/rules/index'
+import { Route as AdminRulesIdRouteImport } from './routes/admin/rules/$id'
+import { Route as AdminRulesNewRouteImport } from './routes/admin/rules/new'
+import { Route as AdminTodoIndexRouteImport } from './routes/admin/todo/index'
+import { Route as AdminTodoOtvoriRouteImport } from './routes/admin/todo/otvori'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
+import { Route as AdminUsersIdRouteImport } from './routes/admin/users/$id'
+import { Route as AdminUsersNewRouteImport } from './routes/admin/users/new'
+import { Route as AdminWardrobesIndexRouteImport } from './routes/admin/wardrobes/index'
+import { Route as AdminWardrobesIdRouteImport } from './routes/admin/wardrobes/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -48,6 +78,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRouteRoute = AccountRouteRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -135,6 +170,16 @@ const AccountWardrobesRoute = AccountWardrobesRouteImport.update({
   path: '/wardrobes',
   getParentRoute: () => AccountRouteRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
@@ -185,6 +230,142 @@ const AccountOrdersIdRoute = AccountOrdersIdRouteImport.update({
   path: '/orders/$id',
   getParentRoute: () => AccountRouteRoute,
 } as any)
+const AdminAccessoriesIndexRoute = AdminAccessoriesIndexRouteImport.update({
+  id: '/accessories/',
+  path: '/accessories/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAccessoriesIdRoute = AdminAccessoriesIdRouteImport.update({
+  id: '/accessories/$id',
+  path: '/accessories/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAccessoriesNewRoute = AdminAccessoriesNewRouteImport.update({
+  id: '/accessories/new',
+  path: '/accessories/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAccessoryRulesIndexRoute =
+  AdminAccessoryRulesIndexRouteImport.update({
+    id: '/accessory-rules/',
+    path: '/accessory-rules/',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
+const AdminAccessoryRulesIdRoute = AdminAccessoryRulesIdRouteImport.update({
+  id: '/accessory-rules/$id',
+  path: '/accessory-rules/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAccessoryRulesNewRoute = AdminAccessoryRulesNewRouteImport.update({
+  id: '/accessory-rules/new',
+  path: '/accessory-rules/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHandlesIndexRoute = AdminHandlesIndexRouteImport.update({
+  id: '/handles/',
+  path: '/handles/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHandlesIdRoute = AdminHandlesIdRouteImport.update({
+  id: '/handles/$id',
+  path: '/handles/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminHandlesNewRoute = AdminHandlesNewRouteImport.update({
+  id: '/handles/new',
+  path: '/handles/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMaterialsIndexRoute = AdminMaterialsIndexRouteImport.update({
+  id: '/materials/',
+  path: '/materials/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMaterialsIdRoute = AdminMaterialsIdRouteImport.update({
+  id: '/materials/$id',
+  path: '/materials/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMaterialsCeneRoute = AdminMaterialsCeneRouteImport.update({
+  id: '/materials/cene',
+  path: '/materials/cene',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMaterialsNewRoute = AdminMaterialsNewRouteImport.update({
+  id: '/materials/new',
+  path: '/materials/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminModelsIndexRoute = AdminModelsIndexRouteImport.update({
+  id: '/models/',
+  path: '/models/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOrdersIdRoute = AdminOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminOrdersNewRoute = AdminOrdersNewRouteImport.update({
+  id: '/orders/new',
+  path: '/orders/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRulesIndexRoute = AdminRulesIndexRouteImport.update({
+  id: '/rules/',
+  path: '/rules/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRulesIdRoute = AdminRulesIdRouteImport.update({
+  id: '/rules/$id',
+  path: '/rules/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRulesNewRoute = AdminRulesNewRouteImport.update({
+  id: '/rules/new',
+  path: '/rules/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminTodoIndexRoute = AdminTodoIndexRouteImport.update({
+  id: '/todo/',
+  path: '/todo/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminTodoOtvoriRoute = AdminTodoOtvoriRouteImport.update({
+  id: '/todo/otvori',
+  path: '/todo/otvori',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersNewRoute = AdminUsersNewRouteImport.update({
+  id: '/users/new',
+  path: '/users/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminWardrobesIndexRoute = AdminWardrobesIndexRouteImport.update({
+  id: '/wardrobes/',
+  path: '/wardrobes/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminWardrobesIdRoute = AdminWardrobesIdRouteImport.update({
+  id: '/wardrobes/$id',
+  path: '/wardrobes/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -194,6 +375,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRouteRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/design': typeof DesignRoute
   '/design-test': typeof DesignTestRoute
@@ -210,18 +392,47 @@ export interface FileRoutesByFullPath {
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/account/': typeof AccountIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
+  '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
+  '/admin/accessories/new': typeof AdminAccessoriesNewRoute
+  '/admin/accessory-rules/$id': typeof AdminAccessoryRulesIdRoute
+  '/admin/accessory-rules/new': typeof AdminAccessoryRulesNewRoute
+  '/admin/handles/$id': typeof AdminHandlesIdRoute
+  '/admin/handles/new': typeof AdminHandlesNewRoute
+  '/admin/materials/$id': typeof AdminMaterialsIdRoute
+  '/admin/materials/cene': typeof AdminMaterialsCeneRoute
+  '/admin/materials/new': typeof AdminMaterialsNewRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/orders/new': typeof AdminOrdersNewRoute
+  '/admin/rules/$id': typeof AdminRulesIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/todo/otvori': typeof AdminTodoOtvoriRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/users/new': typeof AdminUsersNewRoute
+  '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
+  '/admin/accessories/': typeof AdminAccessoriesIndexRoute
+  '/admin/accessory-rules/': typeof AdminAccessoryRulesIndexRoute
+  '/admin/handles/': typeof AdminHandlesIndexRoute
+  '/admin/materials/': typeof AdminMaterialsIndexRoute
+  '/admin/models/': typeof AdminModelsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/todo/': typeof AdminTodoIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/wardrobes/': typeof AdminWardrobesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -241,23 +452,53 @@ export interface FileRoutesByTo {
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/account': typeof AccountIndexRoute
+  '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/materijali': typeof MaterijaliIndexRoute
   '/rucke': typeof RuckeIndexRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
+  '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
+  '/admin/accessories/new': typeof AdminAccessoriesNewRoute
+  '/admin/accessory-rules/$id': typeof AdminAccessoryRulesIdRoute
+  '/admin/accessory-rules/new': typeof AdminAccessoryRulesNewRoute
+  '/admin/handles/$id': typeof AdminHandlesIdRoute
+  '/admin/handles/new': typeof AdminHandlesNewRoute
+  '/admin/materials/$id': typeof AdminMaterialsIdRoute
+  '/admin/materials/cene': typeof AdminMaterialsCeneRoute
+  '/admin/materials/new': typeof AdminMaterialsNewRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/orders/new': typeof AdminOrdersNewRoute
+  '/admin/rules/$id': typeof AdminRulesIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/todo/otvori': typeof AdminTodoOtvoriRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/users/new': typeof AdminUsersNewRoute
+  '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/account/orders': typeof AccountOrdersIndexRoute
+  '/admin/accessories': typeof AdminAccessoriesIndexRoute
+  '/admin/accessory-rules': typeof AdminAccessoryRulesIndexRoute
+  '/admin/handles': typeof AdminHandlesIndexRoute
+  '/admin/materials': typeof AdminMaterialsIndexRoute
+  '/admin/models': typeof AdminModelsIndexRoute
+  '/admin/orders': typeof AdminOrdersIndexRoute
+  '/admin/rules': typeof AdminRulesIndexRoute
+  '/admin/todo': typeof AdminTodoIndexRoute
+  '/admin/users': typeof AdminUsersIndexRoute
+  '/admin/wardrobes': typeof AdminWardrobesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRouteRouteWithChildren
+  '/admin': typeof AdminRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/design': typeof DesignRoute
   '/design-test': typeof DesignTestRoute
@@ -274,24 +515,54 @@ export interface FileRoutesById {
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/account/': typeof AccountIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
+  '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
+  '/admin/accessories/new': typeof AdminAccessoriesNewRoute
+  '/admin/accessory-rules/$id': typeof AdminAccessoryRulesIdRoute
+  '/admin/accessory-rules/new': typeof AdminAccessoryRulesNewRoute
+  '/admin/handles/$id': typeof AdminHandlesIdRoute
+  '/admin/handles/new': typeof AdminHandlesNewRoute
+  '/admin/materials/$id': typeof AdminMaterialsIdRoute
+  '/admin/materials/cene': typeof AdminMaterialsCeneRoute
+  '/admin/materials/new': typeof AdminMaterialsNewRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/orders/new': typeof AdminOrdersNewRoute
+  '/admin/rules/$id': typeof AdminRulesIdRoute
+  '/admin/rules/new': typeof AdminRulesNewRoute
+  '/admin/todo/otvori': typeof AdminTodoOtvoriRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/users/new': typeof AdminUsersNewRoute
+  '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
+  '/admin/accessories/': typeof AdminAccessoriesIndexRoute
+  '/admin/accessory-rules/': typeof AdminAccessoryRulesIndexRoute
+  '/admin/handles/': typeof AdminHandlesIndexRoute
+  '/admin/materials/': typeof AdminMaterialsIndexRoute
+  '/admin/models/': typeof AdminModelsIndexRoute
+  '/admin/orders/': typeof AdminOrdersIndexRoute
+  '/admin/rules/': typeof AdminRulesIndexRoute
+  '/admin/todo/': typeof AdminTodoIndexRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/admin/wardrobes/': typeof AdminWardrobesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/account'
+    | '/admin'
     | '/contact'
     | '/design'
     | '/design-test'
@@ -308,18 +579,47 @@ export interface FileRouteTypes {
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
+    | '/admin/settings'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
     | '/account/'
+    | '/admin/'
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
     | '/account/orders/$id'
+    | '/admin/accessories/$id'
+    | '/admin/accessories/new'
+    | '/admin/accessory-rules/$id'
+    | '/admin/accessory-rules/new'
+    | '/admin/handles/$id'
+    | '/admin/handles/new'
+    | '/admin/materials/$id'
+    | '/admin/materials/cene'
+    | '/admin/materials/new'
+    | '/admin/orders/$id'
+    | '/admin/orders/new'
+    | '/admin/rules/$id'
+    | '/admin/rules/new'
+    | '/admin/todo/otvori'
+    | '/admin/users/$id'
+    | '/admin/users/new'
+    | '/admin/wardrobes/$id'
     | '/api/auth/$'
     | '/account/orders/'
+    | '/admin/accessories/'
+    | '/admin/accessory-rules/'
+    | '/admin/handles/'
+    | '/admin/materials/'
+    | '/admin/models/'
+    | '/admin/orders/'
+    | '/admin/rules/'
+    | '/admin/todo/'
+    | '/admin/users/'
+    | '/admin/wardrobes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -339,22 +639,52 @@ export interface FileRouteTypes {
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
+    | '/admin/settings'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
     | '/account'
+    | '/admin'
     | '/blog'
     | '/materijali'
     | '/rucke'
     | '/account/orders/$id'
+    | '/admin/accessories/$id'
+    | '/admin/accessories/new'
+    | '/admin/accessory-rules/$id'
+    | '/admin/accessory-rules/new'
+    | '/admin/handles/$id'
+    | '/admin/handles/new'
+    | '/admin/materials/$id'
+    | '/admin/materials/cene'
+    | '/admin/materials/new'
+    | '/admin/orders/$id'
+    | '/admin/orders/new'
+    | '/admin/rules/$id'
+    | '/admin/rules/new'
+    | '/admin/todo/otvori'
+    | '/admin/users/$id'
+    | '/admin/users/new'
+    | '/admin/wardrobes/$id'
     | '/api/auth/$'
     | '/account/orders'
+    | '/admin/accessories'
+    | '/admin/accessory-rules'
+    | '/admin/handles'
+    | '/admin/materials'
+    | '/admin/models'
+    | '/admin/orders'
+    | '/admin/rules'
+    | '/admin/todo'
+    | '/admin/users'
+    | '/admin/wardrobes'
   id:
     | '__root__'
     | '/'
     | '/account'
+    | '/admin'
     | '/contact'
     | '/design'
     | '/design-test'
@@ -371,23 +701,53 @@ export interface FileRouteTypes {
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
+    | '/admin/settings'
     | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
     | '/account/'
+    | '/admin/'
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
     | '/account/orders/$id'
+    | '/admin/accessories/$id'
+    | '/admin/accessories/new'
+    | '/admin/accessory-rules/$id'
+    | '/admin/accessory-rules/new'
+    | '/admin/handles/$id'
+    | '/admin/handles/new'
+    | '/admin/materials/$id'
+    | '/admin/materials/cene'
+    | '/admin/materials/new'
+    | '/admin/orders/$id'
+    | '/admin/orders/new'
+    | '/admin/rules/$id'
+    | '/admin/rules/new'
+    | '/admin/todo/otvori'
+    | '/admin/users/$id'
+    | '/admin/users/new'
+    | '/admin/wardrobes/$id'
     | '/api/auth/$'
     | '/account/orders/'
+    | '/admin/accessories/'
+    | '/admin/accessory-rules/'
+    | '/admin/handles/'
+    | '/admin/materials/'
+    | '/admin/models/'
+    | '/admin/orders/'
+    | '/admin/rules/'
+    | '/admin/todo/'
+    | '/admin/users/'
+    | '/admin/wardrobes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRouteRoute: typeof AccountRouteRouteWithChildren
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   ContactRoute: typeof ContactRoute
   DesignRoute: typeof DesignRoute
   DesignTestRoute: typeof DesignTestRoute
@@ -426,6 +786,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -547,6 +914,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountWardrobesRouteImport
       parentRoute: typeof AccountRouteRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/api/$': {
       id: '/api/$'
       path: '/api/$'
@@ -617,6 +998,195 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountOrdersIdRouteImport
       parentRoute: typeof AccountRouteRoute
     }
+    '/admin/accessories/': {
+      id: '/admin/accessories/'
+      path: '/accessories'
+      fullPath: '/admin/accessories/'
+      preLoaderRoute: typeof AdminAccessoriesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/accessories/$id': {
+      id: '/admin/accessories/$id'
+      path: '/accessories/$id'
+      fullPath: '/admin/accessories/$id'
+      preLoaderRoute: typeof AdminAccessoriesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/accessories/new': {
+      id: '/admin/accessories/new'
+      path: '/accessories/new'
+      fullPath: '/admin/accessories/new'
+      preLoaderRoute: typeof AdminAccessoriesNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/accessory-rules/': {
+      id: '/admin/accessory-rules/'
+      path: '/accessory-rules'
+      fullPath: '/admin/accessory-rules/'
+      preLoaderRoute: typeof AdminAccessoryRulesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/accessory-rules/$id': {
+      id: '/admin/accessory-rules/$id'
+      path: '/accessory-rules/$id'
+      fullPath: '/admin/accessory-rules/$id'
+      preLoaderRoute: typeof AdminAccessoryRulesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/accessory-rules/new': {
+      id: '/admin/accessory-rules/new'
+      path: '/accessory-rules/new'
+      fullPath: '/admin/accessory-rules/new'
+      preLoaderRoute: typeof AdminAccessoryRulesNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/handles/': {
+      id: '/admin/handles/'
+      path: '/handles'
+      fullPath: '/admin/handles/'
+      preLoaderRoute: typeof AdminHandlesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/handles/$id': {
+      id: '/admin/handles/$id'
+      path: '/handles/$id'
+      fullPath: '/admin/handles/$id'
+      preLoaderRoute: typeof AdminHandlesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/handles/new': {
+      id: '/admin/handles/new'
+      path: '/handles/new'
+      fullPath: '/admin/handles/new'
+      preLoaderRoute: typeof AdminHandlesNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/materials/': {
+      id: '/admin/materials/'
+      path: '/materials'
+      fullPath: '/admin/materials/'
+      preLoaderRoute: typeof AdminMaterialsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/materials/$id': {
+      id: '/admin/materials/$id'
+      path: '/materials/$id'
+      fullPath: '/admin/materials/$id'
+      preLoaderRoute: typeof AdminMaterialsIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/materials/cene': {
+      id: '/admin/materials/cene'
+      path: '/materials/cene'
+      fullPath: '/admin/materials/cene'
+      preLoaderRoute: typeof AdminMaterialsCeneRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/materials/new': {
+      id: '/admin/materials/new'
+      path: '/materials/new'
+      fullPath: '/admin/materials/new'
+      preLoaderRoute: typeof AdminMaterialsNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/models/': {
+      id: '/admin/models/'
+      path: '/models'
+      fullPath: '/admin/models/'
+      preLoaderRoute: typeof AdminModelsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/orders/': {
+      id: '/admin/orders/'
+      path: '/orders'
+      fullPath: '/admin/orders/'
+      preLoaderRoute: typeof AdminOrdersIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/orders/$id': {
+      id: '/admin/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/admin/orders/$id'
+      preLoaderRoute: typeof AdminOrdersIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/orders/new': {
+      id: '/admin/orders/new'
+      path: '/orders/new'
+      fullPath: '/admin/orders/new'
+      preLoaderRoute: typeof AdminOrdersNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/rules/': {
+      id: '/admin/rules/'
+      path: '/rules'
+      fullPath: '/admin/rules/'
+      preLoaderRoute: typeof AdminRulesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/rules/$id': {
+      id: '/admin/rules/$id'
+      path: '/rules/$id'
+      fullPath: '/admin/rules/$id'
+      preLoaderRoute: typeof AdminRulesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/rules/new': {
+      id: '/admin/rules/new'
+      path: '/rules/new'
+      fullPath: '/admin/rules/new'
+      preLoaderRoute: typeof AdminRulesNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/todo/': {
+      id: '/admin/todo/'
+      path: '/todo'
+      fullPath: '/admin/todo/'
+      preLoaderRoute: typeof AdminTodoIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/todo/otvori': {
+      id: '/admin/todo/otvori'
+      path: '/todo/otvori'
+      fullPath: '/admin/todo/otvori'
+      preLoaderRoute: typeof AdminTodoOtvoriRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users/$id': {
+      id: '/admin/users/$id'
+      path: '/users/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AdminUsersIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users/new': {
+      id: '/admin/users/new'
+      path: '/users/new'
+      fullPath: '/admin/users/new'
+      preLoaderRoute: typeof AdminUsersNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/wardrobes/': {
+      id: '/admin/wardrobes/'
+      path: '/wardrobes'
+      fullPath: '/admin/wardrobes/'
+      preLoaderRoute: typeof AdminWardrobesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/wardrobes/$id': {
+      id: '/admin/wardrobes/$id'
+      path: '/wardrobes/$id'
+      fullPath: '/admin/wardrobes/$id'
+      preLoaderRoute: typeof AdminWardrobesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -649,9 +1219,78 @@ const AccountRouteRouteWithChildren = AccountRouteRoute._addFileChildren(
   AccountRouteRouteChildren,
 )
 
+interface AdminRouteRouteChildren {
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminAccessoriesIdRoute: typeof AdminAccessoriesIdRoute
+  AdminAccessoriesNewRoute: typeof AdminAccessoriesNewRoute
+  AdminAccessoryRulesIdRoute: typeof AdminAccessoryRulesIdRoute
+  AdminAccessoryRulesNewRoute: typeof AdminAccessoryRulesNewRoute
+  AdminHandlesIdRoute: typeof AdminHandlesIdRoute
+  AdminHandlesNewRoute: typeof AdminHandlesNewRoute
+  AdminMaterialsIdRoute: typeof AdminMaterialsIdRoute
+  AdminMaterialsCeneRoute: typeof AdminMaterialsCeneRoute
+  AdminMaterialsNewRoute: typeof AdminMaterialsNewRoute
+  AdminOrdersIdRoute: typeof AdminOrdersIdRoute
+  AdminOrdersNewRoute: typeof AdminOrdersNewRoute
+  AdminRulesIdRoute: typeof AdminRulesIdRoute
+  AdminRulesNewRoute: typeof AdminRulesNewRoute
+  AdminTodoOtvoriRoute: typeof AdminTodoOtvoriRoute
+  AdminUsersIdRoute: typeof AdminUsersIdRoute
+  AdminUsersNewRoute: typeof AdminUsersNewRoute
+  AdminWardrobesIdRoute: typeof AdminWardrobesIdRoute
+  AdminAccessoriesIndexRoute: typeof AdminAccessoriesIndexRoute
+  AdminAccessoryRulesIndexRoute: typeof AdminAccessoryRulesIndexRoute
+  AdminHandlesIndexRoute: typeof AdminHandlesIndexRoute
+  AdminMaterialsIndexRoute: typeof AdminMaterialsIndexRoute
+  AdminModelsIndexRoute: typeof AdminModelsIndexRoute
+  AdminOrdersIndexRoute: typeof AdminOrdersIndexRoute
+  AdminRulesIndexRoute: typeof AdminRulesIndexRoute
+  AdminTodoIndexRoute: typeof AdminTodoIndexRoute
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+  AdminWardrobesIndexRoute: typeof AdminWardrobesIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminAccessoriesIdRoute: AdminAccessoriesIdRoute,
+  AdminAccessoriesNewRoute: AdminAccessoriesNewRoute,
+  AdminAccessoryRulesIdRoute: AdminAccessoryRulesIdRoute,
+  AdminAccessoryRulesNewRoute: AdminAccessoryRulesNewRoute,
+  AdminHandlesIdRoute: AdminHandlesIdRoute,
+  AdminHandlesNewRoute: AdminHandlesNewRoute,
+  AdminMaterialsIdRoute: AdminMaterialsIdRoute,
+  AdminMaterialsCeneRoute: AdminMaterialsCeneRoute,
+  AdminMaterialsNewRoute: AdminMaterialsNewRoute,
+  AdminOrdersIdRoute: AdminOrdersIdRoute,
+  AdminOrdersNewRoute: AdminOrdersNewRoute,
+  AdminRulesIdRoute: AdminRulesIdRoute,
+  AdminRulesNewRoute: AdminRulesNewRoute,
+  AdminTodoOtvoriRoute: AdminTodoOtvoriRoute,
+  AdminUsersIdRoute: AdminUsersIdRoute,
+  AdminUsersNewRoute: AdminUsersNewRoute,
+  AdminWardrobesIdRoute: AdminWardrobesIdRoute,
+  AdminAccessoriesIndexRoute: AdminAccessoriesIndexRoute,
+  AdminAccessoryRulesIndexRoute: AdminAccessoryRulesIndexRoute,
+  AdminHandlesIndexRoute: AdminHandlesIndexRoute,
+  AdminMaterialsIndexRoute: AdminMaterialsIndexRoute,
+  AdminModelsIndexRoute: AdminModelsIndexRoute,
+  AdminOrdersIndexRoute: AdminOrdersIndexRoute,
+  AdminRulesIndexRoute: AdminRulesIndexRoute,
+  AdminTodoIndexRoute: AdminTodoIndexRoute,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
+  AdminWardrobesIndexRoute: AdminWardrobesIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRouteRoute: AccountRouteRouteWithChildren,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   ContactRoute: ContactRoute,
   DesignRoute: DesignRoute,
   DesignTestRoute: DesignTestRoute,

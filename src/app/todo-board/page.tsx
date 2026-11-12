@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { TodoBoard } from "@/app/admin/todo/TodoBoard";
+import { TodoBoard } from "@/components/admin/todo/TodoBoard";
 import { getCurrentUser, isAdmin } from "@/lib/roles";
 import { loadBoard } from "@/lib/todo/board";
 import { MAIN_ORIGIN, TODO_HOST } from "@/lib/todo/host";

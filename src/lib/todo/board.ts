@@ -3,7 +3,7 @@ import "server-only";
 import { asc } from "drizzle-orm";
 import { db } from "@/db/db";
 import { todoLinks, todoNotes } from "@/db/schema";
-import type { LinkRow, NoteRow } from "@/app/admin/todo/TodoBoard";
+import type { LinkRow, NoteRow } from "@/components/admin/todo/TodoBoard";
 
 export async function loadBoard(): Promise<{
   notes: NoteRow[];
