@@ -148,6 +148,10 @@ handler; the bridge goes away with the last of them.
 - A server function that throws sends only "Server error" to the browser
   (`hideServerErrors` in `src/start.ts`); the real error is in the Worker
   log. Redirects and not-found pass through.
+- Every response carries the live site's five security headers, CSP
+  included (`src/server/security-headers.ts`, added in `src/start.ts`).
+  Files from `public/` are served without the Worker and get them from
+  `public/_headers`; a test fails if the two differ.
 
 ## Configurator
 
@@ -199,6 +203,8 @@ for it, so the data arrives in the same response as the page.
   through the bridge
 - [ ] 6b. Admin saves as mutations with optimistic updates, section by
   section; then cached reads and edge caching of catalog pages with purge
-- [ ] 7. MCP server, AI sketch import, todo board, PostHog proxy, CSP
+- [ ] 7. Done: security headers and CSP, PostHog proxy (`/t/*`). Left: load
+  PostHog in the browser on the production build only, MCP server, AI sketch
+  import (needs `ANTHROPIC_API_KEY`), to-do board on its own host
 - [ ] 8. Domain cutover. The production Worker needs its own wrangler
   environment without `EMAIL_MODE`, built with `VITE_INDEXABLE=true`

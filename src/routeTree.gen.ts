@@ -39,6 +39,7 @@ import { Route as MaterijaliIndexRouteImport } from './routes/materijali/index'
 import { Route as MaterijaliSlugRouteImport } from './routes/materijali/$slug'
 import { Route as RuckeIndexRouteImport } from './routes/rucke/index'
 import { Route as RuckeSlugRouteImport } from './routes/rucke/$slug'
+import { Route as TSplatRouteImport } from './routes/t/$'
 import { Route as AccountOrdersIndexRouteImport } from './routes/account/orders/index'
 import { Route as AccountOrdersIdRouteImport } from './routes/account/orders/$id'
 import { Route as AdminAccessoriesIndexRouteImport } from './routes/admin/accessories/index'
@@ -220,6 +221,11 @@ const RuckeSlugRoute = RuckeSlugRouteImport.update({
   path: '/rucke/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TSplatRoute = TSplatRouteImport.update({
+  id: '/t/$',
+  path: '/t/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountOrdersIndexRoute = AccountOrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/t/$': typeof TSplatRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -458,6 +465,7 @@ export interface FileRoutesByTo {
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/t/$': typeof TSplatRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
@@ -521,6 +529,7 @@ export interface FileRoutesById {
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
   '/rucke/$slug': typeof RuckeSlugRoute
+  '/t/$': typeof TSplatRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
@@ -585,6 +594,7 @@ export interface FileRouteTypes {
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/t/$'
     | '/account/'
     | '/admin/'
     | '/blog/'
@@ -645,6 +655,7 @@ export interface FileRouteTypes {
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/t/$'
     | '/account'
     | '/admin'
     | '/blog'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/dev/status'
     | '/materijali/$slug'
     | '/rucke/$slug'
+    | '/t/$'
     | '/account/'
     | '/admin/'
     | '/blog/'
@@ -766,6 +778,7 @@ export interface RootRouteChildren {
   DevStatusRoute: typeof DevStatusRoute
   MaterijaliSlugRoute: typeof MaterijaliSlugRoute
   RuckeSlugRoute: typeof RuckeSlugRoute
+  TSplatRoute: typeof TSplatRoute
   BlogIndexRoute: typeof BlogIndexRoute
   MaterijaliIndexRoute: typeof MaterijaliIndexRoute
   RuckeIndexRoute: typeof RuckeIndexRoute
@@ -982,6 +995,13 @@ declare module '@tanstack/react-router' {
       path: '/rucke/$slug'
       fullPath: '/rucke/$slug'
       preLoaderRoute: typeof RuckeSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/t/$': {
+      id: '/t/$'
+      path: '/t/$'
+      fullPath: '/t/$'
+      preLoaderRoute: typeof TSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/orders/': {
@@ -1309,6 +1329,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevStatusRoute: DevStatusRoute,
   MaterijaliSlugRoute: MaterijaliSlugRoute,
   RuckeSlugRoute: RuckeSlugRoute,
+  TSplatRoute: TSplatRoute,
   BlogIndexRoute: BlogIndexRoute,
   MaterijaliIndexRoute: MaterijaliIndexRoute,
   RuckeIndexRoute: RuckeIndexRoute,

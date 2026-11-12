@@ -6,10 +6,16 @@ import {
   createStart,
 } from "@tanstack/react-start";
 import { runWithDb } from "@/db/db";
+import { withSecurityHeaders } from "@/server/security-headers";
 
 const dbScope = createMiddleware().server(({ next }) =>
   runWithDb(env.HYPERDRIVE.connectionString, () => next()),
 );
+
+const securityHeaders = createMiddleware().server(async ({ next }) => {
+  const result = await next();
+  return { ...result, response: withSecurityHeaders(result.response) };
+});
 
 // What a server function throws travels to the browser, message included,
 // and a failed query's message is its SQL. Only redirects and not-found
@@ -29,6 +35,7 @@ const hideServerErrors = createMiddleware({ type: "function" }).server(
 export const startInstance = createStart(() => ({
   functionMiddleware: [hideServerErrors],
   requestMiddleware: [
+    securityHeaders,
     // Start adds this by itself only when src/start.ts does not exist.
     createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === "serverFn" }),
     dbScope,
