@@ -1,6 +1,8 @@
+import { defaultParseSearch } from "@tanstack/react-router";
+
 export interface RouterTarget {
   to: string;
-  search?: Record<string, string>;
+  search?: Record<string, unknown>;
   hash?: string;
 }
 
@@ -12,7 +14,9 @@ export interface RouterTarget {
 export function parseHref(href: string): RouterTarget | null {
   if (!href.startsWith("/") || href.startsWith("//")) return null;
   const url = new URL(href, "http://app.local");
-  const search = Object.fromEntries(url.searchParams);
+  // The router's own parser, so "?material=2305" is written back the same
+  // way and not as a quoted string.
+  const search = defaultParseSearch(url.search);
   return {
     to: url.pathname,
     search: Object.keys(search).length > 0 ? search : undefined,

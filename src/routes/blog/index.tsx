@@ -1,31 +1,36 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
-import { blogPosts, formatDate } from "@/lib/blog-data";
+import { formatDate } from "@/lib/blog-data";
+import { jsonLd, pageMeta } from "@/lib/seo/site";
+import { type BlogListItem, blogListQuery } from "@/server/blog.functions";
 
-export const metadata: Metadata = {
-  title: "Blog o Ormanima po Meri | Saveti za Uređenje Doma",
-  description:
-    "Praktični saveti za izbor i organizaciju ormana po meri. Vodiči za materijale, dimenzije, unutrašnju opremu i dizajn nameštaja za vaš dom.",
-};
+const TITLE = "Blog o Ormanima po Meri | Saveti za Uređenje Doma";
+const DESCRIPTION =
+  "Praktični saveti za izbor i organizaciju ormana po meri. Vodiči za materijale, dimenzije, unutrašnju opremu i dizajn nameštaja za vaš dom.";
 
-export default function BlogPage() {
-  const sortedPosts = [...blogPosts].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+export const Route = createFileRoute("/blog/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(blogListQuery),
+  head: ({ loaderData }) => ({
+    meta: pageMeta({ title: TITLE, description: DESCRIPTION }),
+    scripts: loaderData ? [jsonLd(collectionJsonLd(loaderData))] : [],
+  }),
+  component: BlogPage,
+});
 
-  const jsonLd = {
+function collectionJsonLd(posts: BlogListItem[]) {
+  return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Blog o Ormanima po Meri | Saveti za Uređenje Doma",
-    description:
-      "Praktični saveti za izbor i organizaciju ormana po meri. Vodiči za materijale, dimenzije, unutrašnju opremu i dizajn nameštaja za vaš dom.",
+    name: TITLE,
+    description: DESCRIPTION,
     inLanguage: "sr-Latn",
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: blogPosts.map((post, i) => ({
+      itemListElement: posts.map((post, i) => ({
         "@type": "ListItem",
         position: i + 1,
         url: `/blog/${post.slug}`,
@@ -33,13 +38,16 @@ export default function BlogPage() {
       })),
     },
   };
+}
+
+function BlogPage() {
+  const { data: blogPosts } = useSuspenseQuery(blogListQuery);
+  const sortedPosts = [...blogPosts].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 
   return (
     <div className="relative">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
       <HeroHeader />
       <main className="pt-24">
         <section className="py-8 lg:py-14">

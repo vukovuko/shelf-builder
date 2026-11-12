@@ -10,7 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as DevStatusRouteImport } from './routes/dev/status'
+import { Route as MaterijaliIndexRouteImport } from './routes/materijali/index'
+import { Route as MaterijaliSlugRouteImport } from './routes/materijali/$slug'
+import { Route as RuckeIndexRouteImport } from './routes/rucke/index'
+import { Route as RuckeSlugRouteImport } from './routes/rucke/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +31,74 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
+  id: '/llms-full.txt',
+  path: '/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevStatusRoute = DevStatusRouteImport.update({
   id: '/dev/status',
   path: '/dev/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaterijaliIndexRoute = MaterijaliIndexRouteImport.update({
+  id: '/materijali/',
+  path: '/materijali/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaterijaliSlugRoute = MaterijaliSlugRouteImport.update({
+  id: '/materijali/$slug',
+  path: '/materijali/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuckeIndexRoute = RuckeIndexRouteImport.update({
+  id: '/rucke/',
+  path: '/rucke/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuckeSlugRoute = RuckeSlugRouteImport.update({
+  id: '/rucke/$slug',
+  path: '/rucke/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -31,31 +109,132 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/faq': typeof FaqRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
+  '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/rucke/$slug': typeof RuckeSlugRoute
+  '/blog/': typeof BlogIndexRoute
+  '/materijali/': typeof MaterijaliIndexRoute
+  '/rucke/': typeof RuckeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/faq': typeof FaqRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
+  '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/rucke/$slug': typeof RuckeSlugRoute
+  '/blog': typeof BlogIndexRoute
+  '/materijali': typeof MaterijaliIndexRoute
+  '/rucke': typeof RuckeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/faq': typeof FaqRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
+  '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/rucke/$slug': typeof RuckeSlugRoute
+  '/blog/': typeof BlogIndexRoute
+  '/materijali/': typeof MaterijaliIndexRoute
+  '/rucke/': typeof RuckeIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dev/status' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/faq'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/blog/$slug'
+    | '/dev/status'
+    | '/materijali/$slug'
+    | '/rucke/$slug'
+    | '/blog/'
+    | '/materijali/'
+    | '/rucke/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dev/status' | '/api/auth/$'
-  id: '__root__' | '/' | '/dev/status' | '/api/auth/$'
+  to:
+    | '/'
+    | '/faq'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/blog/$slug'
+    | '/dev/status'
+    | '/materijali/$slug'
+    | '/rucke/$slug'
+    | '/blog'
+    | '/materijali'
+    | '/rucke'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/faq'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
+    | '/blog/$slug'
+    | '/dev/status'
+    | '/materijali/$slug'
+    | '/rucke/$slug'
+    | '/blog/'
+    | '/materijali/'
+    | '/rucke/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FaqRoute: typeof FaqRoute
+  LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   DevStatusRoute: typeof DevStatusRoute
+  MaterijaliSlugRoute: typeof MaterijaliSlugRoute
+  RuckeSlugRoute: typeof RuckeSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  MaterijaliIndexRoute: typeof MaterijaliIndexRoute
+  RuckeIndexRoute: typeof RuckeIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -68,11 +247,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms-full.txt': {
+      id: '/llms-full.txt'
+      path: '/llms-full.txt'
+      fullPath: '/llms-full.txt'
+      preLoaderRoute: typeof LlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dev/status': {
       id: '/dev/status'
       path: '/dev/status'
       fullPath: '/dev/status'
       preLoaderRoute: typeof DevStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/materijali/': {
+      id: '/materijali/'
+      path: '/materijali'
+      fullPath: '/materijali/'
+      preLoaderRoute: typeof MaterijaliIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/materijali/$slug': {
+      id: '/materijali/$slug'
+      path: '/materijali/$slug'
+      fullPath: '/materijali/$slug'
+      preLoaderRoute: typeof MaterijaliSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rucke/': {
+      id: '/rucke/'
+      path: '/rucke'
+      fullPath: '/rucke/'
+      preLoaderRoute: typeof RuckeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rucke/$slug': {
+      id: '/rucke/$slug'
+      path: '/rucke/$slug'
+      fullPath: '/rucke/$slug'
+      preLoaderRoute: typeof RuckeSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -87,7 +357,20 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FaqRoute: FaqRoute,
+  LlmsFullDottxtRoute: LlmsFullDottxtRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
+  PrivacyRoute: PrivacyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
+  BlogSlugRoute: BlogSlugRoute,
   DevStatusRoute: DevStatusRoute,
+  MaterijaliSlugRoute: MaterijaliSlugRoute,
+  RuckeSlugRoute: RuckeSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  MaterijaliIndexRoute: MaterijaliIndexRoute,
+  RuckeIndexRoute: RuckeIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

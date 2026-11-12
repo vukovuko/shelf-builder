@@ -31,7 +31,13 @@ the production database.
   The stand-ins go away after the cutover.
 - A page is ported when its route in `src/routes` matches the live page
   (same sections, headings, links, title, description, canonical, JSON-LD);
-  then its file in `src/app` is deleted.
+  then its file in `src/app` is deleted. Check it with
+  `VITE_INDEXABLE=true npm run dev` and
+  `uv run scripts/parity.py http://localhost:3000 /faq /blog ...`, which
+  compares each path with ormanipomeri.com.
+- Search engines may index a build only when it is built with
+  `VITE_INDEXABLE=true`. Without it every page is `noindex` and robots.txt
+  disallows everything, which is what the workers.dev build wants.
 - Vercel does not build this branch (`vercel.json`).
 
 ## Conventions
@@ -50,14 +56,25 @@ the production database.
   request (see the comment in that file), so never keep a query result's
   client or a transaction in a module-level variable.
 
+## Known differences from the live site
+
+- Article and catalog pages also carry `og:site_name`, `og:locale` and
+  `og:type`; Next dropped them whenever a page set its own Open Graph tags.
+- The blog author picture is a 256 px JPEG, not the 10 MB original: nothing
+  resizes images on Workers.
+- Catalog pages are rendered on every request (150–300 ms). Vercel cached them
+  for an hour. Edge caching comes with the admin port, when a price change can
+  purge the pages it affects.
+
 ## Phases
 
 - [x] 0. Skeleton, per-request database, Better Auth handler, dev deploy
 - [x] 0b. Neon branch `dev` + Hyperdrive binding (query caching off)
 - [x] 1. Shared components run unchanged: `next/link`, `next/navigation` and
   `next/image` resolve to stand-ins in `src/compat/next`; Poppins is self-hosted
-- [ ] 2. Public pages and SEO: home done; blog, FAQ, contact, materijali,
-  ručke, privacy, terms, sitemap, robots, llms.txt to do
+- [ ] 2. Public pages and SEO: home, blog, FAQ, materijali, ručke, privacy,
+  terms, sitemap.xml, robots.txt and llms.txt done; contact (first form with a
+  server function) to do
 - [ ] 3. Configurator (`/design`, `/design-test`), saving designs
 - [ ] 4. Sign-in and customer account
 - [ ] 5. Checkout and emails

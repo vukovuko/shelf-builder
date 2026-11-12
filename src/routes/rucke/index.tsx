@@ -1,19 +1,24 @@
-import type { Metadata } from "next";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { HandleCard } from "@/components/HandleCard";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
 import type { HandleKind } from "@/lib/handle-models";
-import { getPublicHandleModels } from "@/lib/handle-pages-data";
+import { pageMeta } from "@/lib/seo/site";
+import { handleModelsQuery } from "@/server/catalog.functions";
 
-// Handles and prices change from the admin; an hour old is fine here.
-export const revalidate = 3600;
-
-export const metadata: Metadata = {
-  title: "Ručke za ormare i nameštaj | Ormani po meri",
-  description:
-    "Ručke (ručice), profil ručke i dugmad za ormare po meri: mere, završne obrade i cena po komadu. Izaberite ručku i napravite orman u 3D konfiguratoru.",
-  alternates: { canonical: "/rucke" },
-};
+export const Route = createFileRoute("/rucke/")({
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(handleModelsQuery),
+  head: () => ({
+    meta: pageMeta({
+      title: "Ručke za ormare i nameštaj | Ormani po meri",
+      description:
+        "Ručke (ručice), profil ručke i dugmad za ormare po meri: mere, završne obrade i cena po komadu. Izaberite ručku i napravite orman u 3D konfiguratoru.",
+    }),
+  }),
+  component: HandlesPage,
+});
 
 const SECTIONS: { kind: HandleKind; title: string }[] = [
   { kind: "rucka", title: "Ručke" },
@@ -21,8 +26,8 @@ const SECTIONS: { kind: HandleKind; title: string }[] = [
   { kind: "dugme", title: "Dugmad" },
 ];
 
-export default async function HandlesPage() {
-  const models = await getPublicHandleModels();
+function HandlesPage() {
+  const { data: models } = useSuspenseQuery(handleModelsQuery);
 
   return (
     <div className="relative">

@@ -15,10 +15,49 @@ export const SITE_DESCRIPTION =
 const SOCIAL_DESCRIPTION =
   "Dizajnirajte orman po meri online uz besplatan 3D konfigurator. Birajte dimenzije, materijale, police, fioke, vrata i dodatke.";
 
+/**
+ * Whether search engines may index this build. Only the build that serves
+ * ormanipomeri.com sets VITE_INDEXABLE=true; workers.dev builds stay out.
+ */
+export const INDEXABLE = import.meta.env.VITE_INDEXABLE === "true";
+
 /** A JSON-LD block for a route's `head().scripts`. */
 export function jsonLd(data: unknown) {
-  return { type: "application/ld+json", children: JSON.stringify(data) };
+  return {
+    type: "application/ld+json",
+    // "<" escaped so a name from the admin can never close the script tag.
+    children: JSON.stringify(data).replace(/</g, "\\u003c"),
+  };
 }
+
+/** The picture shown when a page is shared, for Open Graph and X alike. */
+export function socialImage(url: string) {
+  return [
+    { property: "og:image", content: url },
+    { name: "twitter:image", content: url },
+  ];
+}
+
+/** Title and description of one page; everything else comes from the root. */
+export function pageMeta(page: { title: string; description: string }) {
+  return [
+    { title: page.title },
+    { name: "description", content: page.description },
+  ];
+}
+
+export const NOINDEX = [{ name: "robots", content: "noindex, nofollow" }];
+
+export const robotsMeta = INDEXABLE
+  ? [
+      { name: "robots", content: "index, follow" },
+      {
+        name: "googlebot",
+        content:
+          "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1",
+      },
+    ]
+  : NOINDEX;
 
 export const siteJsonLd = {
   "@context": "https://schema.org",
@@ -127,17 +166,7 @@ export const siteMeta = [
   {
     name: "keywords",
     content:
-      "ormani po meri, police po meri, konfigurator ormana, ormar po meri, polica po meri, 3D konfigurator, nameštaj po meri, plakari po meri, klizna vrata, ormar konfigurator online",
-  },
-  {
-    name: "theme-color",
-    content: "#1e1e2e",
-    media: "(prefers-color-scheme: dark)",
-  },
-  {
-    name: "theme-color",
-    content: "#eff1f5",
-    media: "(prefers-color-scheme: light)",
+      "ormani po meri,police po meri,konfigurator ormana,ormar po meri,polica po meri,3D konfigurator,nameštaj po meri,plakari po meri,klizna vrata,ormar konfigurator online",
   },
   { name: "color-scheme", content: "light dark" },
   { name: "format-detection", content: "telephone=no" },
@@ -152,7 +181,7 @@ export const siteMeta = [
   { property: "og:title", content: SITE_TITLE },
   { property: "og:description", content: SOCIAL_DESCRIPTION },
   { property: "og:locale", content: "sr_RS" },
-  { property: "og:image", content: `${SITE_URL}/ormani-po-meri-logo.webp` },
+  ...socialImage(`${SITE_URL}/ormani-po-meri-logo.webp`),
   { name: "twitter:card", content: "summary_large_image" },
   { name: "twitter:title", content: SITE_TITLE },
   { name: "twitter:description", content: SOCIAL_DESCRIPTION },

@@ -4,6 +4,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Scripts,
+  useLocation,
 } from "@tanstack/react-router";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
@@ -13,6 +14,7 @@ import NotFound from "@/app/not-found";
 import { Toaster } from "@/components/ui/sonner";
 import {
   jsonLd,
+  robotsMeta,
   SITE_URL,
   siteJsonLd,
   siteLinks,
@@ -47,42 +49,62 @@ const TRANSLATION_GUARD = `(function(){
 })();`;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: ({ matches }) => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      ...siteMeta,
-      // The workers.dev build is for the team only until the domain moves over.
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-    links: [
-      { rel: "stylesheet", href: fontsCss },
-      { rel: "stylesheet", href: appCss },
-      ...siteLinks,
-      {
-        rel: "canonical",
-        href: `${SITE_URL}${matches[matches.length - 1]?.pathname ?? "/"}`,
-      },
-    ],
-    scripts: [
-      // Runs before React so a page Chrome auto-translates can't crash it.
-      { children: TRANSLATION_GUARD },
-      jsonLd(siteJsonLd),
-    ],
-  }),
+  head: () => {
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ...siteMeta,
+        ...robotsMeta,
+      ],
+      links: [
+        { rel: "stylesheet", href: fontsCss },
+        { rel: "stylesheet", href: appCss },
+        ...siteLinks,
+      ],
+      scripts: [
+        // Runs before React so a page Chrome auto-translates can't crash it.
+        { children: TRANSLATION_GUARD },
+        jsonLd(siteJsonLd),
+      ],
+    };
+  },
   shellComponent: RootDocument,
-  notFoundComponent: NotFound,
+  notFoundComponent: () => (
+    <>
+      {/* React moves this into <head>; a missing page stays out of search. */}
+      <meta name="robots" content="noindex" />
+      <NotFound />
+    </>
+  ),
   errorComponent: ({ error, reset }) => (
     <ErrorPage error={error as Error} reset={reset} />
   ),
 });
 
 function RootDocument({ children }: { children: ReactNode }) {
+  const pathname = useLocation({ select: (location) => location.pathname });
   return (
     // next-themes sets the theme class on <html> before React hydrates.
     <html lang="sr" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* The address as requested, without a trailing slash ("/" included). */}
+        <link
+          rel="canonical"
+          href={`${SITE_URL}${pathname.replace(/\/$/, "")}`}
+        />
+        {/* Two tags with one name: route head() keeps only the last of them. */}
+        <meta
+          name="theme-color"
+          content="#1e1e2e"
+          media="(prefers-color-scheme: dark)"
+        />
+        <meta
+          name="theme-color"
+          content="#eff1f5"
+          media="(prefers-color-scheme: light)"
+        />
       </head>
       <body className="antialiased">
         <ThemeProvider

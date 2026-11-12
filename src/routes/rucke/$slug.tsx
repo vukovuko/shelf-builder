@@ -1,34 +1,47 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { formatHandlePrice, HandleCard } from "@/components/HandleCard";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
 import { Button } from "@/components/ui/button";
 import { HANDLE_KIND_LABELS } from "@/lib/handle-models";
-import {
-  getPublicHandleModels,
-  type HandlePageModel,
-  type HandleVariant,
-} from "@/lib/handle-pages-data";
+import type { HandlePageModel, HandleVariant } from "@/lib/handle-pages-data";
+import { jsonLd, SITE_URL, socialImage } from "@/lib/seo/site";
+import { handlePageQuery } from "@/server/catalog.functions";
 
-// Handles and prices change from the admin; an hour old is fine here.
-export const revalidate = 3600;
-
-// Rendered on first visit, then cached.
-export async function generateStaticParams() {
-  return [];
-}
-
-interface Props {
-  params: Promise<{ slug: string }>;
-}
-
-async function findModel(slug: string) {
-  const all = await getPublicHandleModels();
-  return { all, model: all.find((m) => m.slug === slug) };
-}
+export const Route = createFileRoute("/rucke/$slug")({
+  loader: async ({ context, params }) => {
+    const page = await context.queryClient.ensureQueryData(
+      handlePageQuery(params.slug),
+    );
+    if (!page) throw notFound();
+    return page;
+  },
+  head: ({ loaderData: page }) => {
+    if (!page) return {};
+    const { model } = page;
+    const title = `${model.name}${model.brand ? ` ${model.brand}` : ""} | Ormani po meri`;
+    const description = metaDescription(model);
+    const url = `${SITE_URL}/rucke/${model.slug}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        ...(model.image ? socialImage(model.image) : []),
+      ],
+      scripts: [
+        jsonLd(productJsonLd(model, url)),
+        jsonLd(breadcrumbJsonLd(model, url)),
+      ],
+    };
+  },
+  component: HandleModelPage,
+});
 
 function unique(values: (string | null)[]): string[] {
   return [...new Set(values.filter((v): v is string => v !== null))];
@@ -70,38 +83,59 @@ function metaDescription(model: HandlePageModel): string {
   return `${parts.join(", ")}. Završne obrade: ${unique(model.variants.map((v) => v.finish)).join(", ")}. Cena ${formatHandlePrice(model)}.`;
 }
 
-// "<" escaped so a name from the admin can never close the script tag.
-function jsonLdHtml(data: unknown): string {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const { model } = await findModel(slug);
-  if (!model) return {};
-  const title = `${model.name}${model.brand ? ` ${model.brand}` : ""} | Ormani po meri`;
-  const description = metaDescription(model);
+// schema.org product snippet: sold as part of a wardrobe, not on its own,
+// so an AggregateOffer over its sizes and finishes, not merchant markup.
+function productJsonLd(model: HandlePageModel, url: string) {
   return {
-    title,
-    description,
-    alternates: { canonical: `/rucke/${model.slug}` },
-    openGraph: {
-      title,
-      description,
-      url: `/rucke/${model.slug}`,
-      images: model.image ? [{ url: model.image }] : undefined,
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: model.name,
+    description: metaDescription(model),
+    image: model.image ?? undefined,
+    url,
+    category: HANDLE_KIND_LABELS[model.kind],
+    material: model.material ?? undefined,
+    brand: model.brand ? { "@type": "Brand", name: model.brand } : undefined,
+    offers: {
+      "@type": "AggregateOffer",
+      lowPrice: model.minPrice,
+      highPrice: model.maxPrice,
+      priceCurrency: "RSD",
+      offerCount: model.variants.length,
+      availability: "https://schema.org/InStock",
+      seller: {
+        "@type": "Organization",
+        name: "Ormani po meri",
+        url: SITE_URL,
+      },
     },
   };
 }
 
-export default async function HandleModelPage({ params }: Props) {
-  const { slug } = await params;
-  const { all, model } = await findModel(slug);
-  if (!model) notFound();
+function breadcrumbJsonLd(model: HandlePageModel, url: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Početna", item: SITE_URL },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Ručke",
+        item: `${SITE_URL}/rucke`,
+      },
+      { "@type": "ListItem", position: 3, name: model.name, item: url },
+    ],
+  };
+}
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
-  const url = `${baseUrl}/rucke/${model.slug}`;
+function HandleModelPage() {
+  const { slug } = Route.useParams();
+  const { data: page } = useSuspenseQuery(handlePageQuery(slug));
+  // The loader has already turned a missing handle into a 404.
+  if (!page) return null;
+  const { model, similar } = page;
+
   const sizes = unique(model.variants.map((v) => v.size));
   // "Razmak rupa 96 mm" → column "Razmak rupa", cell "96 mm".
   const sizeHeader = sizes.every((s) => s.startsWith("Dužina"))
@@ -121,62 +155,9 @@ export default async function HandleModelPage({ params }: Props) {
     { label: "Proizvođač", value: model.brand },
     { label: "Cena", value: formatHandlePrice(model) },
   ].filter((fact) => fact.value);
-  const similar = all
-    .filter((m) => m.kind === model.kind && m.key !== model.key)
-    .sort(
-      (a, b) =>
-        Math.abs(a.minPrice - model.minPrice) -
-        Math.abs(b.minPrice - model.minPrice),
-    )
-    .slice(0, 6);
-
-  // schema.org product snippet: sold as part of a wardrobe, not on its own,
-  // so an AggregateOffer over its sizes and finishes, not merchant markup.
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: model.name,
-    description: metaDescription(model),
-    image: model.image ?? undefined,
-    url,
-    category: HANDLE_KIND_LABELS[model.kind],
-    material: model.material ?? undefined,
-    brand: model.brand ? { "@type": "Brand", name: model.brand } : undefined,
-    offers: {
-      "@type": "AggregateOffer",
-      lowPrice: model.minPrice,
-      highPrice: model.maxPrice,
-      priceCurrency: "RSD",
-      offerCount: model.variants.length,
-      availability: "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: "Ormani po meri", url: baseUrl },
-    },
-  };
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Početna", item: baseUrl },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Ručke",
-        item: `${baseUrl}/rucke`,
-      },
-      { "@type": "ListItem", position: 3, name: model.name, item: url },
-    ],
-  };
 
   return (
     <div className="relative">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdHtml(productJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbJsonLd) }}
-      />
       <HeroHeader />
       <main className="pt-24">
         <div className="mx-auto max-w-5xl px-6 py-8 lg:py-14">

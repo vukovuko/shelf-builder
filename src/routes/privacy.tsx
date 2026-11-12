@@ -1,16 +1,22 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
+import { pageMeta } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "Politika privatnosti | Ormani po meri",
-  description:
-    "Politika privatnosti za Ormani po meri konfigurator. Saznajte kako prikupljamo, koristimo i štitimo vaše lične podatke.",
-};
+export const Route = createFileRoute("/privacy")({
+  head: () => ({
+    meta: pageMeta({
+      title: "Politika privatnosti | Ormani po meri",
+      description:
+        "Politika privatnosti za Ormani po meri konfigurator. Saznajte kako prikupljamo, koristimo i štitimo vaše lične podatke.",
+    }),
+  }),
+  component: PrivacyPage,
+});
 
-export default function PrivacyPage() {
+function PrivacyPage() {
   return (
     <div className="relative">
       <HeroHeader />

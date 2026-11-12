@@ -1,131 +1,106 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { BlogContent } from "@/components/BlogContent";
 import { SocialIcon } from "@/components/SocialIcons";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
-import {
-  blogPosts,
-  getBlogPost,
-  formatDate,
-  blogAuthor,
-} from "@/lib/blog-data";
-import { BlogContent } from "./blog-content";
+import { type BlogPost, blogAuthor, formatDate } from "@/lib/blog-data";
+import { jsonLd, SITE_URL, socialImage } from "@/lib/seo/site";
+import { blogPostQuery } from "@/server/blog.functions";
 
-interface Props {
-  params: Promise<{ slug: string }>;
+export const Route = createFileRoute("/blog/$slug")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(blogPostQuery(params.slug)),
+  head: ({ loaderData: post }) => {
+    if (!post) return {};
+    return {
+      meta: [
+        { title: post.title },
+        { name: "description", content: post.description },
+        { property: "og:title", content: post.title },
+        { property: "og:description", content: post.description },
+        { property: "og:type", content: "article" },
+        { property: "article:published_time", content: post.date },
+        { property: "article:author", content: blogAuthor.name },
+        ...socialImage(postImage(post)),
+      ],
+      scripts: [
+        jsonLd(blogPostingJsonLd(post)),
+        jsonLd(breadcrumbJsonLd(post)),
+      ],
+    };
+  },
+  component: BlogPostPage,
+});
+
+function postImage(post: BlogPost): string {
+  return `${SITE_URL}${post.image ?? "/ormani-po-meri-logo.webp"}`;
 }
 
-export async function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const post = getBlogPost(slug);
-  if (!post) return {};
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
-  const image = post.image ?? "/ormani-po-meri-logo.webp";
+function blogPostingJsonLd(post: BlogPost) {
+  const url = `${SITE_URL}/blog/${post.slug}`;
   return {
-    title: post.title,
-    description: post.description,
-    alternates: {
-      canonical: `/blog/${slug}`,
-    },
-    openGraph: {
-      title: post.title,
-      description: post.description,
-      type: "article",
-      publishedTime: post.date,
-      authors: [blogAuthor.name],
-      images: [{ url: `${baseUrl}${image}` }],
-    },
-  };
-}
-
-export default async function BlogPostPage({ params }: Props) {
-  const { slug } = await params;
-  const post = getBlogPost(slug);
-  if (!post) notFound();
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
-  const wordCount = post.content.split(/\s+/).length;
-  const postImage = post.image
-    ? `${baseUrl}${post.image}`
-    : `${baseUrl}/ormani-po-meri-logo.webp`;
-
-  const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
-    image: postImage,
+    image: postImage(post),
     datePublished: `${post.date}T00:00:00+01:00`,
     dateModified: `${post.date}T00:00:00+01:00`,
-    wordCount,
+    wordCount: post.content.split(/\s+/).length,
     inLanguage: "sr-Latn",
-    url: `${baseUrl}/blog/${slug}`,
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `${baseUrl}/blog/${slug}`,
-    },
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
     author: {
       "@type": "Person",
       name: blogAuthor.name,
-      image: `${baseUrl}${blogAuthor.image}`,
+      image: `${SITE_URL}${blogAuthor.image}`,
       url: blogAuthor.socials[0].url,
       sameAs: blogAuthor.socials.map((s) => s.url),
     },
     publisher: {
       "@type": "Organization",
       name: "Ormani po meri",
-      url: baseUrl,
+      url: SITE_URL,
       logo: {
         "@type": "ImageObject",
-        url: `${baseUrl}/ormani-po-meri-logo.webp`,
+        url: `${SITE_URL}/ormani-po-meri-logo.webp`,
       },
     },
   };
+}
 
-  const breadcrumbJsonLd = {
+function breadcrumbJsonLd(post: BlogPost) {
+  return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Početna",
-        item: baseUrl,
-      },
+      { "@type": "ListItem", position: 1, name: "Početna", item: SITE_URL },
       {
         "@type": "ListItem",
         position: 2,
         name: "Blog",
-        item: `${baseUrl}/blog`,
+        item: `${SITE_URL}/blog`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: post.title,
-        item: `${baseUrl}/blog/${slug}`,
+        item: `${SITE_URL}/blog/${post.slug}`,
       },
     ],
   };
+}
+
+function BlogPostPage() {
+  const { slug } = Route.useParams();
+  const { data: post } = useSuspenseQuery(blogPostQuery(slug));
 
   return (
     <div className="relative">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
       <HeroHeader />
       <main className="pt-24">
         <article className="py-8 lg:py-14">

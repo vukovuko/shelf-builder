@@ -1,19 +1,23 @@
-import type { MetadataRoute } from "next";
 import { blogPosts } from "@/lib/blog-data";
 import { getPublicHandleModels } from "@/lib/handle-pages-data";
 import { MATERIAL_PAGES_INDEXED, materialSlug } from "@/lib/material-pages";
 import { getPublicMaterials } from "@/lib/material-pages-data";
+import { SITE_URL } from "@/lib/seo/site";
 
-// Picks up materials added in the admin.
-export const revalidate = 3600;
+interface SitemapEntry {
+  url: string;
+  lastModified?: Date;
+  changeFrequency: "weekly" | "monthly" | "yearly";
+  priority: number;
+}
 
-async function handleEntries(baseUrl: string): Promise<MetadataRoute.Sitemap> {
+async function handleEntries(): Promise<SitemapEntry[]> {
   try {
     const models = await getPublicHandleModels();
     return [
-      { url: `${baseUrl}/rucke`, changeFrequency: "weekly", priority: 0.6 },
+      { url: `${SITE_URL}/rucke`, changeFrequency: "weekly", priority: 0.6 },
       ...models.map((model) => ({
-        url: `${baseUrl}/rucke/${model.slug}`,
+        url: `${SITE_URL}/rucke/${model.slug}`,
         changeFrequency: "monthly" as const,
         priority: 0.4,
       })),
@@ -24,20 +28,18 @@ async function handleEntries(baseUrl: string): Promise<MetadataRoute.Sitemap> {
   }
 }
 
-async function materialEntries(
-  baseUrl: string,
-): Promise<MetadataRoute.Sitemap> {
+async function materialEntries(): Promise<SitemapEntry[]> {
   if (!MATERIAL_PAGES_INDEXED) return [];
   try {
     const all = await getPublicMaterials();
     return [
       {
-        url: `${baseUrl}/materijali`,
+        url: `${SITE_URL}/materijali`,
         changeFrequency: "weekly",
         priority: 0.7,
       },
       ...all.map((material) => ({
-        url: `${baseUrl}/materijali/${materialSlug(material)}`,
+        url: `${SITE_URL}/materijali/${materialSlug(material)}`,
         changeFrequency: "monthly" as const,
         priority: 0.5,
       })),
@@ -49,32 +51,33 @@ async function materialEntries(
   }
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
-
-  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-    url: `${baseUrl}/blog/${post.slug}`,
+async function sitemapEntries(): Promise<SitemapEntry[]> {
+  const blogEntries: SitemapEntry[] = blogPosts.map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: "monthly",
     priority: 0.6,
   }));
+  const [materials, handles] = await Promise.all([
+    materialEntries(),
+    handleEntries(),
+  ]);
 
   return [
     {
-      url: baseUrl,
+      url: SITE_URL,
       lastModified: new Date("2026-03-11"),
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/design`,
+      url: `${SITE_URL}/design`,
       lastModified: new Date("2026-03-11"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/blog`,
+      url: `${SITE_URL}/blog`,
       lastModified: new Date(
         blogPosts.length > 0
           ? blogPosts[blogPosts.length - 1].date
@@ -84,31 +87,64 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     ...blogEntries,
-    ...(await materialEntries(baseUrl)),
-    ...(await handleEntries(baseUrl)),
+    ...materials,
+    ...handles,
     {
-      url: `${baseUrl}/contact`,
+      url: `${SITE_URL}/contact`,
       lastModified: new Date("2026-03-10"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/faq`,
+      url: `${SITE_URL}/faq`,
       lastModified: new Date("2026-02-20"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/privacy`,
+      url: `${SITE_URL}/privacy`,
       lastModified: new Date("2026-02-15"),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/terms`,
+      url: `${SITE_URL}/terms`,
       lastModified: new Date("2026-02-15"),
       changeFrequency: "yearly",
       priority: 0.3,
     },
   ];
+}
+
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+export async function buildSitemapXml(): Promise<string> {
+  const urls = (await sitemapEntries()).map((entry) =>
+    [
+      "<url>",
+      `<loc>${escapeXml(entry.url)}</loc>`,
+      entry.lastModified
+        ? `<lastmod>${entry.lastModified.toISOString()}</lastmod>`
+        : null,
+      `<changefreq>${entry.changeFrequency}</changefreq>`,
+      `<priority>${entry.priority}</priority>`,
+      "</url>",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    "</urlset>",
+    "",
+  ].join("\n");
 }

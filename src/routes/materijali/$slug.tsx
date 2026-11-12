@@ -1,80 +1,72 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, permanentRedirect } from "next/navigation";
-import { MaterialCard, toMaterialCard } from "@/components/MaterialCard";
+import { MaterialCard } from "@/components/MaterialCard";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
 import { Button } from "@/components/ui/button";
 import {
   cleanMaterialName,
-  codeFromSlug,
   formatPricePerM2,
-  MATERIAL_PAGES_INDEXED,
   materialBrand,
   materialBreadcrumbJsonLd,
-  materialCodeSlug,
   materialJsonLd,
   materialKind,
   materialMetaDescription,
-  materialSlug,
   materialUses,
-  similarMaterials,
 } from "@/lib/material-pages";
-import { getPublicMaterials } from "@/lib/material-pages-data";
+import { jsonLd, SITE_URL, socialImage } from "@/lib/seo/site";
+import { materialPageQuery } from "@/server/catalog.functions";
 
-// Materials change from the admin; an hour old is fine for these pages.
-export const revalidate = 3600;
+export const Route = createFileRoute("/materijali/$slug")({
+  loader: async ({ context, params }) => {
+    const page = await context.queryClient.ensureQueryData(
+      materialPageQuery(params.slug),
+    );
+    if (!page) throw notFound();
+    // The code finds the material; a renamed decor keeps working at its new URL.
+    if (params.slug !== page.slug) {
+      throw redirect({
+        to: "/materijali/$slug",
+        params: { slug: page.slug },
+        statusCode: 308,
+      });
+    }
+    return page;
+  },
+  head: ({ loaderData: page }) => {
+    if (!page) return {};
+    const { material } = page;
+    const title = `${cleanMaterialName(material.name)} ${material.productCode ?? ""} | Ormani po meri`;
+    const description = materialMetaDescription(material);
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        {
+          property: "og:url",
+          content: `${SITE_URL}/materijali/${page.slug}`,
+        },
+        ...(material.img ? socialImage(material.img) : []),
+      ],
+      scripts: [
+        jsonLd(materialJsonLd(material, SITE_URL)),
+        jsonLd(materialBreadcrumbJsonLd(material, SITE_URL)),
+      ],
+    };
+  },
+  component: MaterialPage,
+});
 
-// Rendered on first visit, then cached: 500+ pages would slow every build.
-export async function generateStaticParams() {
-  return [];
-}
-
-// "<" escaped so a name from the admin can never close the script tag.
-function jsonLdHtml(data: unknown): string {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}
-
-interface Props {
-  params: Promise<{ slug: string }>;
-}
-
-async function findMaterial(slug: string) {
-  const all = await getPublicMaterials();
-  const code = codeFromSlug(slug);
-  return { all, material: all.find((m) => materialCodeSlug(m) === code) };
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const { material } = await findMaterial(slug);
-  if (!material) return {};
-  const title = `${cleanMaterialName(material.name)} ${material.productCode ?? ""} | Ormani po meri`;
-  const description = materialMetaDescription(material);
-  return {
-    title,
-    description,
-    alternates: { canonical: `/materijali/${materialSlug(material)}` },
-    robots: MATERIAL_PAGES_INDEXED
-      ? { index: true, follow: true }
-      : { index: false, follow: true },
-    openGraph: {
-      title,
-      description,
-      url: `/materijali/${materialSlug(material)}`,
-      images: material.img ? [{ url: material.img }] : undefined,
-    },
-  };
-}
-
-export default async function MaterialPage({ params }: Props) {
-  const { slug } = await params;
-  const { all, material } = await findMaterial(slug);
-  if (!material) notFound();
-  // The code finds the material; a renamed decor keeps working at its new URL.
-  const canonical = materialSlug(material);
-  if (slug !== canonical) permanentRedirect(`/materijali/${canonical}`);
+function MaterialPage() {
+  const { slug } = Route.useParams();
+  const { data: page } = useSuspenseQuery(materialPageQuery(slug));
+  // The loader has already turned a missing material into a 404.
+  if (!page) return null;
+  const { material, similar } = page;
 
   const name = cleanMaterialName(material.name);
   const uses = materialUses(material);
@@ -87,28 +79,13 @@ export default async function MaterialPage({ params }: Props) {
     { label: "Proizvođač", value: materialBrand(material) },
     { label: "Cena", value: formatPricePerM2(material.price) },
   ].filter((fact) => fact.value);
-  const similar = similarMaterials(material, all);
   const paragraphs = (material.description ?? "")
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://ormanipomeri.vercel.app";
 
   return (
     <div className="relative">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdHtml(materialJsonLd(material, baseUrl)),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdHtml(materialBreadcrumbJsonLd(material, baseUrl)),
-        }}
-      />
       <HeroHeader />
       <main className="pt-24">
         <div className="mx-auto max-w-5xl px-6 py-8 lg:py-14">
@@ -182,8 +159,8 @@ export default async function MaterialPage({ params }: Props) {
             <section className="mt-16">
               <h2 className="text-xl font-semibold">Slični dekori</h2>
               <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
-                {similar.map((m) => (
-                  <MaterialCard key={m.id} card={toMaterialCard(m)} />
+                {similar.map((card) => (
+                  <MaterialCard key={card.id} card={card} />
                 ))}
               </div>
             </section>

@@ -1,16 +1,22 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
+import { pageMeta } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "Uslovi korišćenja | Ormani po meri",
-  description:
-    "Uslovi korišćenja za Ormani po meri konfigurator. Pravila i uslovi za korišćenje naše platforme.",
-};
+export const Route = createFileRoute("/terms")({
+  head: () => ({
+    meta: pageMeta({
+      title: "Uslovi korišćenja | Ormani po meri",
+      description:
+        "Uslovi korišćenja za Ormani po meri konfigurator. Pravila i uslovi za korišćenje naše platforme.",
+    }),
+  }),
+  component: TermsPage,
+});
 
-export default function TermsPage() {
+function TermsPage() {
   return (
     <div className="relative">
       <HeroHeader />

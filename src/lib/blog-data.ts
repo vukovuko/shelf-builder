@@ -3,7 +3,8 @@ import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 
 export const blogAuthor = {
   name: "Vuko Vukašinović",
-  image: "/authors/Vuko-Vukašinović.png",
+  // 256 px: shown at 48 px, and nothing resizes images on the way out.
+  image: "/authors/vuko-vukasinovic.jpg",
   bio: "Full-stack developer sa strašću za dizajn i moderne web tehnologije. Kreira alate koji pojednostavljuju proces uređenja doma.",
   socials: [
     {
