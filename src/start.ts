@@ -12,9 +12,24 @@ const dbScope = createMiddleware().server(({ next }) =>
   runWithDb(env.HYPERDRIVE.connectionString, () => next()),
 );
 
-const securityHeaders = createMiddleware().server(async ({ next }) => {
+const SITE_HOST = "ormanipomeri.com";
+
+const securityHeaders = createMiddleware().server(async ({ next, request }) => {
+  const url = new URL(request.url);
+  // One address per page: www goes to the bare domain, as it always has.
+  if (url.host === `www.${SITE_HOST}`) {
+    url.host = SITE_HOST;
+    return withSecurityHeaders(Response.redirect(url, 308));
+  }
+
   const result = await next();
-  return { ...result, response: withSecurityHeaders(result.response) };
+  const response = withSecurityHeaders(result.response);
+  // Search engines index the site under its own domain only, not under a
+  // workers.dev address or the to-do board's host.
+  if (url.host !== SITE_HOST) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return { ...result, response };
 });
 
 // What a server function throws travels to the browser, message included,

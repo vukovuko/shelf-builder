@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
@@ -86,6 +86,17 @@ export const adminAccessQuery = queryOptions({
   queryFn: () => getAdminAccess(),
   staleTime: 60_000,
 });
+
+/**
+ * For a route that lets only admins in. Only a cached "ok" is reused:
+ * someone refused a moment ago may have signed in since.
+ */
+export function freshAdminAccess(queryClient: QueryClient) {
+  const cached = queryClient.getQueryData(adminAccessQuery.queryKey);
+  return queryClient.fetchQuery(
+    cached === "ok" ? adminAccessQuery : { ...adminAccessQuery, staleTime: 0 },
+  );
+}
 
 // --- dashboard --------------------------------------------------------------
 

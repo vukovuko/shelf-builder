@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import ErrorPage from "@/app/error";
 import appCss from "@/app/globals.css?url";
 import NotFound from "@/app/not-found";
+import { Analytics } from "@/components/Analytics";
 import { SessionSync } from "@/components/SessionSync";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -116,6 +117,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           {children}
           <Toaster position="bottom-center" />
           <SessionSync />
+          <Analytics />
         </ThemeProvider>
         {import.meta.env.DEV && <ReactQueryDevtools />}
         <Scripts />

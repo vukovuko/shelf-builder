@@ -21,7 +21,8 @@
     "email:dev": "npx react-email dev --dir src/lib/emails --port 3001",
     "prepare": "husky",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:production": "CLOUDFLARE_ENV=production vite build --mode live && wrangler deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

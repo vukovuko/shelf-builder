@@ -5,6 +5,9 @@ Vercel serves at ormanipomeri.com until the domain is moved over.
 
 Dev build: https://ormanipomeri-dev.vukasinovicvuko5.workers.dev
 
+Production build, not on the domain yet:
+https://ormanipomeri.vukasinovicvuko5.workers.dev (see "Production").
+
 The dev build and local dev on this branch use the Neon branch `dev`, never
 the production database.
 
@@ -14,6 +17,7 @@ the production database.
 | --- | --- |
 | `npm run dev` | Local dev on the Workers runtime, port 3000. Secrets come from `.dev.vars` (copy your `.env`). `.env` also needs `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` set to the Neon `dev` branch string. |
 | `npm run deploy` | Build and deploy the `ormanipomeri-dev` Worker. |
+| `npm run deploy:production` | Build the production site (`--mode live`, wrangler environment `production`) and deploy the `ormanipomeri` Worker. |
 | `npm run typecheck` | Checks the ported files and everything they import. |
 | `npm run test:run` | Same vitest suite as `main`. |
 
@@ -93,6 +97,45 @@ Upstash.
   request (see the comment in that file), so never keep a query result's
   client or a transaction in a module-level variable.
 
+## Production
+
+The production site is the Worker `ormanipomeri` (wrangler environment
+`production`). What makes a build the production one:
+
+- `vite build --mode live` reads `.env.live` (not in git): the public
+  Turnstile and PostHog keys and `VITE_INDEXABLE=true`. Only this mode puts
+  the PostHog key in the bundle, so only this build reports visits.
+- `CLOUDFLARE_ENV=production` selects the production block of
+  `wrangler.jsonc`: its own Hyperdrive (the production Neon database) and no
+  `EMAIL_MODE`, so email goes to its real recipients.
+- Its secrets were copied from Vercel's production environment. Vercel hands
+  back `[SENSITIVE]` instead of the value for `ANTHROPIC_API_KEY` and
+  `MCP_API_KEY`; those two were set from the local copies.
+- `/dev/status` answers 404 on this build.
+- Any host other than ormanipomeri.com gets `X-Robots-Tag: noindex`
+  (`src/start.ts`), so the workers.dev address and the to-do board's host
+  are not indexed. `www` redirects to the bare domain.
+- On the workers.dev address nobody can sign in or submit a form: Better
+  Auth and Turnstile accept the real domain only. It is for reading.
+
+### Moving the domain
+
+The zone is on Cloudflare; its records still point at Vercel.
+
+1. Add to the production block of `wrangler.jsonc`:
+   `"routes": [{ "pattern": "ormanipomeri.com", "custom_domain": true },
+   { "pattern": "www.ormanipomeri.com", "custom_domain": true },
+   { "pattern": "todo.ormanipomeri.com", "custom_domain": true }]`
+2. In the Cloudflare DNS page delete the records for `@`, `www` and `todo`
+   that point at Vercel (a custom domain cannot be added over an existing
+   record). Leave the mail records (Zoho, Resend) alone.
+3. `npm run deploy:production`.
+4. Check: sign in, save a design, place an order, open the admin, the
+   to-do board on its own host, an AI assistant connection to `/api/mcp`.
+
+To go back: remove the three custom domains from the Worker and re-create
+the DNS records Vercel asks for (`main` and the Vercel project are untouched).
+
 ## API bridge
 
 `src/routes/api/$.ts` serves every `src/app/api/**/route.ts` handler as it is,
@@ -138,6 +181,17 @@ handler; the bridge goes away with the last of them.
   fetch fresh data on every visit (`fetchQuery`, `staleTime: 0`) and pages
   read `Route.useLoaderData()`: a form opened on cached values would save
   them back.
+
+## Other hosts and AI assistants
+
+- todo.ormanipomeri.com shows the to-do board at "/": the router maps that
+  address to the `/todo-board` route on that host only
+  (`src/lib/todo/host-rewrite.ts`), and robots.txt there disallows
+  everything. The login handoff is `/admin/todo/otvori` → `/todo-auth`; its
+  one-time token lives one minute.
+- `/api/mcp` runs through the bridge. The OAuth discovery routes
+  (`/.well-known/*`) and `/mcp/prijava` are route files that call the old
+  handlers.
 
 ## Search params and errors
 
@@ -203,8 +257,8 @@ for it, so the data arrives in the same response as the page.
   through the bridge
 - [ ] 6b. Admin saves as mutations with optimistic updates, section by
   section; then cached reads and edge caching of catalog pages with purge
-- [ ] 7. Done: security headers and CSP, PostHog proxy (`/t/*`). Left: load
-  PostHog in the browser on the production build only, MCP server, AI sketch
-  import (needs `ANTHROPIC_API_KEY`), to-do board on its own host
-- [ ] 8. Domain cutover. The production Worker needs its own wrangler
-  environment without `EMAIL_MODE`, built with `VITE_INDEXABLE=true`
+- [x] 7. Security headers and CSP, PostHog (proxy `/t/*`, browser client on
+  the production build only), MCP server with its OAuth routes, AI sketch
+  import, to-do board on its own host
+- [ ] 8. Domain cutover: the production Worker is deployed and checked
+  read-only against the live site; the steps are under "Moving the domain"

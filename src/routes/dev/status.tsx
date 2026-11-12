@@ -1,12 +1,14 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { type ReactNode, Suspense } from "react";
+import { INDEXABLE } from "@/lib/seo/site";
 import { dbProofQuery, runtimeProofQuery } from "@/server/proof.functions";
 
 // Shows that the parts of the site that depend on the server runtime work on
-// Cloudflare. For the team; removed before the domain moves over.
+// Cloudflare. For the team: the production build answers 404 here.
 export const Route = createFileRoute("/dev/status")({
   loader: ({ context }) => {
+    if (INDEXABLE) throw notFound();
     // Not awaited: the page is sent at once and the database rows stream in.
     context.queryClient.prefetchQuery(dbProofQuery);
     return context.queryClient.ensureQueryData(runtimeProofQuery);

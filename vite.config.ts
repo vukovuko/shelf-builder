@@ -11,6 +11,10 @@ const src = (path: string) =>
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "NEXT_PUBLIC_");
+  // `vite build --mode live` is the production site (npm run
+  // deploy:production); its public keys are in .env.live. Every other build
+  // is a test build and must not report to the real statistics.
+  const live = mode === "live";
   return {
     resolve: {
       alias: {
@@ -39,6 +43,12 @@ export default defineConfig(({ mode }) => {
       ),
       "process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY": JSON.stringify(
         env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+      ),
+      "process.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+        live ? (env.NEXT_PUBLIC_POSTHOG_KEY ?? "") : "",
+      ),
+      "process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+        live ? (env.NEXT_PUBLIC_POSTHOG_HOST ?? "") : "",
       ),
     },
     plugins: [

@@ -24,7 +24,10 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TodoAuthRouteImport } from './routes/todo-auth'
+import { Route as TodoBoardRouteImport } from './routes/todo-board'
 import { Route as VerifySuccessRouteImport } from './routes/verify-success'
+import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as AccountContactRouteImport } from './routes/account/contact'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
@@ -37,9 +40,12 @@ import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as DevStatusRouteImport } from './routes/dev/status'
 import { Route as MaterijaliIndexRouteImport } from './routes/materijali/index'
 import { Route as MaterijaliSlugRouteImport } from './routes/materijali/$slug'
+import { Route as McpPrijavaRouteImport } from './routes/mcp/prijava'
 import { Route as RuckeIndexRouteImport } from './routes/rucke/index'
 import { Route as RuckeSlugRouteImport } from './routes/rucke/$slug'
 import { Route as TSplatRouteImport } from './routes/t/$'
+import { Route as DotwellKnownOauthProtectedResourceIndexRouteImport } from './routes/[.]well-known/oauth-protected-resource/index'
+import { Route as DotwellKnownOauthProtectedResourceSplatRouteImport } from './routes/[.]well-known/oauth-protected-resource/$'
 import { Route as AccountOrdersIndexRouteImport } from './routes/account/orders/index'
 import { Route as AccountOrdersIdRouteImport } from './routes/account/orders/$id'
 import { Route as AdminAccessoriesIndexRouteImport } from './routes/admin/accessories/index'
@@ -146,11 +152,27 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TodoAuthRoute = TodoAuthRouteImport.update({
+  id: '/todo-auth',
+  path: '/todo-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TodoBoardRoute = TodoBoardRouteImport.update({
+  id: '/todo-board',
+  path: '/todo-board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifySuccessRoute = VerifySuccessRouteImport.update({
   id: '/verify-success',
   path: '/verify-success',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthAuthorizationServerRoute =
+  DotwellKnownOauthAuthorizationServerRouteImport.update({
+    id: '/.well-known/oauth-authorization-server',
+    path: '/.well-known/oauth-authorization-server',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -211,6 +233,11 @@ const MaterijaliSlugRoute = MaterijaliSlugRouteImport.update({
   path: '/materijali/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpPrijavaRoute = McpPrijavaRouteImport.update({
+  id: '/mcp/prijava',
+  path: '/mcp/prijava',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RuckeIndexRoute = RuckeIndexRouteImport.update({
   id: '/rucke/',
   path: '/rucke/',
@@ -226,6 +253,18 @@ const TSplatRoute = TSplatRouteImport.update({
   path: '/t/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthProtectedResourceIndexRoute =
+  DotwellKnownOauthProtectedResourceIndexRouteImport.update({
+    id: '/.well-known/oauth-protected-resource/',
+    path: '/.well-known/oauth-protected-resource/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownOauthProtectedResourceSplatRoute =
+  DotwellKnownOauthProtectedResourceSplatRouteImport.update({
+    id: '/.well-known/oauth-protected-resource/$',
+    path: '/.well-known/oauth-protected-resource/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AccountOrdersIndexRoute = AccountOrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -394,7 +433,10 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/todo-auth': typeof TodoAuthRoute
+  '/todo-board': typeof TodoBoardRoute
   '/verify-success': typeof VerifySuccessRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
@@ -403,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/mcp/prijava': typeof McpPrijavaRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/t/$': typeof TSplatRoute
   '/account/': typeof AccountIndexRoute
@@ -410,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
   '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
   '/admin/accessories/new': typeof AdminAccessoriesNewRoute
@@ -429,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/.well-known/oauth-protected-resource/': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
   '/admin/accessories/': typeof AdminAccessoriesIndexRoute
   '/admin/accessory-rules/': typeof AdminAccessoryRulesIndexRoute
@@ -455,7 +500,10 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/todo-auth': typeof TodoAuthRoute
+  '/todo-board': typeof TodoBoardRoute
   '/verify-success': typeof VerifySuccessRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
@@ -464,6 +512,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/mcp/prijava': typeof McpPrijavaRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/t/$': typeof TSplatRoute
   '/account': typeof AccountIndexRoute
@@ -471,6 +520,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/materijali': typeof MaterijaliIndexRoute
   '/rucke': typeof RuckeIndexRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
   '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
   '/admin/accessories/new': typeof AdminAccessoriesNewRoute
@@ -490,6 +540,7 @@ export interface FileRoutesByTo {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders': typeof AccountOrdersIndexRoute
   '/admin/accessories': typeof AdminAccessoriesIndexRoute
   '/admin/accessory-rules': typeof AdminAccessoryRulesIndexRoute
@@ -519,7 +570,10 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/todo-auth': typeof TodoAuthRoute
+  '/todo-board': typeof TodoBoardRoute
   '/verify-success': typeof VerifySuccessRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/account/contact': typeof AccountContactRoute
   '/account/settings': typeof AccountSettingsRoute
   '/account/wardrobes': typeof AccountWardrobesRoute
@@ -528,6 +582,7 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
+  '/mcp/prijava': typeof McpPrijavaRoute
   '/rucke/$slug': typeof RuckeSlugRoute
   '/t/$': typeof TSplatRoute
   '/account/': typeof AccountIndexRoute
@@ -535,6 +590,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/materijali/': typeof MaterijaliIndexRoute
   '/rucke/': typeof RuckeIndexRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/account/orders/$id': typeof AccountOrdersIdRoute
   '/admin/accessories/$id': typeof AdminAccessoriesIdRoute
   '/admin/accessories/new': typeof AdminAccessoriesNewRoute
@@ -554,6 +610,7 @@ export interface FileRoutesById {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/.well-known/oauth-protected-resource/': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
   '/admin/accessories/': typeof AdminAccessoriesIndexRoute
   '/admin/accessory-rules/': typeof AdminAccessoryRulesIndexRoute
@@ -584,7 +641,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/todo-auth'
+    | '/todo-board'
     | '/verify-success'
+    | '/.well-known/oauth-authorization-server'
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
@@ -593,6 +653,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
+    | '/mcp/prijava'
     | '/rucke/$slug'
     | '/t/$'
     | '/account/'
@@ -600,6 +661,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
+    | '/.well-known/oauth-protected-resource/$'
     | '/account/orders/$id'
     | '/admin/accessories/$id'
     | '/admin/accessories/new'
@@ -619,6 +681,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/.well-known/oauth-protected-resource/'
     | '/account/orders/'
     | '/admin/accessories/'
     | '/admin/accessory-rules/'
@@ -645,7 +708,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/todo-auth'
+    | '/todo-board'
     | '/verify-success'
+    | '/.well-known/oauth-authorization-server'
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
@@ -654,6 +720,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
+    | '/mcp/prijava'
     | '/rucke/$slug'
     | '/t/$'
     | '/account'
@@ -661,6 +728,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/materijali'
     | '/rucke'
+    | '/.well-known/oauth-protected-resource/$'
     | '/account/orders/$id'
     | '/admin/accessories/$id'
     | '/admin/accessories/new'
@@ -680,6 +748,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/.well-known/oauth-protected-resource'
     | '/account/orders'
     | '/admin/accessories'
     | '/admin/accessory-rules'
@@ -708,7 +777,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/todo-auth'
+    | '/todo-board'
     | '/verify-success'
+    | '/.well-known/oauth-authorization-server'
     | '/account/contact'
     | '/account/settings'
     | '/account/wardrobes'
@@ -717,6 +789,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
+    | '/mcp/prijava'
     | '/rucke/$slug'
     | '/t/$'
     | '/account/'
@@ -724,6 +797,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/materijali/'
     | '/rucke/'
+    | '/.well-known/oauth-protected-resource/$'
     | '/account/orders/$id'
     | '/admin/accessories/$id'
     | '/admin/accessories/new'
@@ -743,6 +817,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/.well-known/oauth-protected-resource/'
     | '/account/orders/'
     | '/admin/accessories/'
     | '/admin/accessory-rules/'
@@ -772,17 +847,23 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  TodoAuthRoute: typeof TodoAuthRoute
+  TodoBoardRoute: typeof TodoBoardRoute
   VerifySuccessRoute: typeof VerifySuccessRoute
+  DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
   ApiSplatRoute: typeof ApiSplatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DevStatusRoute: typeof DevStatusRoute
   MaterijaliSlugRoute: typeof MaterijaliSlugRoute
+  McpPrijavaRoute: typeof McpPrijavaRoute
   RuckeSlugRoute: typeof RuckeSlugRoute
   TSplatRoute: typeof TSplatRoute
   BlogIndexRoute: typeof BlogIndexRoute
   MaterijaliIndexRoute: typeof MaterijaliIndexRoute
   RuckeIndexRoute: typeof RuckeIndexRoute
+  DotwellKnownOauthProtectedResourceSplatRoute: typeof DotwellKnownOauthProtectedResourceSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  DotwellKnownOauthProtectedResourceIndexRoute: typeof DotwellKnownOauthProtectedResourceIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -892,11 +973,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/todo-auth': {
+      id: '/todo-auth'
+      path: '/todo-auth'
+      fullPath: '/todo-auth'
+      preLoaderRoute: typeof TodoAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/todo-board': {
+      id: '/todo-board'
+      path: '/todo-board'
+      fullPath: '/todo-board'
+      preLoaderRoute: typeof TodoBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verify-success': {
       id: '/verify-success'
       path: '/verify-success'
       fullPath: '/verify-success'
       preLoaderRoute: typeof VerifySuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-authorization-server': {
+      id: '/.well-known/oauth-authorization-server'
+      path: '/.well-known/oauth-authorization-server'
+      fullPath: '/.well-known/oauth-authorization-server'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/': {
@@ -983,6 +1085,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MaterijaliSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/prijava': {
+      id: '/mcp/prijava'
+      path: '/mcp/prijava'
+      fullPath: '/mcp/prijava'
+      preLoaderRoute: typeof McpPrijavaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rucke/': {
       id: '/rucke/'
       path: '/rucke'
@@ -1002,6 +1111,20 @@ declare module '@tanstack/react-router' {
       path: '/t/$'
       fullPath: '/t/$'
       preLoaderRoute: typeof TSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource/': {
+      id: '/.well-known/oauth-protected-resource/'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource/'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource/$': {
+      id: '/.well-known/oauth-protected-resource/$'
+      path: '/.well-known/oauth-protected-resource/$'
+      fullPath: '/.well-known/oauth-protected-resource/$'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/orders/': {
@@ -1323,17 +1446,26 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  TodoAuthRoute: TodoAuthRoute,
+  TodoBoardRoute: TodoBoardRoute,
   VerifySuccessRoute: VerifySuccessRoute,
+  DotwellKnownOauthAuthorizationServerRoute:
+    DotwellKnownOauthAuthorizationServerRoute,
   ApiSplatRoute: ApiSplatRoute,
   BlogSlugRoute: BlogSlugRoute,
   DevStatusRoute: DevStatusRoute,
   MaterijaliSlugRoute: MaterijaliSlugRoute,
+  McpPrijavaRoute: McpPrijavaRoute,
   RuckeSlugRoute: RuckeSlugRoute,
   TSplatRoute: TSplatRoute,
   BlogIndexRoute: BlogIndexRoute,
   MaterijaliIndexRoute: MaterijaliIndexRoute,
   RuckeIndexRoute: RuckeIndexRoute,
+  DotwellKnownOauthProtectedResourceSplatRoute:
+    DotwellKnownOauthProtectedResourceSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  DotwellKnownOauthProtectedResourceIndexRoute:
+    DotwellKnownOauthProtectedResourceIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

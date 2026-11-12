@@ -46,7 +46,12 @@ export function pageMeta(page: { title: string; description: string }) {
   ];
 }
 
-export const NOINDEX = [{ name: "robots", content: "noindex, nofollow" }];
+// Both names: the root document also sets "googlebot", and a page that only
+// replaced "robots" would still tell Google to index it.
+export const NOINDEX = [
+  { name: "robots", content: "noindex, nofollow" },
+  { name: "googlebot", content: "noindex, nofollow" },
+];
 
 export const robotsMeta = INDEXABLE
   ? [

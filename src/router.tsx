@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { parseSearch, stringifySearch } from "@/lib/search-params";
+import { todoHostInput, todoHostOutput } from "@/lib/todo/host-rewrite";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
@@ -18,6 +19,7 @@ export function getRouter() {
     context: { queryClient },
     parseSearch,
     stringifySearch,
+    rewrite: { input: todoHostInput, output: todoHostOutput },
     scrollRestoration: true,
     defaultPreload: "intent",
     // Query owns freshness; the router must not keep its own copy of loader data.

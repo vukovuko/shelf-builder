@@ -21,6 +21,7 @@ export const Route = createFileRoute("/prijava")({
     meta: [
       { title: "Prijava | Ormani po meri" },
       { name: "robots", content: "noindex" },
+      { name: "googlebot", content: "noindex" },
     ],
   }),
   component: SignInPage,

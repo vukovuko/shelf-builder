@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signInUrl } from "@/lib/return-to";
 import { NOINDEX } from "@/lib/seo/site";
-import { adminAccessQuery } from "@/server/admin/admin.functions";
+import { freshAdminAccess } from "@/server/admin/admin.functions";
 
 export const Route = createFileRoute("/admin")({
   // The admin is an app behind a login. Nothing of it is drawn on the server,
@@ -17,14 +17,8 @@ export const Route = createFileRoute("/admin")({
   // tables, charts and 3D view out of the Worker.
   ssr: false,
   beforeLoad: async ({ context, location }) => {
-    // Only a cached "ok" is reused: someone refused a moment ago may have
-    // signed in since. The data functions check the role again themselves.
-    const cached = context.queryClient.getQueryData(adminAccessQuery.queryKey);
-    const access = await context.queryClient.fetchQuery(
-      cached === "ok"
-        ? adminAccessQuery
-        : { ...adminAccessQuery, staleTime: 0 },
-    );
+    // The data functions check the role again themselves.
+    const access = await freshAdminAccess(context.queryClient);
     // Signed out: sign in, then come back to this page.
     if (access === "signed-out") {
       throw redirect({ href: signInUrl(location.href) });
