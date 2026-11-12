@@ -1,12 +1,14 @@
 # Next.js → TanStack Start on Cloudflare Workers
 
-This branch (`tanstack-start`) is the new app. `main` stays the Next.js app that
-Vercel serves at ormanipomeri.com until the domain is moved over.
+This branch (`tanstack-start`) is the new app, and since 12 Nov 2026 (22:06
+CET) it is what ormanipomeri.com serves, from the Worker `ormanipomeri`.
+`main` is still the Next.js app; Vercel keeps building it but no address
+points at it any more.
 
 Dev build: https://ormanipomeri-dev.vukasinovicvuko5.workers.dev
 
-Production build, not on the domain yet:
-https://ormanipomeri.vukasinovicvuko5.workers.dev (see "Production").
+Production: https://ormanipomeri.com (see "Production"). Its workers.dev
+address is switched off.
 
 The dev build and local dev on this branch use the Neon branch `dev`, never
 the production database.
@@ -118,23 +120,34 @@ The production site is the Worker `ormanipomeri` (wrangler environment
 - On the workers.dev address nobody can sign in or submit a form: Better
   Auth and Turnstile accept the real domain only. It is for reading.
 
-### Moving the domain
+### The domain move (done 12 Nov 2026)
 
-The zone is on Cloudflare; its records still point at Vercel.
+The zone is on Cloudflare. The production block of `wrangler.jsonc` lists
+`ormanipomeri.com`, `www` and `todo` as custom domains, so every
+`npm run deploy:production` keeps them attached.
 
-1. Add to the production block of `wrangler.jsonc`:
-   `"routes": [{ "pattern": "ormanipomeri.com", "custom_domain": true },
-   { "pattern": "www.ormanipomeri.com", "custom_domain": true },
-   { "pattern": "todo.ormanipomeri.com", "custom_domain": true }]`
-2. In the Cloudflare DNS page delete the records for `@`, `www` and `todo`
-   that point at Vercel (a custom domain cannot be added over an existing
-   record). Leave the mail records (Zoho, Resend) alone.
-3. `npm run deploy:production`.
-4. Check: sign in, save a design, place an order, open the admin, the
-   to-do board on its own host, an AI assistant connection to `/api/mcp`.
+Cloudflare refuses to attach a custom domain while the name has other DNS
+records, also when wrangler asks it to override them. The six A records that
+pointed at Vercel were deleted by hand first.
 
-To go back: remove the three custom domains from the Worker and re-create
-the DNS records Vercel asks for (`main` and the Vercel project are untouched).
+To go back to Vercel: remove the `routes` from the production block, deploy,
+delete the three Worker records in DNS, and re-create these (all DNS only):
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `ormanipomeri.com` | A | `64.29.17.1`, `216.198.79.1` |
+| `www.ormanipomeri.com` | A | `216.198.79.65`, `64.29.17.65` |
+| `*.ormanipomeri.com` | A | `216.198.79.65`, `216.198.79.1` |
+
+Behind Cloudflare's proxy two things are new:
+
+- Cloudflare adds its own Web Analytics script to every page
+  (`static.cloudflareinsights.com/beacon.min.js`). The CSP blocks it, which
+  logs one console error per page. Either switch Web Analytics off for the
+  zone or allow that host in `src/server/security-headers.ts`.
+- A request that starts a new Worker instance takes about half a second
+  longer (the bundle is 1.9 MB). Catalog pages read the database on every
+  request (0.3–0.8 s); Vercel cached them for an hour.
 
 ## API bridge
 
@@ -260,5 +273,7 @@ for it, so the data arrives in the same response as the page.
 - [x] 7. Security headers and CSP, PostHog (proxy `/t/*`, browser client on
   the production build only), MCP server with its OAuth routes, AI sketch
   import, to-do board on its own host
-- [ ] 8. Domain cutover: the production Worker is deployed and checked
-  read-only against the live site; the steps are under "Moving the domain"
+- [x] 8. Domain cutover, 12 Nov 2026. Checked on the real domain without
+  signing in: every sitemap address, indexing tags, security headers, www,
+  the to-do host, the API's refusals, MCP with the key, the configurator in a
+  browser. Signing in, saving, ordering and the admin need a person.

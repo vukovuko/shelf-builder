@@ -21,6 +21,13 @@
   "env": {
     "production": {
       "name": "ormanipomeri",
+      // The site's own addresses. With these the workers.dev address of this
+      // Worker is switched off.
+      "routes": [
+        { "pattern": "ormanipomeri.com", "custom_domain": true },
+        { "pattern": "www.ormanipomeri.com", "custom_domain": true },
+        { "pattern": "todo.ormanipomeri.com", "custom_domain": true }
+      ],
       "hyperdrive": [
         { "binding": "HYPERDRIVE", "id": "5c4849265254430d810c4b49e3d08b00" }
       ]
