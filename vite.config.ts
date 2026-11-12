@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
         "next/link": src("compat/next/link.tsx"),
         "next/navigation": src("compat/next/navigation.ts"),
         "next/image": src("compat/next/image.tsx"),
+        "next/headers": src("compat/next/headers.ts"),
+        "next/server": src("compat/next/server.ts"),
         // Next's guard throws outside a React Server Components build.
         "server-only": src("server/server-only-shim.ts"),
       },

@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DesignRouteImport } from './routes/design'
+import { Route as DesignTestRouteImport } from './routes/design-test'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
@@ -18,6 +20,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
 import { Route as DevStatusRouteImport } from './routes/dev/status'
@@ -35,6 +38,16 @@ const IndexRoute = IndexRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignTestRoute = DesignTestRouteImport.update({
+  id: '/design-test',
+  path: '/design-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaqRoute = FaqRouteImport.update({
@@ -70,6 +83,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -116,6 +134,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/design': typeof DesignRoute
+  '/design-test': typeof DesignTestRoute
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -123,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
@@ -135,6 +156,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/design': typeof DesignRoute
+  '/design-test': typeof DesignTestRoute
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -142,6 +165,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
@@ -155,6 +179,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/design': typeof DesignRoute
+  '/design-test': typeof DesignTestRoute
   '/faq': typeof FaqRoute
   '/llms-full.txt': typeof LlmsFullDottxtRoute
   '/llms.txt': typeof LlmsDottxtRoute
@@ -162,6 +188,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/api/$': typeof ApiSplatRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/dev/status': typeof DevStatusRoute
   '/materijali/$slug': typeof MaterijaliSlugRoute
@@ -176,6 +203,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/contact'
+    | '/design'
+    | '/design-test'
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -183,6 +212,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
@@ -195,6 +225,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/contact'
+    | '/design'
+    | '/design-test'
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -202,6 +234,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
@@ -214,6 +247,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/contact'
+    | '/design'
+    | '/design-test'
     | '/faq'
     | '/llms-full.txt'
     | '/llms.txt'
@@ -221,6 +256,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/api/$'
     | '/blog/$slug'
     | '/dev/status'
     | '/materijali/$slug'
@@ -234,6 +270,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContactRoute: typeof ContactRoute
+  DesignRoute: typeof DesignRoute
+  DesignTestRoute: typeof DesignTestRoute
   FaqRoute: typeof FaqRoute
   LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
@@ -241,6 +279,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DevStatusRoute: typeof DevStatusRoute
   MaterijaliSlugRoute: typeof MaterijaliSlugRoute
@@ -265,6 +304,20 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design-test': {
+      id: '/design-test'
+      path: '/design-test'
+      fullPath: '/design-test'
+      preLoaderRoute: typeof DesignTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/faq': {
@@ -314,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -378,6 +438,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContactRoute: ContactRoute,
+  DesignRoute: DesignRoute,
+  DesignTestRoute: DesignTestRoute,
   FaqRoute: FaqRoute,
   LlmsFullDottxtRoute: LlmsFullDottxtRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
@@ -385,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  ApiSplatRoute: ApiSplatRoute,
   BlogSlugRoute: BlogSlugRoute,
   DevStatusRoute: DevStatusRoute,
   MaterijaliSlugRoute: MaterijaliSlugRoute,

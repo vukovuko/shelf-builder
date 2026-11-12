@@ -13,12 +13,14 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": ["vite/client", "node", "./worker-configuration.d.ts"],
+    "types": ["vite/client", "node"],
     "paths": {
       "@/*": ["./src/*"],
       "next/link": ["./src/compat/next/link.tsx"],
       "next/navigation": ["./src/compat/next/navigation.ts"],
-      "next/image": ["./src/compat/next/image.tsx"]
+      "next/image": ["./src/compat/next/image.tsx"],
+      "next/headers": ["./src/compat/next/headers.ts"],
+      "next/server": ["./src/compat/next/server.ts"]
     }
   },
   // Only the TanStack Start app and what it imports. src/app and the other
@@ -28,6 +30,7 @@
     "src/routes",
     "src/server",
     "src/compat",
+    "src/cloudflare.d.ts",
     "src/router.tsx",
     "src/start.ts",
     "src/routeTree.gen.ts",

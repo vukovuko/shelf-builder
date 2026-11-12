@@ -14,13 +14,14 @@ the production database.
 | --- | --- |
 | `npm run dev` | Local dev on the Workers runtime, port 3000. Secrets come from `.dev.vars` (copy your `.env`). `.env` also needs `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` set to the Neon `dev` branch string. |
 | `npm run deploy` | Build and deploy the `ormanipomeri-dev` Worker. |
-| `npm run typecheck` | Generates Worker types, then checks the ported files. |
+| `npm run typecheck` | Checks the ported files and everything they import. |
 | `npm run test:run` | Same vitest suite as `main`. |
 
 ## How the branch is laid out
 
 - `src/routes` is the new app. `src/app` is the old Next.js app, kept only as
   the reference for each route until that route is ported, then deleted.
+  The exception is `src/app/api`: those handlers are live, see "API bridge".
 - `src/lib`, `src/components`, `src/db` and `src/hooks` keep their paths, so
   `git merge main` brings shared changes over. A change on `main` to a file
   already deleted here shows up as a conflict: port that change by hand.
@@ -28,7 +29,8 @@ the production database.
 - Shared components keep `import Link from "next/link"` and friends. Vite and
   tsconfig point those imports at `src/compat/next`, so one component file
   works in both apps. New code in `src/routes` uses TanStack Router directly.
-  The stand-ins go away after the cutover.
+  The stand-ins go away after the cutover. `next/headers` and `next/server`
+  have stand-ins too, for the API handlers.
 - A page is ported when its route in `src/routes` matches the live page
   (same sections, headings, links, title, description, canonical, JSON-LD);
   then its file in `src/app` is deleted. Check it with
@@ -56,6 +58,12 @@ The dev build must not reach real people or real analytics:
 Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 (`wrangler secret put`).
 
+A test customer exists only in the Neon branch `dev`. Its email and password
+are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`.
+
+Not set on the dev Worker yet, so these do nothing there: `ANTHROPIC_API_KEY`
+(sketch import), the Google sign-in keys, Upstash.
+
 ## Conventions
 
 - Server code that the browser calls goes in `*.functions.ts` as
@@ -74,6 +82,22 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
   request (see the comment in that file), so never keep a query result's
   client or a transaction in a module-level variable.
 
+## API bridge
+
+`src/routes/api/$.ts` serves every `src/app/api/**/route.ts` handler as it is,
+so the components that call `fetch("/api/...")` keep working before they are
+rewritten. A route file in `src/routes/api` wins over the bridge (auth has
+one). When the last caller of a handler moves to a server function, delete the
+handler; the bridge goes away with the last of them.
+
+## Configurator
+
+`/design` and `/design-test` draw in the browser only: the server sends the
+head tags and an empty page, and three.js never enters the Worker bundle
+(`src/components/designer/DesignerShell.tsx`). The catalogs and the session
+are one query (`designerDataQuery`) that the loader starts without waiting
+for it, so the data arrives in the same response as the page.
+
 ## Known differences from the live site
 
 - Article and catalog pages also carry `og:site_name`, `og:locale` and
@@ -83,6 +107,10 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 - Catalog pages are rendered on every request (150–300 ms). Vercel cached them
   for an hour. Edge caching comes with the admin port, when a price change can
   purge the pages it affects.
+- The HTML of `/design` has no step list or price before JavaScript runs; Next
+  sent the sidebar markup. Title, description and canonical are the same.
+- The Worker upload is 1.8 MB gzip. Cloudflare's limit is 3 MB on the free
+  plan and 10 MB on the paid one.
 
 ## Phases
 
@@ -92,7 +120,8 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
   `next/image` resolve to stand-ins in `src/compat/next`; Poppins is self-hosted
 - [x] 2. Public pages and SEO: home, blog, FAQ, contact, materijali, ručke,
   privacy, terms, sitemap.xml, robots.txt, llms.txt
-- [ ] 3. Configurator (`/design`, `/design-test`), saving designs
+- [x] 3. Configurator (`/design`, `/design-test`), saving and loading designs;
+  the remaining API handlers run through the bridge
 - [ ] 4. Sign-in and customer account
 - [ ] 5. Checkout and emails
 - [ ] 6. Admin

@@ -8,7 +8,7 @@
     "lint": "biome check",
     "lint:fix": "biome check --write --unsafe",
     "format": "biome format --write",
-    "typecheck": "wrangler types && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
     "db:generate": "drizzle-kit generate",
@@ -21,8 +21,7 @@
     "email:dev": "npx react-email dev --dir src/lib/emails --port 3001",
     "prepare": "husky",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
