@@ -22,7 +22,8 @@
     "prepare": "husky",
     "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy",
-    "deploy:production": "CLOUDFLARE_ENV=production vite build --mode live && wrangler deploy"
+    "deploy:production": "CLOUDFLARE_ENV=production vite build --mode live && wrangler deploy",
+    "catalog:refresh": "wrangler kv key put catalog-version \"$(date +%s)\" --namespace-id 5e717b009468479b8380734141f3130a --remote"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
+      __BUILD_ID__: JSON.stringify(Date.now().toString(36)),
       // Browser code has no `process`. Next inlines NEXT_PUBLIC_* at build
       // time; these two are the ones client components read.
       // The public address of the site, for canonical links and structured

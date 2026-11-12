@@ -15,6 +15,10 @@
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "6e574ae7840d4de893cbf0f5300bc102" }
   ],
+  // Catalog cache; see src/server/edge-cache.server.ts.
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "9da4b06e87294f98b8b128d600dcea4d" }
+  ],
   // The production site: `npm run deploy:production`. It has its own
   // database binding and no EMAIL_MODE, so email goes to its real recipients.
   // (Bindings and vars are not inherited from the top level.)
@@ -30,6 +34,9 @@
       ],
       "hyperdrive": [
         { "binding": "HYPERDRIVE", "id": "5c4849265254430d810c4b49e3d08b00" }
+      ],
+      "kv_namespaces": [
+        { "binding": "CACHE", "id": "5e717b009468479b8380734141f3130a" }
       ]
     }
   }

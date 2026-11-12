@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NextRequest } from "@/compat/next/server";
+import { bumpCatalogVersion } from "@/server/edge-cache.server";
 
 // Serves the API handlers still written for Next.js (src/app/api/**/route.ts)
 // without changing them, so they stay identical to the ones running in
@@ -51,6 +52,11 @@ const routes: LegacyRoute[] = Object.entries(modules)
   // "users/role" must win over "users/[id]", as it does in Next.
   .sort((a, b) => a.dynamic - b.dynamic);
 
+// Saves under these paths change what the public catalog pages show, so the
+// catalog cache starts over after each (src/server/edge-cache.server.ts).
+const CHANGES_CATALOG =
+  /^admin\/(materials|handles|accessories|settings)(\/|$)/;
+
 async function dispatch({
   request,
   params,
@@ -70,9 +76,13 @@ async function dispatch({
         decodeURIComponent(value),
       ]),
     );
-    return handler(new NextRequest(request), {
+    const response = await handler(new NextRequest(request), {
       params: Promise.resolve(named),
     });
+    if (request.method !== "GET" && response.ok && CHANGES_CATALOG.test(path)) {
+      await bumpCatalogVersion();
+    }
+    return response;
   }
   return Response.json({ error: "Not found" }, { status: 404 });
 }

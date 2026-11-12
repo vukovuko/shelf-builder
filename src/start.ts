@@ -6,6 +6,8 @@ import {
   createStart,
 } from "@tanstack/react-start";
 import { runWithDb } from "@/db/db";
+import { isCachedPage } from "@/server/cached-pages";
+import { pageCache } from "@/server/edge-cache.server";
 import { withSecurityHeaders } from "@/server/security-headers";
 
 const dbScope = createMiddleware().server(({ next }) =>
@@ -32,6 +34,15 @@ const securityHeaders = createMiddleware().server(async ({ next, request }) => {
   return { ...result, response };
 });
 
+// Catalog pages are answered from the cache when it has them.
+const cachedPages = createMiddleware().server(async ({ next, request }) => {
+  const cache = isCachedPage(request) ? await pageCache(request) : null;
+  if (!cache) return next();
+  if (cache.hit) return cache.hit;
+  const result = await next();
+  return { ...result, response: cache.keep(result.response) };
+});
+
 // What a server function throws travels to the browser, message included,
 // and a failed query's message is its SQL. Only redirects and not-found
 // answers are meant for the caller; anything else is logged here and replaced.
@@ -51,6 +62,7 @@ export const startInstance = createStart(() => ({
   functionMiddleware: [hideServerErrors],
   requestMiddleware: [
     securityHeaders,
+    cachedPages,
     // Start adds this by itself only when src/start.ts does not exist.
     createCsrfMiddleware({ filter: (ctx) => ctx.handlerType === "serverFn" }),
     dbScope,

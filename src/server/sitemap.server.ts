@@ -1,8 +1,7 @@
 import { blogPosts } from "@/lib/blog-data";
-import { getPublicHandleModels } from "@/lib/handle-pages-data";
 import { MATERIAL_PAGES_INDEXED, materialSlug } from "@/lib/material-pages";
-import { getPublicMaterials } from "@/lib/material-pages-data";
 import { SITE_URL } from "@/lib/seo/site";
+import { publicHandleModels, publicMaterials } from "./catalog.server";
 
 interface SitemapEntry {
   url: string;
@@ -13,7 +12,7 @@ interface SitemapEntry {
 
 async function handleEntries(): Promise<SitemapEntry[]> {
   try {
-    const models = await getPublicHandleModels();
+    const models = await publicHandleModels();
     return [
       { url: `${SITE_URL}/rucke`, changeFrequency: "weekly", priority: 0.6 },
       ...models.map((model) => ({
@@ -31,7 +30,7 @@ async function handleEntries(): Promise<SitemapEntry[]> {
 async function materialEntries(): Promise<SitemapEntry[]> {
   if (!MATERIAL_PAGES_INDEXED) return [];
   try {
-    const all = await getPublicMaterials();
+    const all = await publicMaterials();
     return [
       {
         url: `${SITE_URL}/materijali`,

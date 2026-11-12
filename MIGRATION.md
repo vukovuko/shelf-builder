@@ -146,8 +146,7 @@ Behind Cloudflare's proxy two things are new:
   logs one console error per page. Either switch Web Analytics off for the
   zone or allow that host in `src/server/security-headers.ts`.
 - A request that starts a new Worker instance takes about half a second
-  longer (the bundle is 1.9 MB). Catalog pages read the database on every
-  request (0.3–0.8 s); Vercel cached them for an hour.
+  longer (the bundle is 1.9 MB).
 
 ## API bridge
 
@@ -195,6 +194,28 @@ handler; the bridge goes away with the last of them.
   read `Route.useLoaderData()`: a form opened on cached values would save
   them back.
 
+## Catalog cache
+
+`/materijali`, `/rucke`, their detail pages, `sitemap.xml` and `llms-full.txt`
+are served from KV (`src/server/edge-cache.server.ts`): the finished page
+for a visitor who is not signed in, and the two lists every catalog page
+starts from for everyone else. A hit takes about 50 ms; a render took
+0.3–0.8 s.
+
+- Every key carries a catalog version. A successful save under
+  `/api/admin/materials`, `handles`, `accessories` or `settings` changes it
+  (the API bridge does this), so the next visitor gets a fresh page. Other
+  edge locations notice within 30 seconds.
+- Keys also carry the build, so a deploy starts from an empty cache.
+- Never cached: a request with a session cookie, a query string, another
+  method, the to-do board's host, any page not in the list
+  (`src/server/cached-pages.ts`, with tests).
+- A change written straight to the database is not seen. Run
+  `npm run catalog:refresh` after one; without it the old pages live at most
+  a day.
+- If KV fails or its daily write quota is used up, pages are rendered as
+  before; nothing depends on the cache being there.
+
 ## Other hosts and AI assistants
 
 - todo.ormanipomeri.com shows the to-do board at "/": the router maps that
@@ -234,9 +255,8 @@ for it, so the data arrives in the same response as the page.
   `og:type`; Next dropped them whenever a page set its own Open Graph tags.
 - The blog author picture is a 256 px JPEG, not the 10 MB original: nothing
   resizes images on Workers.
-- Catalog pages are rendered on every request (150–300 ms). Vercel cached them
-  for an hour. Edge caching comes with the admin port, when a price change can
-  purge the pages it affects.
+- Catalog pages are cached until the catalog changes (see "Catalog cache");
+  Vercel re-rendered them once an hour.
 - The HTML of `/design` has no step list or price before JavaScript runs; Next
   sent the sidebar markup. Title, description and canonical are the same.
 - `/account` goes to `/account/wardrobes`; on the live site it is a 404.
