@@ -28,7 +28,10 @@ beforeEach(() => {
   send.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 
 describe("sendEmail", () => {
   it("retries Resend's rate limit and then succeeds", async () => {
@@ -68,5 +71,28 @@ describe("sendEmail", () => {
     send.mockResolvedValue(fail("rate_limit_exceeded", 429));
     expect(await run(sendEmail(email))).toBe(false);
     expect(send).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("sendEmail on a test build", () => {
+  beforeEach(() => {
+    vi.stubEnv("EMAIL_MODE", "redirect");
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  it("sends to the redirect address and names the intended one in the subject", async () => {
+    vi.stubEnv("EMAIL_REDIRECT_TO", "tester@example.com");
+    send.mockResolvedValue(ok);
+    expect(await run(sendEmail(email))).toBe(true);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toMatchObject({
+      to: "tester@example.com",
+      subject: "[DEV, za kupac@example.com] Test",
+    });
+  });
+
+  it("sends nothing when no redirect address is set", async () => {
+    expect(await run(sendEmail(email))).toBe(false);
+    expect(send).not.toHaveBeenCalled();
   });
 });

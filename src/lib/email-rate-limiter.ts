@@ -10,6 +10,22 @@ export const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
 // a customer who answers an order email reaches a person.
 export const REPLY_TO_EMAIL = "Ormani po meri <info@ormanipomeri.com>";
 
+/**
+ * A test build runs on a copy of the production database, so real customers'
+ * addresses are in it. With EMAIL_MODE=redirect (set in wrangler.jsonc for
+ * the dev Worker) every email goes to EMAIL_REDIRECT_TO instead and says in
+ * its subject who it was meant for; without that address nothing is sent.
+ */
+export function isTestBuild() {
+  return process.env.EMAIL_MODE === "redirect";
+}
+
+function forTestBuild(params: SendEmailParams): SendEmailParams | null {
+  const to = process.env.EMAIL_REDIRECT_TO;
+  if (!to) return null;
+  return { ...params, to, subject: `[DEV, za ${params.to}] ${params.subject}` };
+}
+
 // Spaces Resend calls from this instance to stay under Resend's 10 requests
 // per second per team. Only a timestamp is shared: on Workers a promise made
 // by one request cannot be awaited by another, so there is no queue to wait
@@ -81,7 +97,15 @@ function shouldRetry(
  * must not stop the rest. Resend reports rejections (bad address, sending
  * limits) in its result instead of throwing, so both paths are checked.
  */
-export async function sendEmail(params: SendEmailParams): Promise<boolean> {
+export async function sendEmail(intended: SendEmailParams): Promise<boolean> {
+  const params = isTestBuild() ? forTestBuild(intended) : intended;
+  if (!params) {
+    console.log(
+      `Email to ${intended.to} not sent ("${intended.subject}"): test build without EMAIL_REDIRECT_TO`,
+    );
+    return false;
+  }
+
   let reason = "";
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     if (attempt > 0) {

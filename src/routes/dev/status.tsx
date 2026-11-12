@@ -28,6 +28,12 @@ function StatusPage() {
   );
 }
 
+const MAIL_TARGET = {
+  everyone: "pravim primaocima",
+  "one-address": "samo na test adresu",
+  nobody: "nikome",
+} as const;
+
 function RuntimeChecks() {
   const { data } = useSuspenseQuery(runtimeProofQuery);
   return (
@@ -42,6 +48,11 @@ function RuntimeChecks() {
         label="Mejl sa fakturom"
         value={`${data.email.htmlLength} znakova`}
         ok={data.email.htmlLength > 1000}
+      />
+      <Row
+        label="Mejlovi idu"
+        value={MAIL_TARGET[data.mail]}
+        ok={data.mail !== "everyone"}
       />
       <Row
         label="Datum (sr-RS)"

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { resend, enqueueResend } from "./email-rate-limiter";
+import { enqueueResend, isTestBuild, resend } from "./email-rate-limiter";
 
 const NEWSLETTER_SEGMENT_ID = process.env.RESEND_NEWSLETTER_SEGMENT_ID!;
 const CUSTOMERS_SEGMENT_ID = process.env.RESEND_CUSTOMERS_SEGMENT_ID!;
@@ -17,6 +17,8 @@ export async function syncResendContact(
   firstName: string,
   subscribed: boolean,
 ) {
+  // The mailing lists are the real ones; test accounts stay out of them.
+  if (isTestBuild()) return;
   try {
     if (subscribed) {
       await enqueueResend(() =>
@@ -46,6 +48,7 @@ export async function syncResendContact(
  * Fire-and-forget — never throws, never blocks checkout.
  */
 export async function addToCustomersSegment(email: string, firstName: string) {
+  if (isTestBuild()) return;
   try {
     await enqueueResend(() =>
       resend.contacts.create({ email, firstName, unsubscribed: false }),

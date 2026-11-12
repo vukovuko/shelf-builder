@@ -5,6 +5,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": { "enabled": true },
+  // This Worker's database is a copy of production. In this mode every email
+  // goes to the EMAIL_REDIRECT_TO secret instead of its real recipient, and
+  // none are sent without it. The production Worker must not set it.
+  "vars": { "EMAIL_MODE": "redirect" },
   // Neon branch "dev". Query caching is off: an admin edit must show up in
   // the very next read. Local dev reads the connection string from
   // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE in .env.

@@ -46,8 +46,14 @@ the production database.
 
 The dev build must not reach real people or real analytics:
 
-- `RESEND_API_KEY=re_dev_no_email`: Resend refuses it, so no email goes out.
-  Server code logs the failure and carries on.
+- `EMAIL_MODE=redirect` (in `wrangler.jsonc`, so local dev has it too): every
+  email goes to the address in `EMAIL_REDIRECT_TO` and its subject starts with
+  `[DEV, za <real recipient>]`. Without `EMAIL_REDIRECT_TO` nothing is sent.
+  The database is a copy of production, so this is what keeps a test from
+  writing to a real customer. Mailing-list sync to Resend is skipped too.
+  `/dev/status` shows which of the three states a build is in.
+- `RESEND_API_KEY` is the real key, so redirected emails are delivered. With
+  `re_dev_no_email` in its place Resend refuses every send.
 - Turnstile runs on Cloudflare's always-pass test keys
   (`NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`,
   `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`).
@@ -60,8 +66,9 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 
 A test customer exists only in the Neon branch `dev`. Its email and password
 are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`. It has one
-saved design and two orders: #1032 (a copy of a real order's design and prices
-with made-up contact details) and #1033 (placed through the checkout dialog).
+saved design and four orders: #1032 (a copy of a real order's design and
+prices with made-up contact details) and #1033 to #1035 (placed through the
+checkout dialog).
 
 Not set on the dev Worker yet, so these do nothing there: `ANTHROPIC_API_KEY`
 (sketch import), the Google keys (sign-in, address suggestions in checkout),
@@ -148,11 +155,12 @@ for it, so the data arrives in the same response as the page.
   the remaining API handlers run through the bridge
 - [x] 4. Sign-in pages (`/prijava`, `/reset-password`, `/verify-success`) and
   the customer account (`/account/*`)
-- [ ] 5. Checkout and emails. `/api/checkout` runs unchanged through the bridge
-  and a test order went through on local dev: price rules, the transaction,
-  the order in the account, and the five emails attempted after the response
-  (refused by the placeholder key). Left: one order on the dev link, a real
-  email delivered, then moving the handler to a server function
+- [x] 5. Checkout and emails. `/api/checkout` runs unchanged through the bridge.
+  Test orders went through on local dev and on the dev link (#1035): price
+  rules, the transaction, the order in the account, and all five emails
+  (confirmation, invoice with the IPS QR code, three admin notices) delivered
+  to the redirect address only. Later: move the handler to a server function
 - [ ] 6. Admin
 - [ ] 7. MCP server, AI sketch import, todo board, PostHog proxy, CSP
-- [ ] 8. Domain cutover
+- [ ] 8. Domain cutover. The production Worker needs its own wrangler
+  environment without `EMAIL_MODE`, built with `VITE_INDEXABLE=true`

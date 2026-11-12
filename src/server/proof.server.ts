@@ -4,6 +4,7 @@ import { count } from "drizzle-orm";
 import { db } from "@/db/db";
 import { handles, materials, rules } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { isTestBuild } from "@/lib/email-rate-limiter";
 import InvoiceEmail from "@/lib/emails/invoice-email";
 import { generateIpsQrBuffer } from "@/lib/ips-qr";
 
@@ -40,6 +41,12 @@ export async function runRuntimeProof() {
       isPng: PNG_SIGNATURE.every((byte, i) => qr[i] === byte),
     },
     email: { htmlLength: html.length },
+    // Where this build's email goes; see isTestBuild.
+    mail: !isTestBuild()
+      ? ("everyone" as const)
+      : process.env.EMAIL_REDIRECT_TO
+        ? ("one-address" as const)
+        : ("nobody" as const),
     intl: {
       date: new Date(Date.UTC(2026, 10, 11, 12)).toLocaleDateString("sr-RS"),
       price: new Intl.NumberFormat("sr-RS").format(51355),
