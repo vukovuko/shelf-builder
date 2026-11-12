@@ -1,6 +1,7 @@
 "use client";
 
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { useMutation } from "@tanstack/react-query";
 import { Send } from "lucide-react";
 import posthog from "posthog-js";
 import { useRef, useState } from "react";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { sendPublicContact } from "@/server/contact.functions";
 
 interface PublicContactFormProps {
   userName?: string;
@@ -19,7 +21,6 @@ export function PublicContactForm({
   userName = "",
   userEmail = "",
 }: PublicContactFormProps) {
-  const [sending, setSending] = useState(false);
   const [name, setName] = useState(userName);
   const [email, setEmail] = useState(userEmail);
   const [phone, setPhone] = useState("");
@@ -52,51 +53,48 @@ export function PublicContactForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validate()) return;
-
-    setSending(true);
-    try {
-      const res = await fetch("/api/public-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim() || null,
-          phone: phone.trim() || null,
-          message: message.trim(),
-          turnstileToken,
-        }),
-      });
-
-      if (res.ok) {
-        posthog.capture("public_contact_submitted");
-        toast.success(
-          "Poruka je uspešno poslata! Javićemo vam se u najkraćem mogućem roku.",
-        );
-        setName("");
-        setEmail("");
-        setPhone("");
-        setMessage("");
-        setTurnstileToken(null);
-        setErrors({});
-        turnstileRef.current?.reset();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error || "Greška pri slanju poruke");
+  const send = useMutation({
+    mutationFn: sendPublicContact,
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
-    } catch {
+      posthog.capture("public_contact_submitted");
+      toast.success(
+        "Poruka je uspešno poslata! Javićemo vam se u najkraćem mogućem roku.",
+      );
+      setName("");
+      setEmail("");
+      setPhone("");
+      setMessage("");
+      setErrors({});
+    },
+    onError: () => {
       toast.error(
         "Neočekivana greška. Proverite internet konekciju i pokušajte ponovo.",
       );
-    } finally {
-      setSending(false);
+    },
+    onSettled: () => {
       // The server spends the token even when the send fails.
       setTurnstileToken(null);
       turnstileRef.current?.reset();
-    }
+    },
+  });
+  const sending = send.isPending;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate() || !turnstileToken) return;
+    send.mutate({
+      data: {
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        message: message.trim(),
+        turnstileToken,
+      },
+    });
   };
 
   return (

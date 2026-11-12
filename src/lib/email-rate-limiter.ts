@@ -10,28 +10,19 @@ export const FROM_EMAIL = "Ormani po meri <noreply@ormanipomeri.com>";
 // a customer who answers an order email reaches a person.
 export const REPLY_TO_EMAIL = "Ormani po meri <info@ormanipomeri.com>";
 
-// Serial queue for all Resend calls from this instance, spaced to stay under
-// Resend's 10 requests/second per team. Other instances can still collide,
-// which sendEmail absorbs by retrying rate-limit errors.
+// Spaces Resend calls from this instance to stay under Resend's 10 requests
+// per second per team. Only a timestamp is shared: on Workers a promise made
+// by one request cannot be awaited by another, so there is no queue to wait
+// in. Calls that still collide (parallel requests, other instances) are
+// absorbed by sendEmail retrying rate-limit errors.
 let lastCallTime = 0;
-let pending: Promise<void> = Promise.resolve();
 const MIN_GAP_MS = 150;
 
-export function enqueueResend<T>(fn: () => Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    pending = pending.then(async () => {
-      const elapsed = Date.now() - lastCallTime;
-      if (elapsed < MIN_GAP_MS) {
-        await new Promise((r) => setTimeout(r, MIN_GAP_MS - elapsed));
-      }
-      lastCallTime = Date.now();
-      try {
-        resolve(await fn());
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
+export async function enqueueResend<T>(fn: () => Promise<T>): Promise<T> {
+  const wait = lastCallTime + MIN_GAP_MS - Date.now();
+  lastCallTime = Math.max(Date.now(), lastCallTime + MIN_GAP_MS);
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  return fn();
 }
 
 interface EmailAttachment {

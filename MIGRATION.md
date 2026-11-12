@@ -40,6 +40,22 @@ the production database.
   disallows everything, which is what the workers.dev build wants.
 - Vercel does not build this branch (`vercel.json`).
 
+## Dev keys
+
+The dev build must not reach real people or real analytics:
+
+- `RESEND_API_KEY=re_dev_no_email`: Resend refuses it, so no email goes out.
+  Server code logs the failure and carries on.
+- Turnstile runs on Cloudflare's always-pass test keys
+  (`NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA`,
+  `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`).
+- Upstash is not set: customer forms let the request through when the rate
+  limiter is unreachable.
+- PostHog is not loaded.
+
+Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
+(`wrangler secret put`).
+
 ## Conventions
 
 - Server code that the browser calls goes in `*.functions.ts` as
@@ -49,7 +65,9 @@ the production database.
   `ensureQueryData` in the loader for what the page cannot render without, and
   `prefetchQuery` without `await` for the rest.
 - Writes are `useMutation` with an optimistic update and `invalidateQueries`
-  for the keys they change. No `router.refresh()`.
+  for the keys they change. No `router.refresh()`. A server function returns
+  `{ ok: false, error }` for an outcome the form shows to the visitor (rate
+  limit, failed verification) and throws only for what nobody expected.
 - Server routes (`server.handlers`) are only for callers outside the app:
   auth, MCP, sitemap, robots, llms.txt.
 - `import { db } from "@/db/db"` works as before. It opens connections per
@@ -72,9 +90,8 @@ the production database.
 - [x] 0b. Neon branch `dev` + Hyperdrive binding (query caching off)
 - [x] 1. Shared components run unchanged: `next/link`, `next/navigation` and
   `next/image` resolve to stand-ins in `src/compat/next`; Poppins is self-hosted
-- [ ] 2. Public pages and SEO: home, blog, FAQ, materijali, ručke, privacy,
-  terms, sitemap.xml, robots.txt and llms.txt done; contact (first form with a
-  server function) to do
+- [x] 2. Public pages and SEO: home, blog, FAQ, contact, materijali, ručke,
+  privacy, terms, sitemap.xml, robots.txt, llms.txt
 - [ ] 3. Configurator (`/design`, `/design-test`), saving designs
 - [ ] 4. Sign-in and customer account
 - [ ] 5. Checkout and emails

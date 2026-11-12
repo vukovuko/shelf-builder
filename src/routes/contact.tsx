@@ -1,25 +1,34 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Phone } from "lucide-react";
-import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { COMPANY_CONTACT, COMPANY_PHONE_HREF } from "@/lib/company-contact";
-import { COMPANY_SOCIALS } from "@/lib/company-socials";
+import { PublicContactForm } from "@/components/PublicContactForm";
 import { SocialIcon } from "@/components/SocialIcons";
 import { FooterComplex } from "@/components/smoothui/footer-2";
 import { HeroHeader } from "@/components/smoothui/shared";
-import { PublicContactForm } from "./PublicContactForm";
+import { COMPANY_CONTACT, COMPANY_PHONE_HREF } from "@/lib/company-contact";
+import { COMPANY_SOCIALS } from "@/lib/company-socials";
+import { pageMeta } from "@/lib/seo/site";
+import { currentUserQuery } from "@/server/session.functions";
 
-export const metadata: Metadata = {
-  title: "Kontakt | Ormani po Meri — Pošaljite Nam Poruku",
-  description: `Pozovite nas na ${COMPANY_CONTACT.phone} (${COMPANY_CONTACT.hours}) ili pišite na ${COMPANY_CONTACT.email} za pitanja o ormanima po meri: mere, materijali, cene, izrada, montaža i dostava.`,
-};
+export const Route = createFileRoute("/contact")({
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(currentUserQuery),
+  head: () => ({
+    meta: pageMeta({
+      title: "Kontakt | Ormani po Meri — Pošaljite Nam Poruku",
+      description: `Pozovite nas na ${COMPANY_CONTACT.phone} (${COMPANY_CONTACT.hours}) ili pišite na ${COMPANY_CONTACT.email} za pitanja o ormanima po meri: mere, materijali, cene, izrada, montaža i dostava.`,
+    }),
+  }),
+  component: ContactPage,
+});
 
 const cardClass = "rounded-xl border border-border bg-card p-5";
 const labelClass =
   "mb-2 font-semibold text-foreground/60 text-xs uppercase tracking-wide";
 
-export default async function ContactPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+function ContactPage() {
+  // The form starts filled in for a signed-in visitor.
+  const { data: currentUser } = useSuspenseQuery(currentUserQuery);
 
   return (
     <div className="relative">
@@ -83,8 +92,8 @@ export default async function ContactPage() {
               Javićemo vam se u najkraćem mogućem roku.
             </p>
             <PublicContactForm
-              userName={session?.user?.name ?? ""}
-              userEmail={session?.user?.email ?? ""}
+              userName={currentUser?.name ?? ""}
+              userEmail={currentUser?.email ?? ""}
             />
           </div>
         </section>

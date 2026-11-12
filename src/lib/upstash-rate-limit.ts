@@ -202,6 +202,10 @@ export const betterAuthRateLimitStorage = {
  * group it further via rateLimitKey.
  */
 export function getIdentifier(request: Request): string {
+  // Cloudflare writes this header itself on every request to the Worker, so
+  // a visitor cannot forge it; the first x-forwarded-for entry they can.
+  const connecting = request.headers.get("cf-connecting-ip");
+  if (connecting) return connecting;
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || "anonymous";
   return ip;

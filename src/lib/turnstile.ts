@@ -15,6 +15,10 @@ function isOwnHostname(hostname: string | undefined) {
   );
 }
 
+// Cloudflare's always-pass test secret. Dev builds run on it (with the test
+// site key), and its tokens report example.com as the hostname.
+const TEST_SECRET = "1x0000000000000000000000000000000AA";
+
 export type TurnstileResult = "ok" | "rejected" | "unavailable";
 
 /**
@@ -54,7 +58,8 @@ export async function checkTurnstile(
       if (data["error-codes"]?.includes("internal-error")) continue;
       if (data.success !== true) return "rejected";
       // Cloudflare's test keys report example.com, so only production checks it.
-      return process.env.NODE_ENV !== "production" ||
+      return secret === TEST_SECRET ||
+        process.env.NODE_ENV !== "production" ||
         isOwnHostname(data.hostname)
         ? "ok"
         : "rejected";
