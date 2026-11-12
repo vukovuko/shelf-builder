@@ -60,11 +60,12 @@ Locally these live in `.env` and `.dev.vars`; on the Worker they are secrets
 
 A test customer exists only in the Neon branch `dev`. Its email and password
 are `DEV_TEST_EMAIL` and `DEV_TEST_PASSWORD` in the local `.env`. It has one
-saved design and one order (#1032, a copy of a real order's design and prices
-with made-up contact details).
+saved design and two orders: #1032 (a copy of a real order's design and prices
+with made-up contact details) and #1033 (placed through the checkout dialog).
 
 Not set on the dev Worker yet, so these do nothing there: `ANTHROPIC_API_KEY`
-(sketch import), the Google sign-in keys, Upstash.
+(sketch import), the Google keys (sign-in, address suggestions in checkout),
+Upstash.
 
 ## Conventions
 
@@ -147,7 +148,11 @@ for it, so the data arrives in the same response as the page.
   the remaining API handlers run through the bridge
 - [x] 4. Sign-in pages (`/prijava`, `/reset-password`, `/verify-success`) and
   the customer account (`/account/*`)
-- [ ] 5. Checkout and emails
+- [ ] 5. Checkout and emails. `/api/checkout` runs unchanged through the bridge
+  and a test order went through on local dev: price rules, the transaction,
+  the order in the account, and the five emails attempted after the response
+  (refused by the placeholder key). Left: one order on the dev link, a real
+  email delivered, then moving the handler to a server function
 - [ ] 6. Admin
 - [ ] 7. MCP server, AI sketch import, todo board, PostHog proxy, CSP
 - [ ] 8. Domain cutover
