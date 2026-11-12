@@ -275,7 +275,7 @@ export function AccountClient({ user }: AccountClientProps) {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("sr-RS", {
+    return new Intl.DateTimeFormat("sr-Latn-RS", {
       year: "numeric",
       month: "long",
       day: "numeric",

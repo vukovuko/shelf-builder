@@ -762,7 +762,7 @@ export function WardrobePreviewClient({
             <div>
               <p className="text-sm text-muted-foreground">Kreiran</p>
               <p className="font-medium">
-                {new Date(wardrobe.createdAt).toLocaleDateString("sr-RS", {
+                {new Date(wardrobe.createdAt).toLocaleDateString("sr-Latn-RS", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
@@ -778,7 +778,7 @@ export function WardrobePreviewClient({
             <div>
               <p className="text-sm text-muted-foreground">Ažuriran</p>
               <p className="font-medium">
-                {new Date(wardrobe.updatedAt).toLocaleDateString("sr-RS", {
+                {new Date(wardrobe.updatedAt).toLocaleDateString("sr-Latn-RS", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
