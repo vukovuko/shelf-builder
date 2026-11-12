@@ -21,7 +21,9 @@
   "env": {
     "production": {
       "name": "ormanipomeri",
-      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "5c4849265254430d810c4b49e3d08b00" }]
+      "hyperdrive": [
+        { "binding": "HYPERDRIVE", "id": "5c4849265254430d810c4b49e3d08b00" }
+      ]
     }
   }
 }
