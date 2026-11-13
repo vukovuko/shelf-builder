@@ -3,7 +3,7 @@
   "name": "ormanipomeri-dev",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "./src/server.ts",
   "observability": { "enabled": true },
   // This Worker's database is a copy of production. In this mode every email
   // goes to the EMAIL_REDIRECT_TO secret instead of its real recipient, and

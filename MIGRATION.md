@@ -310,6 +310,38 @@ page starts with went from 203 KB to 110 KB gzipped.
   cost one request per file on every visit. A changed texture needs a new
   file name.
 
+## Programs that read the site (AI agents)
+
+Cloudflare's Agent Readiness scan (dashboard → AI Crawl Control → Agent
+Readiness, or `POST https://isitagentready.com/api/scan`) put the site at
+level 1 on 14 Nov 2026 and at level 3 ("Agent-Readable") after this:
+
+- The Worker's entry is `src/server.ts`, which wraps TanStack Start's handler
+  with `answerPrograms` (`src/server/agent-requests.ts`). Start's page
+  renderer answers 406 to any request whose `Accept` header names neither
+  `text/html` nor `*/*`; four scan checks failed on that alone. Such a
+  request now gets the page.
+- `Accept: text/markdown` gets the page as Markdown
+  (`src/server/markdown-page.ts`): front matter from the meta tags, the
+  content of `<main>`, then the page's JSON-LD. Cloudflare's own "Markdown
+  for Agents" does this at the edge, but only on paid plans. Catalog pages
+  keep their Markdown in the catalog cache (the materials list is 0.5 MB of
+  HTML and takes over a second to convert).
+- Every HTML page carries `Link` headers to `/llms.txt` and `/sitemap.xml`.
+- `robots.txt` carries Content Signals (contentsignals.org):
+  `ai-train=yes, search=yes, ai-input=yes`, the same choice as letting the
+  AI crawlers in. Change it in `src/lib/seo/robots.ts` and in
+  `CONTENT_SIGNAL` in `agent-requests.ts` together.
+
+Left failing on purpose: the API catalog, MCP server card, auth.md, A2A card
+and skills index describe an API or an agent that outside programs may use.
+The only such thing here is the admin's private MCP server, and advertising
+it helps nobody. The root `/.well-known/oauth-protected-resource` names
+`/api/mcp` as its resource, which the scan reads as a mismatch; MCP clients
+use the path-specific document from the `WWW-Authenticate` header, which is
+correct, so it stays. The commerce checks need card payments through a
+payment provider, which the shop does not have.
+
 ## Other hosts and AI assistants
 
 - todo.ormanipomeri.com shows the to-do board at "/": the router maps that

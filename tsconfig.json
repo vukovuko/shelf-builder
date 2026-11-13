@@ -29,6 +29,7 @@
   "include": [
     "src/routes",
     "src/server",
+    "src/server.ts",
     "src/compat",
     "src/cloudflare.d.ts",
     "src/router.tsx",
