@@ -94,6 +94,15 @@ Upstash.
   for the keys they change. No `router.refresh()`. A server function returns
   `{ ok: false, error }` for an outcome the form shows to the visitor (rate
   limit, failed verification) and throws only for what nobody expected.
+- Events go through `capture()` in `src/lib/track.ts`, never a direct
+  `posthog-js` import: one such import in a shared component puts the whole
+  library (60 KB gzipped) in the first script of every page. The same goes
+  for jsPDF: import the exports from `src/lib/pdf/lazy.ts`.
+- `fetchQuery`, `prefetchQuery` and `ensureQueryData` are marked deprecated in
+  the installed query-core 5.107 (`queryClient.query(...)` replaces them in
+  the next major). They work and are used in 33 places; swap them when
+  upgrading Query, and keep `Infinity` (not `"static"`) in
+  `cachedUnlessChanged`, because `"static"` ignores invalidation.
 - Server routes (`server.handlers`) are only for callers outside the app:
   auth, MCP, sitemap, robots, llms.txt.
 - `import { db } from "@/db/db"` works as before. It opens connections per
@@ -217,24 +226,39 @@ handler; the bridge goes away with the last of them.
   out of date) and the page reads `useSuspenseQuery`, so a revisit draws in
   about 20 ms and refetches behind it.
 - Bulk actions of the lists (publish, draft, enable, disable, paid, fulfilled,
-  delete, the models' publish switch) go through `useListAction` in
-  `src/components/admin/list-actions.ts`: the rows change in the cache before
-  the server answers, go back with an error toast if it refuses any of them,
-  and the list is refetched when it settles.
+  delete, the models' publish switch) go through `useListAction(entity,
+  rowsKey)` in `src/components/admin/list-actions.ts`: the rows change in the
+  cache before the server answers and go back with an error toast if it
+  refuses any of them. Actions on one list are sent one after another
+  (`scope`), and only the last one running rolls back and refetches, so two
+  quick clicks cannot overwrite each other.
+- Every admin write ends in `invalidateAdminData`
+  (`src/components/admin/admin-cache.ts`, which also holds the list keys):
+  everything the admin has cached is marked out of date, plus the public
+  catalog and configurator data in the same tab.
 - Detail pages fetch fresh on every visit (`fetchQuery`, `staleTime: 0`) and
   read `Route.useLoaderData()`. Their forms copy the record into state once,
-  so a form opened on old values would save them back. Two things keep that
-  from happening:
-  - `defaultStaleReloadMode: "blocking"` in `src/router.tsx`. Without it the
-    router draws its own remembered copy of a page first and runs the loader
-    behind it, and a material reopened after a save showed the price from
-    before the save.
+  so a form opened on old values would save them back. Three things keep that
+  from happening, all in `src/router.tsx` or next to the forms:
+  - `defaultStaleReloadMode: "blocking"`. Without it the router draws its own
+    remembered copy of a page first and runs the loader behind it, and a
+    material reopened after a save showed the price from before the save.
+  - `defaultRemountDeps: ({ params }) => params`. Without it going from one
+    record straight to another (history) keeps the first record's form state
+    under the second record's address.
   - The forms still save through the old `/api/admin/*` handlers, but with
     `adminFetch` (`src/components/admin/admin-fetch.ts`) instead of `fetch`.
-    A write the server accepted marks all cached admin data as out of date
-    (the layout in `src/routes/admin/route.tsx` listens), so the list a form
-    returns to is fetched again before it is shown. A new admin form must use
-    `adminFetch` for its writes too.
+    A write the server accepted calls `invalidateAdminData` (the layout in
+    `src/routes/admin/route.tsx` listens), so the list a form returns to is
+    fetched again before it is shown. A new admin form must use `adminFetch`
+    for its writes too.
+- Record pages share their chrome (`src/components/admin/page-chrome.tsx`):
+  `SaveBar` puts the save button in the layout's top bar, which stays on
+  screen, disabled until something changed (`form="<id>"` submits the page's
+  form, so `required` fields still block it); `PageHeader` has the way back,
+  the title and the status (`StatusSelect`); `DeleteAction` goes at the
+  bottom of the page, away from save. The material page is the model for the
+  two-column layout. The user page keeps a save per card.
 
 ## Catalog cache
 
@@ -257,6 +281,28 @@ starts from for everyone else. A hit takes about 50 ms; a render took
   a day.
 - If KV fails or its daily write quota is used up, pages are rendered as
   before; nothing depends on the cache being there.
+
+## First load
+
+Measured on `/design` with Lighthouse (mobile, local production build, 13 Nov
+2026): total blocking time 4,060 ms before, 200 ms after; the script every
+page starts with went from 203 KB to 110 KB gzipped.
+
+- PostHog loads after the page is interactive and is its own chunk. Session
+  recording starts with the visitor's first tap, key press or scroll
+  (`src/lib/analytics-client.ts`): it copies the 3D canvas four times a
+  second, which during load competes with building the scene. A visit
+  without any interaction is not recorded.
+- jsPDF (124 KB gzipped) loads when someone exports a PDF.
+- The lighting map of the 3D scene is `public/hdri/apartment-512.hdr` (379 KB,
+  was 1.4 MB). It was halved in linear light (2x2 average); against the
+  original no pixel of the render differs by more than 1/255. The original
+  stays in `public/hdri` for pages opened before the change.
+- `public/_headers` gives everything under `/assets` (content-hashed names) a
+  one-year immutable cache, and `/hdri` and `/textures` 30 days. Workers
+  serves static files with `max-age=0, must-revalidate` otherwise, which
+  cost one request per file on every visit. A changed texture needs a new
+  file name.
 
 ## Other hosts and AI assistants
 
