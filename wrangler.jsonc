@@ -19,6 +19,9 @@
   "kv_namespaces": [
     { "binding": "CACHE", "id": "9da4b06e87294f98b8b128d600dcea4d" }
   ],
+  // Uploaded images (src/lib/r2.ts). The dev Worker writes to the same bucket
+  // as production; local dev writes to a bucket simulated on this machine.
+  "r2_buckets": [{ "binding": "UPLOADS", "bucket_name": "ormari-po-meri" }],
   // The production site: `npm run deploy:production`. It has its own
   // database binding and no EMAIL_MODE, so email goes to its real recipients.
   // (Bindings and vars are not inherited from the top level.)
@@ -37,7 +40,8 @@
       ],
       "kv_namespaces": [
         { "binding": "CACHE", "id": "5e717b009468479b8380734141f3130a" }
-      ]
+      ],
+      "r2_buckets": [{ "binding": "UPLOADS", "bucket_name": "ormari-po-meri" }]
     }
   }
 }

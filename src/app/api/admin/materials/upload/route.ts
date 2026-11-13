@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { putR2Object } from "@/lib/r2";
 import { requireAdmin } from "@/lib/roles";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -8,27 +8,6 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export async function POST(request: Request) {
   try {
     await requireAdmin();
-
-    const {
-      R2_ACCOUNT_ID,
-      R2_ACCESS_KEY_ID,
-      R2_SECRET_ACCESS_KEY,
-      R2_BUCKET_NAME,
-      R2_BASE_URL,
-    } = process.env;
-
-    if (
-      !R2_ACCOUNT_ID ||
-      !R2_ACCESS_KEY_ID ||
-      !R2_SECRET_ACCESS_KEY ||
-      !R2_BUCKET_NAME ||
-      !R2_BASE_URL
-    ) {
-      return NextResponse.json(
-        { error: "R2 credentials not configured" },
-        { status: 500 },
-      );
-    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -63,28 +42,7 @@ export async function POST(request: Request) {
     const filename = `${timestamp}-${safeName}.${ext}`;
     const key = `materials/${filename}`;
 
-    // Upload to R2
-    const client = new S3Client({
-      region: "auto",
-      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID,
-        secretAccessKey: R2_SECRET_ACCESS_KEY,
-      },
-    });
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    await client.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }),
-    );
-
-    const url = `${R2_BASE_URL}/${key}`;
+    const url = await putR2Object(key, await file.arrayBuffer(), file.type);
 
     return NextResponse.json({ url });
   } catch (error) {

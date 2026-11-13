@@ -5,6 +5,14 @@ declare module "cloudflare:workers" {
   export const env: {
     /** Neon through Hyperdrive; see wrangler.jsonc. */
     HYPERDRIVE: { connectionString: string };
+    /** The public R2 bucket for uploaded images; see src/lib/r2.ts. */
+    UPLOADS: {
+      put(
+        key: string,
+        value: ArrayBuffer | ArrayBufferView | ReadableStream | string,
+        options?: { httpMetadata?: { contentType?: string } },
+      ): Promise<unknown>;
+    };
     /** KV for the catalog cache; see src/server/edge-cache.server.ts. */
     CACHE: {
       get(key: string, options?: { cacheTtl?: number }): Promise<string | null>;
