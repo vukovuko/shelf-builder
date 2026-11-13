@@ -2,7 +2,7 @@
 
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Check, ChevronsUpDown, Send } from "lucide-react";
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export function ContactClient({
       });
 
       if (res.ok) {
-        posthog.capture("contact_submitted", {
+        capture("contact_submitted", {
           has_wardrobe_reference: !!wardrobeId,
         });
         toast.success(

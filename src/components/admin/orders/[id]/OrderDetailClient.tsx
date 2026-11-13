@@ -33,7 +33,7 @@ import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
 import { exportCutListAsCsv } from "@/lib/exportCsv";
 import { calculateCutList, getCutListGroupKey } from "@/lib/calcCutList";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
-import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
+import { exportElementSpecs } from "@/lib/pdf/lazy";
 import {
   Select,
   SelectContent,

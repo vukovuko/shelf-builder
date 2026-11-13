@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, ImageUp, Loader2, Sparkles } from "lucide-react";
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -115,7 +115,7 @@ export function DesignImportButton({ className }: { className?: string }) {
       loadedIsModel: st.loadedWardrobeIsModel,
     };
     const outcome = importWardrobeDraft(body.draft);
-    posthog.capture("design_import", {
+    capture("design_import", {
       source,
       status: outcome.status,
       adjustments: outcome.adjustments.map((a) => a.code),

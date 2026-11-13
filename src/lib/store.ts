@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { create } from "zustand";
 import {
   MAX_SHELVES_PER_COLUMN,
@@ -1765,7 +1765,7 @@ export const useShelfStore = create<ShelfState>((set) => ({
       "item-5": "Vrata",
     };
     if (step && stepNames[step]) {
-      posthog.capture("step_viewed", {
+      capture("step_viewed", {
         step: parseInt(step.split("-")[1]),
         step_name: stepNames[step],
       });

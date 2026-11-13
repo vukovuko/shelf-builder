@@ -1,6 +1,7 @@
 import posthog from "posthog-js";
 import { authClient } from "./auth-client";
 import { onSessionChange } from "./session-events";
+import { analyticsStarted } from "./track";
 
 /**
  * Starts PostHog in the browser. Loaded only by the production build (see
@@ -12,6 +13,8 @@ export function startAnalytics(key: string) {
     api_host: "/t",
     ui_host: "https://eu.posthog.com",
     defaults: "2026-01-30",
+    // Started by recordFromFirstInteraction below.
+    disable_session_recording: true,
     session_recording: {
       captureCanvas: {
         canvasFps: 4,
@@ -23,6 +26,13 @@ export function startAnalytics(key: string) {
       return event;
     },
   });
+
+  analyticsStarted({
+    capture: (event, properties, at) =>
+      posthog.capture(event, properties, { timestamp: at }),
+    captureException: (error) => posthog.captureException(error),
+  });
+  recordFromFirstInteraction();
 
   // Ties the visit to the account, and unties it on sign-out.
   let identifiedAs: string | null = null;
@@ -42,4 +52,32 @@ export function startAnalytics(key: string) {
   }
   void identify();
   onSessionChange(() => void identify());
+}
+
+const FIRST_INTERACTION = [
+  "pointerdown",
+  "keydown",
+  "touchstart",
+  "wheel",
+] as const;
+
+/**
+ * Session recording copies the page and then the 3D canvas four times a
+ * second. While the page loads that competes with building the scene (most
+ * of the load time on a slow phone), so it starts with the visitor's first
+ * tap, key press or scroll. A visit without any of those is not recorded.
+ */
+function recordFromFirstInteraction() {
+  const options = { capture: true, passive: true } as const;
+  const start = () => {
+    for (const name of FIRST_INTERACTION) {
+      window.removeEventListener(name, start, options);
+    }
+    // After the interaction itself has been handled, not in the middle of it.
+    const whenIdle = window.requestIdleCallback ?? window.setTimeout;
+    whenIdle(() => posthog.startSessionRecording());
+  };
+  for (const name of FIRST_INTERACTION) {
+    window.addEventListener(name, start, options);
+  }
 }

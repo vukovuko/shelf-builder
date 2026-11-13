@@ -4,3 +4,15 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), payment=(), serial=(), midi=(), web-share=(), fullscreen=(self), picture-in-picture=(self)
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com https://*.r2.cloudflarestorage.com https://maps.googleapis.com https://eu.i.posthog.com https://eu-assets.i.posthog.com; frame-src 'self' https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+
+# Vite puts a content hash in every file name under /assets, so a file never
+# changes under its name and browsers may keep it for good. Without this each
+# visit asks the server about every script and stylesheet again.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Not hashed, rarely replaced. Give a changed file a new name.
+/hdri/*
+  Cache-Control: public, max-age=2592000
+/textures/*
+  Cache-Control: public, max-age=2592000

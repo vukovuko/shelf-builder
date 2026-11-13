@@ -13,7 +13,7 @@ interface PlaceSuggestion {
   secondaryText: string;
 }
 
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { OrderSuccess } from "@/components/checkout/OrderSuccess";
 import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
 import { Button } from "@/components/ui/button";
@@ -184,7 +184,7 @@ export function CheckoutDialog({
   // Track checkout opened + fetch user profile
   useEffect(() => {
     if (open && !orderSuccess) {
-      posthog.capture("checkout_started", {
+      capture("checkout_started", {
         value: orderData.totalPrice,
         currency: "RSD",
       });
@@ -457,7 +457,7 @@ export function CheckoutDialog({
           ? data.finalTotal
           : (data.adjustedTotal ?? baseTotal);
 
-      posthog.capture("order_completed", {
+      capture("order_completed", {
         order_number: data.orderNumber,
         value: finalPrice,
         currency: "RSD",

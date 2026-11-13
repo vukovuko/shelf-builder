@@ -3,7 +3,7 @@
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useMutation } from "@tanstack/react-query";
 import { Send } from "lucide-react";
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ export function PublicContactForm({
         toast.error(result.error);
         return;
       }
-      posthog.capture("public_contact_submitted");
+      capture("public_contact_submitted");
       toast.success(
         "Poruka je uspešno poslata! Javićemo vam se u najkraćem mogućem roku.",
       );

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import React from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
@@ -72,8 +72,7 @@ import {
   isFrontMaterialCategory,
   isKorpusMaterialCategory,
 } from "@/lib/material-categories";
-import { exportCutListPDF } from "@/lib/pdf/exportCutListPDF";
-import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
+import { exportCutListPDF, exportElementSpecs } from "@/lib/pdf/lazy";
 import {
   getWardrobeSnapshot,
   useWardrobeSnapshot,
@@ -226,7 +225,7 @@ export function ConfiguratorControls({
         useShelfStore.getState().setLastSavedSnapshot(snapshot);
         setLastSaveTime(Date.now());
 
-        posthog.capture("design_saved", {
+        capture("design_saved", {
           wardrobe_id: loadedWardrobeId,
           is_new: false,
           wardrobe_name: wardrobeName,
@@ -278,7 +277,7 @@ export function ConfiguratorControls({
       useShelfStore.getState().setLastSavedSnapshot(snapshot);
       setLastSaveTime(Date.now());
 
-      posthog.capture("design_saved", {
+      capture("design_saved", {
         is_new: true,
         wardrobe_name: wardrobeName,
       });

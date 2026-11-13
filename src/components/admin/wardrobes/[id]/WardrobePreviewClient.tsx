@@ -43,7 +43,7 @@ import { Scene } from "@/components/Scene";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useShelfStore, type Material, type ShelfState } from "@/lib/store";
 import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { exportElementSpecs } from "@/lib/pdf/exportElementSpecs";
+import { exportElementSpecs } from "@/lib/pdf/lazy";
 import { LinkPending } from "@/components/PendingContent";
 
 interface CutListItem {

@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import posthog from "posthog-js";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { captureException } from "@/lib/track";
 
 export default function Error({
   error,
@@ -13,7 +13,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    posthog.captureException(error);
+    captureException(error);
   }, [error]);
 
   return (

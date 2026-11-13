@@ -449,10 +449,14 @@ export function Scene({
           )}
 
           {/* Lighting map and room textures each load on their own, so the
-              wardrobe shows immediately instead of waiting for ~1.5 MB. */}
+              wardrobe shows immediately instead of waiting for them. The map
+              is 512x256: every surface here is matte, and against the
+              1024x512 original (1.4 MB, still in public/hdri for pages opened
+              before the change) no pixel of the render differs by more than
+              1/255. */}
           {!showEdgesOnly && (
             <Suspense fallback={null}>
-              <Environment files="/hdri/apartment.hdr" />
+              <Environment files="/hdri/apartment-512.hdr" />
             </Suspense>
           )}
 

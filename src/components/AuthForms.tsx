@@ -1,7 +1,7 @@
 "use client";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { Check, Eye, EyeOff, X } from "lucide-react";
-import posthog from "posthog-js";
+import { capture } from "@/lib/track";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -103,7 +103,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps = {}) {
         // Nobody is signed in yet: a new account activates from the emailed
         // link, an existing passwordless one from the set-password link.
         if (result.verificationRequired) {
-          posthog.capture("signup_completed");
+          capture("signup_completed");
         }
         toast.success(result.message, { duration: 10000 });
         setMode("login");
