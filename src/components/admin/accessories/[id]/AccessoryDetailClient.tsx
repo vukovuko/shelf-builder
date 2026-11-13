@@ -288,11 +288,14 @@ export function AccessoryDetailClient({
           },
         );
       } else {
-        res = await adminFetch(`/api/admin/accessories/${accessory.id}/variants`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+        res = await adminFetch(
+          `/api/admin/accessories/${accessory.id}/variants`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          },
+        );
       }
 
       if (!res.ok) {
@@ -306,7 +309,9 @@ export function AccessoryDetailClient({
       setVariantDialogOpen(false);
 
       // Re-fetch accessory to update local state (router.refresh only updates server component props)
-      const freshRes = await adminFetch(`/api/admin/accessories/${accessory.id}`);
+      const freshRes = await adminFetch(
+        `/api/admin/accessories/${accessory.id}`,
+      );
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setAccessory(fresh);
@@ -335,7 +340,9 @@ export function AccessoryDetailClient({
 
       toast.success("Varijanta obrisana");
 
-      const freshRes = await adminFetch(`/api/admin/accessories/${accessory.id}`);
+      const freshRes = await adminFetch(
+        `/api/admin/accessories/${accessory.id}`,
+      );
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setAccessory(fresh);

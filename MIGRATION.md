@@ -212,11 +212,29 @@ handler; the bridge goes away with the last of them.
 - Each page's data is one function in `src/server/admin/*.server.ts` that
   starts with `requireAdmin()`. The functions and their queries are in
   `src/server/admin/admin.functions.ts`.
-- Forms still save through the old `/api/admin/*` handlers and then call
-  `router.refresh()`. Until they are mutations that update the cache, loaders
-  fetch fresh data on every visit (`fetchQuery`, `staleTime: 0`) and pages
-  read `Route.useLoaderData()`: a form opened on cached values would save
-  them back.
+- Lists and the dashboard are cache-first. Their loaders call
+  `cachedUnlessChanged` (the cached copy, or a fresh one if a save marked it
+  out of date) and the page reads `useSuspenseQuery`, so a revisit draws in
+  about 20 ms and refetches behind it.
+- Bulk actions of the lists (publish, draft, enable, disable, paid, fulfilled,
+  delete, the models' publish switch) go through `useListAction` in
+  `src/components/admin/list-actions.ts`: the rows change in the cache before
+  the server answers, go back with an error toast if it refuses any of them,
+  and the list is refetched when it settles.
+- Detail pages fetch fresh on every visit (`fetchQuery`, `staleTime: 0`) and
+  read `Route.useLoaderData()`. Their forms copy the record into state once,
+  so a form opened on old values would save them back. Two things keep that
+  from happening:
+  - `defaultStaleReloadMode: "blocking"` in `src/router.tsx`. Without it the
+    router draws its own remembered copy of a page first and runs the loader
+    behind it, and a material reopened after a save showed the price from
+    before the save.
+  - The forms still save through the old `/api/admin/*` handlers, but with
+    `adminFetch` (`src/components/admin/admin-fetch.ts`) instead of `fetch`.
+    A write the server accepted marks all cached admin data as out of date
+    (the layout in `src/routes/admin/route.tsx` listens), so the list a form
+    returns to is fetched again before it is shown. A new admin form must use
+    `adminFetch` for its writes too.
 
 ## Catalog cache
 
@@ -312,8 +330,11 @@ for it, so the data arrives in the same response as the page.
   to the redirect address only. Later: move the handler to a server function
 - [x] 6. Admin: all 29 pages, reading through server functions and saving
   through the bridge
-- [ ] 6b. Admin saves as mutations with optimistic updates, section by
-  section; then cached reads and edge caching of catalog pages with purge
+- [x] 6b. Admin: list actions are mutations with optimistic updates, lists
+  and the dashboard read from the cache, forms always open on fresh data
+  (13 Nov 2026). Tested on the dev link for every list: each action, a
+  refused action going back, a save on a detail page followed by the list and
+  the same detail page again. The catalog cache with purge is in place too
 - [x] 7. Security headers and CSP, PostHog (proxy `/t/*`, browser client on
   the production build only), MCP server with its OAuth routes, AI sketch
   import, to-do board on its own host
