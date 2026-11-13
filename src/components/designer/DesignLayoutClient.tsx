@@ -16,6 +16,7 @@ import { UnsavedChangesDialog } from "@/components/UnsavedChangesDialog";
 import { Button } from "@/components/ui/button";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { accountChanged } from "@/lib/account-events";
 import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import {
@@ -250,6 +251,7 @@ export function DesignLayoutClient({
       }
 
       // Mark as saved
+      accountChanged();
       useShelfStore.getState().setLastSavedSnapshot(snapshot);
 
       toast.success("Orman je sačuvan");

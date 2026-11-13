@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { type AdminEntity, adminListKey } from "@/components/admin/admin-cache";
 import {
   loadAccessories,
   loadAccessory,
@@ -55,12 +56,12 @@ const textId = z.object({ id: z.string().min(1).max(100) });
 const numericId = z.object({ id: z.number().int().positive() });
 
 function list<T>(
-  name: string,
+  name: AdminEntity,
   fetchList: (input: { data: ListSearch }) => Promise<T>,
 ) {
   return (search: ListSearch) =>
     queryOptions({
-      queryKey: ["admin", name, "list", search],
+      queryKey: [...adminListKey(name), search],
       queryFn: () => fetchList({ data: search }),
       staleTime: 0,
     });
@@ -271,6 +272,8 @@ const getTodoBoard = createServerFn({ method: "GET" }).handler(() =>
 );
 export const adminTodoBoardQuery = single("todo-board", getTodoBoard);
 
-export const getTodoHostSignInUrl = createServerFn({ method: "GET" }).handler(
+// POST: it creates a one-time sign-in token, so nothing may call it as a
+// side effect of preloading or prefetching.
+export const getTodoHostSignInUrl = createServerFn({ method: "POST" }).handler(
   () => todoHostSignInUrl(),
 );

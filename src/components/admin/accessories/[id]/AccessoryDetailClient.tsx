@@ -1,28 +1,16 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState, useMemo, useRef } from "react";
+import { Loader2, Pencil, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Pencil, Upload, X, Loader2 } from "lucide-react";
+import { adminFetch } from "@/components/admin/admin-fetch";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DeleteAction,
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +32,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -50,6 +49,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+const FORM_ID = "accessory-form";
 
 interface AccessoryVariant {
   id: number;
@@ -356,81 +357,14 @@ export function AccessoryDetailClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/admin/accessories">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div className="min-w-0">
-            <Popover>
-              <PopoverTrigger asChild>
-                <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
-                  {accessory.name}
-                </h1>
-              </PopoverTrigger>
-              <PopoverContent
-                side="bottom"
-                className="w-auto max-w-xs p-2 text-sm"
-              >
-                {accessory.name}
-              </PopoverContent>
-            </Popover>
-            <div
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1 ${
-                accessory.published
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-              }`}
-            >
-              {accessory.published ? "Objavljeno" : "Draft"}
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {categoryOptions.find(
-                (option) => option.value === accessory.category,
-              )?.label ?? "Opšti okov"}
-            </p>
-          </div>
-        </div>
+      <SaveBar form={FORM_ID} dirty={hasChanges} saving={saving} />
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              disabled={deleting}
-              className="shrink-0"
-            >
-              <Trash2 className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">
-                {deleting ? "Brisanje..." : "Obriši"}
-              </span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Obrisati okov?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Ova akcija je nepovratna. Okov &quot;{accessory.name}&quot; će
-                biti trajno obrisan zajedno sa svim varijantama.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Otkaži</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? "Brisanje..." : "Obriši"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <PageHeader backHref="/admin/accessories" title={accessory.name}>
+        <StatusSelect on={published} onChange={setPublished} />
+      </PageHeader>
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Naziv *</Label>
@@ -583,24 +517,9 @@ export function AccessoryDetailClient({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id="published"
-              checked={published}
-              onCheckedChange={setPublished}
-            />
-            <Label htmlFor="published">Objavljeno (vidljivo korisnicima)</Label>
-          </div>
-
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-
-          <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={saving || !hasChanges}>
-              {saving ? "Čuvanje..." : "Sačuvaj izmene"}
-            </Button>
-          </div>
         </form>
       </Card>
 
@@ -695,6 +614,16 @@ export function AccessoryDetailClient({
           </Table>
         )}
       </Card>
+
+      <div className="border-t pt-5">
+        <DeleteAction
+          label="Obriši okov"
+          title="Obrisati okov?"
+          description={`Ova akcija je nepovratna. Okov "${accessory.name}" će biti trajno obrisan zajedno sa svim varijantama.`}
+          deleting={deleting}
+          onConfirm={handleDelete}
+        />
+      </div>
 
       {/* Add/Edit Variant Dialog */}
       <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>

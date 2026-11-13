@@ -1,16 +1,17 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import {
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const FORM_ID = "new-accessory-form";
 
 type AccessoryCategory =
   | "general"
@@ -35,6 +38,8 @@ const categoryOptions: Array<{ value: AccessoryCategory; label: string }> = [
 export default function NewAccessoryPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  // Typing in any field. The pickers below have their own state.
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
   const [category, setCategory] = useState<AccessoryCategory>("general");
@@ -77,22 +82,23 @@ export default function NewAccessoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/accessories">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Novi okov</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Dodaj novi okov za sekciju 6 i obračun cene
-          </p>
-        </div>
-      </div>
+      <SaveBar
+        form={FORM_ID}
+        dirty={touched || published || category !== "general"}
+        saving={saving}
+      />
+
+      <PageHeader backHref="/admin/accessories" title="Novi okov">
+        <StatusSelect on={published} onChange={setPublished} />
+      </PageHeader>
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          id={FORM_ID}
+          onSubmit={handleSubmit}
+          onInput={() => setTouched(true)}
+          className="space-y-4"
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Naziv *</Label>
@@ -139,15 +145,6 @@ export default function NewAccessoryPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id="published"
-              checked={published}
-              onCheckedChange={setPublished}
-            />
-            <Label htmlFor="published">Objavljeno (vidljivo korisnicima)</Label>
-          </div>
-
           <p className="text-sm text-muted-foreground">
             Nakon kreiranja okova, možete dodati varijante sa njihovim cenama,
             na primer obična i slow motion šarka.
@@ -156,15 +153,6 @@ export default function NewAccessoryPage() {
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" asChild>
-              <Link href="/admin/accessories">Odustani</Link>
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Čuvanje..." : "Dodaj okov"}
-            </Button>
-          </div>
         </form>
       </Card>
     </div>

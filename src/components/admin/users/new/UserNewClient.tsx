@@ -1,13 +1,12 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState } from "react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import { PageHeader, SaveBar } from "@/components/admin/page-chrome";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,9 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const FORM_ID = "new-user-form";
+
 export function UserNewClient() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  // Typing in any field. The pickers below have their own state.
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState("user");
 
@@ -86,22 +89,21 @@ export function UserNewClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/users">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Novi korisnik</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Unesite email ili telefon (ili oba)
-          </p>
-        </div>
-      </div>
+      <SaveBar
+        form={FORM_ID}
+        dirty={touched || role !== "user"}
+        saving={saving}
+      />
+
+      <PageHeader backHref="/admin/users" title="Novi korisnik" />
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          id={FORM_ID}
+          onSubmit={handleSubmit}
+          onInput={() => setTouched(true)}
+          className="space-y-4"
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Ime i prezime *</Label>
@@ -215,15 +217,6 @@ export function UserNewClient() {
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" asChild>
-              <Link href="/admin/users">Odustani</Link>
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Kreiranje..." : "Kreiraj korisnika"}
-            </Button>
-          </div>
         </form>
       </Card>
     </div>

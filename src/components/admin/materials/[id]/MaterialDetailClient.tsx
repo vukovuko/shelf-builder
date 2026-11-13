@@ -1,35 +1,24 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { ArrowLeft, Loader2, Trash2, Upload, X } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { adminFetch } from "@/components/admin/admin-fetch";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+  DeleteAction,
+  FormCard,
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import MultipleSelector, { type Option } from "@/components/ui/multi-select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AVAILABLE_MATERIAL_CATEGORIES } from "@/lib/material-categories";
+
+const FORM_ID = "material-form";
 
 const AVAILABLE_CATEGORIES: Option[] = AVAILABLE_MATERIAL_CATEGORIES.map(
   (category) => ({ value: category, label: category }),
@@ -145,7 +134,7 @@ export function MaterialDetailClient({
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file?.type.startsWith("image/")) {
       uploadFile(file);
     }
   };
@@ -286,208 +275,46 @@ export function MaterialDetailClient({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/admin/materials">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
-          <div className="min-w-0">
-            <Popover>
-              <PopoverTrigger asChild>
-                <h1 className="text-2xl sm:text-3xl font-semibold truncate cursor-pointer">
-                  {material.name}
-                </h1>
-              </PopoverTrigger>
-              <PopoverContent
-                side="bottom"
-                className="w-auto max-w-xs p-2 text-sm"
-              >
-                {material.name}
-              </PopoverContent>
-            </Popover>
-            <div
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mt-1 ${
-                material.published
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-              }`}
-            >
-              {material.published ? "Objavljeno" : "Draft"}
+    <div className="space-y-5">
+      <SaveBar form={FORM_ID} dirty={hasChanges} saving={saving} />
+
+      <PageHeader backHref="/admin/materials" title={material.name}>
+        <StatusSelect on={published} onChange={setPublished} />
+      </PageHeader>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      <form
+        id={FORM_ID}
+        onSubmit={handleSubmit}
+        className="grid items-start gap-5 lg:grid-cols-3"
+      >
+        <div className="grid gap-5 lg:col-span-2">
+          <FormCard>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Naziv *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="npr. Sperploca bukva"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="productCode">Šifra</Label>
+                <Input
+                  id="productCode"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                  placeholder="npr. LLESOBHDF"
+                />
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Mobile delete button - icon only */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              size="icon"
-              disabled={deleting}
-              className="sm:hidden h-8 w-8 shrink-0"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Obrisati materijal?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Ova akcija je nepovratna. Materijal &quot;{material.name}&quot;
-                ce biti trajno obrisan.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Otkazi</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? "Brisanje..." : "Obrisi"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Desktop delete button - with text */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              disabled={deleting}
-              className="hidden sm:flex shrink-0"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {deleting ? "Brisanje..." : "Obrisi"}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Obrisati materijal?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Ova akcija je nepovratna. Materijal &quot;{material.name}&quot;
-                ce biti trajno obrisan.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Otkazi</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? "Brisanje..." : "Obrisi"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-
-      <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Naziv *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="npr. Sperploca bukva"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="productCode">Šifra</Label>
-              <Input
-                id="productCode"
-                value={productCode}
-                onChange={(e) => setProductCode(e.target.value)}
-                placeholder="npr. LLESOBHDF"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="price">Prodajna cena (RSD/m²) *</Label>
-              <Input
-                id="price"
-                type="number"
-                min={1}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                placeholder="npr. 2500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="costPrice">Nabavna cena (RSD/m²)</Label>
-              <Input
-                id="costPrice"
-                type="number"
-                min={0}
-                value={costPrice}
-                onChange={(e) => setCostPrice(e.target.value)}
-                placeholder="npr. 1800"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="thickness">Debljina (mm)</Label>
-              <Input
-                id="thickness"
-                type="number"
-                min={1}
-                value={thickness}
-                onChange={(e) => setThickness(e.target.value)}
-                placeholder="npr. 18"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stock">Zaliha</Label>
-              <Input
-                id="stock"
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                placeholder="npr. 50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="marginPercent">Marža (%)</Label>
-              <Input
-                id="marginPercent"
-                type="number"
-                min={0}
-                max={300}
-                step={1}
-                value={marginPercent}
-                onChange={(e) => setMarginPercent(e.target.value)}
-                placeholder="globalna"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="popularRank">Popularno (redosled)</Label>
-              <Input
-                id="popularRank"
-                type="number"
-                min={1}
-                max={999}
-                value={popularRank}
-                onChange={(e) => setPopularRank(e.target.value)}
-                placeholder="npr. 1"
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="description">Opis na stranici materijala</Label>
               <Textarea
                 id="description"
@@ -497,53 +324,52 @@ export function MaterialDetailClient({
                 rows={6}
               />
             </div>
+          </FormCard>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Slika materijala</Label>
-
-              {/* Current image preview */}
+          <FormCard title="Slika">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               {img && (
-                <div className="relative w-32 h-32 mb-2">
+                <div className="relative size-32 shrink-0">
                   <img
                     src={img}
-                    alt="Preview"
-                    className="w-full h-full object-cover rounded border"
+                    alt={name}
+                    className="size-full rounded border object-cover"
                   />
                   <button
                     type="button"
+                    aria-label="Ukloni sliku"
                     onClick={() => setImg("")}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                    className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="size-3" />
                   </button>
                 </div>
               )}
-
-              {/* Drag-and-drop zone */}
-              <div
+              <button
+                type="button"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                className={`flex-1 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
                   uploading
                     ? "border-muted bg-muted/50"
                     : "border-muted-foreground/25 hover:border-primary hover:bg-muted/50"
                 }`}
               >
                 {uploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                  <Loader2 className="mx-auto size-8 animate-spin text-muted-foreground" />
                 ) : (
                   <>
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
+                    <Upload className="mx-auto mb-2 size-8 text-muted-foreground" />
+                    <span className="block text-sm text-muted-foreground">
                       Prevuci sliku ili klikni za upload
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
                       JPG, PNG ili WebP (max 5MB)
-                    </p>
+                    </span>
                   </>
                 )}
-              </div>
+              </button>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -552,10 +378,52 @@ export function MaterialDetailClient({
                 accept="image/jpeg,image/png,image/webp"
               />
             </div>
-          </div>
+          </FormCard>
 
-          <div className="space-y-3 pt-2">
-            <Label>Kategorije *</Label>
+          <FormCard title="Cena">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="price">Prodajna (RSD/m²) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min={1}
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                  placeholder="npr. 2500"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="costPrice">Nabavna (RSD/m²)</Label>
+                <Input
+                  id="costPrice"
+                  type="number"
+                  min={0}
+                  value={costPrice}
+                  onChange={(e) => setCostPrice(e.target.value)}
+                  placeholder="npr. 1800"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="marginPercent">Marža (%)</Label>
+                <Input
+                  id="marginPercent"
+                  type="number"
+                  min={0}
+                  max={300}
+                  step={1}
+                  value={marginPercent}
+                  onChange={(e) => setMarginPercent(e.target.value)}
+                  placeholder="globalna"
+                />
+              </div>
+            </div>
+          </FormCard>
+        </div>
+
+        <div className="grid gap-5">
+          <FormCard title="Kategorije *">
             <MultipleSelector
               value={categories}
               onChange={setCategories}
@@ -569,30 +437,61 @@ export function MaterialDetailClient({
               hidePlaceholderWhenSelected
               creatable
             />
-          </div>
+          </FormCard>
 
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id="published"
-              checked={published}
-              onCheckedChange={setPublished}
-            />
-            <Label htmlFor="published">
-              Objavljeno (vidljivo korisnicima na /design)
-            </Label>
-          </div>
+          <FormCard title="Ploča">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="thickness">Debljina (mm)</Label>
+                <Input
+                  id="thickness"
+                  type="number"
+                  min={1}
+                  value={thickness}
+                  onChange={(e) => setThickness(e.target.value)}
+                  placeholder="npr. 18"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="stock">Zaliha</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  min={0}
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  placeholder="npr. 50"
+                />
+              </div>
+            </div>
+          </FormCard>
 
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          )}
+          <FormCard>
+            <div className="space-y-2">
+              <Label htmlFor="popularRank">Popularno (redosled)</Label>
+              <Input
+                id="popularRank"
+                type="number"
+                min={1}
+                max={999}
+                value={popularRank}
+                onChange={(e) => setPopularRank(e.target.value)}
+                placeholder="npr. 1"
+              />
+            </div>
+          </FormCard>
+        </div>
+      </form>
 
-          <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={saving || !hasChanges}>
-              {saving ? "Cuvanje..." : "Sacuvaj izmene"}
-            </Button>
-          </div>
-        </form>
-      </Card>
+      <div className="border-t pt-5">
+        <DeleteAction
+          label="Obriši materijal"
+          title="Obrisati materijal?"
+          description={`Ova akcija je nepovratna. Materijal "${material.name}" će biti trajno obrisan.`}
+          deleting={deleting}
+          onConfirm={handleDelete}
+        />
+      </div>
     </div>
   );
 }

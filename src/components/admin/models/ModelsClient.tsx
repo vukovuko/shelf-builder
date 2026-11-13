@@ -49,7 +49,7 @@ export function ModelsClient({
 }: ModelsClientProps) {
   const router = useRouter();
   // A model is a saved design, so the designs list shows the same records.
-  const listAction = useListAction<Model>("models", "models", ["wardrobes"]);
+  const listAction = useListAction<Model>("models", "models");
   const isDeleting = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();

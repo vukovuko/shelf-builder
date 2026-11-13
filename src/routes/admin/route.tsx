@@ -1,8 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { invalidateAdminData } from "@/components/admin/admin-cache";
 import { onAdminWrite } from "@/components/admin/admin-fetch";
+import { TopBarSlot } from "@/components/admin/page-chrome";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   SidebarInset,
@@ -47,18 +49,11 @@ function AdminPending() {
 
 function AdminLayout() {
   const queryClient = useQueryClient();
+  const [topBarSlot, setTopBarSlot] = useState<HTMLElement | null>(null);
 
-  // A form saved something: what is on screen is refetched, and cached lists
-  // are fetched again when next opened (cachedUnlessChanged). The access check is
-  // left alone, a save does not change who is signed in.
+  // A form saved something (adminFetch).
   useEffect(
-    () =>
-      onAdminWrite(() => {
-        queryClient.invalidateQueries({
-          predicate: ({ queryKey }) =>
-            queryKey[0] === "admin" && queryKey[1] !== "access",
-        });
-      }),
+    () => onAdminWrite(() => void invalidateAdminData(queryClient)),
     [queryClient],
   );
 
@@ -69,18 +64,23 @@ function AdminLayout() {
       <div className="admin-scope contents">
         <AdminSidebar />
         <SidebarInset className="min-w-0">
-          <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
+          {/* Stays on screen while the page scrolls: a record page puts its
+              save button here (SaveBar), so it is always in the same place. */}
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
             <SidebarTrigger />
             <div className="flex-1" />
+            <div ref={setTopBarSlot} className="flex items-center gap-3" />
             <ThemeToggle />
           </header>
           {/* A page marked .admin-full-bleed (the to-do board) fills the
               whole area right of the sidebar instead of the centered column. */}
           <main className="flex-1 overflow-x-auto p-4 has-[.admin-full-bleed]:p-0 sm:p-6">
             <div className="mx-auto max-w-6xl has-[.admin-full-bleed]:max-w-none">
-              <Suspense fallback={<AdminPending />}>
-                <Outlet />
-              </Suspense>
+              <TopBarSlot value={topBarSlot}>
+                <Suspense fallback={<AdminPending />}>
+                  <Outlet />
+                </Suspense>
+              </TopBarSlot>
             </div>
           </main>
         </SidebarInset>

@@ -1,22 +1,27 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import {
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { AVAILABLE_MATERIAL_CATEGORIES } from "@/lib/material-categories";
+
+const FORM_ID = "new-material-form";
 
 export function MaterialNewClient() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  // Typing in any field. The pickers below have their own state.
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [published, setPublished] = useState(false);
@@ -78,22 +83,23 @@ export function MaterialNewClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/materials">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Novi materijal</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Dodaj novi materijal
-          </p>
-        </div>
-      </div>
+      <SaveBar
+        form={FORM_ID}
+        dirty={touched || published || categories.length > 0}
+        saving={saving}
+      />
+
+      <PageHeader backHref="/admin/materials" title="Novi materijal">
+        <StatusSelect on={published} onChange={setPublished} />
+      </PageHeader>
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          id={FORM_ID}
+          onSubmit={handleSubmit}
+          onInput={() => setTouched(true)}
+          className="space-y-4"
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Naziv *</Label>
@@ -186,29 +192,9 @@ export function MaterialNewClient() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id="published"
-              checked={published}
-              onCheckedChange={setPublished}
-            />
-            <Label htmlFor="published">
-              Objavljeno (vidljivo korisnicima na /design)
-            </Label>
-          </div>
-
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" asChild>
-              <Link href="/admin/materials">Odustani</Link>
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Cuvanje..." : "Dodaj materijal"}
-            </Button>
-          </div>
         </form>
       </Card>
     </div>

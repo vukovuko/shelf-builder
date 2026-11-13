@@ -1,39 +1,33 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { toast } from "sonner";
 import {
   ArrowLeft,
-  Download,
-  FileText,
-  FileSpreadsheet,
-  Copy,
   Check,
+  Copy,
+  Download,
+  FileSpreadsheet,
+  FileText,
   Lock,
   LockOpen,
   Pencil,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import { SaveBar } from "@/components/admin/page-chrome";
+import { LinkPending } from "@/components/PendingContent";
 import { Scene } from "@/components/Scene";
-import { ViewModeToggle } from "@/components/ViewModeToggle";
 import {
-  useShelfStore,
-  parseSubCompKey,
-  type Material,
-  type ShelfState,
-} from "@/lib/store";
-import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
-import { exportCutListAsCsv } from "@/lib/exportCsv";
-import { calculateCutList, getCutListGroupKey } from "@/lib/calcCutList";
-import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
-import { exportElementSpecs } from "@/lib/pdf/lazy";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -41,14 +35,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { LinkPending } from "@/components/PendingContent";
+import { Textarea } from "@/components/ui/textarea";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
+import type { SerializedAccessoryRule } from "@/lib/accessory-rules";
+import { calculateCutList, getCutListGroupKey } from "@/lib/calcCutList";
+import { exportCutListAsCsv } from "@/lib/exportCsv";
 import { formatDate } from "@/lib/format-date";
+import { exportElementSpecs } from "@/lib/pdf/lazy";
+import { applyWardrobeSnapshot } from "@/lib/serializeWardrobe";
+import { type Material, type ShelfState, useShelfStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface PriceBreakdown {
   korpus: { areaM2: number; price: number; materialName: string };
@@ -1089,28 +1085,27 @@ export function OrderDetailClient({
                         </td>
                       </tr>
                       {/* Show visible rule adjustments */}
-                      {order.ruleAdjustments &&
-                        order.ruleAdjustments
-                          .filter((adj) => adj.visible)
-                          .map((adj) => (
-                            <tr key={adj.ruleId} className="text-sm">
-                              <td className="py-2 pr-2" colSpan={2}>
-                                {adj.description}
-                              </td>
-                              <td className="py-2 pl-3 text-right tabular-nums">
-                                <span
-                                  className={
-                                    adj.amount < 0
-                                      ? "text-green-600"
-                                      : "text-orange-600"
-                                  }
-                                >
-                                  {adj.amount < 0 ? "" : "+"}
-                                  {adj.amount.toLocaleString("sr-RS")} RSD
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                      {order.ruleAdjustments
+                        ?.filter((adj) => adj.visible)
+                        .map((adj) => (
+                          <tr key={adj.ruleId} className="text-sm">
+                            <td className="py-2 pr-2" colSpan={2}>
+                              {adj.description}
+                            </td>
+                            <td className="py-2 pl-3 text-right tabular-nums">
+                              <span
+                                className={
+                                  adj.amount < 0
+                                    ? "text-green-600"
+                                    : "text-orange-600"
+                                }
+                              >
+                                {adj.amount < 0 ? "" : "+"}
+                                {adj.amount.toLocaleString("sr-RS")} RSD
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
                       {/* Final total row when adjustments exist */}
                       {order.adjustedTotal !== null && (
                         <tr className="border-t border-border">
@@ -1314,11 +1309,7 @@ export function OrderDetailClient({
             />
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={saving || !hasChanges}>
-              {saving ? "Cuvanje..." : "Sacuvaj izmene"}
-            </Button>
-          </div>
+          <SaveBar dirty={hasChanges} saving={saving} onSave={handleSave} />
         </Card>
       </div>
 

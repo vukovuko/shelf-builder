@@ -13,6 +13,7 @@ interface PlaceSuggestion {
   secondaryText: string;
 }
 
+import { accountChanged } from "@/lib/account-events";
 import { capture } from "@/lib/track";
 import { OrderSuccess } from "@/components/checkout/OrderSuccess";
 import { OrderSummaryTable } from "@/components/checkout/OrderSummaryTable";
@@ -457,6 +458,7 @@ export function CheckoutDialog({
           ? data.finalTotal
           : (data.adjustedTotal ?? baseTotal);
 
+      accountChanged();
       capture("order_completed", {
         order_number: data.orderNumber,
         value: finalPrice,

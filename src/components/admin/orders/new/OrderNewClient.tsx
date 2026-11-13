@@ -1,16 +1,13 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState, useMemo } from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import { PageHeader, SaveBar } from "@/components/admin/page-chrome";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 import {
   Command,
   CommandEmpty,
@@ -19,12 +16,17 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+const FORM_ID = "new-order-form";
 
 interface User {
   id: string;
@@ -57,6 +59,8 @@ export function OrderNewClient({
 }: OrderNewClientProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  // Typing in any field. The pickers below have their own state.
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Combobox open states
@@ -162,24 +166,24 @@ export function OrderNewClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/orders">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">
-            Nova porudzbina
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Kreiraj novu porudzbinu
-          </p>
-        </div>
-      </div>
+      <SaveBar
+        form={FORM_ID}
+        dirty={
+          touched ||
+          Boolean(selectedUserId || selectedWardrobeId || selectedMaterialId)
+        }
+        saving={saving}
+      />
+
+      <PageHeader backHref="/admin/orders" title="Nova porudžbina" />
 
       <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          id={FORM_ID}
+          onSubmit={handleSubmit}
+          onInput={() => setTouched(true)}
+          className="space-y-6"
+        >
           {/* Customer Section */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Korisnik</h2>
@@ -456,15 +460,6 @@ export function OrderNewClient({
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" asChild>
-              <Link href="/admin/orders">Odustani</Link>
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Cuvanje..." : "Kreiraj porudzbinu"}
-            </Button>
-          </div>
         </form>
       </Card>
     </div>

@@ -29,6 +29,11 @@ export function getRouter() {
     // (every admin detail page) would then start from old values. Waiting for
     // the loader costs nothing where it reads from the Query cache.
     defaultStaleReloadMode: "blocking",
+    // Going from one record straight to another of the same kind (history)
+    // keeps the page component, and with it the state a form copied from
+    // the first record. A new component per record avoids saving one
+    // record's values into another.
+    defaultRemountDeps: ({ params }) => params,
   });
 
   setupRouterSsrQueryIntegration({ router, queryClient });

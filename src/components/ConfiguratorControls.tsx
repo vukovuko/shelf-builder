@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { accountChanged } from "@/lib/account-events";
 import { capture } from "@/lib/track";
 import React from "react";
 import { toast } from "sonner";
@@ -225,6 +226,7 @@ export function ConfiguratorControls({
         useShelfStore.getState().setLastSavedSnapshot(snapshot);
         setLastSaveTime(Date.now());
 
+        accountChanged();
         capture("design_saved", {
           wardrobe_id: loadedWardrobeId,
           is_new: false,
@@ -277,6 +279,7 @@ export function ConfiguratorControls({
       useShelfStore.getState().setLastSavedSnapshot(snapshot);
       setLastSaveTime(Date.now());
 
+      accountChanged();
       capture("design_saved", {
         is_new: true,
         wardrobe_name: wardrobeName,

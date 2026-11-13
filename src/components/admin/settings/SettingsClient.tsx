@@ -1,11 +1,9 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import { SaveBar } from "@/components/admin/page-chrome";
 import {
   Card,
   CardContent,
@@ -13,7 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface CompanySettings {
   companyName: string;
@@ -34,7 +33,12 @@ interface SettingsClientProps {
 
 export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const [settings, setSettings] = useState<CompanySettings>(initialSettings);
+  // What the server has, to tell whether anything on the page differs.
+  const [saved, setSaved] = useState<CompanySettings>(initialSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const hasChanges = (Object.keys(settings) as (keyof CompanySettings)[]).some(
+    (field) => settings[field] !== saved[field],
+  );
 
   const update = (field: keyof CompanySettings, value: string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -55,6 +59,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         return;
       }
 
+      setSaved(settings);
       toast.success("Podešavanja su sačuvana");
     } catch {
       toast.error("Greška pri komunikaciji sa serverom");
@@ -78,10 +83,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
             Podaci koji se koriste za priznanicu i IPS QR kod na fakturi
           </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? "Čuvanje..." : "Sačuvaj"}
-        </Button>
+        <SaveBar dirty={hasChanges} saving={isSaving} onSave={handleSave} />
       </div>
 
       {/* Company Info */}
@@ -230,14 +232,6 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Save button bottom */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving} size="lg">
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? "Čuvanje..." : "Sačuvaj podešavanja"}
-        </Button>
-      </div>
     </div>
   );
 }

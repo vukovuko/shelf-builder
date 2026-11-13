@@ -1,17 +1,21 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useState, useMemo } from "react";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import {
+  DeleteAction,
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -19,35 +23,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
+  ACTION_LABELS,
+  type ActionType,
+  APPLY_TO_LABELS,
   AVAILABLE_FIELDS,
-  FIELDS_BY_CATEGORY,
   CATEGORY_LABELS,
+  FIELDS_BY_CATEGORY,
+  type FieldDefinition,
+  FORMULA_FIELDS,
   OPERATOR_LABELS,
   OPERATORS_BY_TYPE,
-  ACTION_LABELS,
-  APPLY_TO_LABELS,
-  FORMULA_FIELDS,
-  type RuleCondition,
-  type RuleAction,
   type Operator,
-  type ActionType,
-  type ApplyTo,
-  type FieldDefinition,
+  type RuleAction,
+  type RuleCondition,
 } from "@/lib/rules/types";
 import type { RuleRow } from "./columns";
+
+const FORM_ID = "rule-form";
 
 interface RuleFormClientProps {
   mode: "create" | "edit";
@@ -101,7 +96,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
     }
 
     // Validate add_item actions have required fields
-    actions.forEach((action, i) => {
+    actions.forEach((action, _i) => {
       if (action.type === "add_item") {
         if (!action.config.itemName?.trim()) {
           newErrors[`action_${action.id}_itemName`] =
@@ -207,7 +202,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
     setActions([...actions, newAction]);
   }
 
-  function updateAction(id: string, updates: Partial<RuleAction>) {
+  function _updateAction(id: string, updates: Partial<RuleAction>) {
     setActions(
       actions.map((a) =>
         a.id === id
@@ -310,63 +305,22 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/admin/rules">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">
-              {mode === "create" ? "Novo pravilo" : "Uredi pravilo"}
-            </h1>
-            {initialRule && (
-              <div
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  enabled
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                }`}
-              >
-                {enabled ? "Aktivno" : "Neaktivno"}
-              </div>
-            )}
-          </div>
-        </div>
-        {mode === "edit" && initialRule && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={isDeleting}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Obriši
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Da li ste sigurni?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Obrisaćete pravilo &quot;{initialRule.name}&quot;. Ova akcija
-                  se ne može poništiti.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Otkaži</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Obriši
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
+    <div className="space-y-5">
+      <SaveBar form={FORM_ID} dirty={hasChanges} saving={isSubmitting} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <PageHeader
+        backHref="/admin/rules"
+        title={mode === "create" ? "Novo pravilo" : "Uredi pravilo"}
+      >
+        <StatusSelect
+          on={enabled}
+          onChange={setEnabled}
+          onLabel="Aktivno"
+          offLabel="Neaktivno"
+        />
+      </PageHeader>
+
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-6">
         {/* Basic info */}
         <Card>
           <CardHeader>
@@ -418,15 +372,6 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
                 placeholder="Opišite šta ovo pravilo radi..."
                 rows={2}
               />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="enabled"
-                checked={enabled}
-                onCheckedChange={setEnabled}
-              />
-              <Label htmlFor="enabled">Aktivno</Label>
             </div>
           </CardContent>
         </Card>
@@ -513,21 +458,19 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
             )}
           </CardContent>
         </Card>
-
-        {/* Submit buttons */}
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" asChild>
-            <Link href="/admin/rules">Otkaži</Link>
-          </Button>
-          <Button type="submit" disabled={isSubmitting || !hasChanges}>
-            {isSubmitting
-              ? "Čuvanje..."
-              : mode === "create"
-                ? "Kreiraj pravilo"
-                : "Sačuvaj izmene"}
-          </Button>
-        </div>
       </form>
+
+      {mode === "edit" && initialRule && (
+        <div className="border-t pt-5">
+          <DeleteAction
+            label="Obriši pravilo"
+            title="Obrisati pravilo?"
+            description={`Ova akcija je nepovratna. Pravilo "${initialRule.name}" će biti trajno obrisano.`}
+            deleting={isDeleting}
+            onConfirm={handleDelete}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -817,7 +760,7 @@ function ActionRow({
                   const val = e.target.value;
                   // Try to parse as number, otherwise keep as string (formula)
                   const num = Number(val);
-                  onUpdateConfig({ quantity: isNaN(num) ? val : num });
+                  onUpdateConfig({ quantity: Number.isNaN(num) ? val : num });
                 }}
                 placeholder="1 ili doorCount * 3"
               />

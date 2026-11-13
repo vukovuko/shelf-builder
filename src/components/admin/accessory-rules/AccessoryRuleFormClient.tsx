@@ -1,17 +1,20 @@
 "use client";
 
-import { adminFetch } from "@/components/admin/admin-fetch";
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { adminFetch } from "@/components/admin/admin-fetch";
+import {
+  DeleteAction,
+  PageHeader,
+  SaveBar,
+  StatusSelect,
+} from "@/components/admin/page-chrome";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -19,30 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ACCESSORY_RULE_CATEGORY_LABELS,
   ACCESSORY_RULE_FIELDS,
   ACCESSORY_RULE_FIELDS_BY_CATEGORY,
   ACCESSORY_RULE_MATERIAL_LABELS,
   ACCESSORY_RULE_TARGET_LABELS,
+  type FieldDefinition,
   OPERATOR_LABELS,
   OPERATORS_BY_TYPE,
-  type FieldDefinition,
   type Operator,
   type RuleCondition,
   type SerializedAccessoryRule,
 } from "@/lib/accessory-rules";
+
+const FORM_ID = "accessory-rule-form";
 
 interface AccessoryRuleFormClientProps {
   mode: "create" | "edit";
@@ -292,64 +287,26 @@ export function AccessoryRuleFormClient({
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/admin/accessory-rules">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">
-              {mode === "create"
-                ? "Novo pravilo za dodatke"
-                : "Uredi pravilo za dodatke"}
-            </h1>
-            {initialRule && (
-              <div
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  enabled
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                }`}
-              >
-                {enabled ? "Aktivno" : "Neaktivno"}
-              </div>
-            )}
-          </div>
-        </div>
-        {mode === "edit" && initialRule && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={isDeleting}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Obriši
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Da li ste sigurni?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Obrisaćete pravilo &quot;{initialRule.name}&quot;. Ova akcija
-                  se ne može poništiti.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Otkaži</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Obriši
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
+    <div className="space-y-5">
+      <SaveBar form={FORM_ID} dirty={hasChanges} saving={isSubmitting} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <PageHeader
+        backHref="/admin/accessory-rules"
+        title={
+          mode === "create"
+            ? "Novo pravilo za dodatke"
+            : "Uredi pravilo za dodatke"
+        }
+      >
+        <StatusSelect
+          on={enabled}
+          onChange={setEnabled}
+          onLabel="Aktivno"
+          offLabel="Neaktivno"
+        />
+      </PageHeader>
+
+      <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Osnovne informacije</CardTitle>
@@ -414,15 +371,6 @@ export function AccessoryRuleFormClient({
                     )}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="flex items-center gap-2 pt-8">
-                <Switch
-                  checked={enabled}
-                  onCheckedChange={setEnabled}
-                  id="enabled"
-                />
-                <Label htmlFor="enabled">Aktivno</Label>
               </div>
             </div>
           </CardContent>
@@ -601,20 +549,19 @@ export function AccessoryRuleFormClient({
             </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" asChild>
-            <Link href="/admin/accessory-rules">Otkaži</Link>
-          </Button>
-          <Button type="submit" disabled={isSubmitting || !hasChanges}>
-            {isSubmitting
-              ? "Čuvanje..."
-              : mode === "create"
-                ? "Kreiraj pravilo"
-                : "Sačuvaj izmene"}
-          </Button>
-        </div>
       </form>
+
+      {mode === "edit" && initialRule && (
+        <div className="border-t pt-5">
+          <DeleteAction
+            label="Obriši pravilo"
+            title="Obrisati pravilo?"
+            description={`Ova akcija je nepovratna. Pravilo "${initialRule.name}" će biti trajno obrisano.`}
+            deleting={isDeleting}
+            onConfirm={handleDelete}
+          />
+        </div>
+      )}
     </div>
   );
 }

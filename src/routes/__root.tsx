@@ -1,10 +1,15 @@
-import type { QueryClient } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  useQueryErrorResetBoundary,
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
+  type ErrorComponentProps,
   HeadContent,
   Scripts,
   useLocation,
+  useRouter,
 } from "@tanstack/react-router";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
@@ -80,10 +85,24 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       <NotFound />
     </>
   ),
-  errorComponent: ({ error, reset }) => (
-    <ErrorPage error={error as Error} reset={reset} />
-  ),
+  errorComponent: RootError,
 });
+
+function RootError({ error }: ErrorComponentProps) {
+  const router = useRouter();
+  const queryErrors = useQueryErrorResetBoundary();
+  return (
+    <ErrorPage
+      error={error as Error}
+      // Clearing the boundary alone would draw the same failed page again:
+      // the loaders and failed queries have to run once more.
+      reset={() => {
+        queryErrors.reset();
+        router.invalidate();
+      }}
+    />
+  );
+}
 
 function RootDocument({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: (location) => location.pathname });

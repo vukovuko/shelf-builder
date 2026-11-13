@@ -42,9 +42,7 @@ export function WardrobesClient({
   search,
 }: WardrobesClientProps) {
   const router = useRouter();
-  const listAction = useListAction<Wardrobe>("wardrobes", "wardrobes", [
-    "models",
-  ]);
+  const listAction = useListAction<Wardrobe>("wardrobes", "wardrobes");
   const isDeleting = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
