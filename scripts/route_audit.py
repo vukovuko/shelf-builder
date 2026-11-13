@@ -1,4 +1,4 @@
-"""Every route the old Next.js app had (from the `main` branch), requested on a new build.
+"""Every route the old Next.js app had (from the `next-vercel` branch), requested on a new build.
 
 A route that exists must not answer 404 or 405. Unsafe methods are sent with
 an empty JSON body and no session, so handlers refuse them (400/401/403)
@@ -13,7 +13,7 @@ REPO = sys.argv[3] if len(sys.argv) > 3 else "."
 def git(*args):
     return subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True, check=True).stdout
 
-files = [f for f in git("ls-tree", "-r", "--name-only", "origin/main", "src/app").splitlines()]
+files = [f for f in git("ls-tree", "-r", "--name-only", "origin/next-vercel", "src/app").splitlines()]
 
 SAMPLES = {
     "blog/[slug]": "kako-izabrati-orman-po-meri",
@@ -46,7 +46,7 @@ for f in files:
     if name == "page.tsx":
         routes.append(("GET", url_path(f), "page"))
     elif name in ("route.ts", "route.tsx"):
-        src = git("show", f"origin/main:{f}")
+        src = git("show", f"origin/next-vercel:{f}")
         methods = sorted({m for g in METHOD.findall(src) for m in g if m})
         for m in methods:
             routes.append((m, url_path(f), "handler"))

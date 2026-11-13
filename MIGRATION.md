@@ -1,17 +1,23 @@
 # Next.js → TanStack Start on Cloudflare Workers
 
-This branch (`tanstack-start`) is the new app, and since 12 Nov 2026 (22:06
-CET) it is what ormanipomeri.com serves, from the Worker `ormanipomeri`.
-`main` is still the Next.js app; Vercel keeps building it but no address
-points at it any more.
+`main` is the TanStack Start app, and since 12 Nov 2026 (22:06 CET) it is
+what ormanipomeri.com serves, from the Worker `ormanipomeri`. It was built on
+the branch `tanstack-start`, which became `main` on 13 Nov 2026.
+
+The Next.js app that ran on Vercel is kept on the branch `next-vercel` (the
+last commit of the old `main`), for reference and rollback. Vercel no longer
+builds anything: `vercel.json` here switches its deployments off.
+
+Nothing deploys by itself. A push to `main` changes GitHub only; the site
+changes when someone runs `npm run deploy:production`.
 
 Dev build: https://ormanipomeri-dev.vukasinovicvuko5.workers.dev
 
 Production: https://ormanipomeri.com (see "Production"). Its workers.dev
 address is switched off.
 
-The dev build and local dev on this branch use the Neon branch `dev`, never
-the production database.
+The dev build and local dev use the Neon branch `dev`, never the production
+database.
 
 ## Commands
 
@@ -21,17 +27,17 @@ the production database.
 | `npm run deploy` | Build and deploy the `ormanipomeri-dev` Worker. |
 | `npm run deploy:production` | Build the production site (`--mode live`, wrangler environment `production`) and deploy the `ormanipomeri` Worker. |
 | `npm run typecheck` | Checks the ported files and everything they import. |
-| `npm run test:run` | Same vitest suite as `main`. |
-| `python3 scripts/route_audit.py <origin> --all .` | Requests every page and every API handler method the old app had (read from `origin/main`) and flags any that answer 404, 405 or 5xx. Writes are sent empty and unsigned, so handlers refuse them. `--safe` sends only GETs; use that against production. Run it before every production deploy that touches routes. |
+| `npm run test:run` | The vitest suite. |
+| `python3 scripts/route_audit.py <origin> --all .` | Requests every page and every API handler method the old app had (read from `origin/next-vercel`) and flags any that answer 404, 405 or 5xx. Writes are sent empty and unsigned, so handlers refuse them. `--safe` sends only GETs; use that against production. Run it before every production deploy that touches routes. |
 
 ## How the branch is laid out
 
 - `src/routes` is the new app. `src/app` is the old Next.js app, kept only as
   the reference for each route until that route is ported, then deleted.
   The exception is `src/app/api`: those handlers are live, see "API bridge".
-- `src/lib`, `src/components`, `src/db` and `src/hooks` keep their paths, so
-  `git merge main` brings shared changes over. A change on `main` to a file
-  already deleted here shows up as a conflict: port that change by hand.
+- `src/lib`, `src/components`, `src/db` and `src/hooks` kept the paths they
+  had in the Next.js app, which is why many files still say `"use client"`
+  and import `next/*`.
 - `tsconfig.json` includes only ported files. Add a folder there when it moves.
 - Shared components keep `import Link from "next/link"` and friends. Vite and
   tsconfig point those imports at `src/compat/next`, so one component file
