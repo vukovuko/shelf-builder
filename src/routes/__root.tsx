@@ -12,6 +12,7 @@ import ErrorPage from "@/app/error";
 import appCss from "@/app/globals.css?url";
 import NotFound from "@/app/not-found";
 import { Analytics } from "@/components/Analytics";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import { SessionSync } from "@/components/SessionSync";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -114,6 +115,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           defaultTheme="light"
           enableSystem={false}
         >
+          <NavigationProgress />
           {children}
           <Toaster position="bottom-center" />
           <SessionSync />

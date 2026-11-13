@@ -22,6 +22,7 @@ the production database.
 | `npm run deploy:production` | Build the production site (`--mode live`, wrangler environment `production`) and deploy the `ormanipomeri` Worker. |
 | `npm run typecheck` | Checks the ported files and everything they import. |
 | `npm run test:run` | Same vitest suite as `main`. |
+| `python3 scripts/route_audit.py <origin> --all .` | Requests every page and every API handler method the old app had (read from `origin/main`) and flags any that answer 404, 405 or 5xx. Writes are sent empty and unsigned, so handlers refuse them. `--safe` sends only GETs; use that against production. Run it before every production deploy that touches routes. |
 
 ## How the branch is laid out
 
@@ -110,6 +111,9 @@ The production site is the Worker `ormanipomeri` (wrangler environment
 - `CLOUDFLARE_ENV=production` selects the production block of
   `wrangler.jsonc`: its own Hyperdrive (the production Neon database) and no
   `EMAIL_MODE`, so email goes to its real recipients.
+- Uploaded images go to the R2 bucket `ormari-po-meri` through the binding
+  `UPLOADS`; only `R2_BASE_URL` (the public address) is still read from the
+  environment. The dev Worker writes to the same bucket.
 - Its secrets were copied from Vercel's production environment. Vercel hands
   back `[SENSITIVE]` instead of the value for `ANTHROPIC_API_KEY` and
   `MCP_API_KEY`; those two were set from the local copies.
@@ -147,6 +151,26 @@ Behind Cloudflare's proxy two things are new:
   zone or allow that host in `src/server/security-headers.ts`.
 - A request that starts a new Worker instance takes about half a second
   longer (the bundle is 1.9 MB).
+
+## Things that broke after the move, and why
+
+- **Registration** answered 404 for three hours. `/api/auth/signup-with-link`
+  is our own handler, but everything under `/api/auth` goes to Better Auth's
+  catch-all route, which does not know it. It now has its own route file. A
+  route file in `src/routes/api` always wins over the bridge: check for old
+  handlers under its path before adding one.
+- **Image uploads** (admin materials, handles, accessories, and images during
+  the Agacija sync) answered 500. The AWS SDK's S3 client does not survive
+  the Workers build. Uploads now use the Worker's bucket binding
+  (`src/lib/r2.ts`).
+- The first **dev database branch** vanished after a day: the Neon Console
+  creates branches with "Automatically delete branch after 1 day" ticked.
+  Untick it when making a branch.
+
+Signing in with an existing account was the only auth flow tested before the
+move. Since then, on the dev link: register, the activation link, password
+reset, saving address and phone, checkout signed in and as a guest, order
+status change, to-do notes, uploads, sketch import.
 
 ## API bridge
 
