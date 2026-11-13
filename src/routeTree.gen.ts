@@ -76,6 +76,7 @@ import { Route as AdminUsersNewRouteImport } from './routes/admin/users/new'
 import { Route as AdminWardrobesIndexRouteImport } from './routes/admin/wardrobes/index'
 import { Route as AdminWardrobesIdRouteImport } from './routes/admin/wardrobes/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAuthSignupWithLinkRouteImport } from './routes/api/auth/signup-with-link'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -416,6 +417,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSignupWithLinkRoute = ApiAuthSignupWithLinkRouteImport.update({
+  id: '/api/auth/signup-with-link',
+  path: '/api/auth/signup-with-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -473,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/signup-with-link': typeof ApiAuthSignupWithLinkRoute
   '/.well-known/oauth-protected-resource/': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
   '/admin/accessories/': typeof AdminAccessoriesIndexRoute
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/signup-with-link': typeof ApiAuthSignupWithLinkRoute
   '/.well-known/oauth-protected-resource': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders': typeof AccountOrdersIndexRoute
   '/admin/accessories': typeof AdminAccessoriesIndexRoute
@@ -610,6 +618,7 @@ export interface FileRoutesById {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/admin/wardrobes/$id': typeof AdminWardrobesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/signup-with-link': typeof ApiAuthSignupWithLinkRoute
   '/.well-known/oauth-protected-resource/': typeof DotwellKnownOauthProtectedResourceIndexRoute
   '/account/orders/': typeof AccountOrdersIndexRoute
   '/admin/accessories/': typeof AdminAccessoriesIndexRoute
@@ -681,6 +690,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/api/auth/signup-with-link'
     | '/.well-known/oauth-protected-resource/'
     | '/account/orders/'
     | '/admin/accessories/'
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/api/auth/signup-with-link'
     | '/.well-known/oauth-protected-resource'
     | '/account/orders'
     | '/admin/accessories'
@@ -817,6 +828,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/admin/wardrobes/$id'
     | '/api/auth/$'
+    | '/api/auth/signup-with-link'
     | '/.well-known/oauth-protected-resource/'
     | '/account/orders/'
     | '/admin/accessories/'
@@ -863,6 +875,7 @@ export interface RootRouteChildren {
   RuckeIndexRoute: typeof RuckeIndexRoute
   DotwellKnownOauthProtectedResourceSplatRoute: typeof DotwellKnownOauthProtectedResourceSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiAuthSignupWithLinkRoute: typeof ApiAuthSignupWithLinkRoute
   DotwellKnownOauthProtectedResourceIndexRoute: typeof DotwellKnownOauthProtectedResourceIndexRoute
 }
 
@@ -1337,6 +1350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/signup-with-link': {
+      id: '/api/auth/signup-with-link'
+      path: '/api/auth/signup-with-link'
+      fullPath: '/api/auth/signup-with-link'
+      preLoaderRoute: typeof ApiAuthSignupWithLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1464,6 +1484,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOauthProtectedResourceSplatRoute:
     DotwellKnownOauthProtectedResourceSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiAuthSignupWithLinkRoute: ApiAuthSignupWithLinkRoute,
   DotwellKnownOauthProtectedResourceIndexRoute:
     DotwellKnownOauthProtectedResourceIndexRoute,
 }
