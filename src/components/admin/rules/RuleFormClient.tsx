@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -249,7 +250,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
 
       const method = mode === "create" ? "POST" : "PATCH";
 
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -288,7 +289,7 @@ export function RuleFormClient({ mode, initialRule }: RuleFormClientProps) {
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/admin/rules/${initialRule.id}`, {
+      const res = await adminFetch(`/api/admin/rules/${initialRule.id}`, {
         method: "DELETE",
       });
 

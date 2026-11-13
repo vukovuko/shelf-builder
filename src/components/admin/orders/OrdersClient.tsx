@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { patchJson, useListAction } from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +16,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { columns, type Order } from "./columns";
 
@@ -43,9 +44,10 @@ export function OrdersClient({
   search,
 }: OrdersClientProps) {
   const router = useRouter();
+  const listAction = useListAction<Order>("orders", "orders");
+  const isBulkUpdating = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -58,55 +60,29 @@ export function OrdersClient({
   }
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Generic bulk update handler
-  const handleBulkUpdate = useCallback(
-    async (
-      orders: Order[],
-      updates: Partial<
-        Pick<Order, "status" | "paymentStatus" | "fulfillmentStatus">
-      >,
-      filterFn: (order: Order) => boolean,
-      successMessage: string,
-    ) => {
-      const ordersToUpdate = orders.filter(filterFn);
-      if (ordersToUpdate.length === 0) {
-        toast.info("Sve izabrane porudžbine su već u tom statusu");
-        return;
-      }
-
-      setIsBulkUpdating(true);
-      try {
-        const results = await Promise.all(
-          ordersToUpdate.map((order) =>
-            fetch(`/api/admin/orders/${order.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updates),
-            }),
-          ),
-        );
-
-        const successCount = results.filter((r) => r.ok).length;
-        if (successCount === ordersToUpdate.length) {
-          toast.success(`${successCount} ${successMessage}`);
-        } else if (successCount > 0) {
-          toast.warning(
-            `${successCount}/${ordersToUpdate.length} ${successMessage}`,
-          );
-        } else {
-          toast.error("Greška pri ažuriranju porudžbina");
-        }
-        router.refresh();
-      } catch (error) {
-        console.error("Failed to update orders:", error);
-        toast.error("Greška pri ažuriranju porudžbina");
-      } finally {
-        setIsBulkUpdating(false);
-        setSelectedOrders([]);
-      }
-    },
-    [router],
-  );
+  // One handler for every bulk status change of the list.
+  const handleBulkUpdate = (
+    orders: Order[],
+    updates: Partial<
+      Pick<Order, "status" | "paymentStatus" | "fulfillmentStatus">
+    >,
+    filterFn: (order: Order) => boolean,
+    successMessage: string,
+  ) => {
+    const rows = orders.filter(filterFn);
+    if (rows.length === 0) {
+      toast.info("Sve izabrane porudžbine su već u tom statusu");
+      return;
+    }
+    setSelectedOrders([]);
+    listAction.mutate({
+      rows,
+      send: (order) => patchJson(`/api/admin/orders/${order.id}`, updates),
+      apply: (order) => ({ ...order, ...updates }),
+      done: `${rows.length} ${successMessage}`,
+      failed: "Greška pri ažuriranju porudžbina",
+    });
+  };
 
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -150,8 +126,8 @@ export function OrdersClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkArchive() {
-    await handleBulkUpdate(
+  function handleBulkArchive() {
+    handleBulkUpdate(
       selectedOrders,
       { status: "archived" },
       (order) => order.status !== "archived",

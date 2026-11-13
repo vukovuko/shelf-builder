@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch("/api/admin/settings", {
+      const res = await adminFetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),

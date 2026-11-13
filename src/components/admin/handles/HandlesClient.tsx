@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { columns, type Handle } from "./columns";
 
@@ -44,10 +49,11 @@ export function HandlesClient({
   showHeader = true,
 }: HandlesClientProps) {
   const router = useRouter();
+  const listAction = useListAction<Handle>("handles", "handles");
+  const isDeleting = listAction.isPending;
+  const isUpdatingStatus = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedHandles, setSelectedHandles] = useState<Handle[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -101,100 +107,51 @@ export function HandlesClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedHandles.map((handle) =>
-          fetch(`/api/admin/handles/${handle.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedHandles.length} ručki obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih ručki");
-      }
-    } catch (error) {
-      console.error("Failed to delete handles:", error);
-      toast.error("Greška pri brisanju ručki");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedHandles([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedHandles;
+    setShowDeleteDialog(false);
+    setSelectedHandles([]);
+    listAction.mutate({
+      rows,
+      send: (handle) => deleteRequest(`/api/admin/handles/${handle.id}`),
+      apply: () => null,
+      done: `${rows.length} ručki obrisano`,
+      failed: "Greška pri brisanju ručki",
+    });
   }
 
-  async function handleBulkPublish(selected: Handle[]) {
-    const toPublish = selected.filter((h) => !h.published);
-    if (toPublish.length === 0) {
+  function handleBulkPublish(selected: Handle[]) {
+    const rows = selected.filter((handle) => !handle.published);
+    if (rows.length === 0) {
       toast.info("Sve izabrane ručke su već objavljene");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toPublish.map((handle) =>
-          fetch(`/api/admin/handles/${handle.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: true }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toPublish.length} ručki objavljeno`);
-        setSelectedHandles([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri objavljivanju nekih ručki");
-      }
-    } catch (error) {
-      console.error("Failed to publish handles:", error);
-      toast.error("Greška pri objavljivanju ručki");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedHandles([]);
+    listAction.mutate({
+      rows,
+      send: (handle) =>
+        patchJson(`/api/admin/handles/${handle.id}`, { published: true }),
+      apply: (handle) => ({ ...handle, published: true }),
+      done: `${rows.length} ručki objavljeno`,
+      failed: "Greška pri objavljivanju ručki",
+    });
   }
 
-  async function handleBulkDraft(selected: Handle[]) {
-    const toDraft = selected.filter((h) => h.published);
-    if (toDraft.length === 0) {
+  function handleBulkDraft(selected: Handle[]) {
+    const rows = selected.filter((handle) => handle.published);
+    if (rows.length === 0) {
       toast.info("Sve izabrane ručke su već u draft-u");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toDraft.map((handle) =>
-          fetch(`/api/admin/handles/${handle.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: false }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toDraft.length} ručki vraćeno u draft`);
-        setSelectedHandles([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri vraćanju nekih ručki u draft");
-      }
-    } catch (error) {
-      console.error("Failed to draft handles:", error);
-      toast.error("Greška pri vraćanju ručki u draft");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedHandles([]);
+    listAction.mutate({
+      rows,
+      send: (handle) =>
+        patchJson(`/api/admin/handles/${handle.id}`, { published: false }),
+      apply: (handle) => ({ ...handle, published: false }),
+      done: `${rows.length} ručki vraćeno u draft`,
+      failed: "Greška pri vraćanju ručki u draft",
+    });
   }
 
   return (

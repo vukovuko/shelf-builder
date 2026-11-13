@@ -1,4 +1,9 @@
-import { type QueryClient, queryOptions } from "@tanstack/react-query";
+import {
+  type FetchQueryOptions,
+  type QueryClient,
+  type QueryKey,
+  queryOptions,
+} from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
@@ -30,10 +35,16 @@ import { loadModels, loadWardrobe, loadWardrobes } from "./wardrobes.server";
 // Every loader behind these functions checks for the admin role itself, so a
 // function is safe to call whatever page asks.
 //
-// The admin's forms still save through the old /api handlers and then call
-// router.refresh(), which refetches. Until they become mutations that update
-// this cache, nothing here may be shown from cache: a form opened on stale
-// values would save them back. Hence staleTime 0 and loaders that fetch.
+// Lists and the dashboard are shown from the cache at once and refetched
+// behind it, and list bulk actions change the cache before the server answers
+// (src/components/admin/list-actions.ts).
+//
+// Detail pages are different: their forms copy the record into their own
+// state once, so they must never open on a copy that might be old. Their
+// loaders fetch a fresh one every time and the page reads loader data; the
+// router waits for it (defaultStaleReloadMode in src/router.tsx). The forms
+// save through the old /api handlers (adminFetch), which marks all cached
+// admin data as out of date.
 
 const listSearch = z.object({
   page: z.number().int().min(1).optional(),
@@ -72,6 +83,22 @@ function single<T>(name: string, fetchIt: () => Promise<T>) {
     queryKey: ["admin", name],
     queryFn: () => fetchIt(),
     staleTime: 0,
+  });
+}
+
+/**
+ * For the loader of a page that only shows data (a list, the dashboard): the
+ * cached copy when nothing was saved since it was read, otherwise a fresh
+ * one. A copy that a save made out of date is never shown, even for a
+ * moment: a list would flash the row as it was before.
+ */
+export function cachedUnlessChanged<Data, Key extends QueryKey>(
+  queryClient: QueryClient,
+  query: FetchQueryOptions<Data, Error, Data, Key>,
+) {
+  return queryClient.fetchQuery({
+    ...query,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 

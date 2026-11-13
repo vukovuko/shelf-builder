@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { deleteRequest, useListAction } from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { columns, type User } from "./columns";
 
@@ -42,9 +43,10 @@ export function UsersClient({
   search,
 }: UsersClientProps) {
   const router = useRouter();
+  const listAction = useListAction<User>("users", "users");
+  const isDeleting = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -99,30 +101,17 @@ export function UsersClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedUsers.map((user) =>
-          fetch(`/api/admin/users/${user.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedUsers.length} korisnika obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih korisnika");
-      }
-    } catch (error) {
-      console.error("Failed to delete users:", error);
-      toast.error("Greška pri brisanju korisnika");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedUsers([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedUsers;
+    setShowDeleteDialog(false);
+    setSelectedUsers([]);
+    listAction.mutate({
+      rows,
+      send: (user) => deleteRequest(`/api/admin/users/${user.id}`),
+      apply: () => null,
+      done: `${rows.length} korisnika obrisano`,
+      failed: "Greška pri brisanju korisnika",
+    });
   }
 
   return (

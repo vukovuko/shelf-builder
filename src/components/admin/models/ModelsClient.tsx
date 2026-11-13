@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, MoreHorizontal } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { exportCutListAsCsv, exportDesignsCutListAsCsv } from "@/lib/exportCsv";
 import { cutListForSavedDesign } from "@/lib/model-cut-list";
 import { cn } from "@/lib/utils";
@@ -43,9 +48,11 @@ export function ModelsClient({
   search,
 }: ModelsClientProps) {
   const router = useRouter();
+  // A model is a saved design, so the designs list shows the same records.
+  const listAction = useListAction<Model>("models", "models", ["wardrobes"]);
+  const isDeleting = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedModels, setSelectedModels] = useState<Model[]>([]);
@@ -100,30 +107,17 @@ export function ModelsClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedModels.map((model) =>
-          fetch(`/api/admin/wardrobes/${model.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedModels.length} modela obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih modela");
-      }
-    } catch (error) {
-      console.error("Failed to delete models:", error);
-      toast.error("Greška pri brisanju modela");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedModels([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedModels;
+    setShowDeleteDialog(false);
+    setSelectedModels([]);
+    listAction.mutate({
+      rows,
+      send: (model) => deleteRequest(`/api/admin/wardrobes/${model.id}`),
+      apply: () => null,
+      done: `${rows.length} modela obrisano`,
+      failed: "Greška pri brisanju modela",
+    });
   }
 
   // Boards of the given models (all models without ids) in the CNC CSV
@@ -162,24 +156,18 @@ export function ModelsClient({
     }
   }
 
-  async function handleTogglePublish(id: string, value: boolean) {
-    try {
-      const res = await fetch(`/api/admin/wardrobes/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publishedModel: value }),
-      });
-
-      if (res.ok) {
-        toast.success(value ? "Model objavljen" : "Model sakriven");
-        router.refresh();
-      } else {
-        toast.error("Greška pri ažuriranju modela");
-      }
-    } catch (error) {
-      console.error("Failed to toggle publish:", error);
-      toast.error("Greška pri ažuriranju modela");
-    }
+  function handleTogglePublish(id: string, value: boolean) {
+    const rows = models.filter((model) => model.id === id);
+    listAction.mutate({
+      rows,
+      send: (model) =>
+        patchJson(`/api/admin/wardrobes/${model.id}`, {
+          publishedModel: value,
+        }),
+      apply: (model) => ({ ...model, publishedModel: value }),
+      done: value ? "Model objavljen" : "Model sakriven",
+      failed: "Greška pri ažuriranju modela",
+    });
   }
 
   return (

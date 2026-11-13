@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -219,7 +220,7 @@ export function AccessoryRuleFormClient({
           : `/api/admin/accessory-rules/${initialRule?.id}`;
       const method = mode === "create" ? "POST" : "PATCH";
 
-      const response = await fetch(url, {
+      const response = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -267,7 +268,7 @@ export function AccessoryRuleFormClient({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(
+      const response = await adminFetch(
         `/api/admin/accessory-rules/${initialRule.id}`,
         {
           method: "DELETE",

@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -60,7 +61,7 @@ export function UserNewClient() {
     };
 
     try {
-      const res = await fetch("/api/admin/users/create", {
+      const res = await adminFetch("/api/admin/users/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

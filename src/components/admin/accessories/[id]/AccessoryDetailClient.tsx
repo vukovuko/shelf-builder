@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -148,7 +149,7 @@ export function AccessoryDetailClient({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "accessories");
-      const res = await fetch("/api/admin/upload", {
+      const res = await adminFetch("/api/admin/upload", {
         method: "POST",
         body: formData,
       });
@@ -202,7 +203,7 @@ export function AccessoryDetailClient({
     };
 
     try {
-      const res = await fetch(`/api/admin/accessories/${accessory.id}`, {
+      const res = await adminFetch(`/api/admin/accessories/${accessory.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -234,7 +235,7 @@ export function AccessoryDetailClient({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/accessories/${accessory.id}`, {
+      const res = await adminFetch(`/api/admin/accessories/${accessory.id}`, {
         method: "DELETE",
       });
 
@@ -278,7 +279,7 @@ export function AccessoryDetailClient({
 
       let res;
       if (editingVariant) {
-        res = await fetch(
+        res = await adminFetch(
           `/api/admin/accessories/${accessory.id}/variants/${editingVariant.id}`,
           {
             method: "PATCH",
@@ -287,7 +288,7 @@ export function AccessoryDetailClient({
           },
         );
       } else {
-        res = await fetch(`/api/admin/accessories/${accessory.id}/variants`, {
+        res = await adminFetch(`/api/admin/accessories/${accessory.id}/variants`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -305,7 +306,7 @@ export function AccessoryDetailClient({
       setVariantDialogOpen(false);
 
       // Re-fetch accessory to update local state (router.refresh only updates server component props)
-      const freshRes = await fetch(`/api/admin/accessories/${accessory.id}`);
+      const freshRes = await adminFetch(`/api/admin/accessories/${accessory.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setAccessory(fresh);
@@ -320,7 +321,7 @@ export function AccessoryDetailClient({
   const handleDeleteVariant = async (variantId: number) => {
     setDeletingVariantId(variantId);
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `/api/admin/accessories/${accessory.id}/variants/${variantId}`,
         {
           method: "DELETE",
@@ -334,7 +335,7 @@ export function AccessoryDetailClient({
 
       toast.success("Varijanta obrisana");
 
-      const freshRes = await fetch(`/api/admin/accessories/${accessory.id}`);
+      const freshRes = await adminFetch(`/api/admin/accessories/${accessory.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setAccessory(fresh);

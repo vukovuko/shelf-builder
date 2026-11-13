@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { columns, type Material } from "./columns";
 
@@ -42,10 +47,11 @@ export function MaterialsClient({
   search,
 }: MaterialsClientProps) {
   const router = useRouter();
+  const listAction = useListAction<Material>("materials", "materials");
+  const isDeleting = listAction.isPending;
+  const isUpdatingStatus = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -102,100 +108,51 @@ export function MaterialsClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedMaterials.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedMaterials.length} materijala obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih materijala");
-      }
-    } catch (error) {
-      console.error("Failed to delete materials:", error);
-      toast.error("Greška pri brisanju materijala");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedMaterials([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedMaterials;
+    setShowDeleteDialog(false);
+    setSelectedMaterials([]);
+    listAction.mutate({
+      rows,
+      send: (material) => deleteRequest(`/api/admin/materials/${material.id}`),
+      apply: () => null,
+      done: `${rows.length} materijala obrisano`,
+      failed: "Greška pri brisanju materijala",
+    });
   }
 
-  async function handleBulkPublish(selected: Material[]) {
-    const toPublish = selected.filter((m) => !m.published);
-    if (toPublish.length === 0) {
+  function handleBulkPublish(selected: Material[]) {
+    const rows = selected.filter((material) => !material.published);
+    if (rows.length === 0) {
       toast.info("Svi izabrani materijali su već objavljeni");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toPublish.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: true }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toPublish.length} materijala objavljeno`);
-        setSelectedMaterials([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri objavljivanju nekih materijala");
-      }
-    } catch (error) {
-      console.error("Failed to publish materials:", error);
-      toast.error("Greška pri objavljivanju materijala");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedMaterials([]);
+    listAction.mutate({
+      rows,
+      send: (material) =>
+        patchJson(`/api/admin/materials/${material.id}`, { published: true }),
+      apply: (material) => ({ ...material, published: true }),
+      done: `${rows.length} materijala objavljeno`,
+      failed: "Greška pri objavljivanju materijala",
+    });
   }
 
-  async function handleBulkDraft(selected: Material[]) {
-    const toDraft = selected.filter((m) => m.published);
-    if (toDraft.length === 0) {
+  function handleBulkDraft(selected: Material[]) {
+    const rows = selected.filter((material) => material.published);
+    if (rows.length === 0) {
       toast.info("Svi izabrani materijali su već u draft-u");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toDraft.map((material) =>
-          fetch(`/api/admin/materials/${material.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: false }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toDraft.length} materijala vraćeno u draft`);
-        setSelectedMaterials([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri vraćanju nekih materijala u draft");
-      }
-    } catch (error) {
-      console.error("Failed to draft materials:", error);
-      toast.error("Greška pri vraćanju materijala u draft");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedMaterials([]);
+    listAction.mutate({
+      rows,
+      send: (material) =>
+        patchJson(`/api/admin/materials/${material.id}`, { published: false }),
+      apply: (material) => ({ ...material, published: false }),
+      done: `${rows.length} materijala vraćeno u draft`,
+      failed: "Greška pri vraćanju materijala u draft",
+    });
   }
 
   return (

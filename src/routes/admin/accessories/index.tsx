@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy } from "react";
 import { type AdminListSearch, adminListSearch } from "@/lib/admin-search";
@@ -5,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   adminAccessoriesQuery,
   adminHandlesQuery,
+  cachedUnlessChanged,
 } from "@/server/admin/admin.functions";
 
 const AccessoriesClient = import.meta.env.SSR
@@ -32,18 +34,16 @@ export const Route = createFileRoute("/admin/accessories/")({
     ...(raw.tab === "handles" && { tab: "handles" as const }),
   }),
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps: { tab, ...list } }) =>
-    tab === "handles"
-      ? {
-          tab: "handles" as const,
-          list: await context.queryClient.fetchQuery(adminHandlesQuery(list)),
-        }
-      : {
-          tab: "accessories" as const,
-          list: await context.queryClient.fetchQuery(
-            adminAccessoriesQuery(list),
-          ),
-        },
+  loader: async ({ context, deps: { tab, ...list } }) => {
+    if (tab === "handles") {
+      await cachedUnlessChanged(context.queryClient, adminHandlesQuery(list));
+    } else {
+      await cachedUnlessChanged(
+        context.queryClient,
+        adminAccessoriesQuery(list),
+      );
+    }
+  },
   component: OkovPage,
 });
 
@@ -53,8 +53,8 @@ const activeTab = "border-primary bg-primary text-primary-foreground";
 const idleTab = "border-border bg-background hover:bg-muted";
 
 function OkovPage() {
-  const data = Route.useLoaderData();
-  const onHandles = data.tab === "handles";
+  const { tab, ...list } = Route.useSearch();
+  const onHandles = tab === "handles";
 
   return (
     <div className="space-y-6">
@@ -89,11 +89,19 @@ function OkovPage() {
         </Link>
       </div>
 
-      {data.tab === "handles"
-        ? HandlesClient && <HandlesClient {...data.list} showHeader={false} />
-        : AccessoriesClient && (
-            <AccessoriesClient {...data.list} showHeader={false} />
-          )}
+      {onHandles ? <HandlesTab list={list} /> : <AccessoriesTab list={list} />}
     </div>
+  );
+}
+
+function HandlesTab({ list }: { list: AdminListSearch }) {
+  const { data } = useSuspenseQuery(adminHandlesQuery(list));
+  return HandlesClient && <HandlesClient {...data} showHeader={false} />;
+}
+
+function AccessoriesTab({ list }: { list: AdminListSearch }) {
+  const { data } = useSuspenseQuery(adminAccessoriesQuery(list));
+  return (
+    AccessoriesClient && <AccessoriesClient {...data} showHeader={false} />
   );
 }

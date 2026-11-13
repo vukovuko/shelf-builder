@@ -1,17 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { deleteRequest, useListAction } from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { columns, type Wardrobe } from "./columns";
 
@@ -41,9 +42,12 @@ export function WardrobesClient({
   search,
 }: WardrobesClientProps) {
   const router = useRouter();
+  const listAction = useListAction<Wardrobe>("wardrobes", "wardrobes", [
+    "models",
+  ]);
+  const isDeleting = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedWardrobes, setSelectedWardrobes] = useState<Wardrobe[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -98,30 +102,17 @@ export function WardrobesClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedWardrobes.map((wardrobe) =>
-          fetch(`/api/admin/wardrobes/${wardrobe.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedWardrobes.length} ormana obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih ormana");
-      }
-    } catch (error) {
-      console.error("Failed to delete wardrobes:", error);
-      toast.error("Greška pri brisanju ormana");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedWardrobes([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedWardrobes;
+    setShowDeleteDialog(false);
+    setSelectedWardrobes([]);
+    listAction.mutate({
+      rows,
+      send: (wardrobe) => deleteRequest(`/api/admin/wardrobes/${wardrobe.id}`),
+      apply: () => null,
+      done: `${rows.length} ormana obrisano`,
+      failed: "Greška pri brisanju ormana",
+    });
   }
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -200,7 +201,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "DELETE",
       });
 
@@ -222,7 +223,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   async function handleRoleChange(newRole: string) {
     setIsUpdating(true);
     try {
-      const res = await fetch("/api/admin/users/role", {
+      const res = await adminFetch("/api/admin/users/role", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, role: newRole }),
@@ -246,7 +247,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   async function handleEmailNotificationChange(checked: boolean) {
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ receiveOrderEmails: checked }),
@@ -277,7 +278,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
 
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tags: JSON.stringify(newTags) }),
@@ -307,7 +308,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
 
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notesInput || null }),
@@ -347,7 +348,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
 
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -379,7 +380,7 @@ export function UserDetailClient({ user: initialUser }: UserDetailClientProps) {
   async function handleSaveAddress() {
     setIsUpdating(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

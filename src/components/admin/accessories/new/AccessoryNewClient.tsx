@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -53,7 +54,7 @@ export default function NewAccessoryPage() {
     };
 
     try {
-      const res = await fetch("/api/admin/accessories", {
+      const res = await adminFetch("/api/admin/accessories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

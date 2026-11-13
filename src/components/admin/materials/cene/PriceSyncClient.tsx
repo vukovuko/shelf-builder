@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,7 +61,7 @@ export function PriceSyncClient({
   async function run(action: Action) {
     setLoading(action);
     try {
-      const res = await fetch("/api/admin/materials/agacija-sync", {
+      const res = await adminFetch("/api/admin/materials/agacija-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

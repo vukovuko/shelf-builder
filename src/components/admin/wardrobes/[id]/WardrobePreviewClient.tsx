@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import React, {
   useEffect,
   useRef,
@@ -234,7 +235,7 @@ export function WardrobePreviewClient({
   async function handleToggleLock() {
     const newLocked = !isLocked;
     try {
-      const res = await fetch(`/api/admin/wardrobes/${wardrobe.id}`, {
+      const res = await adminFetch(`/api/admin/wardrobes/${wardrobe.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isLocked: newLocked }),

@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { columns, type Accessory } from "./columns";
+import { type Accessory, columns } from "./columns";
 
 interface AccessoriesClientProps {
   accessories: Accessory[];
@@ -44,10 +49,11 @@ export function AccessoriesClient({
   showHeader = true,
 }: AccessoriesClientProps) {
   const router = useRouter();
+  const listAction = useListAction<Accessory>("accessories", "accessories");
+  const isDeleting = listAction.isPending;
+  const isUpdatingStatus = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAccessories, setSelectedAccessories] = useState<Accessory[]>(
     [],
@@ -103,100 +109,56 @@ export function AccessoriesClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedAccessories.map((accessory) =>
-          fetch(`/api/admin/accessories/${accessory.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedAccessories.length} stavki okova obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih stavki okova");
-      }
-    } catch (error) {
-      console.error("Failed to delete accessories:", error);
-      toast.error("Greška pri brisanju okova");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedAccessories([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedAccessories;
+    setShowDeleteDialog(false);
+    setSelectedAccessories([]);
+    listAction.mutate({
+      rows,
+      send: (accessory) =>
+        deleteRequest(`/api/admin/accessories/${accessory.id}`),
+      apply: () => null,
+      done: `${rows.length} stavki okova obrisano`,
+      failed: "Greška pri brisanju okova",
+    });
   }
 
-  async function handleBulkPublish(selected: Accessory[]) {
-    const toPublish = selected.filter((a) => !a.published);
-    if (toPublish.length === 0) {
+  function handleBulkPublish(selected: Accessory[]) {
+    const rows = selected.filter((accessory) => !accessory.published);
+    if (rows.length === 0) {
       toast.info("Sav izabrani okov je već objavljen");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toPublish.map((accessory) =>
-          fetch(`/api/admin/accessories/${accessory.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: true }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toPublish.length} stavki okova objavljeno`);
-        setSelectedAccessories([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri objavljivanju nekih stavki okova");
-      }
-    } catch (error) {
-      console.error("Failed to publish accessories:", error);
-      toast.error("Greška pri objavljivanju okova");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedAccessories([]);
+    listAction.mutate({
+      rows,
+      send: (accessory) =>
+        patchJson(`/api/admin/accessories/${accessory.id}`, {
+          published: true,
+        }),
+      apply: (accessory) => ({ ...accessory, published: true }),
+      done: `${rows.length} stavki okova objavljeno`,
+      failed: "Greška pri objavljivanju okova",
+    });
   }
 
-  async function handleBulkDraft(selected: Accessory[]) {
-    const toDraft = selected.filter((a) => a.published);
-    if (toDraft.length === 0) {
+  function handleBulkDraft(selected: Accessory[]) {
+    const rows = selected.filter((accessory) => accessory.published);
+    if (rows.length === 0) {
       toast.info("Sav izabrani okov je već u draft-u");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toDraft.map((accessory) =>
-          fetch(`/api/admin/accessories/${accessory.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ published: false }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toDraft.length} stavki okova vraćeno u draft`);
-        setSelectedAccessories([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri vraćanju nekih stavki okova u draft");
-      }
-    } catch (error) {
-      console.error("Failed to draft accessories:", error);
-      toast.error("Greška pri vraćanju okova u draft");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedAccessories([]);
+    listAction.mutate({
+      rows,
+      send: (accessory) =>
+        patchJson(`/api/admin/accessories/${accessory.id}`, {
+          published: false,
+        }),
+      apply: (accessory) => ({ ...accessory, published: false }),
+      done: `${rows.length} stavki okova vraćeno u draft`,
+      failed: "Greška pri vraćanju okova u draft",
+    });
   }
 
   return (

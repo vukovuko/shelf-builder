@@ -1,7 +1,11 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy } from "react";
 import { adminListSearch } from "@/lib/admin-search";
-import { adminRulesQuery } from "@/server/admin/admin.functions";
+import {
+  adminRulesQuery,
+  cachedUnlessChanged,
+} from "@/server/admin/admin.functions";
 
 const RulesClient = import.meta.env.SSR
   ? null
@@ -15,11 +19,11 @@ export const Route = createFileRoute("/admin/rules/")({
   validateSearch: adminListSearch,
   loaderDeps: ({ search }) => search,
   loader: ({ context, deps }) =>
-    context.queryClient.fetchQuery(adminRulesQuery(deps)),
+    cachedUnlessChanged(context.queryClient, adminRulesQuery(deps)),
   component: RulesPage,
 });
 
 function RulesPage() {
-  const data = Route.useLoaderData();
+  const { data } = useSuspenseQuery(adminRulesQuery(Route.useSearch()));
   return RulesClient && <RulesClient {...data} />;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -285,7 +286,7 @@ export function OrderDetailClient({
     if (!order.wardrobeId) return;
     const newLocked = !isWardrobeLocked;
     try {
-      const res = await fetch(`/api/admin/wardrobes/${order.wardrobeId}`, {
+      const res = await adminFetch(`/api/admin/wardrobes/${order.wardrobeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isLocked: newLocked }),
@@ -685,7 +686,7 @@ export function OrderDetailClient({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}`, {
+      const res = await adminFetch(`/api/admin/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

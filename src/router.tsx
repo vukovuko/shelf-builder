@@ -24,6 +24,11 @@ export function getRouter() {
     defaultPreload: "intent",
     // Query owns freshness; the router must not keep its own copy of loader data.
     defaultPreloadStaleTime: 0,
+    // Coming back to a page, the router would draw its remembered copy first
+    // and run the loader behind it. A form that copies its record into state
+    // (every admin detail page) would then start from old values. Waiting for
+    // the loader costs nothing where it reads from the Query cache.
+    defaultStaleReloadMode: "blocking",
   });
 
   setupRouterSsrQueryIntegration({ router, queryClient });

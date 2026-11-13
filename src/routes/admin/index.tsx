@@ -1,7 +1,9 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy } from "react";
 import {
   adminDashboardQuery,
+  cachedUnlessChanged,
   type DashboardSearch,
 } from "@/server/admin/admin.functions";
 
@@ -25,11 +27,11 @@ export const Route = createFileRoute("/admin/")({
   }),
   loaderDeps: ({ search }) => search,
   loader: ({ context, deps }) =>
-    context.queryClient.fetchQuery(adminDashboardQuery(deps)),
+    cachedUnlessChanged(context.queryClient, adminDashboardQuery(deps)),
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const data = Route.useLoaderData();
+  const { data } = useSuspenseQuery(adminDashboardQuery(Route.useSearch()));
   return AdminDashboard && <AdminDashboard {...data} />;
 }

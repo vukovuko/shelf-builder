@@ -1,19 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +20,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { columns, type RuleRow } from "./columns";
 
 interface RulesClientProps {
@@ -42,10 +47,11 @@ export function RulesClient({
   search,
 }: RulesClientProps) {
   const router = useRouter();
+  const listAction = useListAction<RuleRow>("rules", "rules");
+  const isDeleting = listAction.isPending;
+  const isUpdatingStatus = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedRules, setSelectedRules] = useState<RuleRow[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -100,100 +106,51 @@ export function RulesClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedRules.map((rule) =>
-          fetch(`/api/admin/rules/${rule.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${selectedRules.length} pravila obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih pravila");
-      }
-    } catch (error) {
-      console.error("Failed to delete rules:", error);
-      toast.error("Greška pri brisanju pravila");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedRules([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedRules;
+    setShowDeleteDialog(false);
+    setSelectedRules([]);
+    listAction.mutate({
+      rows,
+      send: (rule) => deleteRequest(`/api/admin/rules/${rule.id}`),
+      apply: () => null,
+      done: `${rows.length} pravila obrisano`,
+      failed: "Greška pri brisanju pravila",
+    });
   }
 
-  async function handleBulkEnable(selected: RuleRow[]) {
-    const toEnable = selected.filter((r) => !r.enabled);
-    if (toEnable.length === 0) {
+  function handleBulkEnable(selected: RuleRow[]) {
+    const rows = selected.filter((rule) => !rule.enabled);
+    if (rows.length === 0) {
       toast.info("Sva izabrana pravila su već aktivna");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toEnable.map((rule) =>
-          fetch(`/api/admin/rules/${rule.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled: true }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toEnable.length} pravila aktivirano`);
-        setSelectedRules([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri aktiviranju nekih pravila");
-      }
-    } catch (error) {
-      console.error("Failed to enable rules:", error);
-      toast.error("Greška pri aktiviranju pravila");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedRules([]);
+    listAction.mutate({
+      rows,
+      send: (rule) =>
+        patchJson(`/api/admin/rules/${rule.id}`, { enabled: true }),
+      apply: (rule) => ({ ...rule, enabled: true }),
+      done: `${rows.length} pravila aktivirano`,
+      failed: "Greška pri aktiviranju pravila",
+    });
   }
 
-  async function handleBulkDisable(selected: RuleRow[]) {
-    const toDisable = selected.filter((r) => r.enabled);
-    if (toDisable.length === 0) {
+  function handleBulkDisable(selected: RuleRow[]) {
+    const rows = selected.filter((rule) => rule.enabled);
+    if (rows.length === 0) {
       toast.info("Sva izabrana pravila su već neaktivna");
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toDisable.map((rule) =>
-          fetch(`/api/admin/rules/${rule.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled: false }),
-          }),
-        ),
-      );
-
-      const allSuccessful = results.every((r) => r.ok);
-      if (allSuccessful) {
-        toast.success(`${toDisable.length} pravila deaktivirano`);
-        setSelectedRules([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri deaktiviranju nekih pravila");
-      }
-    } catch (error) {
-      console.error("Failed to disable rules:", error);
-      toast.error("Greška pri deaktiviranju pravila");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedRules([]);
+    listAction.mutate({
+      rows,
+      send: (rule) =>
+        patchJson(`/api/admin/rules/${rule.id}`, { enabled: false }),
+      apply: (rule) => ({ ...rule, enabled: false }),
+      done: `${rows.length} pravila deaktivirano`,
+      failed: "Greška pri deaktiviranju pravila",
+    });
   }
 
   return (

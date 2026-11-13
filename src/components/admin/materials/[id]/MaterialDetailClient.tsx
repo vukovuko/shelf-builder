@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { ArrowLeft, Loader2, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -106,7 +107,7 @@ export function MaterialDetailClient({
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/admin/materials/upload", {
+      const res = await adminFetch("/api/admin/materials/upload", {
         method: "POST",
         body: formData,
       });
@@ -221,7 +222,7 @@ export function MaterialDetailClient({
     };
 
     try {
-      const res = await fetch(`/api/admin/materials/${material.id}`, {
+      const res = await adminFetch(`/api/admin/materials/${material.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -267,7 +268,7 @@ export function MaterialDetailClient({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/materials/${material.id}`, {
+      const res = await adminFetch(`/api/admin/materials/${material.id}`, {
         method: "DELETE",
       });
 

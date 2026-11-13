@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -113,7 +114,7 @@ export function HandleDetailClient({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "handles");
-      const res = await fetch("/api/admin/upload", {
+      const res = await adminFetch("/api/admin/upload", {
         method: "POST",
         body: formData,
       });
@@ -152,7 +153,7 @@ export function HandleDetailClient({
     };
 
     try {
-      const res = await fetch(`/api/admin/handles/${handle.id}`, {
+      const res = await adminFetch(`/api/admin/handles/${handle.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -181,7 +182,7 @@ export function HandleDetailClient({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/handles/${handle.id}`, {
+      const res = await adminFetch(`/api/admin/handles/${handle.id}`, {
         method: "DELETE",
       });
 
@@ -225,7 +226,7 @@ export function HandleDetailClient({
 
       let res;
       if (editingFinish) {
-        res = await fetch(
+        res = await adminFetch(
           `/api/admin/handles/${handle.id}/finishes/${editingFinish.id}`,
           {
             method: "PATCH",
@@ -234,7 +235,7 @@ export function HandleDetailClient({
           },
         );
       } else {
-        res = await fetch(`/api/admin/handles/${handle.id}/finishes`, {
+        res = await adminFetch(`/api/admin/handles/${handle.id}/finishes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -250,7 +251,7 @@ export function HandleDetailClient({
       setFinishDialogOpen(false);
 
       // Re-fetch handle to update local state (router.refresh only updates server component props)
-      const freshRes = await fetch(`/api/admin/handles/${handle.id}`);
+      const freshRes = await adminFetch(`/api/admin/handles/${handle.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setHandle(fresh);
@@ -265,7 +266,7 @@ export function HandleDetailClient({
   const handleDeleteFinish = async (finishId: number) => {
     setDeletingFinishId(finishId);
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `/api/admin/handles/${handle.id}/finishes/${finishId}`,
         {
           method: "DELETE",
@@ -279,7 +280,7 @@ export function HandleDetailClient({
 
       toast.success("Obrada obrisana");
 
-      const freshRes = await fetch(`/api/admin/handles/${handle.id}`);
+      const freshRes = await adminFetch(`/api/admin/handles/${handle.id}`);
       if (freshRes.ok) {
         const fresh = await freshRes.json();
         setHandle(fresh);

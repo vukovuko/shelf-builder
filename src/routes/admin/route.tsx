@@ -1,6 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { onAdminWrite } from "@/components/admin/admin-fetch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   SidebarInset,
@@ -44,6 +46,22 @@ function AdminPending() {
 }
 
 function AdminLayout() {
+  const queryClient = useQueryClient();
+
+  // A form saved something: what is on screen is refetched, and cached lists
+  // are fetched again when next opened (cachedUnlessChanged). The access check is
+  // left alone, a save does not change who is signed in.
+  useEffect(
+    () =>
+      onAdminWrite(() => {
+        queryClient.invalidateQueries({
+          predicate: ({ queryKey }) =>
+            queryKey[0] === "admin" && queryKey[1] !== "access",
+        });
+      }),
+    [queryClient],
+  );
+
   return (
     <SidebarProvider>
       {/* Scoped icon stroke-width for lighter admin aesthetic */}

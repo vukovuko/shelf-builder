@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/components/admin/admin-fetch";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -31,7 +32,7 @@ export default function NewHandlePage() {
     };
 
     try {
-      const res = await fetch("/api/admin/handles", {
+      const res = await adminFetch("/api/admin/handles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

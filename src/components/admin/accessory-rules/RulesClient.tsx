@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  deleteRequest,
+  patchJson,
+  useListAction,
+} from "@/components/admin/list-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +20,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { columns, type AccessoryRuleRow } from "./columns";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { type AccessoryRuleRow, columns } from "./columns";
 
 interface RulesClientProps {
   rules: AccessoryRuleRow[];
@@ -42,10 +47,14 @@ export function RulesClient({
   search,
 }: RulesClientProps) {
   const router = useRouter();
+  const listAction = useListAction<AccessoryRuleRow>(
+    "accessory-rules",
+    "rules",
+  );
+  const isDeleting = listAction.isPending;
+  const isUpdatingStatus = listAction.isPending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedRules, setSelectedRules] = useState<AccessoryRuleRow[]>([]);
   const [searchInput, setSearchInput] = useState(search);
@@ -99,37 +108,22 @@ export function RulesClient({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  async function handleBulkDelete() {
-    setIsDeleting(true);
-    try {
-      const results = await Promise.all(
-        selectedRules.map((rule) =>
-          fetch(`/api/admin/accessory-rules/${rule.id}`, { method: "DELETE" }),
-        ),
-      );
-
-      if (results.every((response) => response.ok)) {
-        toast.success(`${selectedRules.length} pravila obrisano`);
-        router.refresh();
-      } else {
-        toast.error("Greška pri brisanju nekih pravila");
-      }
-    } catch (error) {
-      console.error("Failed to delete accessory rules:", error);
-      toast.error("Greška pri brisanju pravila");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setSelectedRules([]);
-    }
+  function handleBulkDelete() {
+    const rows = selectedRules;
+    setShowDeleteDialog(false);
+    setSelectedRules([]);
+    listAction.mutate({
+      rows,
+      send: (rule) => deleteRequest(`/api/admin/accessory-rules/${rule.id}`),
+      apply: () => null,
+      done: `${rows.length} pravila obrisano`,
+      failed: "Greška pri brisanju pravila",
+    });
   }
 
-  async function handleBulkEnabled(
-    selected: AccessoryRuleRow[],
-    enabled: boolean,
-  ) {
-    const toUpdate = selected.filter((rule) => rule.enabled !== enabled);
-    if (toUpdate.length === 0) {
+  function handleBulkEnabled(selected: AccessoryRuleRow[], enabled: boolean) {
+    const rows = selected.filter((rule) => rule.enabled !== enabled);
+    if (rows.length === 0) {
       toast.info(
         enabled
           ? "Sva izabrana pravila su već aktivna"
@@ -137,36 +131,17 @@ export function RulesClient({
       );
       return;
     }
-
-    setIsUpdatingStatus(true);
-    try {
-      const results = await Promise.all(
-        toUpdate.map((rule) =>
-          fetch(`/api/admin/accessory-rules/${rule.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ enabled }),
-          }),
-        ),
-      );
-
-      if (results.every((response) => response.ok)) {
-        toast.success(
-          enabled
-            ? `${toUpdate.length} pravila aktivirano`
-            : `${toUpdate.length} pravila deaktivirano`,
-        );
-        setSelectedRules([]);
-        router.refresh();
-      } else {
-        toast.error("Greška pri ažuriranju nekih pravila");
-      }
-    } catch (error) {
-      console.error("Failed to update accessory rules:", error);
-      toast.error("Greška pri ažuriranju pravila");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    setSelectedRules([]);
+    listAction.mutate({
+      rows,
+      send: (rule) =>
+        patchJson(`/api/admin/accessory-rules/${rule.id}`, { enabled }),
+      apply: (rule) => ({ ...rule, enabled }),
+      done: enabled
+        ? `${rows.length} pravila aktivirano`
+        : `${rows.length} pravila deaktivirano`,
+      failed: "Greška pri ažuriranju pravila",
+    });
   }
 
   return (
