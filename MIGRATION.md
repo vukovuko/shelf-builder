@@ -333,6 +333,21 @@ level 1 on 14 Nov 2026 and at level 3 ("Agent-Readable") after this:
   AI crawlers in. Change it in `src/lib/seo/robots.ts` and in
   `CONTENT_SIGNAL` in `agent-requests.ts` together.
 
+- `llms.txt` and `llms-full.txt` carry a table of indicative prices for
+  typical sizes (`src/server/price-guide.server.ts`), the instruction to
+  call them indicative and send people to the configurator, and a link that
+  opens the configurator with given dimensions:
+  `/design?sirina=240&visina=210&dubina=60` (`sizeFromSearch` in
+  `src/lib/default-design.ts`, applied in `DesignPage.tsx`; a visitor's own
+  unfinished design is offered back in a toast).
+  Each price is the one the configurator shows for that size before anything
+  else is changed: the default design goes through the configurator's store
+  (`defaultDesign`) and is priced by `previewPrice`
+  (`src/server/price-preview.server.ts`), the same function that answers the
+  configurator's `/api/rules/preview`. Keep it that way: a second copy of
+  the pricing would drift. The table is stored with the catalog cache; saves
+  to price rules now start that cache over too (`src/routes/api/$.ts`).
+
 Left failing on purpose: the API catalog, MCP server card, auth.md, A2A card
 and skills index describe an API or an agent that outside programs may use.
 The only such thing here is the admin's private MCP server, and advertising

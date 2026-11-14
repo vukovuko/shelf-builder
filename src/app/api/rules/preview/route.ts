@@ -1,45 +1,20 @@
-import { asc, count, eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db/db";
-import {
-  accessories,
-  accessoryRules,
-  accessoryVariants,
-  handleFinishes,
-  handles,
-  materials,
-  orders,
-  rules,
-  user,
-} from "@/db/schema";
+import { orders, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import {
-  calculateCutList,
-  countBoardsExcludingShelvesAndBacks,
-} from "@/lib/calcCutList";
-import {
-  buildInstallationServiceAdjustment,
-  isInstallationServiceType,
-} from "@/lib/installation-service";
-import {
-  applyRules,
-  calculateFinalPrice,
-  computeCompartmentCount,
-  computeDoorMetrics,
-  computeShelfCount,
-  getVisibleAdjustments,
-  type Rule,
-  type RuleContext,
-} from "@/lib/rules";
 import { snapshotBoundsError } from "@/lib/snapshot-bounds";
 import {
   checkRateLimit,
   getIdentifier,
   previewRateLimit,
 } from "@/lib/upstash-rate-limit";
+import {
+  loadPricingCatalog,
+  previewPrice,
+} from "@/server/price-preview.server";
 
-// Preview route uses cut-list helpers directly to derive extra rule metrics.
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -72,111 +47,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid snapshot" }, { status: 400 });
     }
 
-    // Look up material names and pricing data needed for derived pricing and board counts
-    // Independent catalog reads: one round trip instead of five in a row.
-    const [
-      pricingMaterials,
-      enabledAccessoryRules,
-      pricingHandles,
-      allFinishes,
-      pricingAccessories,
-      allAccessoryVariants,
-    ] = await Promise.all([
-      db
-        .select({
-          id: materials.id,
-          name: materials.name,
-          price: materials.price,
-          thickness: materials.thickness,
-          categories: materials.categories,
-        })
-        .from(materials),
-      db.select().from(accessoryRules).where(eq(accessoryRules.enabled, true)),
-      db
-        .select({
-          id: handles.id,
-          legacyId: handles.legacyId,
-          name: handles.name,
-        })
-        .from(handles)
-        .where(eq(handles.published, true)),
-      db
-        .select({
-          id: handleFinishes.id,
-          handleId: handleFinishes.handleId,
-          legacyId: handleFinishes.legacyId,
-          name: handleFinishes.name,
-          price: handleFinishes.price,
-        })
-        .from(handleFinishes),
-      db
-        .select({
-          id: accessories.id,
-          name: accessories.name,
-          category: accessories.category,
-          pricingRule: accessories.pricingRule,
-          qtyPerUnit: accessories.qtyPerUnit,
-        })
-        .from(accessories)
-        .where(eq(accessories.published, true)),
-      db
-        .select({
-          id: accessoryVariants.id,
-          accessoryId: accessoryVariants.accessoryId,
-          name: accessoryVariants.name,
-          price: accessoryVariants.price,
-        })
-        .from(accessoryVariants),
-    ]);
-    const matMap = new Map(pricingMaterials.map((m) => [Number(m.id), m.name]));
-    const handlesWithFinishes = pricingHandles.map((h) => ({
-      ...h,
-      finishes: allFinishes.filter((f) => f.handleId === h.id),
-    }));
-    const accessoriesWithVariants = pricingAccessories.map((accessory) => ({
-      ...accessory,
-      variants: allAccessoryVariants.filter(
-        (variant) => variant.accessoryId === accessory.id,
-      ),
-    }));
-
-    // Count wardrobe features from snapshot
-    const doorGroups = snapshot?.doorGroups ?? [];
-    const compartmentExtrasValues = Object.values(
-      snapshot?.compartmentExtras ?? {},
-    );
-    // Count drawers from BOTH sources:
-    // 1. elementConfigs[key].drawerCounts (per-sub-column drawers)
-    // 2. compartmentExtras[key].drawersCount (whole-compartment drawers)
-    const elementConfigValues = Object.values(snapshot?.elementConfigs ?? {});
-    const drawersFromConfigs = elementConfigValues.reduce(
-      (sum: number, cfg: any) =>
-        sum +
-        (Array.isArray(cfg?.drawerCounts)
-          ? cfg.drawerCounts.reduce((s: number, c: number) => s + (c ?? 0), 0)
-          : 0),
-      0,
-    );
-    const drawersFromExtras = compartmentExtrasValues.reduce(
-      (sum: number, extras: any) => sum + (extras?.drawersCount ?? 0),
-      0,
-    );
-    const drawerCount = drawersFromConfigs + drawersFromExtras;
-    const rodCount = compartmentExtrasValues.filter(
-      (extras: any) => extras?.rod === true,
-    ).length;
-    const ledCount = compartmentExtrasValues.filter(
-      (extras: any) => extras?.led === true,
-    ).length;
-    const verticalDividerCount = elementConfigValues.filter(
-      (cfg: any) => (cfg?.columns ?? 1) > 1,
-    ).length;
-    const shelfCount = computeShelfCount(snapshot);
-    const columnCount = (snapshot?.verticalBoundaries?.length ?? 0) + 1;
-    const hasMirror = doorGroups.some(
-      (g: any) => g.type?.includes("Mirror") || g.type?.includes("mirror"),
-    );
-
     // Customer-specific pricing (order count, tags) only for a signed-in
     // customer: a typed email or phone proves nothing about who is asking.
     const previewUserId: string | null = session?.user?.id ?? null;
@@ -198,180 +68,31 @@ export async function POST(req: Request) {
       userTags = userData?.tags ? JSON.parse(userData.tags) : [];
     }
 
-    // Compute door metrics (heights, type counts, handle info)
-    const doorMetrics = computeDoorMetrics(snapshot, handlesWithFinishes);
-    const doorCount =
-      doorMetrics.singleDoorCount +
-      doorMetrics.drawerStyleDoorCount +
-      doorMetrics.doubleDoorCount * 2;
-    const resolvedMaterialId = Number(
-      snapshot?.selectedMaterialId ?? materialId,
-    );
-    const resolvedFrontMaterialId = Number(
-      snapshot?.selectedFrontMaterialId ?? frontMaterialId,
-    );
-    const resolvedBackMaterialIdRaw =
-      snapshot?.selectedBackMaterialId ?? backMaterialId ?? null;
-    const resolvedEdgeMaterialIdRaw =
-      snapshot?.selectedEdgeMaterialId ?? edgeMaterialId ?? null;
-    const resolvedFrontEdgeMaterialIdRaw =
-      snapshot?.selectedFrontEdgeMaterialId ??
-      frontEdgeMaterialId ??
-      resolvedEdgeMaterialIdRaw ??
-      null;
-    const resolvedBackMaterialId =
-      resolvedBackMaterialIdRaw != null
-        ? Number(resolvedBackMaterialIdRaw)
-        : null;
-    const resolvedEdgeMaterialId =
-      resolvedEdgeMaterialIdRaw != null
-        ? Number(resolvedEdgeMaterialIdRaw)
-        : null;
-    const resolvedFrontEdgeMaterialId =
-      resolvedFrontEdgeMaterialIdRaw != null
-        ? Number(resolvedFrontEdgeMaterialIdRaw)
-        : null;
-    const pricingSnapshot = {
-      width: Number(snapshot?.width ?? 0),
-      height: Number(snapshot?.height ?? 0),
-      depth: Number(snapshot?.depth ?? 0),
-      selectedMaterialId: resolvedMaterialId,
-      selectedFrontMaterialId: resolvedFrontMaterialId,
-      selectedBackMaterialId: resolvedBackMaterialId,
-      selectedEdgeMaterialId: resolvedEdgeMaterialId,
-      selectedFrontEdgeMaterialId: resolvedFrontEdgeMaterialId,
-      elementConfigs: snapshot?.elementConfigs ?? {},
-      compartmentExtras: snapshot?.compartmentExtras ?? {},
-      doorSelections: snapshot?.doorSelections ?? {},
-      hasBase: Boolean(snapshot?.hasBase),
-      baseHeight: Number(snapshot?.baseHeight ?? 0),
-      verticalBoundaries: snapshot?.verticalBoundaries,
-      columnHorizontalBoundaries: snapshot?.columnHorizontalBoundaries,
-      columnHeights: snapshot?.columnHeights,
-      columnModuleBoundaries: snapshot?.columnModuleBoundaries,
-      columnTopModuleShelves: snapshot?.columnTopModuleShelves,
-      doorGroups: snapshot?.doorGroups,
-      globalHandleId: snapshot?.globalHandleId,
-      globalHandleFinish: snapshot?.globalHandleFinish,
-      doorSettingsMode: snapshot?.doorSettingsMode,
-      selectedAccessories: snapshot?.selectedAccessories ?? {},
-      slidingDoors: Boolean(snapshot?.slidingDoors),
-    };
-    const pricing = calculateCutList(
-      pricingSnapshot,
-      pricingMaterials,
-      handlesWithFinishes,
-      accessoriesWithVariants,
-      enabledAccessoryRules,
-    );
-    const previewBaseTotal = Math.round(pricing.totalCost);
-    const previewAreaM2 = pricing.totalArea;
-    const boardCount = countBoardsExcludingShelvesAndBacks(pricing.items);
-    const compartmentCount = computeCompartmentCount(snapshot);
-
-    // Build rule context
-    const ruleContext: RuleContext = {
-      wardrobe: {
-        width: Number(snapshot?.width ?? 0),
-        height: Number(snapshot?.height ?? 0),
-        depth: Number(snapshot?.depth ?? 0),
-        area: previewAreaM2,
-        columnCount,
-        shelfCount,
-        compartmentCount,
-        doorCount,
-        drawerCount,
-        boardCount,
-        hasBase: Boolean(snapshot?.hasBase),
-        hasDoors: doorCount > 0,
-        hasDrawers: drawerCount > 0,
-        hasMirror,
-        slidingDoors: Boolean(snapshot?.slidingDoors),
-        hasRod: rodCount > 0,
-        hasLed: ledCount > 0,
-        hasVerticalDivider: verticalDividerCount > 0,
-        rodCount,
-        ledCount,
-        verticalDividerCount,
-        baseHeight: snapshot?.hasBase ? Number(snapshot?.baseHeight ?? 0) : 0,
-        ...doorMetrics,
-        material: {
-          id: resolvedMaterialId,
-          name: matMap.get(resolvedMaterialId) ?? "",
+    const result = previewPrice(
+      {
+        snapshot,
+        materialId,
+        frontMaterialId,
+        backMaterialId,
+        edgeMaterialId,
+        frontEdgeMaterialId,
+        customer: {
+          tags: userTags,
+          email:
+            (typeof customerEmail === "string" && customerEmail) ||
+            session?.user?.email ||
+            undefined,
+          orderCount: previousOrderCount,
         },
-        frontMaterial: {
-          id: resolvedFrontMaterialId,
-          name: matMap.get(resolvedFrontMaterialId) ?? "",
-        },
-        backMaterial: resolvedBackMaterialId
-          ? {
-              id: resolvedBackMaterialId,
-              name: matMap.get(resolvedBackMaterialId) ?? "",
-            }
-          : undefined,
+        shippingCity,
+        installationService,
       },
-      customer: {
-        tags: userTags,
-        email:
-          (typeof customerEmail === "string" && customerEmail) ||
-          session?.user?.email ||
-          undefined,
-        orderCount: previousOrderCount,
-      },
-      order: {
-        total: previewBaseTotal,
-        city:
-          typeof shippingCity === "string" && shippingCity.length > 0
-            ? shippingCity
-            : undefined,
-      },
-    };
-
-    // Fetch and apply rules
-    const enabledRules = await db
-      .select()
-      .from(rules)
-      .where(eq(rules.enabled, true))
-      .orderBy(asc(rules.priority), asc(rules.createdAt));
-
-    const adjustments = applyRules(
-      enabledRules as Rule[],
-      ruleContext,
-      previewBaseTotal,
+      await loadPricingCatalog(),
     );
-    const baseAdjustedTotal = calculateFinalPrice(
-      previewBaseTotal,
-      adjustments,
-    );
-    const subtotalAfterRules =
-      adjustments.length > 0 ? baseAdjustedTotal : previewBaseTotal;
-    const normalizedInstallationService =
-      typeof installationService === "string" &&
-      isInstallationServiceType(installationService)
-        ? installationService
-        : undefined;
-    const installationAdjustment = buildInstallationServiceAdjustment(
-      subtotalAfterRules,
-      normalizedInstallationService,
-    );
-    const combinedAdjustments = installationAdjustment
-      ? [...adjustments, installationAdjustment]
-      : adjustments;
-    const visibleAdjustments = getVisibleAdjustments(combinedAdjustments);
-    const adjustedTotal =
-      combinedAdjustments.length > 0
-        ? subtotalAfterRules + (installationAdjustment?.amount ?? 0)
-        : previewBaseTotal;
 
     return NextResponse.json({
-      adjustedTotal: combinedAdjustments.length > 0 ? adjustedTotal : null,
-      visibleAdjustments:
-        visibleAdjustments.length > 0
-          ? visibleAdjustments.map((a) => ({
-              description: a.description,
-              amount: a.amount,
-            }))
-          : null,
+      adjustedTotal: result.adjustedTotal,
+      visibleAdjustments: result.visibleAdjustments,
     });
   } catch (err) {
     console.error("[rules/preview]", err);

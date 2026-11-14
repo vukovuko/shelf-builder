@@ -52,10 +52,11 @@ const routes: LegacyRoute[] = Object.entries(modules)
   // "users/role" must win over "users/[id]", as it does in Next.
   .sort((a, b) => a.dynamic - b.dynamic);
 
-// Saves under these paths change what the public catalog pages show, so the
-// catalog cache starts over after each (src/server/edge-cache.server.ts).
+// Saves under these paths change what the public catalog pages show or what
+// a wardrobe costs (the price guide in llms.txt), so the catalog cache starts
+// over after each (src/server/edge-cache.server.ts).
 const CHANGES_CATALOG =
-  /^admin\/(materials|handles|accessories|settings)(\/|$)/;
+  /^admin\/(materials|handles|accessories|settings|rules|accessory-rules)(\/|$)/;
 
 async function dispatch({
   request,

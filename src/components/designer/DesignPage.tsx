@@ -10,7 +10,17 @@ import {
   clearDesignDraft,
   readDesignDraft,
 } from "@/lib/design-draft";
+import {
+  applyOuterSize,
+  SIZE_PARAM_NAMES,
+  sizeFromSearch,
+} from "@/lib/default-design";
 import { resetDesignHistory, startDesignHistory } from "@/lib/design-history";
+import {
+  DEPTH_RANGE_CM,
+  HEIGHT_RANGE_CM,
+  WIDTH_RANGE_CM,
+} from "@/lib/design-import/validate";
 import { modelForHandle } from "@/lib/handle-models";
 import {
   isBackMaterialCategory,
@@ -151,14 +161,51 @@ export default function DesignPage({
 
   // State persistence: Restore from localStorage on mount
   // Priority: 1. URL load param (handled by LoadFromUrl)
-  //           2. pendingWardrobeState (login flow)
-  //           3. the autosaved draft (lib/design-draft)
+  //           2. dimensions named in the URL
+  //           3. pendingWardrobeState (login flow)
+  //           4. the autosaved draft (lib/design-draft)
   useEffect(() => {
     if (hasRestoredState) return;
 
     // Check for URL load param - if present, LoadFromUrl will handle it
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("load")) {
+      setHasRestoredState(true);
+      return;
+    }
+
+    // A link that names dimensions (llms.txt tells AI assistants to give
+    // one) opens a new wardrobe of that size. The visitor's own unfinished
+    // design stays saved until they change this one, and one click away.
+    const linked = sizeFromSearch(urlParams, {
+      width: WIDTH_RANGE_CM,
+      height: HEIGHT_RANGE_CM,
+      depth: DEPTH_RANGE_CM,
+    });
+    if (linked) {
+      const previous = readDesignDraft();
+      useShelfStore.getState().resetToDefaults();
+      applyOuterSize(linked);
+      // Only these keys go: a link may also name a decor or a handle, which
+      // is applied further down once the catalogs have loaded.
+      for (const key of SIZE_PARAM_NAMES) urlParams.delete(key);
+      const rest = urlParams.toString();
+      const path = window.location.pathname;
+      window.history.replaceState({}, "", rest ? `${path}?${rest}` : path);
+      if (previous) {
+        toast("Otvoren je orman sa merama iz linka", {
+          // Long enough to notice and decide: it is the way back to their
+          // own design.
+          duration: 12_000,
+          action: {
+            label: "Vrati moj dizajn",
+            onClick: () => {
+              useShelfStore.getState().resetToDefaults();
+              applyWardrobeSnapshot(previous.snapshot);
+            },
+          },
+        });
+      }
       setHasRestoredState(true);
       return;
     }

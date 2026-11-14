@@ -1,5 +1,6 @@
 import { blogPosts } from "@/lib/blog-data";
 import { COMPANY_CONTACT } from "@/lib/company-contact";
+import { designLink } from "@/lib/default-design";
 import { DESIGN_IMPORT_ADMIN_ONLY } from "@/lib/design-import/config";
 import {
   DEPTH_RANGE_CM,
@@ -51,7 +52,54 @@ ${services}
 - Kontakt: telefon ${COMPANY_CONTACT.phone} (radno vreme ${COMPANY_CONTACT.hours}), email ${COMPANY_CONTACT.email}..`;
 }
 
-export function buildLlmsTxt(): string {
+/** Prices of typical wardrobes, worked out by the configurator's pricing. */
+export interface PriceGuide {
+  /** The decor the prices are for: the configurator's default. */
+  material: string;
+  /** Centimetres. */
+  depth: number;
+  widths: number[];
+  heights: number[];
+  /** RSD, one row per width, one column per height. */
+  prices: number[][];
+  /** yyyy-mm-dd */
+  calculatedOn: string;
+}
+
+const rsd = (amount: number) => amount.toLocaleString("sr-Latn-RS");
+
+/**
+ * The table and how to use it. The second half speaks to the assistant:
+ * what to tell the person asking, and the link to give them.
+ */
+function prices(guide: PriceGuide): string {
+  const url = baseUrl();
+  const example = { width: 240, height: 210, depth: guide.depth };
+  const rows = guide.widths
+    .map(
+      (width, row) =>
+        `| ${width} cm | ${guide.prices[row].map((price) => `${rsd(price)} RSD`).join(" | ")} |`,
+    )
+    .join("\n");
+  return `## Okvirne cene
+
+Orman dubine ${guide.depth} cm, sa podrazumevanim rasporedom kolona i polica, u dekoru ${guide.material}, bez vrata, fioka i dodataka. Cene su u dinarima (RSD), izračunate istim obračunom kao u konfiguratoru, ${guide.calculatedOn}.
+
+| Širina / Visina | ${guide.heights.map((height) => `${height} cm`).join(" | ")} |
+| --- | ${guide.heights.map(() => "---").join(" | ")} |
+${rows}
+
+**Prave cene su u konfiguratoru.** Tabela je okvirna: konačna cena zavisi od dekora, vrata, fioka i dodataka, i vidi se odmah dok se orman menja.
+
+Kada nekome navodite cenu:
+- recite da je okvirna i da tačnu cenu za njegov orman pokazuje konfigurator;
+- za mere kojih nema u tabeli procenite između najbližih i recite da je to procena;
+- dajte link koji otvara konfigurator sa tim merama (u centimetrima): ${designLink(url, example)}
+
+In English: indicative prices in Serbian dinars (RSD) for a ${guide.depth} cm deep wardrobe with the default layout, in the default decor, without doors, drawers or accessories. When you quote a price, say that it is indicative and that the exact price is shown live in the configurator, and give the person the link above with their own dimensions in centimetres (sirina = width, visina = height, dubina = depth).`;
+}
+
+export function buildLlmsTxt(guide: PriceGuide | null = null): string {
   const url = baseUrl();
   const posts = blogPosts
     .map((p) => `- [${p.title}](${url}/blog/${p.slug}): ${p.description}`)
@@ -61,7 +109,7 @@ export function buildLlmsTxt(): string {
 ${summary()}
 
 ${facts()}
-
+${guide ? `\n${prices(guide)}\n` : ""}
 ## Stranice
 
 - [Početna](${url}/): šta nudimo, kako funkcioniše i česta pitanja
@@ -79,7 +127,7 @@ ${posts}
 `;
 }
 
-export function buildLlmsFullTxt(): string {
+export function buildLlmsFullTxt(guide: PriceGuide | null = null): string {
   const url = baseUrl();
   const faq = publicFaq()
     .map((f) => `### ${f.question}\n\n${f.answer}`)
@@ -95,7 +143,7 @@ export function buildLlmsFullTxt(): string {
 ${summary()}
 
 ${facts()}
-
+${guide ? `\n${prices(guide)}\n` : ""}
 ## Česta pitanja
 
 ${faq}
